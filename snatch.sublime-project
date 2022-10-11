@@ -1,0 +1,72 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+		}
+	],
+	"settings":
+	{
+		"cmake":
+		{
+			"build_folder": "$folder/build",
+		},
+		"ClangFormat":
+		{
+		    "format_on_save": true,
+		},
+	},
+	"build_systems":
+	[
+		{
+			"file_regex": "(.+[^:]):(\\d+):(\\d+): (?:fatal )?((?:error|warning): .+)$",
+			"name": "snatch (Linux)",
+			"shell_cmd": "make -j12",
+			"syntax": "Packages/CMakeBuilder/Syntax/Make.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "clean",
+					"shell_cmd": "make -j12 clean",
+				},
+				{
+					"name": "install",
+					"shell_cmd": "make -j12 install",
+				},
+				{
+					"name": "install/local",
+					"shell_cmd": "make -j12 install/local",
+				},
+				{
+					"name": "install/strip",
+					"shell_cmd": "make -j12 install/strip",
+				},
+				{
+					"name": "list_install_components",
+					"shell_cmd": "make -j12 list_install_components",
+				},
+				{
+					"name": "rebuild_cache",
+					"shell_cmd": "make -j12 rebuild_cache",
+				},
+				{
+					"name": "snatch",
+					"shell_cmd": "make -j12 snatch",
+				},
+				{
+					"name": "src/snatch.o",
+					"shell_cmd": "make -j12 src/snatch.o",
+				},
+				{
+					"name": "src/snatch.i",
+					"shell_cmd": "make -j12 src/snatch.i",
+				},
+				{
+					"name": "src/snatch.s",
+					"shell_cmd": "make -j12 src/snatch.s",
+				}
+			],
+			"working_dir": "$folder/build",
+		}
+	],
+}
