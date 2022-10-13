@@ -7,6 +7,7 @@ set(SNATCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed
 set(SNATCH_MAX_MATCHER_MSG_LENGTH 1024 CACHE STRING "Maximum length of matcher error message when reporting failure.")
 set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
 set(SNATCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snatch -- disable to provide your own main() function.")
+set(SNATCH_WITH_CXXOPTS           OFF  CACHE BOOL   "If SNATCH_DEFINE_MAIN is ON, use cxxopts for a nicer command-line interface.")
 
 add_library(snatch ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
 
@@ -22,6 +23,8 @@ target_compile_definitions(snatch PUBLIC
   SNATCH_MAX_TEST_CASES=${SNATCH_MAX_TEST_CASES}
   SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
   SNATCH_MAX_MATCHER_MSG_LENGTH=${SNATCH_MAX_MATCHER_MSG_LENGTH}
-  SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH})
+  SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}
+  SNATCH_DEFINE_MAIN=${SNATCH_DEFINE_MAIN}
+  SNATCH_WITH_CXXOPTS=${SNATCH_WITH_CXXOPTS})
 
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)

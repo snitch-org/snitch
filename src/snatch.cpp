@@ -1,9 +1,14 @@
 #include "snatch.hpp"
 
-#include "cxxopts.hpp"
-
 #include <cstring>
 #include <set>
+
+#if !defined(SNATCH_DEFINE_MAIN)
+#    define SNATCH_DEFINE_MAIN 1
+#endif
+#if !defined(SNATCH_WITH_CXXOPTS)
+#    define SNATCH_WITH_CXXOPTS 0
+#endif
 
 namespace testing::impl::color {
 const char* error_start      = "\x1b[1;31m";
@@ -408,7 +413,13 @@ const impl::test_case* registry::end() const noexcept {
 registry tests;
 } // namespace testing
 
+#if SNATCH_DEFINE_MAIN
+#    if SNATCH_WITH_CXXOPTS
+#        include "cxxopts.hpp"
+#    endif
+
 int main(int argc, char* argv[]) {
+#    if SNATCH_WITH_CXXOPTS
     cxxopts::Options options(argv[0], "Snatch test runner");
 
     // clang-format off
@@ -462,4 +473,13 @@ int main(int argc, char* argv[]) {
     }
 
     return success ? 0 : 1;
+#    else
+    if (argc > 1) {
+        return testing::tests.run_tests_matching_name(argv[1]);
+    } else {
+        return testing::tests.run_all_tests() ? 0 : 1;
+    }
+#    endif
 }
+
+#endif
