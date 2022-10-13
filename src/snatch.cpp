@@ -126,14 +126,14 @@ constexpr const char* get_format_code() noexcept {
 }
 
 template<typename T>
-bool append_fmt(small_string& ss, T value) noexcept {
+bool append_fmt(basic_small_string& ss, T value) noexcept {
     const std::size_t length = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
 
     const bool could_fit = length <= ss.available();
 
-    const std::size_t offset     = ss.length();
+    const std::size_t offset     = ss.size();
     const std::size_t prev_space = ss.available();
-    ss.resize(std::min(ss.length() + length, ss.capacity()));
+    ss.resize(std::min(ss.size() + length, ss.capacity()));
     std::snprintf(ss.begin() + offset, prev_space, get_format_code<T>(), value);
 
     return could_fit;
@@ -141,52 +141,52 @@ bool append_fmt(small_string& ss, T value) noexcept {
 } // namespace
 
 namespace testing::impl {
-bool append(small_string& ss, std::string_view str) noexcept {
-    const bool        could_fit  = str.length() <= ss.available();
-    const std::size_t copy_count = std::min(str.length(), ss.available());
+bool append(basic_small_string& ss, std::string_view str) noexcept {
+    const bool        could_fit  = str.size() <= ss.available();
+    const std::size_t copy_count = std::min(str.size(), ss.available());
 
-    const std::size_t offset = ss.length();
+    const std::size_t offset = ss.size();
     ss.grow(copy_count);
     std::memcpy(ss.begin() + offset, str.data(), copy_count);
 
     return could_fit;
 }
 
-bool append(small_string& ss, const void* ptr) noexcept {
+bool append(basic_small_string& ss, const void* ptr) noexcept {
     return append_fmt(ss, ptr);
 }
 
-bool append(small_string& ss, std::nullptr_t) noexcept {
+bool append(basic_small_string& ss, std::nullptr_t) noexcept {
     return append(ss, "nullptr");
 }
 
-bool append(small_string& ss, std::size_t i) noexcept {
+bool append(basic_small_string& ss, std::size_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(small_string& ss, std::ptrdiff_t i) noexcept {
+bool append(basic_small_string& ss, std::ptrdiff_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(small_string& ss, float f) noexcept {
+bool append(basic_small_string& ss, float f) noexcept {
     return append_fmt(ss, f);
 }
 
-bool append(small_string& ss, double d) noexcept {
+bool append(basic_small_string& ss, double d) noexcept {
     return append_fmt(ss, d);
 }
 
-bool append(small_string& ss, bool value) noexcept {
+bool append(basic_small_string& ss, bool value) noexcept {
     return append(ss, value ? "true" : "false");
 }
 
-bool append(small_string& ss, const std::string& str) noexcept {
+bool append(basic_small_string& ss, const std::string& str) noexcept {
     return append(ss, std::string_view(str));
 }
 
-void truncate_end(small_string& ss) noexcept {
+void truncate_end(basic_small_string& ss) noexcept {
     std::size_t num_dots     = 3;
-    std::size_t final_length = std::min(ss.capacity(), ss.length() + num_dots);
+    std::size_t final_length = std::min(ss.capacity(), ss.size() + num_dots);
     std::size_t offset       = final_length >= num_dots ? final_length - num_dots : 0;
     num_dots                 = final_length - offset;
 
