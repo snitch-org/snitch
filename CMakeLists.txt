@@ -6,6 +6,7 @@ set(SNATCH_MAX_TEST_CASES         5000 CACHE STRING "Maximum number of test case
 set(SNATCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
 set(SNATCH_MAX_MATCHER_MSG_LENGTH 1024 CACHE STRING "Maximum length of matcher error message when reporting failure.")
 set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
+set(SNATCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
 set(SNATCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snatch -- disable to provide your own main() function.")
 set(SNATCH_WITH_CXXOPTS           OFF  CACHE BOOL   "If SNATCH_DEFINE_MAIN is ON, use cxxopts for a nicer command-line interface.")
 
@@ -23,6 +24,7 @@ target_compile_definitions(snatch PUBLIC
   SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
   SNATCH_MAX_MATCHER_MSG_LENGTH=${SNATCH_MAX_MATCHER_MSG_LENGTH}
   SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}
+  SNATCH_MAX_UNIQUE_TAGS=${SNATCH_MAX_UNIQUE_TAGS}
   SNATCH_DEFINE_MAIN=${SNATCH_DEFINE_MAIN}
   SNATCH_WITH_CXXOPTS=${SNATCH_WITH_CXXOPTS})
 

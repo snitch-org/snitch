@@ -19,6 +19,9 @@
 #if !defined(SNATCH_MAX_TEST_NAME_LENGTH)
 #    define SNATCH_MAX_TEST_NAME_LENGTH 1'024
 #endif
+#if !defined(SNATCH_MAX_UNIQUE_TAGS)
+#    define SNATCH_MAX_UNIQUE_TAGS 1'024
+#endif
 
 // Testing framework configuration.
 // --------------------------------
@@ -37,6 +40,8 @@ constexpr std::size_t max_matcher_msg_length = SNATCH_MAX_MATCHER_MSG_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
+// Maximum number of unique tags in the whole program.
+constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
 } // namespace testing
 
 // Forward declarations.
@@ -115,6 +120,8 @@ struct test_case {
     std::size_t      tests = 0;
 };
 
+[[noreturn]] void terminate_with(std::string_view msg) noexcept;
+
 template<typename ElemType>
 class basic_small_vector {
     ElemType*   buffer_ptr  = nullptr;
@@ -141,10 +148,36 @@ public:
         data_size = 0;
     }
     constexpr void resize(std::size_t size) noexcept {
+        if (size <= buffer_size) {
+            impl::terminate_with("small vector is full");
+        }
+
         data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
+        if (data_size + elem <= buffer_size) {
+            impl::terminate_with("small vector is full");
+        }
+
         data_size += elem;
+    }
+    constexpr ElemType&
+    push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
+        if (data_size == buffer_size) {
+            impl::terminate_with("small vector is full");
+        }
+
+        ++data_size;
+        return buffer_ptr[data_size - 1] = t;
+    }
+    constexpr ElemType&
+    push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
+        if (data_size == buffer_size) {
+            impl::terminate_with("small vector is full");
+        }
+
+        ++data_size;
+        return buffer_ptr[data_size - 1] = std::move(t);
     }
     constexpr ElemType* data() noexcept {
         return buffer_ptr;
@@ -199,6 +232,10 @@ public:
     }
     constexpr void grow(std::size_t elem) noexcept {
         vector.grow(elem);
+    }
+    template<typename U>
+    constexpr ElemType& push_back(U&& t) noexcept(noexcept(vector.push_back(t))) {
+        return vector.push_back(t);
     }
     constexpr ElemType* data() noexcept {
         return data_buffer.data();
@@ -266,6 +303,9 @@ public:
     }
     constexpr void grow(std::size_t chars) noexcept {
         vector.grow(chars);
+    }
+    constexpr char& push_back(char t) noexcept {
+        return vector.push_back(t);
     }
     constexpr char* data() noexcept {
         return data_buffer.data();

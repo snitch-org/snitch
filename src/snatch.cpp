@@ -1,7 +1,6 @@
 #include "snatch/snatch.hpp"
 
 #include <cstring>
-#include <set>
 
 #if !defined(SNATCH_DEFINE_MAIN)
 #    define SNATCH_DEFINE_MAIN 1
@@ -146,6 +145,12 @@ bool append_fmt(basic_small_string& ss, T value) noexcept {
 } // namespace
 
 namespace testing::impl {
+[[noreturn]] void terminate_with(std::string_view msg) noexcept {
+    std::printf(
+        "terminate called with message: %.*s\n", static_cast<int>(msg.length()), msg.data());
+    std::terminate();
+}
+
 bool append(basic_small_string& ss, std::string_view str) noexcept {
     const bool        could_fit  = str.size() <= ss.available();
     const std::size_t copy_count = std::min(str.size(), ss.available());
@@ -366,12 +371,18 @@ bool registry::run_tests_with_tag(std::string_view tag) noexcept {
 }
 
 void registry::list_all_tags() const noexcept {
-    std::set<std::string_view> tags;
+    impl::small_vector<std::string_view, max_unique_tags> tags;
     for (std::size_t i = 0; i < test_count; ++i) {
         const auto& t = test_list[i];
 
-        for_each_tag(t.tags, [&](std::string_view v) { tags.insert(v); });
+        for_each_tag(t.tags, [&](std::string_view v) {
+            if (std::find(tags.begin(), tags.end(), v) == tags.end()) {
+                tags.push_back(v);
+            }
+        });
     }
+
+    std::sort(tags.begin(), tags.end());
 
     for (auto c : tags) {
         std::printf("%.*s\n", static_cast<int>(c.length()), c.data());
