@@ -18,7 +18,6 @@ target_include_directories(snatch PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-install(FILES ${PROJECT_SOURCE_DIR}/include/snatch.hpp
 target_compile_definitions(snatch PUBLIC
   SNATCH_MAX_TEST_CASES=${SNATCH_MAX_TEST_CASES}
   SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
@@ -27,4 +26,5 @@ target_compile_definitions(snatch PUBLIC
   SNATCH_DEFINE_MAIN=${SNATCH_DEFINE_MAIN}
   SNATCH_WITH_CXXOPTS=${SNATCH_WITH_CXXOPTS})
 
+install(FILES ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)

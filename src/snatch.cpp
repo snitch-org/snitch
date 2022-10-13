@@ -1,4 +1,4 @@
-#include "snatch.hpp"
+#include "snatch/snatch.hpp"
 
 #include <cstring>
 #include <set>
