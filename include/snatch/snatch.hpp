@@ -531,8 +531,8 @@ const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
 
 namespace snatch::matchers {
 struct contains_substring {
-    mutable impl::small_string<max_matcher_msg_length> description;
-    std::string_view                                   pattern;
+    mutable impl::small_string<max_matcher_msg_length> description_buffer;
+    std::string_view                                   substring_pattern;
 
     explicit contains_substring(std::string_view pattern) noexcept;
 
@@ -556,6 +556,33 @@ struct with_what_contains : private contains_substring {
 };
 } // namespace snatch::matchers
 
+// Compiler warning handling.
+// --------------------------
+
+// clang-format off
+#if defined(__clang__)
+#    define WARNING_PUSH _Pragma("clang diagnostic push")
+#    define WARNING_POP _Pragma("clang diagnostic pop")
+#    define WARNING_DISABLE_PARENTHESES _Pragma("clang diagnostic ignored \"-Wparentheses\"")
+#    define WARNING_DISABLE_CONSTANT_COMPARISON do {} while (0)
+#elif defined(__GNUC__)
+#    define WARNING_PUSH _Pragma("GCC diagnostic push")
+#    define WARNING_POP _Pragma("GCC diagnostic pop")
+#    define WARNING_DISABLE_PARENTHESES _Pragma("GCC diagnostic ignored \"-Wparentheses\"")
+#    define WARNING_DISABLE_CONSTANT_COMPARISON do {} while (0)
+#elif defined(_MSC_VER)
+#    define WARNING_PUSH do {} _Pragma("warning(push)")
+#    define WARNING_POP do {} _Pragma("warning(pop)")
+#    define WARNING_DISABLE_PARENTHESES do {} while (0)
+#    define WARNING_DISABLE_CONSTANT_COMPARISON _Pragma("warning(disable: 4127)")
+#else
+#    define WARNING_PUSH do {} while (0)
+#    define WARNING_POP do {} while (0)
+#    define WARNING_DISABLE_PARENTHESES do {} while (0)
+#    define WARNING_DISABLE_CONSTANT_COMPARISON do {} while (0)
+#endif
+// clang-format on
+
 // Test macros.
 // ------------
 
@@ -576,6 +603,9 @@ struct with_what_contains : private contains_substring {
 #define REQUIRE(EXP)                                                                               \
     do {                                                                                           \
         ++CURRENT_CASE.tests;                                                                      \
+        WARNING_PUSH;                                                                              \
+        WARNING_DISABLE_PARENTHESES;                                                               \
+        WARNING_DISABLE_CONSTANT_COMPARISON;                                                       \
         if (!(EXP)) {                                                                              \
             const auto EXP2 = TESTING_EXPR(EXP);                                                   \
             snatch::tests.print_failure();                                                         \
@@ -583,11 +613,15 @@ struct with_what_contains : private contains_substring {
             snatch::tests.print_details_expr("REQUIRE", #EXP, EXP2);                               \
             throw snatch::impl::test_state::failed;                                                \
         }                                                                                          \
+        WARNING_POP;                                                                               \
     } while (0)
 
 #define CHECK(EXP)                                                                                 \
     do {                                                                                           \
         ++CURRENT_CASE.tests;                                                                      \
+        WARNING_PUSH;                                                                              \
+        WARNING_DISABLE_PARENTHESES;                                                               \
+        WARNING_DISABLE_CONSTANT_COMPARISON;                                                       \
         if (!(EXP)) {                                                                              \
             const auto EXP2 = TESTING_EXPR(EXP);                                                   \
             snatch::tests.print_failure();                                                         \
@@ -595,6 +629,7 @@ struct with_what_contains : private contains_substring {
             snatch::tests.print_details_expr("CHECK", #EXP, EXP2);                                 \
             snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);               \
         }                                                                                          \
+        WARNING_POP;                                                                               \
     } while (0)
 
 #define FAIL(MESSAGE)                                                                              \

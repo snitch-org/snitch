@@ -11,17 +11,17 @@
 #    define SNATCH_WITH_CXXOPTS 0
 #endif
 
-namespace snatch::impl::color {
-const char* error_start      = "\x1b[1;31m";
-const char* warning_start    = "\x1b[1;33m";
-const char* status_start     = "\x1b[1;36m";
-const char* fail_start       = "\x1b[1;31m";
-const char* skipped_start    = "\x1b[1;33m";
-const char* pass_start       = "\x1b[1;32m";
-const char* highlight1_start = "\x1b[1;35m";
-const char* highlight2_start = "\x1b[1;36m";
-const char* reset            = "\x1b[0m";
-} // namespace snatch::impl::color
+namespace { namespace color {
+const char* error_start [[maybe_unused]]      = "\x1b[1;31m";
+const char* warning_start [[maybe_unused]]    = "\x1b[1;33m";
+const char* status_start [[maybe_unused]]     = "\x1b[1;36m";
+const char* fail_start [[maybe_unused]]       = "\x1b[1;31m";
+const char* skipped_start [[maybe_unused]]    = "\x1b[1;33m";
+const char* pass_start [[maybe_unused]]       = "\x1b[1;32m";
+const char* highlight1_start [[maybe_unused]] = "\x1b[1;35m";
+const char* highlight2_start [[maybe_unused]] = "\x1b[1;36m";
+const char* reset [[maybe_unused]]            = "\x1b[0m";
+}} // namespace ::color
 
 namespace {
 using namespace snatch;
@@ -133,9 +133,13 @@ constexpr const char* get_format_code() noexcept {
 
 template<typename T>
 bool append_fmt(basic_small_string& ss, T value) noexcept {
-    const std::size_t length = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
+    const int return_code = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
+    if (return_code < 0) {
+        return false;
+    }
 
-    const bool could_fit = length <= ss.available();
+    const std::size_t length    = static_cast<std::size_t>(return_code);
+    const bool        could_fit = length <= ss.available();
 
     const std::size_t offset     = ss.size();
     const std::size_t prev_space = ss.available();
@@ -205,19 +209,21 @@ void truncate_end(basic_small_string& ss) noexcept {
 } // namespace snatch::impl
 
 namespace snatch::matchers {
-contains_substring::contains_substring(std::string_view pattern) noexcept : pattern(pattern) {}
+contains_substring::contains_substring(std::string_view pattern) noexcept :
+    substring_pattern(pattern) {}
 
 bool contains_substring::match(std::string_view message) const noexcept {
-    return message.find(pattern) != message.npos;
+    return message.find(substring_pattern) != message.npos;
 }
 
 std::string_view contains_substring::describe_fail(std::string_view message) const noexcept {
-    description.clear();
-    if (!append(description, "could not find '", pattern, "' in '", message, "'")) {
-        truncate_end(description);
+    description_buffer.clear();
+    if (!append(
+            description_buffer, "could not find '", substring_pattern, "' in '", message, "'")) {
+        truncate_end(description_buffer);
     }
 
-    return description.str();
+    return description_buffer.str();
 }
 
 with_what_contains::with_what_contains(std::string_view pattern) noexcept :
