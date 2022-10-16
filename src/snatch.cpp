@@ -266,11 +266,15 @@ void registry::print_location(
 
     std::printf(
         "running test case \"%s%.*s%s\"\n"
-        "          at %s:%d\n"
-        "          for type %s%.*s%s\n",
+        "          at %s:%d\n",
         color::highlight1_start, static_cast<int>(current_case.name.length()),
-        current_case.name.data(), color::reset, filename, line_number, color::highlight1_start,
-        static_cast<int>(current_case.type.length()), current_case.type.data(), color::reset);
+        current_case.name.data(), color::reset, filename, line_number);
+
+    if (!current_case.type.empty()) {
+        std::printf(
+            "          for type %s%.*s%s\n", color::highlight1_start,
+            static_cast<int>(current_case.type.length()), current_case.type.data(), color::reset);
+    }
 }
 
 void registry::print_failure() const noexcept {
