@@ -28,6 +28,7 @@ The goal of `snatch` is to be a simple, cheap, non-invasive, and user-friendly t
 
 If you need features that are not in the list above, please use Catch2.
 
+
 ## Example
 
 This is the same example code as in the [Catch2 tutorials](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md):
@@ -67,6 +68,7 @@ TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside std
 Output:
 
 ![Screenshot from 2022-10-16 16-16-50](https://user-images.githubusercontent.com/2236577/196043558-ed9ab329-5934-4bb3-a422-b48d6781cf96.png)
+
 
 ## Benchmark
 
