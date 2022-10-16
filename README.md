@@ -132,7 +132,8 @@ This is similar to `REQUIRE`, except that on failure the test case continues. Fu
 
 `FAIL(MSG);`
 
-TODO
+This reports a test failure with the message `MSG`. The current test case is stopped. Execution then continues with the next test case, if any.
+
 
 `FAIL_CHECK(MSG);`
 
@@ -141,19 +142,23 @@ This is similar to `FAIL`, except that the test case continues. Further failures
 
 `SKIP(MSG);`
 
-TODO
+This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
+
 
 `REQUIRE_THROWS_AS(EXPR, EXCEPT);`
 
-TODO
+This evaluates the expression `EXPR` inside a `try/catch` block, and attempts to catch an exception of type `EXCEPT`. If no exception is thrown, or an exception of a different type is thrown, then this reports a test failulre. On failure, the current test case is stopped. Execution then continues with the next test case, if any.
+
 
 `CHECK_THROWS_AS(EXPR, EXCEPT);`
 
 This is similar to `REQUIRE_THROWS_AS`, except that on failure the test case continues. Further failures may be reported in the same test case.
 
+
 `REQUIRE_THROWS_MATCHES(EXPR, EXCEPT, MATCHER);`
 
-TODO
+This is similar to `REQUIRE_THROWS_AS`, but further checks the content of the exception that has been caught. The caught exception is given to the matcher object specified in `MATCHER` (see [Matchers](#matchers)). If the exception object is not a match, then this reports a test failure.
+
 
 `CHECK_THROWS_MATCHES(EXPR, EXCEPT, MATCHER);`
 
