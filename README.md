@@ -96,12 +96,12 @@ The following benchmark was done using tests from another library ([observable_u
 
 Results:
 
-| Task | _Catch2_ | snatch |
-|------|--------|--------|
-| Build framework | 48s | 0.7s |
-| Build tests | 91s | 67s |
-| Build tests + framework | 139s | 68s |
-| Run tests | 51ms | 12ms |
+| Task                    | _Catch2_ | _snatch_ |
+|-------------------------|----------|----------|
+| Build framework         | 48s      | 0.7s     |
+| Build tests             | 91s      | 67s      |
+| Build tests + framework | 139s     | 68s      |
+| Run tests               | 51ms     | 12ms     |
 
 
 ## Documentation
