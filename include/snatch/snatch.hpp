@@ -81,14 +81,7 @@ constexpr std::string_view get_type_name() noexcept {
 
     return function.substr(start, size);
 }
-} // namespace snatch::impl
 
-namespace snatch {
-template<typename T>
-constexpr std::string_view type_name = impl::get_type_name<T>();
-}
-
-namespace snatch::impl {
 template<typename T>
 struct proxy;
 
@@ -517,6 +510,14 @@ struct expression {
 #undef EXPR_OPERATOR
 };
 } // namespace snatch::impl
+
+// Utilities.
+// ----------
+
+namespace snatch {
+template<typename T>
+constexpr std::string_view type_name = impl::get_type_name<T>();
+} // namespace snatch
 
 // Test registry.
 // --------------
