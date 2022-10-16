@@ -4,6 +4,7 @@
 #include <array> // for small_vector
 #include <cstddef> // for std::size_t
 #include <exception> // for std::exception
+#include <initializer_list> // for std::initializer_list
 #include <string_view> // for all strings
 #include <tuple> // for typed tests
 #include <type_traits> // for std::is_nothrow_*
@@ -130,7 +131,7 @@ class basic_small_vector {
     std::size_t data_size   = 0;
 
 public:
-    constexpr explicit basic_small_vector(ElemType* b, std::size_t bl) :
+    constexpr explicit basic_small_vector(ElemType* b, std::size_t bl) noexcept :
         buffer_ptr(b), buffer_size(bl) {}
 
     constexpr std::size_t capacity() const noexcept {
@@ -149,14 +150,14 @@ public:
         data_size = 0;
     }
     constexpr void resize(std::size_t size) noexcept {
-        if (size <= buffer_size) {
+        if (size > buffer_size) {
             impl::terminate_with("small vector is full");
         }
 
         data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
-        if (data_size + elem <= buffer_size) {
+        if (data_size + elem > buffer_size) {
             impl::terminate_with("small vector is full");
         }
 
@@ -169,7 +170,11 @@ public:
         }
 
         ++data_size;
-        return buffer_ptr[data_size - 1] = t;
+
+        ElemType& elem = buffer_ptr[data_size - 1];
+        elem           = t;
+
+        return elem;
     }
     constexpr ElemType&
     push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
@@ -178,7 +183,10 @@ public:
         }
 
         ++data_size;
-        return buffer_ptr[data_size - 1] = std::move(t);
+        ElemType& elem = buffer_ptr[data_size - 1];
+        elem           = std::move(t);
+
+        return elem;
     }
     constexpr ElemType& back() noexcept {
         if (data_size == 0) {
@@ -227,6 +235,31 @@ class small_vector {
         basic_small_vector<ElemType>(data_buffer.data(), MaxLength);
 
 public:
+    constexpr small_vector() noexcept = default;
+    constexpr small_vector(const small_vector& other) noexcept {
+        data_buffer = other.data_buffer;
+        vector.resize(other.vector.size());
+    }
+    constexpr small_vector(small_vector&& other) noexcept {
+        data_buffer = other.data_buffer;
+        vector.resize(other.vector.size());
+    }
+    constexpr small_vector(std::initializer_list<ElemType> list) noexcept(
+        noexcept(vector.push_back(std::declval<ElemType>()))) {
+        for (const auto& e : list) {
+            push_back(e);
+        }
+    }
+    constexpr small_vector& operator=(const small_vector& other) noexcept {
+        data_buffer = other.data_buffer;
+        vector.resize(other.vector.size());
+        return *this;
+    }
+    constexpr small_vector& operator=(small_vector&& other) noexcept {
+        data_buffer = other.data_buffer;
+        vector.resize(other.vector.size());
+        return *this;
+    }
     constexpr std::size_t capacity() const noexcept {
         return MaxLength;
     }
@@ -288,6 +321,18 @@ public:
     constexpr operator const basic_small_vector<ElemType> &() const noexcept {
         return vector;
     }
+    constexpr ElemType& operator[](std::size_t i) noexcept {
+        if (i >= size()) {
+            impl::terminate_with("operator[] called with incorrect index");
+        }
+        return data()[i];
+    }
+    constexpr const ElemType& operator[](std::size_t i) const noexcept {
+        if (i >= size()) {
+            impl::terminate_with("operator[] called with incorrect index");
+        }
+        return data()[i];
+    }
 };
 
 using basic_small_string = basic_small_vector<char>;
@@ -298,6 +343,31 @@ class small_string {
     basic_small_string          vector = basic_small_string(data_buffer.data(), MaxLength);
 
 public:
+    constexpr small_string() noexcept = default;
+    constexpr small_string(const small_string& other) noexcept {
+        vector.resize(other.vector.size());
+        data_buffer = other.data_buffer;
+    }
+    constexpr small_string(small_string&& other) noexcept {
+        vector.resize(other.vector.size());
+        data_buffer = other.data_buffer;
+    }
+    constexpr small_string(std::string_view str) noexcept {
+        vector.resize(str.size());
+        for (std::size_t i = 0; i < str.size(); ++i) {
+            data_buffer[i] = str[i];
+        }
+    }
+    constexpr small_string& operator=(const small_string& other) noexcept {
+        data_buffer = other.data_buffer;
+        vector.resize(other.vector.size());
+        return *this;
+    }
+    constexpr small_string& operator=(small_string&& other) noexcept {
+        data_buffer = other.data_buffer;
+        vector.resize(other.vector.size());
+        return *this;
+    }
     constexpr std::string_view str() const noexcept {
         return std::string_view(data(), length());
     }
@@ -571,8 +641,8 @@ struct with_what_contains : private contains_substring {
 #    define WARNING_DISABLE_PARENTHESES _Pragma("GCC diagnostic ignored \"-Wparentheses\"")
 #    define WARNING_DISABLE_CONSTANT_COMPARISON do {} while (0)
 #elif defined(_MSC_VER)
-#    define WARNING_PUSH do {} _Pragma("warning(push)")
-#    define WARNING_POP do {} _Pragma("warning(pop)")
+#    define WARNING_PUSH _Pragma("warning(push)")
+#    define WARNING_POP _Pragma("warning(pop)")
 #    define WARNING_DISABLE_PARENTHESES do {} while (0)
 #    define WARNING_DISABLE_CONSTANT_COMPARISON _Pragma("warning(disable: 4127)")
 #else

@@ -3,6 +3,7 @@
 #include <algorithm> // for std::sort
 #include <cstdio> // for std::printf
 #include <cstring> // for std::memcpy
+#include <optional> // for std::optional
 
 #if !defined(SNATCH_DEFINE_MAIN)
 #    define SNATCH_DEFINE_MAIN 1
@@ -10,6 +11,9 @@
 #if !defined(SNATCH_WITH_CXXOPTS)
 #    define SNATCH_WITH_CXXOPTS 0
 #endif
+
+// Testing framework implementation utilities.
+// -------------------------------------------
 
 namespace { namespace color {
 const char* error_start [[maybe_unused]]      = "\x1b[1;31m";
@@ -28,7 +32,7 @@ using namespace snatch;
 using namespace snatch::impl;
 
 template<typename F>
-bool run_tests(registry& r, F&& predicate) {
+bool run_tests(registry& r, F&& predicate) noexcept {
     bool        success         = true;
     std::size_t run_count       = 0;
     std::size_t fail_count      = 0;
@@ -64,7 +68,7 @@ bool run_tests(registry& r, F&& predicate) {
 }
 
 template<typename F>
-void list_tests(const registry& r, F&& predicate) {
+void list_tests(const registry& r, F&& predicate) noexcept {
     for (const test_case& t : r) {
         if (!predicate(t)) {
             continue;
@@ -81,7 +85,7 @@ void list_tests(const registry& r, F&& predicate) {
 }
 
 template<typename F>
-void for_each_tag(std::string_view s, F&& callback) {
+void for_each_tag(std::string_view s, F&& callback) noexcept {
     std::string_view delim    = ",";
     std::size_t      pos      = s.find(delim);
     std::size_t      last_pos = 0u;
@@ -98,20 +102,20 @@ void for_each_tag(std::string_view s, F&& callback) {
     callback(s.substr(last_pos));
 }
 
-std::size_t get_full_name_length(const test_case& t) {
-    // +3 for " []" surrounding the type
-    return t.name.length() + (t.type.length() != 0 ? 0 : t.type.length() + 3);
-}
-
 std::string_view
-make_full_name(std::array<char, max_test_name_length>& buffer, const test_case& t) {
-    std::memcpy(buffer.data(), t.name.data(), t.name.length());
+make_full_name(small_string<max_test_name_length>& buffer, const test_case& t) noexcept {
+    buffer.clear();
     if (t.type.length() != 0) {
-        std::memcpy(buffer.data() + t.name.length(), " [", 2);
-        std::memcpy(buffer.data() + t.name.length() + 2, t.type.data(), t.type.length());
-        std::memcpy(buffer.data() + t.name.length() + t.type.length() + 2, "]", 1);
+        if (!append(buffer, t.name, " [", t.type, "]")) {
+            return {};
+        }
+    } else {
+        if (!append(buffer, t.name)) {
+            return {};
+        }
     }
-    return std::string_view(buffer.data(), get_full_name_length(t));
+
+    return buffer.str();
 }
 
 template<typename T>
@@ -149,6 +153,9 @@ bool append_fmt(basic_small_string& ss, T value) noexcept {
     return could_fit;
 }
 } // namespace
+
+// Testing framework implementation.
+// ---------------------------------
 
 namespace snatch::impl {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
@@ -244,7 +251,8 @@ void registry::register_test(
 
     test_list.push_back(test_case{name, tags, type, func});
 
-    if (get_full_name_length(test_list.back()) > max_test_name_length) {
+    small_string<max_test_name_length> buffer;
+    if (make_full_name(buffer, test_list.back()).empty()) {
         std::printf(
             "%serror:%s max length of test name reached; "
             "please increase 'max_test_name_length' (currently %zu)\n.",
@@ -351,7 +359,7 @@ bool registry::run_all_tests() noexcept {
 }
 
 bool registry::run_tests_matching_name(std::string_view name) noexcept {
-    std::array<char, max_test_name_length> buffer;
+    small_string<max_test_name_length> buffer;
     return run_tests(*this, [&](const test_case& t) {
         std::string_view v = make_full_name(buffer, t);
 
@@ -433,72 +441,303 @@ registry tests;
 } // namespace snatch
 
 #if SNATCH_DEFINE_MAIN
-#    if SNATCH_WITH_CXXOPTS
-#        include "cxxopts.hpp"
-#    endif
+
+// Main entry point utilities.
+// ---------------------------
+
+namespace {
+using namespace std::literals;
+
+constexpr std::size_t max_command_line_args = 1024;
+constexpr std::size_t max_arg_names         = 2;
+
+enum class argument_type { optional, mandatory };
+
+struct expected_argument {
+    small_vector<std::string_view, max_arg_names> names;
+    std::optional<std::string_view>               value_name;
+    std::string_view                              description;
+    argument_type                                 type = argument_type::optional;
+};
+
+using expected_arguments = small_vector<expected_argument, max_command_line_args>;
+
+struct argument {
+    std::string_view                name;
+    std::optional<std::string_view> value_name;
+    std::optional<std::string_view> value;
+};
+
+using arguments = small_vector<argument, max_command_line_args>;
+
+std::optional<arguments>
+parse_arguments(int argc, char* argv[], const expected_arguments& expected) noexcept {
+    std::optional<arguments> ret(std::in_place);
+    auto&                    args = *ret;
+    bool                     bad  = false;
+
+    // Check validity of inputs
+    small_vector<bool, max_command_line_args> expected_found;
+    for (const auto& e : expected) {
+        expected_found.push_back(false);
+        if (!e.names.empty()) {
+            if (e.names.size() == 1) {
+                if (!e.names[0].starts_with('-')) {
+                    terminate_with("option name must start with '-' or '--'");
+                }
+            } else {
+                if (!(e.names[0].starts_with('-') && e.names[1].starts_with("--"))) {
+                    terminate_with("option names must be given with '-' first and '--' second");
+                }
+            }
+        } else {
+            if (!e.value_name.has_value()) {
+                terminate_with("positional argument must have a value name");
+            }
+        }
+    }
+
+    // Parse
+    for (int argi = 1; argi < argc; ++argi) {
+        std::string_view arg(argv[argi]);
+        if (arg.starts_with('-')) {
+            bool found = false;
+            for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
+                const auto& e = expected[arg_index];
+
+                if (e.names.empty()) {
+                    continue;
+                }
+
+                if (std::find(e.names.cbegin(), e.names.cend(), arg) == e.names.cend()) {
+                    continue;
+                }
+
+                found = true;
+
+                if (expected_found[arg_index]) {
+                    printf(
+                        "%serror:%s duplicate command line argument '%.*s'\n", color::error_start,
+                        color::reset, static_cast<int>(arg.size()), arg.data());
+                    bad = true;
+                    break;
+                }
+
+                expected_found[arg_index] = true;
+
+                if (e.value_name) {
+                    if (argi + 1 == argc) {
+                        printf(
+                            "%serror:%s missing value '<%.*s>' for command line argument '%.*s'\n",
+                            color::error_start, color::reset,
+                            static_cast<int>(e.value_name->size()), e.value_name->data(),
+                            static_cast<int>(arg.size()), arg.data());
+                        bad = true;
+                        break;
+                    }
+
+                    argi += 1;
+                    args.push_back(
+                        argument{e.names.back(), e.value_name, {std::string_view(argv[argi])}});
+                } else {
+                    args.push_back(argument{e.names.back(), {}, {}});
+                }
+
+                break;
+            }
+
+            if (!found) {
+                printf(
+                    "%swarning:%s unknown command line argument '%.*s'\n", color::warning_start,
+                    color::reset, static_cast<int>(arg.size()), arg.data());
+            }
+        } else {
+            bool found = false;
+            for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
+                const auto& e = expected[arg_index];
+
+                if (!e.names.empty() || expected_found[arg_index]) {
+                    continue;
+                }
+
+                found = true;
+
+                args.push_back(argument{""sv, e.value_name, {arg}});
+                expected_found[arg_index] = true;
+                break;
+            }
+
+            if (!found) {
+                printf(
+                    "%serror:%s too many positional arguments\n", color::error_start, color::reset);
+                bad = true;
+            }
+        }
+    }
+
+    for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
+        const auto& e = expected[arg_index];
+        if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
+            if (e.names.empty()) {
+                printf(
+                    "%serror:%s missing positional argument '<%.*s>'\n", color::error_start,
+                    color::reset, static_cast<int>(e.value_name->size()), e.value_name->data());
+            } else {
+                printf(
+                    "%serror:%s missing option '<%.*s>'\n", color::error_start, color::reset,
+                    static_cast<int>(e.names.back().size()), e.names.back().data());
+            }
+            bad = true;
+        }
+    }
+
+    if (bad) {
+        ret.reset();
+    }
+
+    return ret;
+}
+
+void print_help(
+    std::string_view          program_name,
+    std::string_view          program_description,
+    const expected_arguments& expected) {
+
+    // Print program desription
+    printf(
+        "%s%.*s%s\n", color::highlight2_start, static_cast<int>(program_description.size()),
+        program_description.data(), color::reset);
+
+    // Print command line usage example
+    printf("%sUsage:%s\n", color::pass_start, color::reset);
+    printf("  %.*s", static_cast<int>(program_name.size()), program_name.data());
+    if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
+        printf(" [options...]");
+    }
+    for (const auto& e : expected) {
+        if (e.names.empty()) {
+            if (e.type == argument_type::mandatory) {
+                printf(" <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+            } else {
+                printf(" [<%.*s>]", static_cast<int>(e.value_name->size()), e.value_name->data());
+            }
+        }
+    }
+    printf("\n\n");
+
+    // List arguments
+    for (const auto& e : expected) {
+        printf("  ");
+        printf("%s", color::highlight1_start);
+        if (!e.names.empty()) {
+            if (e.names[0].starts_with("--")) {
+                printf("    ");
+            }
+
+            printf("%.*s", static_cast<int>(e.names[0].size()), e.names[0].data());
+            if (e.names.size() == 2) {
+                printf(", %.*s", static_cast<int>(e.names[1].size()), e.names[1].data());
+            }
+
+            if (e.value_name) {
+                printf(" <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+            }
+        } else {
+            printf("<%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+        }
+        printf("%s", color::reset);
+        printf(" %.*s\n", static_cast<int>(e.description.size()), e.description.data());
+    }
+}
+
+std::optional<argument> get_option(const arguments& args, std::string_view name) {
+    std::optional<argument> ret;
+
+    auto iter =
+        std::find_if(args.cbegin(), args.cend(), [&](const auto& arg) { return arg.name == name; });
+
+    if (iter != args.cend()) {
+        ret = *iter;
+    }
+
+    return ret;
+}
+
+std::optional<argument> get_positional_argument(const arguments& args, std::string_view name) {
+    std::optional<argument> ret;
+
+    auto iter = std::find_if(args.cbegin(), args.cend(), [&](const auto& arg) {
+        return arg.name.empty() && arg.value_name == name;
+    });
+
+    if (iter != args.cend()) {
+        ret = *iter;
+    }
+
+    return ret;
+}
+} // namespace
+
+// Main entry point.
+// -----------------
 
 int main(int argc, char* argv[]) {
-#    if SNATCH_WITH_CXXOPTS
-    cxxopts::Options options(argv[0], "Snatch test runner");
-
     // clang-format off
-    options.add_options()
-        ("tests", "A regex to select which test cases to run", cxxopts::value<std::string>())
-        ("l,list-tests", "List tests by name")
-        ("list-tags", "List tags by name")
-        ("list-tests-with-tag", "List tests by name with a given tag", cxxopts::value<std::string>())
-        ("t,tags", "Use tags for filtering, not name")
-        ("v,verbose", "Enable detailed output")
-        ("h,help", "Print help");
+    const expected_arguments expected = {
+        {{"-l", "--list-tests"},    {},             "List tests by name"},
+        {{"--list-tags"},           {},             "List tags by name"},
+        {{"--list-tests-with-tag"}, {"tag"},        "List tests by name with a given tag"},
+        {{"-t", "--tags"},          {},             "Use tags for filtering, not name"},
+        {{"-v", "--verbose"},       {},             "Enable detailed output"},
+        {{"-h", "--help"},          {},             "Print help"},
+        {{},                        {"test regex"}, "A regex to select which test cases (or tags) to run"}};
     // clang-format on
 
-    options.parse_positional({"tests"});
+    std::optional<arguments> ret_args = parse_arguments(argc, argv, expected);
+    if (!ret_args) {
+        printf("\n");
+        print_help(argv[0], "Snatch test runner"sv, expected);
+        return 1;
+    }
 
-    auto result = options.parse(argc, argv);
+    arguments& args = *ret_args;
 
-    if (result.count("help") > 0) {
-        std::cout << options.help() << std::endl;
+    if (get_option(args, "--help")) {
+        print_help(argv[0], "Snatch test runner"sv, expected);
         return 0;
     }
 
-    if (result.count("list-tests") > 0) {
+    if (get_option(args, "--list-tests")) {
         snatch::tests.list_all_tests();
         return 0;
     }
 
-    if (result.count("list-tests-with-tag") > 0) {
-        snatch::tests.list_tests_with_tag(result["list-tests-with-tag"].as<std::string>());
+    if (auto opt = get_option(args, "--list-tests-with-tag")) {
+        snatch::tests.list_tests_with_tag(*opt->value);
         return 0;
     }
 
-    if (result.count("list-tags") > 0) {
+    if (get_option(args, "--list-tags")) {
         snatch::tests.list_all_tags();
         return 0;
     }
 
-    if (result.count("verbose") > 0) {
+    if (get_option(args, "--verbose")) {
         snatch::tests.verbose = true;
     }
 
     bool success = true;
-    if (result.count("tests") > 0) {
-        if (result.count("tags") > 0) {
-            success = snatch::tests.run_tests_with_tag(result["tests"].as<std::string>());
+    if (auto opt = get_positional_argument(args, "test regex")) {
+        if (get_option(args, "--tags")) {
+            success = snatch::tests.run_tests_with_tag(*opt->value);
         } else {
-            success = snatch::tests.run_tests_matching_name(result["tests"].as<std::string>());
+            success = snatch::tests.run_tests_matching_name(*opt->value);
         }
     } else {
         success = snatch::tests.run_all_tests();
     }
 
     return success ? 0 : 1;
-#    else
-    if (argc > 1) {
-        return snatch::tests.run_tests_matching_name(argv[1]);
-    } else {
-        return snatch::tests.run_all_tests() ? 0 : 1;
-    }
-#    endif
 }
 
 #endif
