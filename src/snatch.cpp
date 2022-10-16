@@ -86,16 +86,16 @@ void list_tests(const registry& r, F&& predicate) noexcept {
 
 template<typename F>
 void for_each_tag(std::string_view s, F&& callback) noexcept {
-    std::string_view delim    = ",";
+    std::string_view delim    = "][";
     std::size_t      pos      = s.find(delim);
     std::size_t      last_pos = 0u;
 
     while (pos != std::string_view::npos) {
         std::size_t cur_size = pos - last_pos;
         if (cur_size != 0) {
-            callback(s.substr(last_pos, cur_size));
+            callback(s.substr(last_pos, cur_size + 1));
         }
-        last_pos = pos + delim.size();
+        last_pos = pos + 1;
         pos      = s.find(delim, last_pos);
     }
 
