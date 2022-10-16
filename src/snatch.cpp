@@ -244,7 +244,7 @@ void registry::register_test(
     if (test_list.size() == test_list.capacity()) {
         std::printf(
             "%serror:%s max number of test cases reached; "
-            "please increase 'max_test_cases' (currently %zu)\n.",
+            "please increase 'SNATCH_MAX_TEST_CASES' (currently %zu)\n.",
             color::error_start, color::reset, max_test_cases);
         std::terminate();
     }
@@ -255,7 +255,7 @@ void registry::register_test(
     if (make_full_name(buffer, test_list.back()).empty()) {
         std::printf(
             "%serror:%s max length of test name reached; "
-            "please increase 'max_test_name_length' (currently %zu)\n.",
+            "please increase 'SNATCH_MAX_TEST_NAME_LENGTH' (currently %zu)\n.",
             color::error_start, color::reset, max_test_name_length);
         std::terminate();
     }
@@ -392,7 +392,7 @@ void registry::list_all_tags() const noexcept {
                 if (tags.size() == tags.capacity()) {
                     std::printf(
                         "%serror:%s max number of tags reached; "
-                        "please increase 'max_unique_tags' (currently %zu)\n.",
+                        "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently %zu)\n.",
                         color::error_start, color::reset, max_unique_tags);
                     std::terminate();
                 }
