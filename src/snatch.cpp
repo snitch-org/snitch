@@ -136,7 +136,7 @@ constexpr const char* get_format_code() noexcept {
 }
 
 template<typename T>
-bool append_fmt(basic_small_string& ss, T value) noexcept {
+bool append_fmt(small_string_span ss, T value) noexcept {
     const int return_code = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
     if (return_code < 0) {
         return false;
@@ -164,7 +164,7 @@ namespace snatch::impl {
     std::terminate();
 }
 
-bool append(basic_small_string& ss, std::string_view str) noexcept {
+bool append(small_string_span ss, std::string_view str) noexcept {
     const bool        could_fit  = str.size() <= ss.available();
     const std::size_t copy_count = std::min(str.size(), ss.available());
 
@@ -175,35 +175,35 @@ bool append(basic_small_string& ss, std::string_view str) noexcept {
     return could_fit;
 }
 
-bool append(basic_small_string& ss, const void* ptr) noexcept {
+bool append(small_string_span ss, const void* ptr) noexcept {
     return append_fmt(ss, ptr);
 }
 
-bool append(basic_small_string& ss, std::nullptr_t) noexcept {
+bool append(small_string_span ss, std::nullptr_t) noexcept {
     return append(ss, "nullptr");
 }
 
-bool append(basic_small_string& ss, std::size_t i) noexcept {
+bool append(small_string_span ss, std::size_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(basic_small_string& ss, std::ptrdiff_t i) noexcept {
+bool append(small_string_span ss, std::ptrdiff_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(basic_small_string& ss, float f) noexcept {
+bool append(small_string_span ss, float f) noexcept {
     return append_fmt(ss, f);
 }
 
-bool append(basic_small_string& ss, double d) noexcept {
+bool append(small_string_span ss, double d) noexcept {
     return append_fmt(ss, d);
 }
 
-bool append(basic_small_string& ss, bool value) noexcept {
+bool append(small_string_span ss, bool value) noexcept {
     return append(ss, value ? "true" : "false");
 }
 
-void truncate_end(basic_small_string& ss) noexcept {
+void truncate_end(small_string_span ss) noexcept {
     std::size_t num_dots     = 3;
     std::size_t final_length = std::min(ss.capacity(), ss.size() + num_dots);
     std::size_t offset       = final_length >= num_dots ? final_length - num_dots : 0;
