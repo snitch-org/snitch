@@ -441,7 +441,7 @@ const impl::test_case* registry::end() const noexcept {
     return test_list.end();
 }
 
-registry tests;
+constinit registry tests;
 } // namespace snatch
 
 #if SNATCH_DEFINE_MAIN

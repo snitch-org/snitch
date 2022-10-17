@@ -578,7 +578,7 @@ public:
     const impl::test_case* end() const noexcept;
 };
 
-extern registry tests;
+extern constinit registry tests;
 } // namespace snatch
 
 // Implementation details.
