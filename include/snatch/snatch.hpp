@@ -118,14 +118,14 @@ struct test_case {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
 
 template<typename ElemType>
-class basic_small_vector {
-    ElemType*   buffer_ptr  = nullptr;
-    std::size_t buffer_size = 0;
-    std::size_t data_size   = 0;
+class small_vector_span {
+    ElemType*    buffer_ptr  = nullptr;
+    std::size_t  buffer_size = 0;
+    std::size_t* data_size   = nullptr;
 
 public:
-    constexpr explicit basic_small_vector(ElemType* b, std::size_t bl) noexcept :
-        buffer_ptr(b), buffer_size(bl) {}
+    constexpr explicit small_vector_span(ElemType* b, std::size_t bl, std::size_t* s) noexcept :
+        buffer_ptr(b), buffer_size(bl), data_size(s) {}
 
     constexpr std::size_t capacity() const noexcept {
         return buffer_size;
@@ -134,66 +134,66 @@ public:
         return capacity() - size();
     }
     constexpr std::size_t size() const noexcept {
-        return data_size;
+        return *data_size;
     }
     constexpr bool empty() const noexcept {
-        return data_size == 0;
+        return *data_size == 0;
     }
     constexpr void clear() noexcept {
-        data_size = 0;
+        *data_size = 0;
     }
     constexpr void resize(std::size_t size) noexcept {
         if (size > buffer_size) {
             impl::terminate_with("small vector is full");
         }
 
-        data_size = size;
+        *data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
-        if (data_size + elem > buffer_size) {
+        if (*data_size + elem > buffer_size) {
             impl::terminate_with("small vector is full");
         }
 
-        data_size += elem;
+        *data_size += elem;
     }
     constexpr ElemType&
     push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
-        if (data_size == buffer_size) {
+        if (*data_size == buffer_size) {
             impl::terminate_with("small vector is full");
         }
 
-        ++data_size;
+        ++*data_size;
 
-        ElemType& elem = buffer_ptr[data_size - 1];
+        ElemType& elem = buffer_ptr[*data_size - 1];
         elem           = t;
 
         return elem;
     }
     constexpr ElemType&
     push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
-        if (data_size == buffer_size) {
+        if (*data_size == buffer_size) {
             impl::terminate_with("small vector is full");
         }
 
-        ++data_size;
-        ElemType& elem = buffer_ptr[data_size - 1];
+        ++*data_size;
+        ElemType& elem = buffer_ptr[*data_size - 1];
         elem           = std::move(t);
 
         return elem;
     }
     constexpr ElemType& back() noexcept {
-        if (data_size == 0) {
+        if (*data_size == 0) {
             impl::terminate_with("back() called on empty vector");
         }
 
-        return buffer_ptr[data_size - 1];
+        return buffer_ptr[*data_size - 1];
     }
     constexpr const ElemType& back() const noexcept {
-        if (data_size == 0) {
+        if (*data_size == 0) {
             impl::terminate_with("back() called on empty vector");
         }
 
-        return buffer_ptr[data_size - 1];
+        return buffer_ptr[*data_size - 1];
     }
     constexpr ElemType* data() noexcept {
         return buffer_ptr;
@@ -218,71 +218,68 @@ public:
     }
     constexpr const ElemType* cend() const noexcept {
         return begin() + size();
+    }
+    constexpr ElemType& operator[](std::size_t i) noexcept {
+        if (i >= size()) {
+            impl::terminate_with("operator[] called with incorrect index");
+        }
+        return buffer_ptr[i];
+    }
+    constexpr const ElemType& operator[](std::size_t i) const noexcept {
+        if (i >= size()) {
+            impl::terminate_with("operator[] called with incorrect index");
+        }
+        return buffer_ptr[i];
     }
 };
 
 template<typename ElemType, std::size_t MaxLength>
 class small_vector {
     std::array<ElemType, MaxLength> data_buffer;
-    basic_small_vector<ElemType>    vector =
-        basic_small_vector<ElemType>(data_buffer.data(), MaxLength);
+    std::size_t                     data_size = 0;
 
 public:
-    constexpr small_vector() noexcept = default;
-    constexpr small_vector(const small_vector& other) noexcept {
-        data_buffer = other.data_buffer;
-        vector.resize(other.vector.size());
-    }
-    constexpr small_vector(small_vector&& other) noexcept {
-        data_buffer = other.data_buffer;
-        vector.resize(other.vector.size());
-    }
+    constexpr small_vector() noexcept                          = default;
+    constexpr small_vector(const small_vector& other) noexcept = default;
+    constexpr small_vector(small_vector&& other) noexcept      = default;
     constexpr small_vector(std::initializer_list<ElemType> list) noexcept(
-        noexcept(vector.push_back(std::declval<ElemType>()))) {
+        noexcept(span().push_back(std::declval<ElemType>()))) {
         for (const auto& e : list) {
-            push_back(e);
+            span().push_back(e);
         }
     }
-    constexpr small_vector& operator=(const small_vector& other) noexcept {
-        data_buffer = other.data_buffer;
-        vector.resize(other.vector.size());
-        return *this;
-    }
-    constexpr small_vector& operator=(small_vector&& other) noexcept {
-        data_buffer = other.data_buffer;
-        vector.resize(other.vector.size());
-        return *this;
-    }
-    constexpr std::size_t capacity() const noexcept {
+    constexpr small_vector& operator=(const small_vector& other) noexcept = default;
+    constexpr small_vector& operator=(small_vector&& other) noexcept = default;
+    constexpr std::size_t   capacity() const noexcept {
         return MaxLength;
     }
     constexpr std::size_t available() const noexcept {
-        return vector.available();
+        return MaxLength - data_size;
     }
     constexpr std::size_t size() const noexcept {
-        return vector.size();
+        return data_size;
     }
     constexpr bool empty() const noexcept {
-        return vector.empty();
+        return data_size == 0u;
     }
     constexpr void clear() noexcept {
-        vector.clear();
+        span().clear();
     }
     constexpr void resize(std::size_t size) noexcept {
-        vector.resize(size);
+        span().resize(size);
     }
     constexpr void grow(std::size_t elem) noexcept {
-        vector.grow(elem);
+        span().grow(elem);
     }
     template<typename U>
-    constexpr ElemType& push_back(U&& t) noexcept(noexcept(vector.push_back(t))) {
-        return vector.push_back(t);
+    constexpr ElemType& push_back(U&& t) noexcept(noexcept(this->span().push_back(t))) {
+        return this->span().push_back(t);
     }
     constexpr ElemType& back() noexcept {
-        return vector.back();
+        return span().back();
     }
     constexpr const ElemType& back() const noexcept {
-        return vector.back();
+        return const_cast<small_vector*>(this)->span().back();
     }
     constexpr ElemType* data() noexcept {
         return data_buffer.data();
@@ -308,59 +305,39 @@ public:
     constexpr const ElemType* cend() const noexcept {
         return begin() + size();
     }
-    constexpr operator basic_small_vector<ElemType> &() noexcept {
-        return vector;
+    constexpr small_vector_span<ElemType> span() noexcept {
+        return small_vector_span<ElemType>(data_buffer.data(), MaxLength, &data_size);
     }
-    constexpr operator const basic_small_vector<ElemType> &() const noexcept {
-        return vector;
+    constexpr operator small_vector_span<ElemType>() noexcept {
+        return span();
     }
     constexpr ElemType& operator[](std::size_t i) noexcept {
-        if (i >= size()) {
-            impl::terminate_with("operator[] called with incorrect index");
-        }
-        return data()[i];
+        return span()[i];
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (i >= size()) {
-            impl::terminate_with("operator[] called with incorrect index");
-        }
-        return data()[i];
+        return const_cast<small_vector*>(this)->span()[i];
     }
 };
 
-using basic_small_string = basic_small_vector<char>;
+using small_string_span = small_vector_span<char>;
 
 template<std::size_t MaxLength>
 class small_string {
     std::array<char, MaxLength> data_buffer;
-    basic_small_string          vector = basic_small_string(data_buffer.data(), MaxLength);
+    std::size_t                 data_size = 0u;
 
 public:
-    constexpr small_string() noexcept = default;
-    constexpr small_string(const small_string& other) noexcept {
-        vector.resize(other.vector.size());
-        data_buffer = other.data_buffer;
-    }
-    constexpr small_string(small_string&& other) noexcept {
-        vector.resize(other.vector.size());
-        data_buffer = other.data_buffer;
-    }
+    constexpr small_string() noexcept                          = default;
+    constexpr small_string(const small_string& other) noexcept = default;
+    constexpr small_string(small_string&& other) noexcept      = default;
     constexpr small_string(std::string_view str) noexcept {
-        vector.resize(str.size());
+        resize(str.size());
         for (std::size_t i = 0; i < str.size(); ++i) {
             data_buffer[i] = str[i];
         }
     }
-    constexpr small_string& operator=(const small_string& other) noexcept {
-        data_buffer = other.data_buffer;
-        vector.resize(other.vector.size());
-        return *this;
-    }
-    constexpr small_string& operator=(small_string&& other) noexcept {
-        data_buffer = other.data_buffer;
-        vector.resize(other.vector.size());
-        return *this;
-    }
+    constexpr small_string&    operator=(const small_string& other) noexcept = default;
+    constexpr small_string&    operator=(small_string&& other) noexcept = default;
     constexpr std::string_view str() const noexcept {
         return std::string_view(data(), length());
     }
@@ -368,34 +345,34 @@ public:
         return MaxLength;
     }
     constexpr std::size_t available() const noexcept {
-        return vector.available();
+        return MaxLength - data_size;
     }
     constexpr std::size_t size() const noexcept {
-        return vector.size();
+        return data_size;
     }
     constexpr std::size_t length() const noexcept {
-        return vector.size();
+        return data_size;
     }
     constexpr bool empty() const noexcept {
-        return vector.empty();
+        return data_size == 0u;
     }
     constexpr void clear() noexcept {
-        vector.clear();
+        span().clear();
     }
     constexpr void resize(std::size_t length) noexcept {
-        vector.resize(length);
+        span().resize(length);
     }
     constexpr void grow(std::size_t chars) noexcept {
-        vector.grow(chars);
+        span().grow(chars);
     }
     constexpr char& push_back(char t) noexcept {
-        return vector.push_back(t);
+        return span().push_back(t);
     }
     constexpr char& back() noexcept {
-        return vector.back();
+        return span().back();
     }
     constexpr const char& back() const noexcept {
-        return vector.back();
+        return span().back();
     }
     constexpr char* data() noexcept {
         return data_buffer.data();
@@ -421,25 +398,25 @@ public:
     constexpr const char* cend() const noexcept {
         return begin() + length();
     }
-    constexpr operator basic_small_string&() noexcept {
-        return vector;
+    constexpr small_string_span span() noexcept {
+        return small_string_span(data_buffer.data(), MaxLength, &data_size);
     }
-    constexpr operator const basic_small_string&() const noexcept {
-        return vector;
+    constexpr operator small_string_span() noexcept {
+        return span();
     }
 };
 
-[[nodiscard]] bool append(basic_small_string& ss, std::string_view value) noexcept;
+[[nodiscard]] bool append(small_string_span ss, std::string_view value) noexcept;
 
-[[nodiscard]] bool append(basic_small_string& ss, const void* ptr) noexcept;
-[[nodiscard]] bool append(basic_small_string& ss, std::nullptr_t) noexcept;
-[[nodiscard]] bool append(basic_small_string& ss, std::size_t i) noexcept;
-[[nodiscard]] bool append(basic_small_string& ss, std::ptrdiff_t i) noexcept;
-[[nodiscard]] bool append(basic_small_string& ss, float f) noexcept;
-[[nodiscard]] bool append(basic_small_string& ss, double f) noexcept;
-[[nodiscard]] bool append(basic_small_string& ss, bool value) noexcept;
+[[nodiscard]] bool append(small_string_span ss, const void* ptr) noexcept;
+[[nodiscard]] bool append(small_string_span ss, std::nullptr_t) noexcept;
+[[nodiscard]] bool append(small_string_span ss, std::size_t i) noexcept;
+[[nodiscard]] bool append(small_string_span ss, std::ptrdiff_t i) noexcept;
+[[nodiscard]] bool append(small_string_span ss, float f) noexcept;
+[[nodiscard]] bool append(small_string_span ss, double f) noexcept;
+[[nodiscard]] bool append(small_string_span ss, bool value) noexcept;
 template<typename T>
-[[nodiscard]] bool append(basic_small_string& ss, T* ptr) noexcept {
+[[nodiscard]] bool append(small_string_span ss, T* ptr) noexcept {
     if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
         return append(ss, std::string_view(ptr));
     } else {
@@ -447,19 +424,19 @@ template<typename T>
     }
 }
 template<std::size_t N>
-[[nodiscard]] bool append(basic_small_string& ss, const char str[N]) noexcept {
+[[nodiscard]] bool append(small_string_span ss, const char str[N]) noexcept {
     return append(ss, std::string_view(str));
 }
 
 template<typename T, typename U, typename... Args>
-[[nodiscard]] bool append(basic_small_string& ss, T&& t, U&& u, Args&&... args) noexcept {
+[[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
     if (!append(ss, std::forward<T>(t))) {
         return false;
     }
     return append(ss, std::forward<U>(u), std::forward<Args>(args)...);
 }
 
-void truncate_end(basic_small_string& ss) noexcept;
+void truncate_end(small_string_span ss) noexcept;
 
 struct expression {
     small_string<max_expr_length> data;
@@ -578,7 +555,7 @@ public:
     const impl::test_case* end() const noexcept;
 };
 
-extern registry tests;
+extern constinit registry tests;
 } // namespace snatch
 
 // Implementation details.
