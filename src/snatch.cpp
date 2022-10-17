@@ -36,6 +36,7 @@ bool run_tests(registry& r, F&& predicate) noexcept {
     bool        success         = true;
     std::size_t run_count       = 0;
     std::size_t fail_count      = 0;
+    std::size_t skip_count      = 0;
     std::size_t assertion_count = 0;
 
     for (test_case& t : r) {
@@ -50,19 +51,28 @@ bool run_tests(registry& r, F&& predicate) noexcept {
         if (t.state == test_state::failed) {
             ++fail_count;
             success = false;
+        } else if (t.state == test_state::skipped) {
+            ++skip_count;
         }
     }
 
     std::printf("==========================================\n");
+
     if (success) {
         std::printf(
-            "%ssuccess:%s all tests passed (%zu test cases, %zu assertions)\n", color::pass_start,
+            "%ssuccess:%s all tests passed (%zu test cases, %zu assertions", color::pass_start,
             color::reset, run_count, assertion_count);
     } else {
         std::printf(
-            "%serror:%s some tests failed (%zu out of %zu test cases, %zu assertions)\n",
+            "%serror:%s some tests failed (%zu out of %zu test cases, %zu assertions",
             color::fail_start, color::reset, fail_count, run_count, assertion_count);
     }
+
+    if (skip_count > 0) {
+        std::printf(", %zu test cases skipped", skip_count);
+    }
+
+    std::printf(")\n");
 
     return success;
 }
@@ -321,6 +331,7 @@ void registry::run(test_case& t) noexcept {
     t.tests = 0;
     t.state = test_state::success;
 
+#if SNATCH_WITH_EXCEPTIONS
     try {
         t.func(t);
     } catch (const test_state& s) {
@@ -337,6 +348,9 @@ void registry::run(test_case& t) noexcept {
         print_details("unhandled unknown exception caught");
         t.state = test_state::failed;
     }
+#else
+    t.func(t);
+#endif
 
     if (verbose) {
         std::printf("%sfinished:%s %s", color::status_start, color::reset, color::highlight1_start);

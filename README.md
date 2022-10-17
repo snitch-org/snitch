@@ -6,20 +6,23 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
 <!-- MarkdownTOC autolink="true" -->
 
-- [Features](#features)
+- [Features and limitations](#features-and-limitations)
 - [Example](#example)
 - [Benchmark](#benchmark)
 - [Documentation](#documentation)
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
+    - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
+    - [Exceptions](#exceptions)
 
 <!-- /MarkdownTOC -->
 
-## Features
+## Features and limitations
 
  - No heap allocation from the testing framework.
+ - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
  - Simple reporting of test results to the standard output, with coloring for readability.
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
@@ -27,20 +30,19 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
+   - Optional `main()` with simple command-line API similar to _Catch2_.
    - Additional API not in _Catch2_, or different from _Catch2_:
      - Macro to mark a test as skipped: `SKIP(msg)`.
      - Matchers use a different API (see [Matchers](#matchers) below).
- - Optional `main()` with simple command-line API:
-     - positional argument for filtering tests by name.
-     - `-h,--help`: show command line help.
-     - `-l,--list-tests`: list all tests.
-     - `--list-tags`: list all tags.
-     - `--verbose`: turn on verbose mode.
-     - `--list-tests-with-tag`: list all tests with a given tag.
-     - `--tags`: filter tests by tags instead of by name.
- - Exceptions are only used to abort a test when the `REQUIRE*` macros report a failure. If you cannot use exceptions; use the `CHECK*` macros instead.
 
 If you need features that are not in the list above, please use _Catch2_.
+
+Notable current limitations:
+
+ - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
+ - No set-up/tear-down helpers.
+ - Only reports to the standard output; no custom reporter.
+ - No multi-threaded test execution.
 
 
 ## Example
@@ -121,6 +123,8 @@ This is similar to `TEST_CASE`, except that it declares a new test case for each
 
 ### Test check macros
 
+The following macros can be used inside a test body, either immediately in the body itself, or inside a lambda function defined inside the body (if the lambda uses automatic by-reference capture, `[&]`). They _cannot_ be used inside other functions.
+
 
 `REQUIRE(EXPR);`
 
@@ -149,7 +153,7 @@ This reports the current test case as "skipped". Any previously reported status 
 
 `REQUIRE_THROWS_AS(EXPR, EXCEPT);`
 
-This evaluates the expression `EXPR` inside a `try/catch` block, and attempts to catch an exception of type `EXCEPT`. If no exception is thrown, or an exception of a different type is thrown, then this reports a test failulre. On failure, the current test case is stopped. Execution then continues with the next test case, if any.
+This evaluates the expression `EXPR` inside a `try/catch` block, and attempts to catch an exception of type `EXCEPT`. If no exception is thrown, or an exception of a different type is thrown, then this reports a test failure. On failure, the current test case is stopped. Execution then continues with the next test case, if any.
 
 
 `CHECK_THROWS_AS(EXPR, EXCEPT);`
@@ -175,9 +179,21 @@ Matchers in _snatch_ work differently than in _Catch2_. The required interface i
  - `matcher.describe_fail(obj)` must return a `std::string_view` describing why `obj` is not a match. The lifetime of the string referenced by the string view must be equal or greater than the lifetime of the matcher (e.g., the string view can point to a temporary buffer stored inside the matcher).
 
 
+### Default main function
+
+The default `main()` function provided in _snatch_ offers the following command-line API:
+ - positional argument for filtering tests by name.
+ - `-h,--help`: show command line help.
+ - `-l,--list-tests`: list all tests.
+ - `--list-tags`: list all tags.
+ - `--verbose`: turn on verbose mode.
+ - `--list-tests-with-tag`: list all tests with a given tag.
+ - `--tags`: filter tests by tags instead of by name.
+
+
 ### Using your own main function
 
-When compiling _snatch_, `SNATCH_DEFINE_MAIN` must be set to `0`. If using CMake, this can be done with
+By default _snatch_ defines `main()` for you. To prevent this and provide your own `main()` function, when compiling _snatch_, `SNATCH_DEFINE_MAIN` must be set to `0`. If using CMake, this can be done with
 
 ```cmake
 set(SNATCH_DEFINE_MAIN OFF)
@@ -190,3 +206,17 @@ bool success = snatch::tests.run_all_tests();
 ```
 
 or any other method from the `snatch::registry` class. `snatch::tests` is a global registry, which owns all registered test cases.
+
+
+### Exceptions
+
+By default, _snatch_ assumes exceptions are enabled, and uses them in two cases:
+
+ 1. Obviously, in test macros that check exceptions being thrown (e.g., `REQUIRE_THROWS_AS(...)`).
+ 2. In `REQUIRE_*()` or `FAIL()` macros, to abort execution of the current test case.
+
+If _snatch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNATCH_WITH_EXCEPTIONS` to `0`), then
+
+ 1. Test macros that check exceptions being thrown will not be defined.
+ 2. `REQUIRE_*()` and `FAIL()` macros will simply use `return` to abort execution. As a consequence, if these macros are used inside lambda functions, they will only abort execution of the lambda and not of the actual test case. Therefore, these macros should only be used in the immediate body of the test case, or simply not at all.
+

@@ -8,6 +8,8 @@ set(SNATCH_MAX_MATCHER_MSG_LENGTH 1024 CACHE STRING "Maximum length of matcher e
 set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
 set(SNATCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
 set(SNATCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snatch -- disable to provide your own main() function.")
+set(SNATCH_WITH_EXCEPTIONS        ON   CACHE BOOL   "Use exceptions in snatch implementation -- will be force OFF if exceptions are not available.")
+set(SNATCH_WITH_SHORTHAND_MACROS  ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
 
 add_library(snatch ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
 
@@ -24,7 +26,9 @@ target_compile_definitions(snatch PUBLIC
   SNATCH_MAX_MATCHER_MSG_LENGTH=${SNATCH_MAX_MATCHER_MSG_LENGTH}
   SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}
   SNATCH_MAX_UNIQUE_TAGS=${SNATCH_MAX_UNIQUE_TAGS}
-  SNATCH_DEFINE_MAIN=$<BOOL:${SNATCH_DEFINE_MAIN}>)
+  SNATCH_DEFINE_MAIN=$<BOOL:${SNATCH_DEFINE_MAIN}>
+  SNATCH_WITH_EXCEPTIONS=$<BOOL:${SNATCH_WITH_EXCEPTIONS}>
+  SNATCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNATCH_WITH_SHORTHAND_MACROS}>)
 
 install(FILES ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
