@@ -96,12 +96,14 @@ The following benchmark was done using tests from another library ([observable_u
 
 Results:
 
-| Task                    | _Catch2_ | _snatch_ |
-|-------------------------|----------|----------|
-| Build framework         | 48s      | 0.7s     |
-| Build tests             | 91s      | 67s      |
-| Build tests + framework | 139s     | 68s      |
-| Run tests               | 51ms     | 12ms     |
+|                 | _Catch2_ (Debug) | _Catch2_ (Release) | _snatch_ (Debug) | _snatch_ (Release) |
+|-----------------|------------------|--------------------|------------------|--------------------|
+| Build framework | 41s              | 48s                | 1.0s             | 1.2s               |
+| Build tests     | 86s              | 310s               | 70s              | 149s               |
+| Build all       | 127s             | 358s               | 71s              | 150s               |
+| Run tests       | 74ms             | 36ms               | 15ms             | 7ms                |
+| Library size    | 34.6MB           | 2.5MB              | 0.51MB           | 0.05MB             |
+| Executable size | 51.5MB           | 19.1MB             | 31.0MB           | 9.3MB              |
 
 
 ## Documentation
