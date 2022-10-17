@@ -321,6 +321,7 @@ void registry::run(test_case& t) noexcept {
     t.tests = 0;
     t.state = test_state::success;
 
+#if SNATCH_WITH_EXCEPTIONS
     try {
         t.func(t);
     } catch (const test_state& s) {
@@ -337,6 +338,9 @@ void registry::run(test_case& t) noexcept {
         print_details("unhandled unknown exception caught");
         t.state = test_state::failed;
     }
+#else
+    t.func(t);
+#endif
 
     if (verbose) {
         std::printf("%sfinished:%s %s", color::status_start, color::reset, color::highlight1_start);
