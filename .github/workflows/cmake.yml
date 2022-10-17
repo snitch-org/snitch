@@ -1,0 +1,85 @@
+name: CI
+
+on: push
+
+env:
+  EM_VERSION: 2.0.16
+  EM_CACHE_FOLDER: 'emsdk-cache'
+  CODECOV_TOKEN: '99959e57-0b92-48b4-bf55-559d43d41b58'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Ubuntu GCC,   os: ubuntu-latest,  compiler: g++,     arch: "64", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage'"}
+        - { name: Ubuntu Clang, os: ubuntu-latest,  compiler: clang++, arch: "64", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++'"}
+        - { name: Windows 32,   os: windows-latest, compiler: vs2019,  arch: "32", cmakepp: "",        flags: "-A Win32"}
+        - { name: Windows 64,   os: windows-latest, compiler: vs2019,  arch: "64", cmakepp: "",        flags: "-A x64"}
+        - { name: MacOS,        os: macos-latest,   compiler: clang++, arch: "64", cmakepp: "",        flags: ""}
+        - { name: WebAssembly,  os: ubuntu-latest,  compiler: em++,    arch: "32", cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
+        build-type:
+        - Release
+        - Debug
+
+    name: ${{matrix.platform.name}} ${{matrix.build-type}}
+    runs-on: ${{matrix.platform.os}}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Setup Clang
+      if: matrix.platform.compiler == 'clang++' && matrix.platform.os == 'ubuntu-latest'
+      run: sudo apt install clang libc++-dev libc++abi-dev
+
+    - name: Setup Emscripten cache
+      if: matrix.platform.compiler == 'em++'
+      id: cache-system-libraries
+      uses: actions/cache@v3.0.4
+      with:
+        path: ${{env.EM_CACHE_FOLDER}}
+        key: ${{env.EM_VERSION}}-${{matrix.platform.name}}-${{matrix.build-type}}
+
+    - name: Setup Emscripten
+      if: matrix.platform.compiler == 'em++'
+      uses: mymindstorm/setup-emsdk@v7
+      with:
+        version: ${{env.EM_VERSION}}
+        actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+
+      # GCC 9 has a bug which prevents compilation of the testing framework, so switch to GCC 10.
+    - name: Setup GCC
+      if: matrix.platform.compiler == 'g++'
+      run: |
+        sudo apt install g++-10
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+        sudo update-alternatives --set gcc /usr/bin/gcc-10
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DOUP_DO_TEST=1
+
+    - name: Build
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --parallel 2
+
+    # - name: Test
+    #   shell: bash
+    #   working-directory: ${{github.workspace}}/build
+    #   run: cmake --build . --config ${{matrix.build-type}} --target snatch_tests
+
+    # - name: Compute Code Coverage
+    #   if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
+    #   run: |
+    #     gcov ${{github.workspace}}/build/tests/CMakeFiles/oup_runtime_tests.dir/*.gcda
+    #     ls | grep '.gcov' | grep -v observable_unique_ptr | xargs -d"\n" rm
+    #     bash <(curl -s https://codecov.io/bash)
