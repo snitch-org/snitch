@@ -32,3 +32,23 @@ target_compile_definitions(snatch PUBLIC
 
 install(FILES ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
+
+install(TARGETS snatch EXPORT snatch-targets)
+
+install(EXPORT snatch-targets
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snatch COMPONENT Development)
+
+export(EXPORT snatch-targets)
+
+# Setup CMake config file
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  "${PROJECT_SOURCE_DIR}/cmake/snatch-config.cmake.in"
+  "${PROJECT_BINARY_DIR}/snatch-config.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO
+  NO_SET_AND_CHECK_MACRO)
+
+install(FILES
+  "${PROJECT_BINARY_DIR}/snatch-config.cmake"
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snatch COMPONENT Development)

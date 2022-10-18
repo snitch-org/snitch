@@ -8,9 +8,6 @@
 #if !defined(SNATCH_DEFINE_MAIN)
 #    define SNATCH_DEFINE_MAIN 1
 #endif
-#if !defined(SNATCH_WITH_CXXOPTS)
-#    define SNATCH_WITH_CXXOPTS 0
-#endif
 
 // Testing framework implementation utilities.
 // -------------------------------------------
