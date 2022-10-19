@@ -21,7 +21,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
 ## Features and limitations
 
- - No heap allocation from the testing framework.
+ - No heap allocation from the testing framework, so memory leaks from your code can be detected precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
  - Simple reporting of test results to the standard output, with coloring for readability.
