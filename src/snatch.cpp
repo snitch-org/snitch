@@ -531,7 +531,7 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
                 found = true;
 
                 if (expected_found[arg_index]) {
-                    printf(
+                    std::printf(
                         "%serror:%s duplicate command line argument '%.*s'\n", color::error_start,
                         color::reset, static_cast<int>(arg.size()), arg.data());
                     bad = true;
@@ -542,7 +542,7 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
 
                 if (e.value_name) {
                     if (argi + 1 == argc) {
-                        printf(
+                        std::printf(
                             "%serror:%s missing value '<%.*s>' for command line argument '%.*s'\n",
                             color::error_start, color::reset,
                             static_cast<int>(e.value_name->size()), e.value_name->data(),
@@ -562,7 +562,7 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
             }
 
             if (!found) {
-                printf(
+                std::printf(
                     "%swarning:%s unknown command line argument '%.*s'\n", color::warning_start,
                     color::reset, static_cast<int>(arg.size()), arg.data());
             }
@@ -583,7 +583,7 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
             }
 
             if (!found) {
-                printf(
+                std::printf(
                     "%serror:%s too many positional arguments\n", color::error_start, color::reset);
                 bad = true;
             }
@@ -594,11 +594,11 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
         const auto& e = expected[arg_index];
         if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
             if (e.names.empty()) {
-                printf(
+                std::printf(
                     "%serror:%s missing positional argument '<%.*s>'\n", color::error_start,
                     color::reset, static_cast<int>(e.value_name->size()), e.value_name->data());
             } else {
-                printf(
+                std::printf(
                     "%serror:%s missing option '<%.*s>'\n", color::error_start, color::reset,
                     static_cast<int>(e.names.back().size()), e.names.back().data());
             }
@@ -619,49 +619,52 @@ void print_help(
     const expected_arguments& expected) {
 
     // Print program desription
-    printf(
+    std::printf(
         "%s%.*s%s\n", color::highlight2_start, static_cast<int>(program_description.size()),
         program_description.data(), color::reset);
 
     // Print command line usage example
-    printf("%sUsage:%s\n", color::pass_start, color::reset);
-    printf("  %.*s", static_cast<int>(program_name.size()), program_name.data());
+    std::printf("%sUsage:%s\n", color::pass_start, color::reset);
+    std::printf("  %.*s", static_cast<int>(program_name.size()), program_name.data());
     if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
-        printf(" [options...]");
+        std::printf(" [options...]");
     }
     for (const auto& e : expected) {
         if (e.names.empty()) {
             if (e.type == argument_type::mandatory) {
-                printf(" <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+                std::printf(
+                    " <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
             } else {
-                printf(" [<%.*s>]", static_cast<int>(e.value_name->size()), e.value_name->data());
+                std::printf(
+                    " [<%.*s>]", static_cast<int>(e.value_name->size()), e.value_name->data());
             }
         }
     }
-    printf("\n\n");
+    std::printf("\n\n");
 
     // List arguments
     for (const auto& e : expected) {
-        printf("  ");
-        printf("%s", color::highlight1_start);
+        std::printf("  ");
+        std::printf("%s", color::highlight1_start);
         if (!e.names.empty()) {
             if (e.names[0].starts_with("--")) {
-                printf("    ");
+                std::printf("    ");
             }
 
-            printf("%.*s", static_cast<int>(e.names[0].size()), e.names[0].data());
+            std::printf("%.*s", static_cast<int>(e.names[0].size()), e.names[0].data());
             if (e.names.size() == 2) {
-                printf(", %.*s", static_cast<int>(e.names[1].size()), e.names[1].data());
+                std::printf(", %.*s", static_cast<int>(e.names[1].size()), e.names[1].data());
             }
 
             if (e.value_name) {
-                printf(" <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+                std::printf(
+                    " <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
             }
         } else {
-            printf("<%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+            std::printf("<%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
         }
-        printf("%s", color::reset);
-        printf(" %.*s\n", static_cast<int>(e.description.size()), e.description.data());
+        std::printf("%s", color::reset);
+        std::printf(" %.*s\n", static_cast<int>(e.description.size()), e.description.data());
     }
 }
 
@@ -710,7 +713,7 @@ int main(int argc, char* argv[]) {
 
     std::optional<arguments> ret_args = parse_arguments(argc, argv, expected);
     if (!ret_args) {
-        printf("\n");
+        std::printf("\n");
         print_help(argv[0], "Snatch test runner"sv, expected);
         return 1;
     }
