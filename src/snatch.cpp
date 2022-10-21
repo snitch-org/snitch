@@ -16,15 +16,15 @@
 // -------------------------------------------
 
 namespace { namespace color {
-constexpr const char* error_start[] [[maybe_unused]]      = {"", "\x1b[1;31m"};
-constexpr const char* warning_start[] [[maybe_unused]]    = {"", "\x1b[1;33m"};
-constexpr const char* status_start[] [[maybe_unused]]     = {"", "\x1b[1;36m"};
-constexpr const char* fail_start[] [[maybe_unused]]       = {"", "\x1b[1;31m"};
-constexpr const char* skipped_start[] [[maybe_unused]]    = {"", "\x1b[1;33m"};
-constexpr const char* pass_start[] [[maybe_unused]]       = {"", "\x1b[1;32m"};
-constexpr const char* highlight1_start[] [[maybe_unused]] = {"", "\x1b[1;35m"};
-constexpr const char* highlight2_start[] [[maybe_unused]] = {"", "\x1b[1;36m"};
-constexpr const char* reset[] [[maybe_unused]]            = {"", "\x1b[0m"};
+constexpr const char* error [[maybe_unused]]      = "\x1b[1;31m";
+constexpr const char* warning [[maybe_unused]]    = "\x1b[1;33m";
+constexpr const char* status [[maybe_unused]]     = "\x1b[1;36m";
+constexpr const char* fail [[maybe_unused]]       = "\x1b[1;31m";
+constexpr const char* skipped [[maybe_unused]]    = "\x1b[1;33m";
+constexpr const char* pass [[maybe_unused]]       = "\x1b[1;32m";
+constexpr const char* highlight1 [[maybe_unused]] = "\x1b[1;35m";
+constexpr const char* highlight2 [[maybe_unused]] = "\x1b[1;36m";
+constexpr const char* reset [[maybe_unused]]      = "\x1b[0m";
 }} // namespace ::color
 
 namespace {
@@ -122,6 +122,25 @@ void truncate_end(small_string_span ss) noexcept {
     std::memcpy(ss.begin() + offset, "...", num_dots);
 }
 
+using color_t = const char*;
+
+template<typename T>
+struct colored {
+    const T& value;
+    color_t  color_start;
+    color_t  color_end;
+};
+
+template<typename T>
+colored<T> make_colored(const T& t, bool with_color, color_t start) {
+    return {t, with_color ? start : "", with_color ? color::reset : ""};
+}
+
+template<typename T>
+bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
+    return append(ss, colored_value.color_start, colored_value.value, colored_value.color_end);
+}
+
 template<typename... Args>
 void print(Args&&... args) noexcept {
     // TODO: replace this with std::print
@@ -202,13 +221,12 @@ bool run_tests(registry& r, F&& predicate) noexcept {
 
     if (success) {
         print(
-            color::pass_start[r.with_color], "success:", color::reset[r.with_color],
-            " all tests passed (", run_count, " test cases, ", assertion_count, " assertions");
+            make_colored("success:", r.with_color, color::pass), " all tests passed (", run_count,
+            " test cases, ", assertion_count, " assertions");
     } else {
         print(
-            color::fail_start[r.with_color], "error:", color::reset[r.with_color],
-            " some tests failed (", fail_count, " out of ", run_count, " test cases, ",
-            assertion_count, " assertions");
+            make_colored("error:", r.with_color, color::fail), " some tests failed (", fail_count,
+            " out of ", run_count, " test cases, ", assertion_count, " assertions");
     }
 
     if (skip_count > 0) {
@@ -276,7 +294,7 @@ void registry::register_test(
 
     if (test_list.size() == test_list.capacity()) {
         print(
-            color::error_start[with_color], "error:", color::reset[with_color],
+            make_colored("error:", with_color, color::fail),
             " max number of test cases reached; "
             "please increase 'SNATCH_MAX_TEST_CASES' (currently ",
             max_test_cases, ")\n.");
@@ -288,7 +306,7 @@ void registry::register_test(
     small_string<max_test_name_length> buffer;
     if (make_full_name(buffer, test_list.back()).empty()) {
         print(
-            color::error_start[with_color], "error:", color::reset[with_color],
+            make_colored("error:", with_color, color::fail),
             " max length of test name reached; "
             "please increase 'SNATCH_MAX_TEST_NAME_LENGTH' (currently ",
             max_test_name_length, ")\n.");
@@ -300,53 +318,55 @@ void registry::print_location(
     const test_case& current_case, const char* filename, int line_number) const noexcept {
 
     print(
-        "running test case \"", color::highlight1_start[with_color], current_case.name,
-        color::reset[with_color], "\"\n");
+        "running test case \"", make_colored(current_case.name, with_color, color::highlight1),
+        "\"\n");
     print("          at ", filename, ":", static_cast<std::size_t>(line_number), "\n");
 
     if (!current_case.type.empty()) {
         print(
-            "          for type ", color::highlight1_start[with_color], current_case.type,
-            color::reset[with_color], "\n");
+            "          for type ", make_colored(current_case.type, with_color, color::highlight1),
+            "\n");
     }
 }
 
 void registry::print_failure() const noexcept {
-    print(color::fail_start[with_color], "failed: ", color::reset[with_color]);
+    print(make_colored("failed: ", with_color, color::fail));
 }
 void registry::print_skip() const noexcept {
-    print(color::skipped_start[with_color], "skipped: ", color::reset[with_color]);
+    print(make_colored("skipped: ", with_color, color::skipped));
 }
 
 void registry::print_details(std::string_view message) const noexcept {
-    print(
-        "          ", color::highlight2_start[with_color], message, color::reset[with_color], "\n");
+    print("          ", make_colored(message, with_color, color::highlight2), "\n");
 }
 
 void registry::print_details_expr(
     std::string_view check, std::string_view exp_str, const expression& exp) const noexcept {
-    print(
-        "          ", color::highlight2_start[with_color], check, "(", exp_str, ")",
-        color::reset[with_color]);
+
+    small_string<max_message_length> full_check;
+    if (append(full_check, check, "(", exp_str, ")")) {
+        truncate_end(full_check);
+    }
+
+    print("          ", make_colored(full_check, with_color, color::highlight2));
 
     if (!exp.failed) {
-        print(", got ", color::highlight2_start[with_color], exp.data, color::reset[with_color]);
+        print(", got ", make_colored(exp.data, with_color, color::highlight2));
     }
 
     print("\n");
 }
 
 void registry::run(test_case& t) noexcept {
+    small_string<max_test_name_length> full_name;
+    if (verbose) {
+        make_full_name(full_name, t);
+    }
+
     if (verbose) {
         print(
-            color::status_start[with_color], "starting:", color::reset[with_color], " ",
-            color::highlight1_start[with_color], t.name);
-
-        if (!t.type.empty()) {
-            print(" [", t.type, "]");
-        }
-
-        print(color::reset[with_color], "\n");
+            make_colored("starting:", with_color, color::status), " ",
+            make_colored(full_name, with_color, color::highlight1), "\n");
     }
 
     t.tests = 0;
@@ -375,14 +395,8 @@ void registry::run(test_case& t) noexcept {
 
     if (verbose) {
         print(
-            color::status_start[with_color], "finished:", color::reset[with_color], " ",
-            color::highlight1_start[with_color], t.name);
-
-        if (!t.type.empty()) {
-            print(" [", t.type, "]");
-        }
-
-        print(color::reset[with_color], "\n");
+            make_colored("finished:", with_color, color::status), " ",
+            make_colored(full_name, with_color, color::highlight1), "\n");
     }
 }
 
@@ -426,7 +440,7 @@ void registry::list_all_tags() const noexcept {
             if (std::find(tags.begin(), tags.end(), v) == tags.end()) {
                 if (tags.size() == tags.capacity()) {
                     print(
-                        color::error_start[with_color], "error:", color::reset[with_color],
+                        make_colored("error:", with_color, color::fail),
                         " max number of tags reached; "
                         "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
                         max_unique_tags, ")\n.");
@@ -569,8 +583,7 @@ std::optional<arguments> parse_arguments(
 
                 if (expected_found[arg_index]) {
                     print(
-                        color::error_start[settings.with_color],
-                        "error:", color::reset[settings.with_color],
+                        make_colored("error:", settings.with_color, color::error),
                         " duplicate command line argument '", arg, "'\n");
                     bad = true;
                     break;
@@ -581,9 +594,9 @@ std::optional<arguments> parse_arguments(
                 if (e.value_name) {
                     if (argi + 1 == argc) {
                         print(
-                            color::error_start[settings.with_color],
-                            "error:", color::reset[settings.with_color], " missing value '<",
-                            *e.value_name, ">' for command line argument '", arg, "'\n");
+                            make_colored("error:", settings.with_color, color::error),
+                            " missing value '<", *e.value_name, ">' for command line argument '",
+                            arg, "'\n");
                         bad = true;
                         break;
                     }
@@ -600,8 +613,7 @@ std::optional<arguments> parse_arguments(
 
             if (!found) {
                 print(
-                    color::warning_start[settings.with_color],
-                    "warning:", color::reset[settings.with_color],
+                    make_colored("warning:", settings.with_color, color::warning),
                     " unknown command line argument '", arg, "'\n");
             }
         } else {
@@ -622,8 +634,7 @@ std::optional<arguments> parse_arguments(
 
             if (!found) {
                 print(
-                    color::error_start[settings.with_color],
-                    "error:", color::reset[settings.with_color],
+                    make_colored("error:", settings.with_color, color::error),
                     " too many positional arguments\n");
                 bad = true;
             }
@@ -635,13 +646,11 @@ std::optional<arguments> parse_arguments(
         if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
             if (e.names.empty()) {
                 print(
-                    color::error_start[settings.with_color],
-                    "error:", color::reset[settings.with_color], " missing positional argument '<",
-                    *e.value_name, ">'\n");
+                    make_colored("error:", settings.with_color, color::error),
+                    " missing positional argument '<", *e.value_name, ">'\n");
             } else {
                 print(
-                    color::error_start[settings.with_color],
-                    "error:", color::reset[settings.with_color], " missing option '<",
+                    make_colored("error:", settings.with_color, color::error), " missing option '<",
                     e.names.back(), ">'\n");
             }
             bad = true;
@@ -666,13 +675,10 @@ void print_help(
     const print_help_settings& settings = print_help_settings{}) {
 
     // Print program desription
-    print(
-        color::highlight2_start[settings.with_color], program_description,
-        color::reset[settings.with_color]);
+    print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
 
     // Print command line usage example
-    print(
-        color::pass_start[settings.with_color], "Usage:", color::reset[settings.with_color], "\n");
+    print(make_colored("Usage:", settings.with_color, color::pass), "\n");
     print("  ", program_name);
     if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
         print(" [options...]");
@@ -691,26 +697,36 @@ void print_help(
     print("\n\n");
 
     // List arguments
+    small_string<max_message_length> heading;
     for (const auto& e : expected) {
-        print("  ", color::highlight1_start[settings.with_color]);
+        heading.clear();
+
+        bool success = true;
         if (!e.names.empty()) {
             if (e.names[0].starts_with("--")) {
-                print("    ");
+                success = success && append(heading, "    ");
             }
 
-            print(e.names[0]);
+            success = success && append(heading, e.names[0]);
+
             if (e.names.size() == 2) {
-                print(", ", e.names[1]);
+                success = success && append(heading, ", ", e.names[1]);
             }
 
             if (e.value_name) {
-                print(" <", *e.value_name, ">");
+                success = success && append(heading, " <", *e.value_name, ">");
             }
         } else {
-            print("<", *e.value_name, ">");
+            success = success && append(heading, "<", *e.value_name, ">");
         }
 
-        print(color::reset[settings.with_color], " ", e.description, "\n");
+        if (!success) {
+            terminate_with("argument name is too long");
+        }
+
+        print(
+            "  ", make_colored(heading, settings.with_color, color::highlight1), " ", e.description,
+            "\n");
     }
 }
 
