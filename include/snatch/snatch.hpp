@@ -15,8 +15,8 @@
 #if !defined(SNATCH_MAX_EXPR_LENGTH)
 #    define SNATCH_MAX_EXPR_LENGTH 1'024
 #endif
-#if !defined(SNATCH_MAX_MATCHER_MSG_LENGTH)
-#    define SNATCH_MAX_MATCHER_MSG_LENGTH 1'024
+#if !defined(SNATCH_MAX_MESSAGE_LENGTH)
+#    define SNATCH_MAX_MESSAGE_LENGTH 1'024
 #endif
 #if !defined(SNATCH_MAX_TEST_NAME_LENGTH)
 #    define SNATCH_MAX_TEST_NAME_LENGTH 1'024
@@ -58,9 +58,8 @@ constexpr std::size_t max_test_cases = SNATCH_MAX_TEST_CASES;
 // Maximum length of a `CHECK(...)` or `REQUIRE(...)` expression,
 // beyond which automatic variable printing is disabled.
 constexpr std::size_t max_expr_length = SNATCH_MAX_EXPR_LENGTH;
-// Maximum length of error messages that need dynamic formatting;
-// most messages do not.
-constexpr std::size_t max_matcher_msg_length = SNATCH_MAX_MATCHER_MSG_LENGTH;
+// Maximum length of error messages.
+constexpr std::size_t max_message_length = SNATCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
@@ -426,6 +425,9 @@ public:
     constexpr operator small_string_span() noexcept {
         return span();
     }
+    constexpr operator std::string_view() const noexcept {
+        return std::string_view(data(), length());
+    }
 };
 
 [[nodiscard]] bool append(small_string_span ss, std::string_view value) noexcept;
@@ -452,13 +454,9 @@ template<std::size_t N>
 
 template<typename T, typename U, typename... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
-    if (!append(ss, std::forward<T>(t))) {
-        return false;
-    }
-    return append(ss, std::forward<U>(u), std::forward<Args>(args)...);
+    return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
+           (append(ss, std::forward<Args>(args)) && ...);
 }
-
-void truncate_end(small_string_span ss) noexcept;
 
 struct expression {
     small_string<max_expr_length> data;
@@ -477,15 +475,16 @@ struct expression {
                     failed = true;
                 }
             }
+        } else if constexpr (std::is_enum_v<TD>) {
+            append(static_cast<std::underlying_type_t<TD>>(value));
         } else if constexpr (
             std::is_pointer_v<TD> || std::is_floating_point_v<TD> || std::is_same_v<TD, bool> ||
-            std::is_convertible_v<T, const char*> || std::is_convertible_v<T, std::string> ||
-            std::is_convertible_v<T, std::string_view>) {
+            std::is_convertible_v<T, const void*> || std::is_convertible_v<T, std::string_view>) {
             if (!impl::append(data, value)) {
                 failed = true;
             }
         } else {
-            failed = true;
+            append("?");
         }
     }
 
@@ -526,7 +525,8 @@ class registry {
     impl::small_vector<impl::test_case, max_test_cases> test_list;
 
 public:
-    bool verbose = false;
+    bool verbose    = false;
+    bool with_color = true;
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};
@@ -601,8 +601,8 @@ const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
 
 namespace snatch::matchers {
 struct contains_substring {
-    mutable impl::small_string<max_matcher_msg_length> description_buffer;
-    std::string_view                                   substring_pattern;
+    mutable impl::small_string<max_message_length> description_buffer;
+    std::string_view                               substring_pattern;
 
     explicit contains_substring(std::string_view pattern) noexcept;
 
