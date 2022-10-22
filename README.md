@@ -90,26 +90,49 @@ Output:
 
 The following benchmarks were done using real-world tests from another library ([observable_unique_ptr](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were ran on a desktop with the following specs:
 
- - OS: Linux Mint 20.3, linux kernel 5.15.0-48-generic
- - CPU: AMD Ryzen 5 2600 (6 core)
- - RAM: 16GB
- - Storage: NVMe
- - Compiler: GCC 10.3.0 with `-std=c++20`
- - snatch v0.1.2
- - Catch2 0de60d8e7ead1ddd5ba8c46b901c122eac20bf94 (Sept. 14 2022)
- - doctest 86892fc480f80fb57d9a3926cb506c0e974489d8 (Sept. 22 2022)
+ - OS: Linux Mint 20.3, linux kernel 5.15.0-48-generic.
+ - CPU: AMD Ryzen 5 2600 (6 core).
+ - RAM: 16GB.
+ - Storage: NVMe.
+ - Compiler: GCC 10.3.0 with `-std=c++20`.
+ - snatch v0.1.2.
+ - Catch2 0de60d8e7ead1ddd5ba8c46b901c122eac20bf94 (Sept. 14 2022).
+ - doctest 86892fc480f80fb57d9a3926cb506c0e974489d8 (Sept. 22 2022).
+ - Boost.UT cd12498349362cc646a7140451bf51db2a2dac00 (Feb. 1 2022), with modifications (see notes below).
 
-Results:
+Description of results below:
+ - *Build framework*: Time required to build the testing framework library (if any), without any test.
+ - *Build tests*: Time required to build the tests, assuming the framework library was already built (if any).
+ - *Build all*: Total time to build the tests and the framework library (if any).
+ - *Run tests*: Total time require to run the tests.
+ - *Library size*: Size of the compiled testing framework library (if any).
+ - *Executable size*: Size of the compiled test executable, static linking to the testing framework library (if any).
 
-|                 | _Catch2_ (Debug) | _Catch2_ (Release) | _doctest_ (Debug) | _doctest_ (Release) | _snatch_ (Debug) | _snatch_ (Release) |
-|-----------------|------------------|--------------------|-------------------|---------------------|------------------|--------------------|
-| Build framework | 41s              | 48s                | 2.4s              | 4.1s                | 1.0s             | 1.2s               |
-| Build tests     | 86s              | 310s               | 76s               | 208s                | 70s              | 149s               |
-| Build all       | 127s             | 358s               | 78s               | 212s                | 71s              | 150s               |
-| Run tests       | 74ms             | 36ms               | 59ms              | 35ms                | 15ms             | 7ms                |
-| Library size    | 34.6MB           | 2.5MB              | 2.8MB             | 0.39MB              | 0.51MB           | 0.05MB             |
-| Executable size | 51.5MB           | 19.1MB             | 38.6MB            | 15.2MB              | 31.0MB           | 9.3MB              |
+Results for _snatch_:
 
+|                 | _snatch_ (Debug) | _snatch_ (Release) |
+|-----------------|------------------|--------------------|
+| Build framework | 1.0s             | 1.2s               |
+| Build tests     | 70s              | 149s               |
+| Build all       | 71s              | 150s               |
+| Run tests       | 15ms             | 7ms                |
+| Library size    | 0.51MB           | 0.05MB             |
+| Executable size | 31.0MB           | 9.3MB              |
+
+Results for alternative testing frameworks:
+
+|                 | _Catch2_ (Debug) | _Catch2_ (Release) | _doctest_ (Debug) | _doctest_ (Release) | _Boost UT_ (Debug) | _Boost UT_ (Release) |
+|-----------------|------------------|--------------------|-------------------|---------------------|--------------------|----------------------|
+| Build framework | 41s              | 48s                | 2.4s              | 4.1s                | 0s                 | 0s                   |
+| Build tests     | 86s              | 310s               | 76s               | 208s                | 113s               | 279s                 |
+| Build all       | 127s             | 358s               | 78s               | 212s                | 113s               | 279s                 |
+| Run tests       | 74ms             | 36ms               | 59ms              | 35ms                | 20ms               | 10ms                 |
+| Library size    | 34.6MB           | 2.5MB              | 2.8MB             | 0.39MB              | 0MB                | 0MB                  |
+| Executable size | 51.5MB           | 19.1MB             | 38.6MB            | 15.2MB              | 51.7MB             | 11.3MB               |
+
+Notes:
+ - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
+ - _Boost UT_ was unable to compile and pass the tests without modifications to its implementation (issues were reported).
 
 ## Documentation
 
