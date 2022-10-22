@@ -825,6 +825,8 @@ int main(int argc, char* argv[]) {
             snatch::tests.with_color = true;
         } else if (*opt->value == "never") {
             snatch::tests.with_color = false;
+        } else {
+            terminate_with("unknown color directive; please use one of always|never");
         }
     }
 
