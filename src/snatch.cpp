@@ -152,6 +152,11 @@ void print(Args&&... args) noexcept {
 
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
 }
+
+bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
+    using underlying_type = std::underlying_type_t<snatch::registry::verbosity>;
+    return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
+}
 } // namespace
 
 namespace snatch::impl {
@@ -218,23 +223,25 @@ bool run_tests(registry& r, F&& predicate) noexcept {
         }
     }
 
-    print("==========================================\n");
+    if (is_at_least(r.verbose, registry::verbosity::normal)) {
+        print("==========================================\n");
 
-    if (success) {
-        print(
-            make_colored("success:", r.with_color, color::pass), " all tests passed (", run_count,
-            " test cases, ", assertion_count, " assertions");
-    } else {
-        print(
-            make_colored("error:", r.with_color, color::fail), " some tests failed (", fail_count,
-            " out of ", run_count, " test cases, ", assertion_count, " assertions");
+        if (success) {
+            print(
+                make_colored("success:", r.with_color, color::pass), " all tests passed (",
+                run_count, " test cases, ", assertion_count, " assertions");
+        } else {
+            print(
+                make_colored("error:", r.with_color, color::fail), " some tests failed (",
+                fail_count, " out of ", run_count, " test cases, ", assertion_count, " assertions");
+        }
+
+        if (skip_count > 0) {
+            print(", ", skip_count, " test cases skipped");
+        }
+
+        print(")\n");
     }
-
-    if (skip_count > 0) {
-        print(", ", skip_count, " test cases skipped");
-    }
-
-    print(")\n");
 
     return success;
 }
@@ -360,11 +367,9 @@ void registry::print_details_expr(
 
 void registry::run(test_case& t) noexcept {
     small_string<max_test_name_length> full_name;
-    if (verbose) {
+    if (is_at_least(verbose, verbosity::high)) {
         make_full_name(full_name, t);
-    }
 
-    if (verbose) {
         print(
             make_colored("starting:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
@@ -394,7 +399,7 @@ void registry::run(test_case& t) noexcept {
     t.func(t);
 #endif
 
-    if (verbose) {
+    if (is_at_least(verbose, verbosity::high)) {
         print(
             make_colored("finished:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
@@ -765,14 +770,14 @@ std::optional<argument> get_positional_argument(const arguments& args, std::stri
 int main(int argc, char* argv[]) {
     // clang-format off
     const expected_arguments expected = {
-        {{"-l", "--list-tests"},    {},             "List tests by name"},
-        {{"--list-tags"},           {},             "List tags by name"},
-        {{"--list-tests-with-tag"}, {"tag"},        "List tests by name with a given tag"},
-        {{"-t", "--tags"},          {},             "Use tags for filtering, not name"},
-        {{"-v", "--verbose"},       {},             "Enable detailed output"},
-        {{"--color"},               {"mode"},       "Enable/disable color in output"},
-        {{"-h", "--help"},          {},             "Print help"},
-        {{},                        {"test regex"}, "A regex to select which test cases (or tags) to run"}};
+        {{"-l", "--list-tests"},    {},                    "List tests by name"},
+        {{"--list-tags"},           {},                    "List tags by name"},
+        {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
+        {{"-t", "--tags"},          {},                    "Use tags for filtering, not name"},
+        {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
+        {{"--color"},               {"always|never"},      "Enable/disable color in output"},
+        {{"-h", "--help"},          {},                    "Print help"},
+        {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
     // clang-format on
 
     constexpr bool with_color_default = SNATCH_WITH_COLOR == 1;
@@ -803,8 +808,16 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    if (get_option(args, "--verbose")) {
-        snatch::tests.verbose = true;
+    if (auto opt = get_option(args, "--verbosity")) {
+        if (*opt->value == "quiet") {
+            snatch::tests.verbose = snatch::registry::verbosity::quiet;
+        } else if (*opt->value == "normal") {
+            snatch::tests.verbose = snatch::registry::verbosity::normal;
+        } else if (*opt->value == "high") {
+            snatch::tests.verbose = snatch::registry::verbosity::high;
+        } else {
+            terminate_with("unknown verbosity level; please use one of quiet|normal|high");
+        }
     }
 
     if (auto opt = get_option(args, "--color")) {

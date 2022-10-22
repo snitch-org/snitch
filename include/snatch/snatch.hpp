@@ -525,8 +525,8 @@ class registry {
     impl::small_vector<impl::test_case, max_test_cases> test_list;
 
 public:
-    bool verbose    = false;
-    bool with_color = true;
+    enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
+    bool with_color                                      = true;
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};
