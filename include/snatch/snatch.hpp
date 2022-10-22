@@ -131,9 +131,9 @@ struct test_case {
     std::string_view name;
     std::string_view tags;
     std::string_view type;
-    test_ptr         func  = nullptr;
-    test_state       state = test_state::not_run;
-    std::size_t      tests = 0;
+    test_ptr         func    = nullptr;
+    test_state       state   = test_state::not_run;
+    std::size_t      asserts = 0;
 };
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
@@ -680,7 +680,7 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
-        ++CURRENT_CASE.tests;                                                                      \
+        ++CURRENT_CASE.asserts;                                                                    \
         SNATCH_WARNING_PUSH;                                                                       \
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
@@ -696,7 +696,7 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
-        ++CURRENT_CASE.tests;                                                                      \
+        ++CURRENT_CASE.asserts;                                                                    \
         SNATCH_WARNING_PUSH;                                                                       \
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \

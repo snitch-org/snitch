@@ -214,7 +214,7 @@ bool run_tests(registry& r, F&& predicate) noexcept {
         r.run(t);
 
         ++run_count;
-        assertion_count += t.tests;
+        assertion_count += t.asserts;
         if (t.state == test_state::failed) {
             ++fail_count;
             success = false;
@@ -375,8 +375,8 @@ void registry::run(test_case& t) noexcept {
             make_colored(full_name, with_color, color::highlight1), "\n");
     }
 
-    t.tests = 0;
-    t.state = test_state::success;
+    t.asserts = 0;
+    t.state   = test_state::success;
 
 #if SNATCH_WITH_EXCEPTIONS
     try {
