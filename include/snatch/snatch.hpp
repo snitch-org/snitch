@@ -458,6 +458,8 @@ template<typename T, typename U, typename... Args>
            (append(ss, std::forward<Args>(args)) && ...);
 }
 
+void truncate_end(small_string_span ss) noexcept;
+
 struct expression {
     small_string<max_expr_length> data;
     bool                          failed = false;
@@ -507,6 +509,8 @@ struct expression {
 
 #undef EXPR_OPERATOR
 };
+
+void default_print(std::string_view message) noexcept;
 } // namespace snatch::impl
 
 // Utilities.
@@ -524,9 +528,23 @@ namespace snatch {
 class registry {
     impl::small_vector<impl::test_case, max_test_cases> test_list;
 
+    template<typename... Args>
+    void print(Args&&... args) const noexcept {
+        snatch::impl::small_string<max_message_length> message;
+        if (!append(message, std::forward<Args>(args)...)) {
+            snatch::impl::truncate_end(message);
+        }
+
+        (*this->print_callback)(message);
+    }
+
 public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
     bool with_color                                      = true;
+
+    using print_function = void (*)(std::string_view) noexcept;
+
+    print_function print_callback = &snatch::impl::default_print;
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};

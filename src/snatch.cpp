@@ -121,11 +121,6 @@ bool append(small_string_span ss, double d) noexcept {
 bool append(small_string_span ss, bool value) noexcept {
     return append(ss, value ? "true" : "false");
 }
-} // namespace snatch::impl
-
-namespace {
-using snatch::max_message_length;
-using snatch::impl::small_string;
 
 void truncate_end(small_string_span ss) noexcept {
     std::size_t num_dots     = 3;
@@ -137,6 +132,16 @@ void truncate_end(small_string_span ss) noexcept {
     std::memcpy(ss.begin() + offset, "...", num_dots);
 }
 
+void default_print(std::string_view message) noexcept {
+    // TODO: replace this with std::print?
+    std::printf("%.*s", static_cast<int>(message.length()), message.data());
+}
+} // namespace snatch::impl
+
+namespace {
+using snatch::max_message_length;
+using snatch::impl::small_string;
+
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
     return append(ss, colored_value.color_start, colored_value.value, colored_value.color_end);
@@ -144,13 +149,12 @@ bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
 
 template<typename... Args>
 void print(Args&&... args) noexcept {
-    // TODO: replace this with std::print
     small_string<max_message_length> message;
     if (!append(message, std::forward<Args>(args)...)) {
         truncate_end(message);
     }
 
-    std::printf("%.*s", static_cast<int>(message.length()), message.data());
+    default_print(message);
 }
 
 bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
@@ -369,7 +373,6 @@ void registry::run(test_case& t) noexcept {
     small_string<max_test_name_length> full_name;
     if (is_at_least(verbose, verbosity::high)) {
         make_full_name(full_name, t);
-
         print(
             make_colored("starting:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
