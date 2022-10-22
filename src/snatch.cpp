@@ -15,17 +15,33 @@
 // Testing framework implementation utilities.
 // -------------------------------------------
 
-namespace { namespace color {
-constexpr const char* error [[maybe_unused]]      = "\x1b[1;31m";
-constexpr const char* warning [[maybe_unused]]    = "\x1b[1;33m";
-constexpr const char* status [[maybe_unused]]     = "\x1b[1;36m";
-constexpr const char* fail [[maybe_unused]]       = "\x1b[1;31m";
-constexpr const char* skipped [[maybe_unused]]    = "\x1b[1;33m";
-constexpr const char* pass [[maybe_unused]]       = "\x1b[1;32m";
-constexpr const char* highlight1 [[maybe_unused]] = "\x1b[1;35m";
-constexpr const char* highlight2 [[maybe_unused]] = "\x1b[1;36m";
-constexpr const char* reset [[maybe_unused]]      = "\x1b[0m";
-}} // namespace ::color
+namespace {
+using color_t = const char*;
+
+namespace color {
+constexpr color_t error [[maybe_unused]]      = "\x1b[1;31m";
+constexpr color_t warning [[maybe_unused]]    = "\x1b[1;33m";
+constexpr color_t status [[maybe_unused]]     = "\x1b[1;36m";
+constexpr color_t fail [[maybe_unused]]       = "\x1b[1;31m";
+constexpr color_t skipped [[maybe_unused]]    = "\x1b[1;33m";
+constexpr color_t pass [[maybe_unused]]       = "\x1b[1;32m";
+constexpr color_t highlight1 [[maybe_unused]] = "\x1b[1;35m";
+constexpr color_t highlight2 [[maybe_unused]] = "\x1b[1;36m";
+constexpr color_t reset [[maybe_unused]]      = "\x1b[0m";
+} // namespace color
+
+template<typename T>
+struct colored {
+    const T& value;
+    color_t  color_start;
+    color_t  color_end;
+};
+
+template<typename T>
+colored<T> make_colored(const T& t, bool with_color, color_t start) {
+    return {t, with_color ? start : "", with_color ? color::reset : ""};
+}
+} // namespace
 
 namespace {
 using snatch::impl::small_string_span;
@@ -105,7 +121,6 @@ bool append(small_string_span ss, double d) noexcept {
 bool append(small_string_span ss, bool value) noexcept {
     return append(ss, value ? "true" : "false");
 }
-
 } // namespace snatch::impl
 
 namespace {
@@ -120,20 +135,6 @@ void truncate_end(small_string_span ss) noexcept {
 
     ss.resize(final_length);
     std::memcpy(ss.begin() + offset, "...", num_dots);
-}
-
-using color_t = const char*;
-
-template<typename T>
-struct colored {
-    const T& value;
-    color_t  color_start;
-    color_t  color_end;
-};
-
-template<typename T>
-colored<T> make_colored(const T& t, bool with_color, color_t start) {
-    return {t, with_color ? start : "", with_color ? color::reset : ""};
 }
 
 template<typename T>
