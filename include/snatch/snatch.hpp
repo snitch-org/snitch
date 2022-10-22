@@ -510,7 +510,7 @@ struct expression {
 #undef EXPR_OPERATOR
 };
 
-void default_print(std::string_view message) noexcept;
+void stddout_print(std::string_view message) noexcept;
 } // namespace snatch::impl
 
 // Utilities.
@@ -544,7 +544,7 @@ public:
 
     using print_function = void (*)(std::string_view) noexcept;
 
-    print_function print_callback = &snatch::impl::default_print;
+    print_function print_callback = &snatch::impl::stddout_print;
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};

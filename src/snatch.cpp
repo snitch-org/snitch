@@ -132,7 +132,7 @@ void truncate_end(small_string_span ss) noexcept {
     std::memcpy(ss.begin() + offset, "...", num_dots);
 }
 
-void default_print(std::string_view message) noexcept {
+void stddout_print(std::string_view message) noexcept {
     // TODO: replace this with std::print?
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
 }
@@ -154,7 +154,7 @@ void print(Args&&... args) noexcept {
         truncate_end(message);
     }
 
-    default_print(message);
+    stddout_print(message);
 }
 
 bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
