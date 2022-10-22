@@ -148,7 +148,7 @@ bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
 }
 
 template<typename... Args>
-void print(Args&&... args) noexcept {
+void console_print(Args&&... args) noexcept {
     small_string<max_message_length> message;
     if (!append(message, std::forward<Args>(args)...)) {
         truncate_end(message);
@@ -165,7 +165,7 @@ bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosit
 
 namespace snatch::impl {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
-    print("terminate called with message: ", msg, "\n");
+    console_print("terminate called with message: ", msg, "\n");
     std::terminate();
 }
 } // namespace snatch::impl
@@ -228,23 +228,23 @@ bool run_tests(registry& r, F&& predicate) noexcept {
     }
 
     if (is_at_least(r.verbose, registry::verbosity::normal)) {
-        print("==========================================\n");
+        r.print("==========================================\n");
 
         if (success) {
-            print(
+            r.print(
                 make_colored("success:", r.with_color, color::pass), " all tests passed (",
                 run_count, " test cases, ", assertion_count, " assertions");
         } else {
-            print(
+            r.print(
                 make_colored("error:", r.with_color, color::fail), " some tests failed (",
                 fail_count, " out of ", run_count, " test cases, ", assertion_count, " assertions");
         }
 
         if (skip_count > 0) {
-            print(", ", skip_count, " test cases skipped");
+            r.print(", ", skip_count, " test cases skipped");
         }
 
-        print(")\n");
+        r.print(")\n");
     }
 
     return success;
@@ -258,9 +258,9 @@ void list_tests(const registry& r, F&& predicate) noexcept {
         }
 
         if (!t.type.empty()) {
-            print(t.name, " [", t.type, "]\n");
+            console_print(t.name, " [", t.type, "]\n");
         } else {
-            print(t.name);
+            console_print(t.name);
         }
     }
 }
@@ -591,7 +591,7 @@ std::optional<arguments> parse_arguments(
                 found = true;
 
                 if (expected_found[arg_index]) {
-                    print(
+                    console_print(
                         make_colored("error:", settings.with_color, color::error),
                         " duplicate command line argument '", arg, "'\n");
                     bad = true;
@@ -602,7 +602,7 @@ std::optional<arguments> parse_arguments(
 
                 if (e.value_name) {
                     if (argi + 1 == argc) {
-                        print(
+                        console_print(
                             make_colored("error:", settings.with_color, color::error),
                             " missing value '<", *e.value_name, ">' for command line argument '",
                             arg, "'\n");
@@ -621,7 +621,7 @@ std::optional<arguments> parse_arguments(
             }
 
             if (!found) {
-                print(
+                console_print(
                     make_colored("warning:", settings.with_color, color::warning),
                     " unknown command line argument '", arg, "'\n");
             }
@@ -642,7 +642,7 @@ std::optional<arguments> parse_arguments(
             }
 
             if (!found) {
-                print(
+                console_print(
                     make_colored("error:", settings.with_color, color::error),
                     " too many positional arguments\n");
                 bad = true;
@@ -654,11 +654,11 @@ std::optional<arguments> parse_arguments(
         const auto& e = expected[arg_index];
         if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
             if (e.names.empty()) {
-                print(
+                console_print(
                     make_colored("error:", settings.with_color, color::error),
                     " missing positional argument '<", *e.value_name, ">'\n");
             } else {
-                print(
+                console_print(
                     make_colored("error:", settings.with_color, color::error), " missing option '<",
                     e.names.back(), ">'\n");
             }
@@ -684,26 +684,26 @@ void print_help(
     const print_help_settings& settings = print_help_settings{}) {
 
     // Print program desription
-    print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
+    console_print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
 
     // Print command line usage example
-    print(make_colored("Usage:", settings.with_color, color::pass), "\n");
-    print("  ", program_name);
+    console_print(make_colored("Usage:", settings.with_color, color::pass), "\n");
+    console_print("  ", program_name);
     if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
-        print(" [options...]");
+        console_print(" [options...]");
     }
 
     for (const auto& e : expected) {
         if (e.names.empty()) {
             if (e.type == argument_type::mandatory) {
-                print(" <", *e.value_name, ">");
+                console_print(" <", *e.value_name, ">");
             } else {
-                print(" [<", *e.value_name, ">]");
+                console_print(" [<", *e.value_name, ">]");
             }
         }
     }
 
-    print("\n\n");
+    console_print("\n\n");
 
     // List arguments
     small_string<max_message_length> heading;
@@ -733,7 +733,7 @@ void print_help(
             terminate_with("argument name is too long");
         }
 
-        print(
+        console_print(
             "  ", make_colored(heading, settings.with_color, color::highlight1), " ", e.description,
             "\n");
     }
@@ -789,7 +789,7 @@ int main(int argc, char* argv[]) {
         parse_arguments(argc, argv, expected, {.with_color = with_color_default});
 
     if (!ret_args || get_option(*ret_args, "--help")) {
-        print("\n");
+        console_print("\n");
         print_help(argv[0], "Snatch test runner"sv, expected, {.with_color = with_color_default});
         return !ret_args ? 1 : 0;
     }

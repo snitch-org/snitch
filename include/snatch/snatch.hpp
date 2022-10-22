@@ -528,6 +528,14 @@ namespace snatch {
 class registry {
     impl::small_vector<impl::test_case, max_test_cases> test_list;
 
+public:
+    enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
+    bool with_color                                      = true;
+
+    using print_function = void (*)(std::string_view) noexcept;
+
+    print_function print_callback = &snatch::impl::stddout_print;
+
     template<typename... Args>
     void print(Args&&... args) const noexcept {
         snatch::impl::small_string<max_message_length> message;
@@ -537,14 +545,6 @@ class registry {
 
         (*this->print_callback)(message);
     }
-
-public:
-    enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
-    bool with_color                                      = true;
-
-    using print_function = void (*)(std::string_view) noexcept;
-
-    print_function print_callback = &snatch::impl::stddout_print;
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};
