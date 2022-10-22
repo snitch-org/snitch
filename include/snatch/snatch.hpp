@@ -72,7 +72,13 @@ constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
 
 namespace snatch {
 class registry;
-}
+
+struct test_id {
+    std::string_view name;
+    std::string_view tags;
+    std::string_view type;
+};
+} // namespace snatch
 
 // Implementation details.
 // -----------------------
@@ -128,12 +134,10 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 enum class test_state { not_run, success, skipped, failed };
 
 struct test_case {
-    std::string_view name;
-    std::string_view tags;
-    std::string_view type;
-    test_ptr         func    = nullptr;
-    test_state       state   = test_state::not_run;
-    std::size_t      asserts = 0;
+    test_id     id;
+    test_ptr    func    = nullptr;
+    test_state  state   = test_state::not_run;
+    std::size_t asserts = 0;
 };
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
@@ -555,15 +559,12 @@ public:
         return {this, name, tags};
     }
 
-    void register_test(
-        std::string_view name,
-        std::string_view tags,
-        std::string_view type,
-        impl::test_ptr   func) noexcept;
+    void register_test(const test_id& id, impl::test_ptr func) noexcept;
 
     template<typename... Args, typename F>
     void register_type_tests(std::string_view name, std::string_view tags, const F& func) noexcept {
-        (register_test(name, tags, impl::get_type_name<Args>(), impl::to_test_case_ptr<Args>(func)),
+        (register_test(
+             {name, tags, impl::get_type_name<Args>()}, impl::to_test_case_ptr<Args>(func)),
          ...);
     }
 

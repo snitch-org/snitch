@@ -257,10 +257,10 @@ void list_tests(const registry& r, F&& predicate) noexcept {
             continue;
         }
 
-        if (!t.type.empty()) {
-            console_print(t.name, " [", t.type, "]\n");
+        if (!t.id.type.empty()) {
+            console_print(t.id.name, " [", t.id.type, "]\n");
         } else {
-            console_print(t.name);
+            console_print(t.id.name);
         }
     }
 }
@@ -286,12 +286,12 @@ void for_each_tag(std::string_view s, F&& callback) noexcept {
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_case& t) noexcept {
     buffer.clear();
-    if (t.type.length() != 0) {
-        if (!append(buffer, t.name, " [", t.type, "]")) {
+    if (t.id.type.length() != 0) {
+        if (!append(buffer, t.id.name, " [", t.id.type, "]")) {
             return {};
         }
     } else {
-        if (!append(buffer, t.name)) {
+        if (!append(buffer, t.id.name)) {
             return {};
         }
     }
@@ -301,9 +301,7 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_case& t) n
 } // namespace
 
 namespace snatch {
-void registry::register_test(
-    std::string_view name, std::string_view tags, std::string_view type, test_ptr func) noexcept {
-
+void registry::register_test(const test_id& id, test_ptr func) noexcept {
     if (test_list.size() == test_list.capacity()) {
         print(
             make_colored("error:", with_color, color::fail),
@@ -313,7 +311,7 @@ void registry::register_test(
         std::terminate();
     }
 
-    test_list.push_back(test_case{name, tags, type, func});
+    test_list.push_back(test_case{id, func});
 
     small_string<max_test_name_length> buffer;
     if (make_full_name(buffer, test_list.back()).empty()) {
@@ -330,14 +328,14 @@ void registry::print_location(
     const test_case& current_case, const char* filename, int line_number) const noexcept {
 
     print(
-        "running test case \"", make_colored(current_case.name, with_color, color::highlight1),
+        "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
         "\"\n");
     print("          at ", filename, ":", static_cast<std::size_t>(line_number), "\n");
 
-    if (!current_case.type.empty()) {
+    if (!current_case.id.type.empty()) {
         print(
-            "          for type ", make_colored(current_case.type, with_color, color::highlight1),
-            "\n");
+            "          for type ",
+            make_colored(current_case.id.type, with_color, color::highlight1), "\n");
     }
 }
 
@@ -426,14 +424,14 @@ bool registry::run_tests_matching_name(std::string_view name) noexcept {
         std::string_view v = make_full_name(buffer, t);
 
         // TODO: use regex here?
-        return v.find(name) != t.name.npos;
+        return v.find(name) != v.npos;
     });
 }
 
 bool registry::run_tests_with_tag(std::string_view tag) noexcept {
     return run_tests(*this, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.tags, [&](std::string_view v) {
+        for_each_tag(t.id.tags, [&](std::string_view v) {
             if (v == tag) {
                 selected = true;
             }
@@ -445,7 +443,7 @@ bool registry::run_tests_with_tag(std::string_view tag) noexcept {
 void registry::list_all_tags() const noexcept {
     impl::small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
-        for_each_tag(t.tags, [&](std::string_view v) {
+        for_each_tag(t.id.tags, [&](std::string_view v) {
             if (std::find(tags.begin(), tags.end(), v) == tags.end()) {
                 if (tags.size() == tags.capacity()) {
                     print(
@@ -475,7 +473,7 @@ void registry::list_all_tests() const noexcept {
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
     list_tests(*this, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.tags, [&](std::string_view v) {
+        for_each_tag(t.id.tags, [&](std::string_view v) {
             if (v == tag) {
                 selected = true;
             }
@@ -484,19 +482,19 @@ void registry::list_tests_with_tag(std::string_view tag) const noexcept {
     });
 }
 
-impl::test_case* registry::begin() noexcept {
+test_case* registry::begin() noexcept {
     return test_list.begin();
 }
 
-impl::test_case* registry::end() noexcept {
+test_case* registry::end() noexcept {
     return test_list.end();
 }
 
-const impl::test_case* registry::begin() const noexcept {
+const test_case* registry::begin() const noexcept {
     return test_list.begin();
 }
 
-const impl::test_case* registry::end() const noexcept {
+const test_case* registry::end() const noexcept {
     return test_list.end();
 }
 
