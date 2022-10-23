@@ -205,6 +205,12 @@ Matchers in _snatch_ work differently than in _Catch2_. The required interface i
  - `matcher.describe_fail(obj)` must return a `std::string_view` describing why `obj` is not a match. The lifetime of the string referenced by the string view must be equal or greater than the lifetime of the matcher (e.g., the string view can point to a temporary buffer stored inside the matcher).
 
 
+Two matchers are provided with _snatch_:
+
+ - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
+ - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+
+
 ### Default main function
 
 The default `main()` function provided in _snatch_ offers the following command-line API:
