@@ -465,6 +465,7 @@ template<typename T, typename U, typename... Args>
 void truncate_end(small_string_span ss) noexcept;
 
 struct expression {
+    std::string_view              content;
     small_string<max_expr_length> data;
     bool                          failed = false;
 
@@ -574,10 +575,7 @@ public:
     void print_failure() const noexcept;
     void print_skip() const noexcept;
     void print_details(std::string_view message) const noexcept;
-    void print_details_expr(
-        std::string_view        check,
-        std::string_view        exp_str,
-        const impl::expression& exp) const noexcept;
+    void print_details_expr(const impl::expression& exp) const noexcept;
 
     void run(impl::test_case& t) noexcept;
     void set_state(impl::test_case& t, impl::test_state s) noexcept;
@@ -685,7 +683,7 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_CONCAT_IMPL(x, y) x##y
 #define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
-#define SNATCH_EXPR(x) snatch::impl::expression{} <= x
+#define SNATCH_EXPR(type, x) snatch::impl::expression{type "(" #x ")", {}, false} <= x
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
@@ -704,10 +702,9 @@ struct with_what_contains : private contains_substring {
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
         if (!(EXP)) {                                                                              \
-            const auto EXP2 = SNATCH_EXPR(EXP);                                                    \
             snatch::tests.print_failure();                                                         \
             snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                        \
-            snatch::tests.print_details_expr("REQUIRE", #EXP, EXP2);                               \
+            snatch::tests.print_details_expr(SNATCH_EXPR("REQUIRE", EXP));                         \
             SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::failed);                  \
         }                                                                                          \
         SNATCH_WARNING_POP;                                                                        \
@@ -720,10 +717,9 @@ struct with_what_contains : private contains_substring {
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
         if (!(EXP)) {                                                                              \
-            const auto EXP2 = SNATCH_EXPR(EXP);                                                    \
             snatch::tests.print_failure();                                                         \
             snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                        \
-            snatch::tests.print_details_expr("CHECK", #EXP, EXP2);                                 \
+            snatch::tests.print_details_expr(SNATCH_EXPR("CHECK", EXP));                           \
             snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);               \
         }                                                                                          \
         SNATCH_WARNING_POP;                                                                        \

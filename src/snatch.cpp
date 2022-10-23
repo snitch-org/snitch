@@ -350,15 +350,8 @@ void registry::print_details(std::string_view message) const noexcept {
     print("          ", make_colored(message, with_color, color::highlight2), "\n");
 }
 
-void registry::print_details_expr(
-    std::string_view check, std::string_view exp_str, const expression& exp) const noexcept {
-
-    small_string<max_message_length> full_check;
-    if (append(full_check, check, "(", exp_str, ")")) {
-        truncate_end(full_check);
-    }
-
-    print("          ", make_colored(full_check, with_color, color::highlight2));
+void registry::print_details_expr(const expression& exp) const noexcept {
+    print("          ", make_colored(exp.content, with_color, color::highlight2));
 
     if (!exp.failed) {
         print(", got ", make_colored(exp.data, with_color, color::highlight2));
