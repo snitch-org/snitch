@@ -13,6 +13,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
+    - [Reporters](#reporters)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
@@ -25,6 +26,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
  - Simple reporting of test results to the standard output, with coloring for readability.
+ - Test events can also be forwarded to a reporter callback, to support custom test reporting for CI frameworks (Teamcity, ...).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
@@ -41,7 +43,6 @@ Notable current limitations:
 
  - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
  - No set-up/tear-down helpers.
- - Only reports to the standard output; no custom reporter.
  - No multi-threaded test execution.
 
 
@@ -209,6 +210,15 @@ Two matchers are provided with _snatch_:
 
  - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
  - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+
+
+### Reporters
+
+By default, _snatch_ will report the test results to the standard output, using its own report format. You can override this by supplying your own "reporter" callback function to the test registry. This requires [using your own main function](#using-your-own-main-function).
+
+The callback is a single `noexcept` function, taking two arguments:
+ - a reference to the `snatch::registry` that generated the event
+ - a reference to the `snatch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
 
 
 ### Default main function
