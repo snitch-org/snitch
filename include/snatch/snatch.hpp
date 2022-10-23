@@ -609,7 +609,7 @@ const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
     if constexpr (sizeof...(Args) > 0) {
         tests->template register_type_tests<Args...>(name, tags, func);
     } else {
-        tests->register_test(name, tags, {}, func);
+        tests->register_test({name, tags, {}}, func);
     }
     return name.data();
 }
