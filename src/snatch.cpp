@@ -203,7 +203,7 @@ using namespace snatch;
 using namespace snatch::impl;
 
 template<typename F>
-bool run_tests(registry& r, F&& predicate) noexcept {
+bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     bool        success         = true;
     std::size_t run_count       = 0;
     std::size_t fail_count      = 0;
@@ -447,25 +447,26 @@ void registry::run(test_case& t) noexcept {
     }
 }
 
-bool registry::run_all_tests() noexcept {
-    return run_tests(*this, [](const test_case&) { return true; });
+bool registry::run_all_tests(std::string_view run_name) noexcept {
+    return run_tests(*this, run_name, [](const test_case&) { return true; });
 }
 
-bool registry::run_tests_matching_name(std::string_view name) noexcept {
+bool registry::run_tests_matching_name(
+    std::string_view run_name, std::string_view name_filter) noexcept {
     small_string<max_test_name_length> buffer;
-    return run_tests(*this, [&](const test_case& t) {
+    return run_tests(*this, run_name, [&](const test_case& t) {
         std::string_view v = make_full_name(buffer, t);
 
         // TODO: use regex here?
-        return v.find(name) != v.npos;
+        return v.find(name_filter) != v.npos;
     });
 }
 
-bool registry::run_tests_with_tag(std::string_view tag) noexcept {
-    return run_tests(*this, [&](const test_case& t) {
+bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
+    return run_tests(*this, run_name, [&](const test_case& t) {
         bool selected = false;
         for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (v == tag) {
+            if (v == tag_filter) {
                 selected = true;
             }
         });
@@ -546,8 +547,7 @@ constinit registry tests = []() {
 namespace {
 using namespace std::literals;
 
-constexpr std::size_t max_command_line_args = 1024;
-constexpr std::size_t max_arg_names         = 2;
+constexpr std::size_t max_arg_names = 2;
 
 enum class argument_type { optional, mandatory };
 
@@ -560,27 +560,32 @@ struct expected_argument {
 
 using expected_arguments = small_vector<expected_argument, max_command_line_args>;
 
-struct argument {
-    std::string_view                name;
-    std::optional<std::string_view> value_name;
-    std::optional<std::string_view> value;
-};
-
-using arguments = small_vector<argument, max_command_line_args>;
-
 struct parser_settings {
     bool with_color = true;
 };
 
-std::optional<arguments> parse_arguments(
+std::string_view extract_executable(std::string_view path) {
+    if (auto folder_end = path.find_last_of("\\/"); folder_end != path.npos) {
+        path.remove_prefix(folder_end + 1);
+    }
+    if (auto extension_start = path.find_last_of('.'); extension_start != path.npos) {
+        path.remove_suffix(path.size() - extension_start);
+    }
+
+    return path;
+}
+
+std::optional<cli::input> parse_arguments(
     int                       argc,
     char*                     argv[],
     const expected_arguments& expected,
     const parser_settings&    settings = parser_settings{}) noexcept {
 
-    std::optional<arguments> ret(std::in_place);
-    auto&                    args = *ret;
-    bool                     bad  = false;
+    std::optional<cli::input> ret(std::in_place);
+    ret->executable = extract_executable(argv[0]);
+
+    auto& args = ret->arguments;
+    bool  bad  = false;
 
     // Check validity of inputs
     small_vector<bool, max_command_line_args> expected_found;
@@ -642,10 +647,10 @@ std::optional<arguments> parse_arguments(
                     }
 
                     argi += 1;
-                    args.push_back(
-                        argument{e.names.back(), e.value_name, {std::string_view(argv[argi])}});
+                    args.push_back(cli::argument{
+                        e.names.back(), e.value_name, {std::string_view(argv[argi])}});
                 } else {
-                    args.push_back(argument{e.names.back(), {}, {}});
+                    args.push_back(cli::argument{e.names.back(), {}, {}});
                 }
 
                 break;
@@ -667,7 +672,7 @@ std::optional<arguments> parse_arguments(
 
                 found = true;
 
-                args.push_back(argument{""sv, e.value_name, {arg}});
+                args.push_back(cli::argument{""sv, e.value_name, {arg}});
                 expected_found[arg_index] = true;
                 break;
             }
@@ -770,76 +775,77 @@ void print_help(
     }
 }
 
-std::optional<argument> get_option(const arguments& args, std::string_view name) {
-    std::optional<argument> ret;
+std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) {
+    std::optional<cli::argument> ret;
 
-    auto iter =
-        std::find_if(args.cbegin(), args.cend(), [&](const auto& arg) { return arg.name == name; });
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
+        return arg.name == name;
+    });
 
-    if (iter != args.cend()) {
+    if (iter != args.arguments.cend()) {
         ret = *iter;
     }
 
     return ret;
 }
 
-std::optional<argument> get_positional_argument(const arguments& args, std::string_view name) {
-    std::optional<argument> ret;
+std::optional<cli::argument>
+get_positional_argument(const cli::input& args, std::string_view name) {
+    std::optional<cli::argument> ret;
 
-    auto iter = std::find_if(args.cbegin(), args.cend(), [&](const auto& arg) {
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
         return arg.name.empty() && arg.value_name == name;
     });
 
-    if (iter != args.cend()) {
+    if (iter != args.arguments.cend()) {
         ret = *iter;
     }
 
     return ret;
 }
+
+// clang-format off
+const expected_arguments expected_args = {
+    {{"-l", "--list-tests"},    {},                    "List tests by name"},
+    {{"--list-tags"},           {},                    "List tags by name"},
+    {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
+    {{"-t", "--tags"},          {},                    "Use tags for filtering, not name"},
+    {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
+    {{"--color"},               {"always|never"},      "Enable/disable color in output"},
+    {{"-h", "--help"},          {},                    "Print help"},
+    {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
+// clang-format on
+
+constexpr bool with_color_default = SNATCH_WITH_COLOR == 1;
 } // namespace
 
-// Main entry point.
-// -----------------
+namespace snatch::cli {
+std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
+    std::optional<cli::input> ret_args =
+        parse_arguments(argc, argv, expected_args, {.with_color = with_color_default});
 
-int main(int argc, char* argv[]) {
-    // clang-format off
-    const expected_arguments expected = {
-        {{"-l", "--list-tests"},    {},                    "List tests by name"},
-        {{"--list-tags"},           {},                    "List tags by name"},
-        {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
-        {{"-t", "--tags"},          {},                    "Use tags for filtering, not name"},
-        {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
-        {{"--color"},               {"always|never"},      "Enable/disable color in output"},
-        {{"-h", "--help"},          {},                    "Print help"},
-        {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
-    // clang-format on
-
-    constexpr bool with_color_default = SNATCH_WITH_COLOR == 1;
-
-    std::optional<arguments> ret_args =
-        parse_arguments(argc, argv, expected, {.with_color = with_color_default});
-
-    if (!ret_args || get_option(*ret_args, "--help")) {
+    if (!ret_args) {
         console_print("\n");
-        print_help(argv[0], "Snatch test runner"sv, expected, {.with_color = with_color_default});
-        return !ret_args ? 1 : 0;
+        print_help(
+            argv[0], "Snatch test runner"sv, expected_args, {.with_color = with_color_default});
     }
 
-    arguments& args = *ret_args;
+    return ret_args;
+}
+} // namespace snatch::cli
 
-    if (get_option(args, "--list-tests")) {
-        snatch::tests.list_all_tests();
-        return 0;
-    }
-
-    if (auto opt = get_option(args, "--list-tests-with-tag")) {
-        snatch::tests.list_tests_with_tag(*opt->value);
-        return 0;
-    }
-
-    if (get_option(args, "--list-tags")) {
-        snatch::tests.list_all_tags();
-        return 0;
+namespace snatch {
+void registry::configure_from_command_line(const cli::input& args) noexcept {
+    if (auto opt = get_option(args, "--color")) {
+        if (*opt->value == "always") {
+            snatch::tests.with_color = true;
+        } else if (*opt->value == "never") {
+            snatch::tests.with_color = false;
+        } else {
+            console_print(
+                make_colored("warning:", snatch::tests.with_color, color::warning),
+                "unknown color directive; please use one of always|never\n");
+        }
     }
 
     if (auto opt = get_option(args, "--verbosity")) {
@@ -850,32 +856,61 @@ int main(int argc, char* argv[]) {
         } else if (*opt->value == "high") {
             snatch::tests.verbose = snatch::registry::verbosity::high;
         } else {
-            terminate_with("unknown verbosity level; please use one of quiet|normal|high");
+            console_print(
+                make_colored("warning:", snatch::tests.with_color, color::warning),
+                "unknown verbosity level; please use one of quiet|normal|high\n");
         }
     }
+}
 
-    if (auto opt = get_option(args, "--color")) {
-        if (*opt->value == "always") {
-            snatch::tests.with_color = true;
-        } else if (*opt->value == "never") {
-            snatch::tests.with_color = false;
-        } else {
-            terminate_with("unknown color directive; please use one of always|never");
-        }
+bool registry::run_tests_from_command_line(const cli::input& args) noexcept {
+    if (get_option(args, "--help")) {
+        console_print("\n");
+        print_help(
+            args.executable, "Snatch test runner"sv, expected_args,
+            {.with_color = with_color_default});
+        return true;
     }
 
-    bool success = true;
+    if (get_option(args, "--list-tests")) {
+        snatch::tests.list_all_tests();
+        return true;
+    }
+
+    if (auto opt = get_option(args, "--list-tests-with-tag")) {
+        snatch::tests.list_tests_with_tag(*opt->value);
+        return true;
+    }
+
+    if (get_option(args, "--list-tags")) {
+        snatch::tests.list_all_tags();
+        return true;
+    }
+
     if (auto opt = get_positional_argument(args, "test regex")) {
         if (get_option(args, "--tags")) {
-            success = snatch::tests.run_tests_with_tag(*opt->value);
+            return snatch::tests.run_tests_with_tag(args.executable, *opt->value);
         } else {
-            success = snatch::tests.run_tests_matching_name(*opt->value);
+            return snatch::tests.run_tests_matching_name(args.executable, *opt->value);
         }
     } else {
-        success = snatch::tests.run_all_tests();
+        return snatch::tests.run_all_tests(args.executable);
+    }
+}
+} // namespace snatch
+
+// Main entry point.
+// -----------------
+
+int main(int argc, char* argv[]) {
+    std::optional<snatch::cli::input> args = snatch::cli::parse_arguments(argc, argv);
+    if (!args) {
+        return 1;
     }
 
-    return success ? 0 : 1;
+    snatch::tests.configure_from_command_line(*args);
+
+    return snatch::tests.run_tests_from_command_line(*args) ? 0 : 1;
 }
 
 #endif

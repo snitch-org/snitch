@@ -5,6 +5,7 @@
 #include <cstddef> // for std::size_t
 #include <exception> // for std::exception
 #include <initializer_list> // for std::initializer_list
+#include <optional> // for cli
 #include <string_view> // for all strings
 #include <tuple> // for typed tests
 #include <type_traits> // for std::is_nothrow_*
@@ -23,6 +24,9 @@
 #endif
 #if !defined(SNATCH_MAX_UNIQUE_TAGS)
 #    define SNATCH_MAX_UNIQUE_TAGS 1'024
+#endif
+#if !defined(SNATCH_MAX_COMMAND_LINE_ARGS)
+#    define SNATCH_MAX_COMMAND_LINE_ARGS 1'024
 #endif
 
 #if defined(_MSC_VER)
@@ -65,6 +69,8 @@ constexpr std::size_t max_message_length = SNATCH_MAX_MESSAGE_LENGTH;
 constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
 // Maximum number of unique tags in the whole program.
 constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
+// Maximum number of command line arguments.
+constexpr std::size_t max_command_line_args = SNATCH_MAX_COMMAND_LINE_ARGS;
 } // namespace snatch
 
 // Forward declarations.
@@ -533,6 +539,24 @@ template<typename T>
 constexpr std::string_view type_name = impl::get_type_name<T>();
 } // namespace snatch
 
+// Command line interface.
+// -----------------------
+
+namespace snatch::cli {
+struct argument {
+    std::string_view                name;
+    std::optional<std::string_view> value_name;
+    std::optional<std::string_view> value;
+};
+
+struct input {
+    std::string_view                                    executable;
+    impl::small_vector<argument, max_command_line_args> arguments;
+};
+
+std::optional<input> parse_arguments(int argc, char* argv[]) noexcept;
+} // namespace snatch::cli
+
 // Test registry.
 // --------------
 
@@ -608,9 +632,12 @@ public:
 
     void run(impl::test_case& t) noexcept;
 
-    bool run_all_tests() noexcept;
-    bool run_tests_matching_name(std::string_view name) noexcept;
-    bool run_tests_with_tag(std::string_view tag) noexcept;
+    bool run_all_tests(std::string_view run_name) noexcept;
+    bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;
+    bool run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept;
+
+    void configure_from_command_line(const cli::input& args) noexcept;
+    bool run_tests_from_command_line(const cli::input& args) noexcept;
 
     void list_all_tests() const noexcept;
     void list_all_tags() const noexcept;
