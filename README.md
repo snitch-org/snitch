@@ -217,10 +217,11 @@ The default `main()` function provided in _snatch_ offers the following command-
  - positional argument for filtering tests by name.
  - `-h,--help`: show command line help.
  - `-l,--list-tests`: list all tests.
- - `--list-tags`: list all tags.
- - `--verbose`: turn on verbose mode.
- - `--list-tests-with-tag`: list all tests with a given tag.
- - `--tags`: filter tests by tags instead of by name.
+ - `   --list-tags`: list all tags.
+ - `   --list-tests-with-tag`: list all tests with a given tag.
+ - `-t,--tags`: filter tests by tags instead of by name.
+ - `-v,--verbosity [quiet|normal|high]`: select level of detail for the default reporter.
+ - `   --color [always|never]`: enable/disable colors in the default reporter.
 
 
 ### Using your own main function
@@ -231,13 +232,31 @@ By default _snatch_ defines `main()` for you. To prevent this and provide your o
 set(SNATCH_DEFINE_MAIN OFF)
 ```
 
-just before calling `FetchContent_Declare()`. Then, in your own main function, call
+just before calling `FetchContent_Declare()`.
+
+Here is a recommended `main()` function that replicates the default behavior of snatch:
 
 ```c++
-bool success = snatch::tests.run_all_tests();
-```
+int main(int argc, char* argv[]) {
+    // Parse the command line arguments.
+    std::optional<snatch::cli::input> args = snatch::cli::parse_arguments(argc, argv);
+    if (!args) {
+        // Parsing failed, an error has been reported, just return.
+        return 1;
+    }
 
-or any other method from the `snatch::registry` class. `snatch::tests` is a global registry, which owns all registered test cases.
+    // Configure snatch using command line options.
+    // You can then override the configuration below, or just remove this call to disable
+    // command line options entirely.
+    snatch::tests.configure_from_command_line(*args);
+
+    // Your own initialization code goes here.
+    // ...
+
+    // Actually run the tests.
+    // This will apply any filtering specified on the command line.
+    return snatch::tests.run_tests_from_command_line(*args) ? 0 : 1;
+```
 
 
 ### Exceptions
