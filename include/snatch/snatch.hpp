@@ -624,7 +624,7 @@ public:
     bool with_color                                      = true;
 
     using print_function  = void (*)(std::string_view) noexcept;
-    using report_function = void (*)(const event::data&) noexcept;
+    using report_function = void (*)(const registry&, const event::data&) noexcept;
 
     print_function  print_callback  = &snatch::impl::stddout_print;
     report_function report_callback = nullptr;

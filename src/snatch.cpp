@@ -205,7 +205,7 @@ using namespace snatch::impl;
 template<typename F>
 bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     if (r.report_callback != nullptr) {
-        (*r.report_callback)(event::test_run_started{run_name});
+        (*r.report_callback)(r, event::test_run_started{run_name});
     }
 
     bool        success         = true;
@@ -232,7 +232,7 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     }
 
     if (r.report_callback != nullptr) {
-        (*r.report_callback)(event::test_run_ended{run_name});
+        (*r.report_callback)(r, event::test_run_ended{run_name});
     } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print("==========================================\n");
 
@@ -381,7 +381,7 @@ void registry::report_failure(
     set_state(t, test_state::failed);
 
     if (report_callback != nullptr) {
-        (*report_callback)(event::assertion_failed{t.id, location, message});
+        (*report_callback)(*this, event::assertion_failed{t.id, location, message});
     } else {
         print_failure();
         print_location(t, location);
@@ -403,7 +403,7 @@ void registry::report_failure(
     }
 
     if (report_callback != nullptr) {
-        (*report_callback)(event::assertion_failed{t.id, location, message});
+        (*report_callback)(*this, event::assertion_failed{t.id, location, message});
     } else {
         print_failure();
         print_location(t, location);
@@ -424,9 +424,9 @@ void registry::report_failure(
             if (!append(message, exp.content, ", got ", exp.data)) {
                 truncate_end(message);
             }
-            (*report_callback)(event::assertion_failed{t.id, location, message});
+            (*report_callback)(*this, event::assertion_failed{t.id, location, message});
         } else {
-            (*report_callback)(event::assertion_failed{t.id, location, {exp.content}});
+            (*report_callback)(*this, event::assertion_failed{t.id, location, {exp.content}});
         }
     } else {
         print_failure();
@@ -443,7 +443,7 @@ void registry::report_skipped(
     set_state(t, test_state::skipped);
 
     if (report_callback != nullptr) {
-        (*report_callback)(event::test_case_skipped{t.id, location, message});
+        (*report_callback)(*this, event::test_case_skipped{t.id, location, message});
     } else {
         print_skip();
         print_location(t, location);
@@ -455,7 +455,7 @@ void registry::run(test_case& t) noexcept {
     small_string<max_test_name_length> full_name;
 
     if (report_callback != nullptr) {
-        (*report_callback)(event::test_case_started{t.id});
+        (*report_callback)(*this, event::test_case_started{t.id});
     } else if (is_at_least(verbose, verbosity::high)) {
         make_full_name(full_name, t.id);
         print(
@@ -482,7 +482,7 @@ void registry::run(test_case& t) noexcept {
 #endif
 
     if (report_callback != nullptr) {
-        (*report_callback)(event::test_case_ended{t.id});
+        (*report_callback)(*this, event::test_case_ended{t.id});
     } else if (is_at_least(verbose, verbosity::high)) {
         print(
             make_colored("finished:", with_color, color::status), " ",
