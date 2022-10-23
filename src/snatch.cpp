@@ -204,6 +204,10 @@ using namespace snatch::impl;
 
 template<typename F>
 bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
+    if (r.report_callback != nullptr) {
+        (*r.report_callback)(event::test_run_started{run_name});
+    }
+
     bool        success         = true;
     std::size_t run_count       = 0;
     std::size_t fail_count      = 0;
@@ -227,7 +231,9 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
         }
     }
 
-    if (is_at_least(r.verbose, registry::verbosity::normal)) {
+    if (r.report_callback != nullptr) {
+        (*r.report_callback)(event::test_run_ended{run_name});
+    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print("==========================================\n");
 
         if (success) {
@@ -332,7 +338,7 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
 }
 
 void registry::print_location(
-    const impl::test_case& current_case, const impl::assertion_location& location) const noexcept {
+    const impl::test_case& current_case, const assertion_location& location) const noexcept {
 
     print(
         "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
@@ -368,54 +374,89 @@ void registry::print_details_expr(const expression& exp) const noexcept {
 }
 
 void registry::report_failure(
-    impl::test_case&                t,
-    const impl::assertion_location& location,
-    std::string_view                message) const noexcept {
+    impl::test_case&          t,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
 
     set_state(t, test_state::failed);
-    print_failure();
-    print_location(t, location);
-    print_details(message);
+
+    if (report_callback != nullptr) {
+        (*report_callback)(event::assertion_failed{t.id, location, message});
+    } else {
+        print_failure();
+        print_location(t, location);
+        print_details(message);
+    }
 }
 
 void registry::report_failure(
-    impl::test_case&                t,
-    const impl::assertion_location& location,
-    std::string_view                message1,
-    std::string_view                message2) const noexcept {
+    impl::test_case&          t,
+    const assertion_location& location,
+    std::string_view          message1,
+    std::string_view          message2) const noexcept {
 
     set_state(t, test_state::failed);
-    print_failure();
-    print_location(t, location);
-    print_details(message1);
-    print_details(message2);
+
+    small_string<max_message_length> message;
+    if (!append(message, message1, message2)) {
+        truncate_end(message);
+    }
+
+    if (report_callback != nullptr) {
+        (*report_callback)(event::assertion_failed{t.id, location, message});
+    } else {
+        print_failure();
+        print_location(t, location);
+        print_details(message);
+    }
 }
 
 void registry::report_failure(
-    impl::test_case&                t,
-    const impl::assertion_location& location,
-    const impl::expression&         exp) const noexcept {
+    impl::test_case&          t,
+    const assertion_location& location,
+    const impl::expression&   exp) const noexcept {
 
     set_state(t, test_state::failed);
-    print_failure();
-    print_location(t, location);
-    print_details_expr(exp);
+
+    if (report_callback != nullptr) {
+        if (!exp.failed) {
+            small_string<max_message_length> message;
+            if (!append(message, exp.content, ", got ", exp.data)) {
+                truncate_end(message);
+            }
+            (*report_callback)(event::assertion_failed{t.id, location, message});
+        } else {
+            (*report_callback)(event::assertion_failed{t.id, location, {exp.content}});
+        }
+    } else {
+        print_failure();
+        print_location(t, location);
+        print_details_expr(exp);
+    }
 }
 
 void registry::report_skipped(
-    impl::test_case&                t,
-    const impl::assertion_location& location,
-    std::string_view                message) const noexcept {
+    impl::test_case&          t,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
 
     set_state(t, test_state::skipped);
-    print_skip();
-    print_location(t, location);
-    print_details(message);
+
+    if (report_callback != nullptr) {
+        (*report_callback)(event::test_case_skipped{t.id, location, message});
+    } else {
+        print_skip();
+        print_location(t, location);
+        print_details(message);
+    }
 }
 
 void registry::run(test_case& t) noexcept {
     small_string<max_test_name_length> full_name;
-    if (is_at_least(verbose, verbosity::high)) {
+
+    if (report_callback != nullptr) {
+        (*report_callback)(event::test_case_started{t.id});
+    } else if (is_at_least(verbose, verbosity::high)) {
         make_full_name(full_name, t);
         print(
             make_colored("starting:", with_color, color::status), " ",
@@ -440,7 +481,9 @@ void registry::run(test_case& t) noexcept {
     t.func(t);
 #endif
 
-    if (is_at_least(verbose, verbosity::high)) {
+    if (report_callback != nullptr) {
+        (*report_callback)(event::test_case_ended{t.id});
+    } else if (is_at_least(verbose, verbosity::high)) {
         print(
             make_colored("finished:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");

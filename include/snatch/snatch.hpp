@@ -9,6 +9,7 @@
 #include <string_view> // for all strings
 #include <tuple> // for typed tests
 #include <type_traits> // for std::is_nothrow_*
+#include <variant> // for events
 
 #if !defined(SNATCH_MAX_TEST_CASES)
 #    define SNATCH_MAX_TEST_CASES 5'000
@@ -524,11 +525,6 @@ struct expression {
 void stddout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
-
-struct assertion_location {
-    std::string_view file;
-    std::size_t      line = 0u;
-};
 } // namespace snatch::impl
 
 // Utilities.
@@ -537,6 +533,57 @@ struct assertion_location {
 namespace snatch {
 template<typename T>
 constexpr std::string_view type_name = impl::get_type_name<T>();
+
+struct assertion_location {
+    std::string_view file;
+    std::size_t      line = 0u;
+};
+
+template<typename... Args>
+struct overload : Args... {
+    using Args::operator()...;
+};
+
+template<typename... Args>
+overload(Args...) -> overload<Args...>;
+
+namespace event {
+struct test_run_started {
+    std::string_view name;
+};
+
+struct test_run_ended {
+    std::string_view name;
+};
+
+struct test_case_started {
+    const test_id& id;
+};
+
+struct test_case_ended {
+    const test_id& id;
+};
+
+struct assertion_failed {
+    const test_id&            id;
+    const assertion_location& location;
+    std::string_view          message;
+};
+
+struct test_case_skipped {
+    const test_id&            id;
+    const assertion_location& location;
+    std::string_view          message;
+};
+
+using data = std::variant<
+    test_run_started,
+    test_run_ended,
+    test_case_started,
+    test_case_ended,
+    assertion_failed,
+    test_case_skipped>;
+}; // namespace event
 } // namespace snatch
 
 // Command line interface.
@@ -565,8 +612,7 @@ class registry {
     impl::small_vector<impl::test_case, max_test_cases> test_list;
 
     void print_location(
-        const impl::test_case&          current_case,
-        const impl::assertion_location& location) const noexcept;
+        const impl::test_case& current_case, const assertion_location& location) const noexcept;
 
     void print_failure() const noexcept;
     void print_skip() const noexcept;
@@ -577,9 +623,11 @@ public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
     bool with_color                                      = true;
 
-    using print_function = void (*)(std::string_view) noexcept;
+    using print_function  = void (*)(std::string_view) noexcept;
+    using report_function = void (*)(const event::data&) noexcept;
 
-    print_function print_callback = &snatch::impl::stddout_print;
+    print_function  print_callback  = &snatch::impl::stddout_print;
+    report_function report_callback = nullptr;
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
@@ -610,25 +658,25 @@ public:
     }
 
     void report_failure(
-        impl::test_case&                t,
-        const impl::assertion_location& location,
-        std::string_view                message) const noexcept;
+        impl::test_case&          t,
+        const assertion_location& location,
+        std::string_view          message) const noexcept;
 
     void report_failure(
-        impl::test_case&                t,
-        const impl::assertion_location& location,
-        std::string_view                message1,
-        std::string_view                message2) const noexcept;
+        impl::test_case&          t,
+        const assertion_location& location,
+        std::string_view          message1,
+        std::string_view          message2) const noexcept;
 
     void report_failure(
-        impl::test_case&                t,
-        const impl::assertion_location& location,
-        const impl::expression&         exp) const noexcept;
+        impl::test_case&          t,
+        const assertion_location& location,
+        const impl::expression&   exp) const noexcept;
 
     void report_skipped(
-        impl::test_case&                t,
-        const impl::assertion_location& location,
-        std::string_view                message) const noexcept;
+        impl::test_case&          t,
+        const assertion_location& location,
+        std::string_view          message) const noexcept;
 
     void run(impl::test_case& t) noexcept;
 
@@ -820,7 +868,7 @@ struct with_what_contains : private contains_substring {
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
                         CURRENT_CASE, {__FILE__, __LINE__},                                        \
-                        #EXCEPTION " expected but other std::exception thrown; message:",          \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
@@ -844,7 +892,7 @@ struct with_what_contains : private contains_substring {
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
                         CURRENT_CASE, {__FILE__, __LINE__},                                        \
-                        #EXCEPTION " expected but other std::exception thrown; message:",          \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
@@ -863,7 +911,7 @@ struct with_what_contains : private contains_substring {
                 if (!(MATCHER).match(e)) {                                                         \
                     snatch::tests.report_failure(                                                  \
                         CURRENT_CASE, {__FILE__, __LINE__},                                        \
-                        "could not match caught " #EXCEPTION " with expected content:",            \
+                        "could not match caught " #EXCEPTION " with expected content: ",           \
                         (MATCHER).describe_fail(e));                                               \
                     SNATCH_TESTING_ABORT;                                                          \
                 }                                                                                  \
@@ -873,7 +921,7 @@ struct with_what_contains : private contains_substring {
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
                         CURRENT_CASE, {__FILE__, __LINE__},                                        \
-                        #EXCEPTION " expected but other std::exception thrown; message:",          \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
@@ -893,7 +941,7 @@ struct with_what_contains : private contains_substring {
                 if (!(MATCHER).match(e)) {                                                         \
                     snatch::tests.report_failure(                                                  \
                         CURRENT_CASE, {__FILE__, __LINE__},                                        \
-                        "could not match caught " #EXCEPTION " with expected content:",            \
+                        "could not match caught " #EXCEPTION " with expected content: ",           \
                         (MATCHER).describe_fail(e));                                               \
                 }                                                                                  \
             } catch (...) {                                                                        \
@@ -902,7 +950,7 @@ struct with_what_contains : private contains_substring {
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
                         CURRENT_CASE, {__FILE__, __LINE__},                                        \
-                        #EXCEPTION " expected but other std::exception thrown; message:",          \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
