@@ -290,14 +290,14 @@ void for_each_tag(std::string_view s, F&& callback) noexcept {
 }
 
 std::string_view
-make_full_name(small_string<max_test_name_length>& buffer, const test_case& t) noexcept {
+make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
     buffer.clear();
-    if (t.id.type.length() != 0) {
-        if (!append(buffer, t.id.name, " [", t.id.type, "]")) {
+    if (id.type.length() != 0) {
+        if (!append(buffer, id.name, " [", id.type, "]")) {
             return {};
         }
     } else {
-        if (!append(buffer, t.id.name)) {
+        if (!append(buffer, id.name)) {
             return {};
         }
     }
@@ -327,7 +327,7 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
     test_list.push_back(test_case{id, func});
 
     small_string<max_test_name_length> buffer;
-    if (make_full_name(buffer, test_list.back()).empty()) {
+    if (make_full_name(buffer, test_list.back().id).empty()) {
         print(
             make_colored("error:", with_color, color::fail),
             " max length of test name reached; "
@@ -457,7 +457,7 @@ void registry::run(test_case& t) noexcept {
     if (report_callback != nullptr) {
         (*report_callback)(event::test_case_started{t.id});
     } else if (is_at_least(verbose, verbosity::high)) {
-        make_full_name(full_name, t);
+        make_full_name(full_name, t.id);
         print(
             make_colored("starting:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
@@ -498,7 +498,7 @@ bool registry::run_tests_matching_name(
     std::string_view run_name, std::string_view name_filter) noexcept {
     small_string<max_test_name_length> buffer;
     return run_tests(*this, run_name, [&](const test_case& t) {
-        std::string_view v = make_full_name(buffer, t);
+        std::string_view v = make_full_name(buffer, t.id);
 
         // TODO: use regex here?
         return v.find(name_filter) != v.npos;
