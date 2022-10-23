@@ -298,6 +298,13 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_case& t) n
 
     return buffer.str();
 }
+
+void set_state(test_case& t, test_state s) noexcept {
+    if (static_cast<std::underlying_type_t<test_state>>(t.state) <
+        static_cast<std::underlying_type_t<test_state>>(s)) {
+        t.state = s;
+    }
+}
 } // namespace
 
 namespace snatch {
@@ -325,12 +332,12 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
 }
 
 void registry::print_location(
-    const test_case& current_case, const char* filename, int line_number) const noexcept {
+    const impl::test_case& current_case, const impl::assertion_location& location) const noexcept {
 
     print(
         "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
         "\"\n");
-    print("          at ", filename, ":", static_cast<std::size_t>(line_number), "\n");
+    print("          at ", location.file, ":", location.line, "\n");
 
     if (!current_case.id.type.empty()) {
         print(
@@ -360,6 +367,52 @@ void registry::print_details_expr(const expression& exp) const noexcept {
     print("\n");
 }
 
+void registry::report_failure(
+    impl::test_case&                t,
+    const impl::assertion_location& location,
+    std::string_view                message) const noexcept {
+
+    set_state(t, test_state::failed);
+    print_failure();
+    print_location(t, location);
+    print_details(message);
+}
+
+void registry::report_failure(
+    impl::test_case&                t,
+    const impl::assertion_location& location,
+    std::string_view                message1,
+    std::string_view                message2) const noexcept {
+
+    set_state(t, test_state::failed);
+    print_failure();
+    print_location(t, location);
+    print_details(message1);
+    print_details(message2);
+}
+
+void registry::report_failure(
+    impl::test_case&                t,
+    const impl::assertion_location& location,
+    const impl::expression&         exp) const noexcept {
+
+    set_state(t, test_state::failed);
+    print_failure();
+    print_location(t, location);
+    print_details_expr(exp);
+}
+
+void registry::report_skipped(
+    impl::test_case&                t,
+    const impl::assertion_location& location,
+    std::string_view                message) const noexcept {
+
+    set_state(t, test_state::skipped);
+    print_skip();
+    print_location(t, location);
+    print_details(message);
+}
+
 void registry::run(test_case& t) noexcept {
     small_string<max_test_name_length> full_name;
     if (is_at_least(verbose, verbosity::high)) {
@@ -375,19 +428,13 @@ void registry::run(test_case& t) noexcept {
 #if SNATCH_WITH_EXCEPTIONS
     try {
         t.func(t);
-    } catch (const test_state& s) {
-        t.state = s;
+    } catch (const impl::abort_exception&) {
+        // Test aborted, assume its state was already set accordingly.
     } catch (const std::exception& e) {
-        print_failure();
-        print_location(t, __FILE__, __LINE__);
-        print_details("unhandled std::exception caught; message:");
-        print_details(e.what());
-        t.state = test_state::failed;
+        report_failure(
+            t, {__FILE__, __LINE__}, "unhandled std::exception caught; message:", e.what());
     } catch (...) {
-        print_failure();
-        print_location(t, __FILE__, __LINE__);
-        print_details("unhandled unknown exception caught");
-        t.state = test_state::failed;
+        report_failure(t, {__FILE__, __LINE__}, "unhandled unknown exception caught");
     }
 #else
     t.func(t);
@@ -397,13 +444,6 @@ void registry::run(test_case& t) noexcept {
         print(
             make_colored("finished:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
-    }
-}
-
-void registry::set_state(test_case& t, test_state s) noexcept {
-    if (static_cast<std::underlying_type_t<test_state>>(t.state) <
-        static_cast<std::underlying_type_t<test_state>>(s)) {
-        t.state = s;
     }
 }
 
