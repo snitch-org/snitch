@@ -74,8 +74,8 @@ constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
 constexpr std::size_t max_command_line_args = SNATCH_MAX_COMMAND_LINE_ARGS;
 } // namespace snatch
 
-// Forward declarations.
-// ---------------------
+// Forward declarations and public utilities.
+// -------------------------------------------------
 
 namespace snatch {
 class registry;
@@ -85,6 +85,14 @@ struct test_id {
     std::string_view tags;
     std::string_view type;
 };
+
+template<typename... Args>
+struct overload : Args... {
+    using Args::operator()...;
+};
+
+template<typename... Args>
+overload(Args...) -> overload<Args...>;
 } // namespace snatch
 
 // Implementation details.
@@ -471,6 +479,76 @@ template<typename T, typename U, typename... Args>
 
 void truncate_end(small_string_span ss) noexcept;
 
+template<auto T>
+struct constant {
+    static constexpr auto value = T;
+};
+
+template<typename T>
+class small_function {
+    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
+};
+
+template<typename Ret, typename... Args>
+class small_function<Ret(Args...) noexcept> {
+    using function_ptr            = Ret (*)(Args...) noexcept;
+    using function_data_ptr       = Ret (*)(void*, Args...) noexcept;
+    using function_const_data_ptr = Ret (*)(const void*, Args...) noexcept;
+
+    struct function_and_data_ptr {
+        void*             data = nullptr;
+        function_data_ptr ptr;
+    };
+
+    struct function_and_const_data_ptr {
+        const void*             data = nullptr;
+        function_const_data_ptr ptr;
+    };
+
+    using data_type = std::
+        variant<std::monostate, function_ptr, function_and_data_ptr, function_and_const_data_ptr>;
+
+    data_type data;
+
+public:
+    constexpr small_function() = default;
+
+    constexpr small_function(function_ptr ptr) noexcept : data{ptr} {};
+
+    template<typename T, auto M>
+    constexpr small_function(T& obj, constant<M>) noexcept :
+        data{function_and_data_ptr{&obj, [](void* ptr, Args... args) noexcept {
+                                       (static_cast<T*>(ptr)->*constant<M>::value)(
+                                           std::move(args)...);
+                                   }}} {};
+
+    template<typename T, auto M>
+    constexpr small_function(const T& obj, constant<M>) noexcept :
+        data{function_and_const_data_ptr{&obj, [](const void* ptr, Args... args) noexcept {
+                                             (static_cast<const T*>(ptr)->*constant<M>::value)(
+                                                 std::move(args)...);
+                                         }}} {};
+
+    template<typename... CArgs>
+    constexpr Ret operator()(CArgs&&... args) const noexcept {
+        return std::visit(
+            overload(
+                [](std::monostate) {},
+                [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
+                [&](const function_and_data_ptr& f) {
+                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                },
+                [&](const function_and_const_data_ptr& f) {
+                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                }),
+            data);
+    }
+
+    constexpr bool empty() const noexcept {
+        return std::holds_alternative<std::monostate>(data);
+    }
+};
+
 struct expression {
     std::string_view              content;
     small_string<max_expr_length> data;
@@ -538,14 +616,6 @@ struct assertion_location {
     std::string_view file;
     std::size_t      line = 0u;
 };
-
-template<typename... Args>
-struct overload : Args... {
-    using Args::operator()...;
-};
-
-template<typename... Args>
-overload(Args...) -> overload<Args...>;
 
 namespace event {
 struct test_run_started {
