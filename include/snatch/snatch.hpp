@@ -693,11 +693,12 @@ public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
     bool with_color                                      = true;
 
-    using print_function  = void (*)(std::string_view) noexcept;
-    using report_function = void (*)(const registry&, const event::data&) noexcept;
+    using print_function = impl::small_function<void(std::string_view) noexcept>;
+    using report_function =
+        impl::small_function<void(const registry&, const event::data&) noexcept>;
 
-    print_function  print_callback  = &snatch::impl::stddout_print;
-    report_function report_callback = nullptr;
+    print_function  print_callback = &snatch::impl::stddout_print;
+    report_function report_callback;
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
@@ -706,7 +707,7 @@ public:
             snatch::impl::truncate_end(message);
         }
 
-        (*this->print_callback)(message);
+        this->print_callback(message);
     }
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
