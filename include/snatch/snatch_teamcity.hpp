@@ -68,7 +68,7 @@ impl::small_string<max_message_length> make_escaped(std::string_view string) noe
 
 void report(const registry& r, const snatch::event::data& event) noexcept {
     std::visit(
-        snatch::overload(
+        snatch::overload{
             [&](const snatch::event::test_run_started& e) {
                 send_message(r, "testSuiteStarted", {{"name", make_escaped(e.name)}});
             },
@@ -92,7 +92,7 @@ void report(const registry& r, const snatch::event::data& event) noexcept {
                     r, "testFailed",
                     {{"name", make_full_name(e.id)},
                      {"message", make_full_message(e.location, e.message)}});
-            }),
+            }},
         event);
 }
 } // namespace snatch::teamcity

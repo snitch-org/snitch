@@ -537,7 +537,7 @@ public:
     template<typename... CArgs>
     constexpr Ret operator()(CArgs&&... args) const noexcept {
         return std::visit(
-            overload(
+            overload{
                 [](std::monostate) {},
                 [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
                 [&](const function_and_data_ptr& f) {
@@ -545,7 +545,7 @@ public:
                 },
                 [&](const function_and_const_data_ptr& f) {
                     return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                }),
+                }},
             data);
     }
 
