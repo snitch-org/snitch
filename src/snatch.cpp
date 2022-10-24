@@ -582,8 +582,6 @@ constinit registry tests = []() {
 }();
 } // namespace snatch
 
-#if SNATCH_DEFINE_MAIN
-
 // Main entry point utilities.
 // ---------------------------
 
@@ -941,6 +939,8 @@ bool registry::run_tests_from_command_line(const cli::input& args) noexcept {
     }
 }
 } // namespace snatch
+
+#if SNATCH_DEFINE_MAIN
 
 // Main entry point.
 // -----------------
