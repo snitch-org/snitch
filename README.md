@@ -220,6 +220,40 @@ The callback is a single `noexcept` function, taking two arguments:
  - a reference to the `snatch::registry` that generated the event
  - a reference to the `snatch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
 
+The callback can be registered either as a free function, a stateless lambda, or a member function. You can register your own callback as follows:
+
+```c++
+// Free function.
+// --------------
+void report_function(const snatch::registry& r, const snatch::event::data& e) noexcept {
+    /* ... */
+}
+
+snatch::tests.report_callback = &report_function;
+
+// Lambda.
+// -------
+snatch::tests.report_callback = [](const snatch::registry& r, const snatch::event::data& e) noexcept {
+    /* ... */
+};
+
+// Member function (const or non-const, up to you).
+// ------------------------------------------------
+struct Reporter {
+    void report(const snatch::registry& r, const snatch::event::data& e) /*const*/ noexcept {
+        /* ... */
+    }
+};
+
+Reporter reporter; // must remain alive for the duration of the tests!
+
+snatch::tests.report_callback = {reporter, snatch::constant<&Reporter::report>};
+```
+
+If you need to use a reporter member function, please make sure that the reporter object remains alive for the duration of the tests (e.g., declare it static, global, or as a local variable declared in `main()`), or make sure to de-register it when your reporter is destroyed.
+
+An example reporter for _Teamcity_ is included for demonstration, see `include/snatch/snatch_teamcity.hpp`.
+
 
 ### Default main function
 
