@@ -25,17 +25,17 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - No heap allocation from the testing framework, so memory leaks from your code can be detected precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Simple reporting of test results to the standard output, with coloring for readability.
- - Test events can also be forwarded to a reporter callback, to support custom test reporting for CI frameworks (Teamcity, ...).
+ - Compiles tests at least 40% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
-   - Additional API not in _Catch2_, or different from _Catch2_:
-     - Macro to mark a test as skipped: `SKIP(msg)`.
-     - Matchers use a different API (see [Matchers](#matchers) below).
+ - Additional API not in _Catch2_, or different from _Catch2_:
+   - Macro to mark a test as skipped: `SKIP(msg)`.
+   - Matchers use a different API (see [Matchers](#matchers) below).
 
 If you need features that are not in the list above, please use _Catch2_ or _doctest_.
 
@@ -44,6 +44,7 @@ Notable current limitations:
  - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
  - No set-up/tear-down helpers.
  - No multi-threaded test execution.
+ - No `SECTION(...)`.
 
 
 ## Example
