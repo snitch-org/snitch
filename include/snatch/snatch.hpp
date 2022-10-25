@@ -479,6 +479,11 @@ template<typename T, typename U, typename... Args>
 
 void truncate_end(small_string_span ss) noexcept;
 
+[[nodiscard]] bool replace_all(
+    impl::small_string_span string,
+    std::string_view        pattern,
+    std::string_view        replacement) noexcept;
+
 template<auto T>
 struct constant {
     static constexpr auto value = T;
