@@ -783,8 +783,9 @@ public:
     bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;
     bool run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept;
 
-    void configure_from_command_line(const cli::input& args) noexcept;
-    bool run_tests_from_command_line(const cli::input& args) noexcept;
+    bool run_tests(const cli::input& args) noexcept;
+
+    void configure(const cli::input& args) noexcept;
 
     void list_all_tests() const noexcept;
     void list_all_tags() const noexcept;

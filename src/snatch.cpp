@@ -560,13 +560,13 @@ void registry::run(test_case& t) noexcept {
 }
 
 bool registry::run_all_tests(std::string_view run_name) noexcept {
-    return run_tests(*this, run_name, [](const test_case&) { return true; });
+    return ::run_tests(*this, run_name, [](const test_case&) { return true; });
 }
 
 bool registry::run_tests_matching_name(
     std::string_view run_name, std::string_view name_filter) noexcept {
     small_string<max_test_name_length> buffer;
-    return run_tests(*this, run_name, [&](const test_case& t) {
+    return ::run_tests(*this, run_name, [&](const test_case& t) {
         std::string_view v = make_full_name(buffer, t.id);
 
         // TODO: use regex here?
@@ -575,7 +575,7 @@ bool registry::run_tests_matching_name(
 }
 
 bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
-    return run_tests(*this, run_name, [&](const test_case& t) {
+    return ::run_tests(*this, run_name, [&](const test_case& t) {
         bool selected = false;
         for_each_tag(t.id.tags, [&](std::string_view v) {
             if (v == tag_filter) {
@@ -945,7 +945,7 @@ std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
 } // namespace snatch::cli
 
 namespace snatch {
-void registry::configure_from_command_line(const cli::input& args) noexcept {
+void registry::configure(const cli::input& args) noexcept {
     if (auto opt = get_option(args, "--color")) {
         if (*opt->value == "always") {
             snatch::tests.with_color = true;
@@ -973,7 +973,7 @@ void registry::configure_from_command_line(const cli::input& args) noexcept {
     }
 }
 
-bool registry::run_tests_from_command_line(const cli::input& args) noexcept {
+bool registry::run_tests(const cli::input& args) noexcept {
     if (get_option(args, "--help")) {
         console_print("\n");
         print_help(
@@ -1020,9 +1020,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    snatch::tests.configure_from_command_line(*args);
+    snatch::tests.configure(*args);
 
-    return snatch::tests.run_tests_from_command_line(*args) ? 0 : 1;
+    return snatch::tests.run_tests(*args) ? 0 : 1;
 }
 
 #endif

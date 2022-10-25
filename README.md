@@ -231,8 +231,8 @@ void report_function(const snatch::registry& r, const snatch::event::data& e) no
 
 snatch::tests.report_callback = &report_function;
 
-// Lambda.
-// -------
+// Stateless lambda (no captures).
+// -------------------------------
 snatch::tests.report_callback = [](const snatch::registry& r, const snatch::event::data& e) noexcept {
     /* ... */
 };
@@ -292,14 +292,14 @@ int main(int argc, char* argv[]) {
     // Configure snatch using command line options.
     // You can then override the configuration below, or just remove this call to disable
     // command line options entirely.
-    snatch::tests.configure_from_command_line(*args);
+    snatch::tests.configure(*args);
 
     // Your own initialization code goes here.
     // ...
 
     // Actually run the tests.
     // This will apply any filtering specified on the command line.
-    return snatch::tests.run_tests_from_command_line(*args) ? 0 : 1;
+    return snatch::tests.run_tests(*args) ? 0 : 1;
 ```
 
 
