@@ -749,7 +749,8 @@ public:
     void register_test(const test_id& id, impl::test_ptr func) noexcept;
 
     template<typename... Args, typename F>
-    void register_type_tests(std::string_view name, std::string_view tags, const F& func) noexcept {
+    void
+    register_typed_tests(std::string_view name, std::string_view tags, const F& func) noexcept {
         (register_test(
              {name, tags, impl::get_type_name<Args>()}, impl::to_test_case_ptr<Args>(func)),
          ...);
@@ -806,7 +807,7 @@ template<typename... Args>
 template<typename F>
 const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
     if constexpr (sizeof...(Args) > 0) {
-        tests->template register_type_tests<Args...>(name, tags, func);
+        tests->template register_typed_tests<Args...>(name, tags, func);
     } else {
         tests->register_test({name, tags, {}}, func);
     }
