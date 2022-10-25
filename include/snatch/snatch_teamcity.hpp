@@ -66,6 +66,15 @@ small_string<max_message_length> make_escaped(std::string_view string) noexcept 
     return escaped_string;
 }
 
+small_string<32> make_duration(float duration) noexcept {
+    small_string<32> string;
+    if (!append(string, static_cast<std::size_t>(duration * 1e6))) {
+        truncate_end(string);
+    }
+
+    return string;
+}
+
 void report(const registry& r, const snatch::event::data& event) noexcept {
     std::visit(
         snatch::overload{
@@ -79,7 +88,9 @@ void report(const registry& r, const snatch::event::data& event) noexcept {
                 send_message(r, "testStarted", {{"name", make_full_name(e.id)}});
             },
             [&](const snatch::event::test_case_ended& e) {
-                send_message(r, "testFinished", {{"name", make_full_name(e.id)}});
+                send_message(
+                    r, "testFinished",
+                    {{"name", make_full_name(e.id)}, {"duration", make_duration(e.duration)}});
             },
             [&](const snatch::event::test_case_skipped& e) {
                 send_message(
