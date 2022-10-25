@@ -75,7 +75,7 @@ constexpr std::size_t max_command_line_args = SNATCH_MAX_COMMAND_LINE_ARGS;
 } // namespace snatch
 
 // Forward declarations and public utilities.
-// -------------------------------------------------
+// ------------------------------------------
 
 namespace snatch {
 class registry;
@@ -85,14 +85,6 @@ struct test_id {
     std::string_view tags;
     std::string_view type;
 };
-
-template<typename... Args>
-struct overload : Args... {
-    using Args::operator()...;
-};
-
-template<typename... Args>
-overload(Args...) -> overload<Args...>;
 } // namespace snatch
 
 // Implementation details.
@@ -154,9 +146,22 @@ struct test_case {
     test_state  state   = test_state::not_run;
     std::size_t asserts = 0;
 };
+} // namespace snatch::impl
+
+// Public utilities.
+// ------------------------------------------------
+
+namespace snatch {
+template<typename T>
+constexpr std::string_view type_name = impl::get_type_name<T>();
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
+} // namespace snatch
 
+// Public utilities: small_vector.
+// -------------------------------
+
+namespace snatch {
 template<typename ElemType>
 class small_vector_span {
     ElemType*    buffer_ptr  = nullptr;
@@ -184,14 +189,14 @@ public:
     }
     constexpr void resize(std::size_t size) noexcept {
         if (size > buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         *data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
         if (*data_size + elem > buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         *data_size += elem;
@@ -199,7 +204,7 @@ public:
     constexpr ElemType&
     push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
         if (*data_size == buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         ++*data_size;
@@ -212,7 +217,7 @@ public:
     constexpr ElemType&
     push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
         if (*data_size == buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         ++*data_size;
@@ -223,14 +228,14 @@ public:
     }
     constexpr ElemType& back() noexcept {
         if (*data_size == 0) {
-            impl::terminate_with("back() called on empty vector");
+            terminate_with("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
     constexpr const ElemType& back() const noexcept {
         if (*data_size == 0) {
-            impl::terminate_with("back() called on empty vector");
+            terminate_with("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
@@ -261,13 +266,13 @@ public:
     }
     constexpr ElemType& operator[](std::size_t i) noexcept {
         if (i >= size()) {
-            impl::terminate_with("operator[] called with incorrect index");
+            terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
         if (i >= size()) {
-            impl::terminate_with("operator[] called with incorrect index");
+            terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
@@ -358,7 +363,12 @@ public:
         return const_cast<small_vector*>(this)->span()[i];
     }
 };
+} // namespace snatch
 
+// Public utilities: small_string.
+// -------------------------------
+
+namespace snatch {
 using small_string_span = small_vector_span<char>;
 
 template<std::size_t MaxLength>
@@ -480,9 +490,20 @@ template<typename T, typename U, typename... Args>
 void truncate_end(small_string_span ss) noexcept;
 
 [[nodiscard]] bool replace_all(
-    impl::small_string_span string,
-    std::string_view        pattern,
-    std::string_view        replacement) noexcept;
+    small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+} // namespace snatch
+
+// Public utilities: small_function.
+// ---------------------------------
+
+namespace snatch {
+template<typename... Args>
+struct overload : Args... {
+    using Args::operator()...;
+};
+
+template<typename... Args>
+overload(Args...) -> overload<Args...>;
 
 template<auto T>
 struct constant {
@@ -553,7 +574,12 @@ public:
         return std::holds_alternative<std::monostate>(data);
     }
 };
+} // namespace snatch
 
+// Implementation details.
+// -----------------------
+
+namespace snatch::impl {
 struct expression {
     std::string_view              content;
     small_string<max_expr_length> data;
@@ -564,11 +590,11 @@ struct expression {
         using TD = std::decay_t<T>;
         if constexpr (std::is_integral_v<TD>) {
             if constexpr (std::is_signed_v<TD>) {
-                if (!impl::append(data, static_cast<std::ptrdiff_t>(value))) {
+                if (!snatch::append(data, static_cast<std::ptrdiff_t>(value))) {
                     failed = true;
                 }
             } else {
-                if (!impl::append(data, static_cast<std::size_t>(value))) {
+                if (!snatch::append(data, static_cast<std::size_t>(value))) {
                     failed = true;
                 }
             }
@@ -577,7 +603,7 @@ struct expression {
         } else if constexpr (
             std::is_pointer_v<TD> || std::is_floating_point_v<TD> || std::is_same_v<TD, bool> ||
             std::is_convertible_v<T, const void*> || std::is_convertible_v<T, std::string_view>) {
-            if (!impl::append(data, value)) {
+            if (!snatch::append(data, value)) {
                 failed = true;
             }
         } else {
@@ -610,13 +636,10 @@ void stddout_print(std::string_view message) noexcept;
 struct abort_exception {};
 } // namespace snatch::impl
 
-// Utilities.
-// ----------
+// Events.
+// -------
 
 namespace snatch {
-template<typename T>
-constexpr std::string_view type_name = impl::get_type_name<T>();
-
 struct assertion_location {
     std::string_view file;
     std::size_t      line = 0u;
@@ -672,8 +695,8 @@ struct argument {
 };
 
 struct input {
-    std::string_view                                    executable;
-    impl::small_vector<argument, max_command_line_args> arguments;
+    std::string_view                              executable;
+    small_vector<argument, max_command_line_args> arguments;
 };
 
 std::optional<input> parse_arguments(int argc, char* argv[]) noexcept;
@@ -684,7 +707,7 @@ std::optional<input> parse_arguments(int argc, char* argv[]) noexcept;
 
 namespace snatch {
 class registry {
-    impl::small_vector<impl::test_case, max_test_cases> test_list;
+    small_vector<impl::test_case, max_test_cases> test_list;
 
     void print_location(
         const impl::test_case& current_case, const assertion_location& location) const noexcept;
@@ -698,18 +721,17 @@ public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
     bool with_color                                      = true;
 
-    using print_function = impl::small_function<void(std::string_view) noexcept>;
-    using report_function =
-        impl::small_function<void(const registry&, const event::data&) noexcept>;
+    using print_function  = small_function<void(std::string_view) noexcept>;
+    using report_function = small_function<void(const registry&, const event::data&) noexcept>;
 
     print_function  print_callback = &snatch::impl::stddout_print;
     report_function report_callback;
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
-        snatch::impl::small_string<max_message_length> message;
+        small_string<max_message_length> message;
         if (!append(message, std::forward<Args>(args)...)) {
-            snatch::impl::truncate_end(message);
+            truncate_end(message);
         }
 
         this->print_callback(message);
@@ -792,13 +814,13 @@ const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
 }
 } // namespace snatch::impl
 
-// Builtin matchers.
-// -----------------
+// Matchers.
+// ---------
 
 namespace snatch::matchers {
 struct contains_substring {
-    mutable impl::small_string<max_message_length> description_buffer;
-    std::string_view                               substring_pattern;
+    mutable small_string<max_message_length> description_buffer;
+    std::string_view                         substring_pattern;
 
     explicit contains_substring(std::string_view pattern) noexcept;
 

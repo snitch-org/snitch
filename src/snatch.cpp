@@ -44,7 +44,7 @@ colored<T> make_colored(const T& t, bool with_color, color_t start) {
 } // namespace
 
 namespace {
-using snatch::impl::small_string_span;
+using snatch::small_string_span;
 
 template<typename T>
 constexpr const char* get_format_code() noexcept {
@@ -82,7 +82,7 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 }
 } // namespace
 
-namespace snatch::impl {
+namespace snatch {
 bool append(small_string_span ss, std::string_view str) noexcept {
     const bool        could_fit  = str.size() <= ss.available();
     const std::size_t copy_count = std::min(str.size(), ss.available());
@@ -133,9 +133,7 @@ void truncate_end(small_string_span ss) noexcept {
 }
 
 bool replace_all(
-    impl::small_string_span string,
-    std::string_view        pattern,
-    std::string_view        replacement) noexcept {
+    small_string_span string, std::string_view pattern, std::string_view replacement) noexcept {
 
     if (replacement.size() == pattern.size()) {
         std::string_view sv(string.begin(), string.size());
@@ -199,7 +197,9 @@ bool replace_all(
         return !overflow;
     }
 }
+} // namespace snatch
 
+namespace snatch::impl {
 void stddout_print(std::string_view message) noexcept {
     // TODO: replace this with std::print?
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
@@ -208,7 +208,8 @@ void stddout_print(std::string_view message) noexcept {
 
 namespace {
 using snatch::max_message_length;
-using snatch::impl::small_string;
+using snatch::small_string;
+using snatch::impl::stddout_print;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
@@ -231,12 +232,12 @@ bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosit
 }
 } // namespace
 
-namespace snatch::impl {
+namespace snatch {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
     console_print("terminate called with message: ", msg, "\n");
     std::terminate();
 }
-} // namespace snatch::impl
+} // namespace snatch
 
 // Matcher implementation.
 // -----------------------
@@ -586,7 +587,7 @@ bool registry::run_tests_with_tag(std::string_view run_name, std::string_view ta
 }
 
 void registry::list_all_tags() const noexcept {
-    impl::small_vector<std::string_view, max_unique_tags> tags;
+    small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
         for_each_tag(t.id.tags, [&](std::string_view v) {
             if (std::find(tags.begin(), tags.end(), v) == tags.end()) {

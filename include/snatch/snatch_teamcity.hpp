@@ -9,7 +9,7 @@ struct key_value {
     std::string_view value;
 };
 
-void escape(impl::small_string_span string) noexcept {
+void escape(small_string_span string) noexcept {
     if (!replace_all(string, "|", "||") || !replace_all(string, "'", "|'") ||
         !replace_all(string, "\n", "|n") || !replace_all(string, "\r", "|r") ||
         !replace_all(string, "[", "|[") || !replace_all(string, "]", "|]")) {
@@ -29,8 +29,8 @@ void send_message(
     r.print(teamcity_footer);
 }
 
-impl::small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
-    impl::small_string<max_test_name_length> name;
+small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
+    small_string<max_test_name_length> name;
     if (id.type.length() != 0) {
         if (!append(name, id.name, "(\"", id.type, "\")")) {
             truncate_end(name);
@@ -45,9 +45,9 @@ impl::small_string<max_test_name_length> make_full_name(const test_id& id) noexc
     return name;
 }
 
-impl::small_string<max_message_length>
+small_string<max_message_length>
 make_full_message(const snatch::assertion_location& location, std::string_view message) noexcept {
-    impl::small_string<max_message_length> full_message;
+    small_string<max_message_length> full_message;
     if (!append(full_message, location.file, ":", location.line, "\n", message)) {
         truncate_end(full_message);
     }
@@ -56,8 +56,8 @@ make_full_message(const snatch::assertion_location& location, std::string_view m
     return full_message;
 }
 
-impl::small_string<max_message_length> make_escaped(std::string_view string) noexcept {
-    impl::small_string<max_message_length> escaped_string;
+small_string<max_message_length> make_escaped(std::string_view string) noexcept {
+    small_string<max_message_length> escaped_string;
     if (!append(escaped_string, string)) {
         truncate_end(escaped_string);
     }
