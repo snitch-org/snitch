@@ -142,9 +142,10 @@ enum class test_state { not_run, success, skipped, failed };
 
 struct test_case {
     test_id     id;
-    test_ptr    func    = nullptr;
-    test_state  state   = test_state::not_run;
-    std::size_t asserts = 0;
+    test_ptr    func     = nullptr;
+    test_state  state    = test_state::not_run;
+    std::size_t asserts  = 0;
+    float       duration = 0.0f;
 };
 } // namespace snatch::impl
 
@@ -660,6 +661,7 @@ struct test_case_started {
 
 struct test_case_ended {
     const test_id& id;
+    float          duration = 0.0f;
 };
 
 struct assertion_failed {

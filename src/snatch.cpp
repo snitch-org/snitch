@@ -1,6 +1,7 @@
 #include "snatch/snatch.hpp"
 
 #include <algorithm> // for std::sort
+#include <chrono> // for measuring test time
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
@@ -535,6 +536,9 @@ void registry::run(test_case& t) noexcept {
     t.asserts = 0;
     t.state   = test_state::success;
 
+    using clock     = std::chrono::high_resolution_clock;
+    auto time_start = clock::now();
+
 #if SNATCH_WITH_EXCEPTIONS
     try {
         t.func(t);
@@ -550,12 +554,16 @@ void registry::run(test_case& t) noexcept {
     t.func(t);
 #endif
 
+    auto time_end = clock::now();
+
+    t.duration = std::chrono::duration<float>(time_end - time_start).count();
+
     if (!report_callback.empty()) {
-        report_callback(*this, event::test_case_ended{t.id});
+        report_callback(*this, event::test_case_ended{t.id, t.duration});
     } else if (is_at_least(verbose, verbosity::high)) {
         print(
             make_colored("finished:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), "\n");
+            make_colored(full_name, with_color, color::highlight1), " (", t.duration, "s)\n");
     }
 }
 
