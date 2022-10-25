@@ -631,7 +631,7 @@ struct expression {
 #undef EXPR_OPERATOR
 };
 
-void stddout_print(std::string_view message) noexcept;
+void stdout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
 } // namespace snatch::impl
@@ -724,7 +724,7 @@ public:
     using print_function  = small_function<void(std::string_view) noexcept>;
     using report_function = small_function<void(const registry&, const event::data&) noexcept>;
 
-    print_function  print_callback = &snatch::impl::stddout_print;
+    print_function  print_callback = &snatch::impl::stdout_print;
     report_function report_callback;
 
     template<typename... Args>

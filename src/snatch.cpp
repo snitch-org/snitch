@@ -200,7 +200,7 @@ bool replace_all(
 } // namespace snatch
 
 namespace snatch::impl {
-void stddout_print(std::string_view message) noexcept {
+void stdout_print(std::string_view message) noexcept {
     // TODO: replace this with std::print?
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
 }
@@ -209,7 +209,7 @@ void stddout_print(std::string_view message) noexcept {
 namespace {
 using snatch::max_message_length;
 using snatch::small_string;
-using snatch::impl::stddout_print;
+using snatch::impl::stdout_print;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
@@ -223,7 +223,7 @@ void console_print(Args&&... args) noexcept {
         truncate_end(message);
     }
 
-    stddout_print(message);
+    stdout_print(message);
 }
 
 bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
