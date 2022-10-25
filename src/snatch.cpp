@@ -141,7 +141,7 @@ bool replace_all(
 
         while (pos != sv.npos) {
             // Replace pattern by replacement
-            std::memcpy(string.begin() + pos, replacement.begin(), replacement.size());
+            std::memcpy(string.data() + pos, replacement.data(), replacement.size());
             pos += replacement.size();
 
             // Find next occurrence
@@ -160,7 +160,7 @@ bool replace_all(
             string.resize(string.size() - char_diff);
 
             // Replace pattern by replacement
-            std::memcpy(string.begin() + pos, replacement.begin(), replacement.size());
+            std::memcpy(string.data() + pos, replacement.data(), replacement.size());
             pos += replacement.size();
 
             // Find next occurrence
@@ -186,7 +186,7 @@ bool replace_all(
 
             // Replace pattern by replacement
             const std::size_t max_chars = pattern.size() + char_growth;
-            std::memcpy(string.begin() + pos, replacement.begin(), max_chars);
+            std::memcpy(string.data() + pos, replacement.data(), max_chars);
             pos += max_chars;
 
             // Find next occurrence
