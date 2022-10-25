@@ -113,12 +113,12 @@ Results for _snatch_:
 
 |                 | _snatch_ (Debug) | _snatch_ (Release) |
 |-----------------|------------------|--------------------|
-| Build framework | 1.0s             | 1.2s               |
-| Build tests     | 70s              | 149s               |
-| Build all       | 71s              | 150s               |
-| Run tests       | 15ms             | 7ms                |
-| Library size    | 0.51MB           | 0.05MB             |
-| Executable size | 31.0MB           | 9.3MB              |
+| Build framework | 1.5s             | 2.2s               |
+| Build tests     | 65s              | 133s               |
+| Build all       | 67s              | 135s               |
+| Run tests       | 13ms             | 7ms                |
+| Library size    | 2.50MB           | 0.63MB             |
+| Executable size | 28.9MB           | 8.5MB              |
 
 Results for alternative testing frameworks:
 
