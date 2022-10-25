@@ -1,129 +1,51 @@
 #include "snatch/snatch.hpp"
 
 #include <algorithm> // for std::sort
-#include <cstdio> // for std::printf
+#include <chrono> // for measuring test time
+#include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
 
 #if !defined(SNATCH_DEFINE_MAIN)
 #    define SNATCH_DEFINE_MAIN 1
 #endif
+#if !defined(SNATCH_WITH_COLOR)
+#    define SNATCH_WITH_COLOR 1
+#endif
 
 // Testing framework implementation utilities.
 // -------------------------------------------
 
-namespace { namespace color {
-const char* error_start [[maybe_unused]]      = "\x1b[1;31m";
-const char* warning_start [[maybe_unused]]    = "\x1b[1;33m";
-const char* status_start [[maybe_unused]]     = "\x1b[1;36m";
-const char* fail_start [[maybe_unused]]       = "\x1b[1;31m";
-const char* skipped_start [[maybe_unused]]    = "\x1b[1;33m";
-const char* pass_start [[maybe_unused]]       = "\x1b[1;32m";
-const char* highlight1_start [[maybe_unused]] = "\x1b[1;35m";
-const char* highlight2_start [[maybe_unused]] = "\x1b[1;36m";
-const char* reset [[maybe_unused]]            = "\x1b[0m";
-}} // namespace ::color
+namespace {
+using color_t = const char*;
+
+namespace color {
+constexpr color_t error [[maybe_unused]]      = "\x1b[1;31m";
+constexpr color_t warning [[maybe_unused]]    = "\x1b[1;33m";
+constexpr color_t status [[maybe_unused]]     = "\x1b[1;36m";
+constexpr color_t fail [[maybe_unused]]       = "\x1b[1;31m";
+constexpr color_t skipped [[maybe_unused]]    = "\x1b[1;33m";
+constexpr color_t pass [[maybe_unused]]       = "\x1b[1;32m";
+constexpr color_t highlight1 [[maybe_unused]] = "\x1b[1;35m";
+constexpr color_t highlight2 [[maybe_unused]] = "\x1b[1;36m";
+constexpr color_t reset [[maybe_unused]]      = "\x1b[0m";
+} // namespace color
+
+template<typename T>
+struct colored {
+    const T& value;
+    color_t  color_start;
+    color_t  color_end;
+};
+
+template<typename T>
+colored<T> make_colored(const T& t, bool with_color, color_t start) {
+    return {t, with_color ? start : "", with_color ? color::reset : ""};
+}
+} // namespace
 
 namespace {
-using namespace snatch;
-using namespace snatch::impl;
-
-template<typename F>
-bool run_tests(registry& r, F&& predicate) noexcept {
-    bool        success         = true;
-    std::size_t run_count       = 0;
-    std::size_t fail_count      = 0;
-    std::size_t skip_count      = 0;
-    std::size_t assertion_count = 0;
-
-    for (test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        r.run(t);
-
-        ++run_count;
-        assertion_count += t.tests;
-        if (t.state == test_state::failed) {
-            ++fail_count;
-            success = false;
-        } else if (t.state == test_state::skipped) {
-            ++skip_count;
-        }
-    }
-
-    std::printf("==========================================\n");
-
-    if (success) {
-        std::printf(
-            "%ssuccess:%s all tests passed (%zu test cases, %zu assertions", color::pass_start,
-            color::reset, run_count, assertion_count);
-    } else {
-        std::printf(
-            "%serror:%s some tests failed (%zu out of %zu test cases, %zu assertions",
-            color::fail_start, color::reset, fail_count, run_count, assertion_count);
-    }
-
-    if (skip_count > 0) {
-        std::printf(", %zu test cases skipped", skip_count);
-    }
-
-    std::printf(")\n");
-
-    return success;
-}
-
-template<typename F>
-void list_tests(const registry& r, F&& predicate) noexcept {
-    for (const test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        if (!t.type.empty()) {
-            std::printf(
-                "%.*s [%.*s]\n", static_cast<int>(t.name.length()), t.name.data(),
-                static_cast<int>(t.type.length()), t.type.data());
-        } else {
-            std::printf("%.*s\n", static_cast<int>(t.name.length()), t.name.data());
-        }
-    }
-}
-
-template<typename F>
-void for_each_tag(std::string_view s, F&& callback) noexcept {
-    std::string_view delim    = "][";
-    std::size_t      pos      = s.find(delim);
-    std::size_t      last_pos = 0u;
-
-    while (pos != std::string_view::npos) {
-        std::size_t cur_size = pos - last_pos;
-        if (cur_size != 0) {
-            callback(s.substr(last_pos, cur_size + 1));
-        }
-        last_pos = pos + 1;
-        pos      = s.find(delim, last_pos);
-    }
-
-    callback(s.substr(last_pos));
-}
-
-std::string_view
-make_full_name(small_string<max_test_name_length>& buffer, const test_case& t) noexcept {
-    buffer.clear();
-    if (t.type.length() != 0) {
-        if (!append(buffer, t.name, " [", t.type, "]")) {
-            return {};
-        }
-    } else {
-        if (!append(buffer, t.name)) {
-            return {};
-        }
-    }
-
-    return buffer.str();
-}
+using snatch::small_string_span;
 
 template<typename T>
 constexpr const char* get_format_code() noexcept {
@@ -161,16 +83,7 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 }
 } // namespace
 
-// Testing framework implementation.
-// ---------------------------------
-
-namespace snatch::impl {
-[[noreturn]] void terminate_with(std::string_view msg) noexcept {
-    std::printf(
-        "terminate called with message: %.*s\n", static_cast<int>(msg.length()), msg.data());
-    std::terminate();
-}
-
+namespace snatch {
 bool append(small_string_span ss, std::string_view str) noexcept {
     const bool        could_fit  = str.size() <= ss.available();
     const std::size_t copy_count = std::min(str.size(), ss.available());
@@ -220,7 +133,115 @@ void truncate_end(small_string_span ss) noexcept {
     std::memcpy(ss.begin() + offset, "...", num_dots);
 }
 
+bool replace_all(
+    small_string_span string, std::string_view pattern, std::string_view replacement) noexcept {
+
+    if (replacement.size() == pattern.size()) {
+        std::string_view sv(string.begin(), string.size());
+        auto             pos = sv.find_first_of(pattern);
+
+        while (pos != sv.npos) {
+            // Replace pattern by replacement
+            std::memcpy(string.data() + pos, replacement.data(), replacement.size());
+            pos += replacement.size();
+
+            // Find next occurrence
+            pos = sv.find(pattern, pos);
+        }
+
+        return true;
+    } else if (replacement.size() < pattern.size()) {
+        const std::size_t char_diff = pattern.size() - replacement.size();
+        std::string_view  sv(string.begin(), string.size());
+        auto              pos = sv.find(pattern);
+
+        while (pos != sv.npos) {
+            // Shift data after the replacement to the left to fill the gap
+            std::rotate(string.begin() + pos, string.begin() + pos + char_diff, string.end());
+            string.resize(string.size() - char_diff);
+
+            // Replace pattern by replacement
+            std::memcpy(string.data() + pos, replacement.data(), replacement.size());
+            pos += replacement.size();
+
+            // Find next occurrence
+            sv  = {string.begin(), string.size()};
+            pos = sv.find(pattern, pos);
+        }
+
+        return true;
+    } else {
+        const std::size_t char_diff = replacement.size() - pattern.size();
+        std::string_view  sv(string.begin(), string.size());
+        auto              pos      = sv.find(pattern);
+        bool              overflow = false;
+
+        while (pos != sv.npos) {
+            // Shift data after the pattern to the right to make room for the replacement
+            const std::size_t char_growth = std::min(char_diff, string.available());
+            if (char_growth != char_diff) {
+                overflow = true;
+            }
+            string.grow(char_growth);
+            std::rotate(string.begin() + pos, string.end() - char_growth, string.end());
+
+            // Replace pattern by replacement
+            const std::size_t max_chars = pattern.size() + char_growth;
+            std::memcpy(string.data() + pos, replacement.data(), max_chars);
+            pos += max_chars;
+
+            // Find next occurrence
+            sv  = {string.begin(), string.size()};
+            pos = sv.find(pattern, pos);
+        }
+
+        return !overflow;
+    }
+}
+} // namespace snatch
+
+namespace snatch::impl {
+void stdout_print(std::string_view message) noexcept {
+    // TODO: replace this with std::print?
+    std::printf("%.*s", static_cast<int>(message.length()), message.data());
+}
 } // namespace snatch::impl
+
+namespace {
+using snatch::max_message_length;
+using snatch::small_string;
+using snatch::impl::stdout_print;
+
+template<typename T>
+bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
+    return append(ss, colored_value.color_start, colored_value.value, colored_value.color_end);
+}
+
+template<typename... Args>
+void console_print(Args&&... args) noexcept {
+    small_string<max_message_length> message;
+    if (!append(message, std::forward<Args>(args)...)) {
+        truncate_end(message);
+    }
+
+    stdout_print(message);
+}
+
+bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
+    using underlying_type = std::underlying_type_t<snatch::registry::verbosity>;
+    return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
+}
+} // namespace
+
+namespace snatch {
+[[noreturn]] void terminate_with(std::string_view msg) noexcept {
+    console_print("terminate called with message: ", msg, "\n");
+    std::terminate();
+}
+} // namespace snatch
+
+// Matcher implementation.
+// -----------------------
 
 namespace snatch::matchers {
 contains_substring::contains_substring(std::string_view pattern) noexcept :
@@ -244,150 +265,328 @@ with_what_contains::with_what_contains(std::string_view pattern) noexcept :
     contains_substring(pattern) {}
 } // namespace snatch::matchers
 
-namespace snatch {
-void registry::register_test(
-    std::string_view name, std::string_view tags, std::string_view type, test_ptr func) noexcept {
+// Testing framework implementation.
+// ---------------------------------
 
-    if (test_list.size() == test_list.capacity()) {
-        std::printf(
-            "%serror:%s max number of test cases reached; "
-            "please increase 'SNATCH_MAX_TEST_CASES' (currently %zu)\n.",
-            color::error_start, color::reset, max_test_cases);
-        std::terminate();
+namespace {
+using namespace snatch;
+using namespace snatch::impl;
+
+template<typename F>
+bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
+    if (!r.report_callback.empty()) {
+        r.report_callback(r, event::test_run_started{run_name});
     }
 
-    test_list.push_back(test_case{name, tags, type, func});
+    bool        success         = true;
+    std::size_t run_count       = 0;
+    std::size_t fail_count      = 0;
+    std::size_t skip_count      = 0;
+    std::size_t assertion_count = 0;
 
-    small_string<max_test_name_length> buffer;
-    if (make_full_name(buffer, test_list.back()).empty()) {
-        std::printf(
-            "%serror:%s max length of test name reached; "
-            "please increase 'SNATCH_MAX_TEST_NAME_LENGTH' (currently %zu)\n.",
-            color::error_start, color::reset, max_test_name_length);
-        std::terminate();
+    for (test_case& t : r) {
+        if (!predicate(t)) {
+            continue;
+        }
+
+        r.run(t);
+
+        ++run_count;
+        assertion_count += t.asserts;
+        if (t.state == test_state::failed) {
+            ++fail_count;
+            success = false;
+        } else if (t.state == test_state::skipped) {
+            ++skip_count;
+        }
+    }
+
+    if (!r.report_callback.empty()) {
+        r.report_callback(r, event::test_run_ended{run_name});
+    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
+        r.print("==========================================\n");
+
+        if (success) {
+            r.print(
+                make_colored("success:", r.with_color, color::pass), " all tests passed (",
+                run_count, " test cases, ", assertion_count, " assertions");
+        } else {
+            r.print(
+                make_colored("error:", r.with_color, color::fail), " some tests failed (",
+                fail_count, " out of ", run_count, " test cases, ", assertion_count, " assertions");
+        }
+
+        if (skip_count > 0) {
+            r.print(", ", skip_count, " test cases skipped");
+        }
+
+        r.print(")\n");
+    }
+
+    return success;
+}
+
+template<typename F>
+void list_tests(const registry& r, F&& predicate) noexcept {
+    for (const test_case& t : r) {
+        if (!predicate(t)) {
+            continue;
+        }
+
+        if (!t.id.type.empty()) {
+            console_print(t.id.name, " [", t.id.type, "]\n");
+        } else {
+            console_print(t.id.name);
+        }
     }
 }
 
-void registry::print_location(
-    const test_case& current_case, const char* filename, int line_number) const noexcept {
+template<typename F>
+void for_each_tag(std::string_view s, F&& callback) noexcept {
+    std::string_view delim    = "][";
+    std::size_t      pos      = s.find(delim);
+    std::size_t      last_pos = 0u;
 
-    std::printf(
-        "running test case \"%s%.*s%s\"\n"
-        "          at %s:%d\n",
-        color::highlight1_start, static_cast<int>(current_case.name.length()),
-        current_case.name.data(), color::reset, filename, line_number);
-
-    if (!current_case.type.empty()) {
-        std::printf(
-            "          for type %s%.*s%s\n", color::highlight1_start,
-            static_cast<int>(current_case.type.length()), current_case.type.data(), color::reset);
+    while (pos != std::string_view::npos) {
+        std::size_t cur_size = pos - last_pos;
+        if (cur_size != 0) {
+            callback(s.substr(last_pos, cur_size + 1));
+        }
+        last_pos = pos + 1;
+        pos      = s.find(delim, last_pos);
     }
+
+    callback(s.substr(last_pos));
 }
 
-void registry::print_failure() const noexcept {
-    std::printf("%sfailed:%s ", color::fail_start, color::reset);
-}
-void registry::print_skip() const noexcept {
-    std::printf("%sskipped:%s ", color::skipped_start, color::reset);
-}
-
-void registry::print_details(std::string_view message) const noexcept {
-    std::printf(
-        "          %s%.*s%s\n", color::highlight2_start, static_cast<int>(message.length()),
-        message.data(), color::reset);
-}
-
-void registry::print_details_expr(
-    std::string_view check, std::string_view exp_str, const expression& exp) const noexcept {
-    std::printf(
-        "          %s%.*s(%.*s)%s", color::highlight2_start, static_cast<int>(check.length()),
-        check.data(), static_cast<int>(exp_str.length()), exp_str.data(), color::reset);
-    if (!exp.failed) {
-        auto str = exp.data.str();
-        std::printf(
-            ", got %s%.*s%s\n", color::highlight2_start, static_cast<int>(str.length()), str.data(),
-            color::reset);
+std::string_view
+make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
+    buffer.clear();
+    if (id.type.length() != 0) {
+        if (!append(buffer, id.name, " [", id.type, "]")) {
+            return {};
+        }
     } else {
-        std::printf("\n");
+        if (!append(buffer, id.name)) {
+            return {};
+        }
     }
+
+    return buffer.str();
 }
 
-void registry::run(test_case& t) noexcept {
-    if (verbose) {
-        std::printf("%sstarting:%s %s", color::status_start, color::reset, color::highlight1_start);
-        if (!t.type.empty()) {
-            std::printf(
-                "%.*s [%.*s]", static_cast<int>(t.name.length()), t.name.data(),
-                static_cast<int>(t.type.length()), t.type.data());
-        } else {
-            std::printf("%.*s", static_cast<int>(t.name.length()), t.name.data());
-        }
-        std::printf("%s.\n", color::reset);
-    }
-
-    t.tests = 0;
-    t.state = test_state::success;
-
-#if SNATCH_WITH_EXCEPTIONS
-    try {
-        t.func(t);
-    } catch (const test_state& s) {
-        t.state = s;
-    } catch (const std::exception& e) {
-        print_failure();
-        print_location(t, __FILE__, __LINE__);
-        print_details("unhandled std::exception caught; message:");
-        print_details(e.what());
-        t.state = test_state::failed;
-    } catch (...) {
-        print_failure();
-        print_location(t, __FILE__, __LINE__);
-        print_details("unhandled unknown exception caught");
-        t.state = test_state::failed;
-    }
-#else
-    t.func(t);
-#endif
-
-    if (verbose) {
-        std::printf("%sfinished:%s %s", color::status_start, color::reset, color::highlight1_start);
-        if (!t.type.empty()) {
-            std::printf(
-                "%.*s [%.*s]", static_cast<int>(t.name.length()), t.name.data(),
-                static_cast<int>(t.type.length()), t.type.data());
-        } else {
-            std::printf("%.*s", static_cast<int>(t.name.length()), t.name.data());
-        }
-        std::printf("%s.\n", color::reset);
-    }
-}
-
-void registry::set_state(test_case& t, test_state s) noexcept {
+void set_state(test_case& t, test_state s) noexcept {
     if (static_cast<std::underlying_type_t<test_state>>(t.state) <
         static_cast<std::underlying_type_t<test_state>>(s)) {
         t.state = s;
     }
 }
+} // namespace
 
-bool registry::run_all_tests() noexcept {
-    return run_tests(*this, [](const test_case&) { return true; });
+namespace snatch {
+void registry::register_test(const test_id& id, test_ptr func) noexcept {
+    if (test_list.size() == test_list.capacity()) {
+        print(
+            make_colored("error:", with_color, color::fail),
+            " max number of test cases reached; "
+            "please increase 'SNATCH_MAX_TEST_CASES' (currently ",
+            max_test_cases, ")\n.");
+        std::terminate();
+    }
+
+    test_list.push_back(test_case{id, func});
+
+    small_string<max_test_name_length> buffer;
+    if (make_full_name(buffer, test_list.back().id).empty()) {
+        print(
+            make_colored("error:", with_color, color::fail),
+            " max length of test name reached; "
+            "please increase 'SNATCH_MAX_TEST_NAME_LENGTH' (currently ",
+            max_test_name_length, ")\n.");
+        std::terminate();
+    }
 }
 
-bool registry::run_tests_matching_name(std::string_view name) noexcept {
+void registry::print_location(
+    const impl::test_case& current_case, const assertion_location& location) const noexcept {
+
+    print(
+        "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
+        "\"\n");
+    print("          at ", location.file, ":", location.line, "\n");
+
+    if (!current_case.id.type.empty()) {
+        print(
+            "          for type ",
+            make_colored(current_case.id.type, with_color, color::highlight1), "\n");
+    }
+}
+
+void registry::print_failure() const noexcept {
+    print(make_colored("failed: ", with_color, color::fail));
+}
+void registry::print_skip() const noexcept {
+    print(make_colored("skipped: ", with_color, color::skipped));
+}
+
+void registry::print_details(std::string_view message) const noexcept {
+    print("          ", make_colored(message, with_color, color::highlight2), "\n");
+}
+
+void registry::print_details_expr(const expression& exp) const noexcept {
+    print("          ", make_colored(exp.content, with_color, color::highlight2));
+
+    if (!exp.failed) {
+        print(", got ", make_colored(exp.data, with_color, color::highlight2));
+    }
+
+    print("\n");
+}
+
+void registry::report_failure(
+    impl::test_case&          t,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
+
+    set_state(t, test_state::failed);
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::assertion_failed{t.id, location, message});
+    } else {
+        print_failure();
+        print_location(t, location);
+        print_details(message);
+    }
+}
+
+void registry::report_failure(
+    impl::test_case&          t,
+    const assertion_location& location,
+    std::string_view          message1,
+    std::string_view          message2) const noexcept {
+
+    set_state(t, test_state::failed);
+
+    small_string<max_message_length> message;
+    if (!append(message, message1, message2)) {
+        truncate_end(message);
+    }
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::assertion_failed{t.id, location, message});
+    } else {
+        print_failure();
+        print_location(t, location);
+        print_details(message);
+    }
+}
+
+void registry::report_failure(
+    impl::test_case&          t,
+    const assertion_location& location,
+    const impl::expression&   exp) const noexcept {
+
+    set_state(t, test_state::failed);
+
+    if (!report_callback.empty()) {
+        if (!exp.failed) {
+            small_string<max_message_length> message;
+            if (!append(message, exp.content, ", got ", exp.data)) {
+                truncate_end(message);
+            }
+            report_callback(*this, event::assertion_failed{t.id, location, message});
+        } else {
+            report_callback(*this, event::assertion_failed{t.id, location, {exp.content}});
+        }
+    } else {
+        print_failure();
+        print_location(t, location);
+        print_details_expr(exp);
+    }
+}
+
+void registry::report_skipped(
+    impl::test_case&          t,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
+
+    set_state(t, test_state::skipped);
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::test_case_skipped{t.id, location, message});
+    } else {
+        print_skip();
+        print_location(t, location);
+        print_details(message);
+    }
+}
+
+void registry::run(test_case& t) noexcept {
+    small_string<max_test_name_length> full_name;
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::test_case_started{t.id});
+    } else if (is_at_least(verbose, verbosity::high)) {
+        make_full_name(full_name, t.id);
+        print(
+            make_colored("starting:", with_color, color::status), " ",
+            make_colored(full_name, with_color, color::highlight1), "\n");
+    }
+
+    t.asserts = 0;
+    t.state   = test_state::success;
+
+    using clock     = std::chrono::high_resolution_clock;
+    auto time_start = clock::now();
+
+#if SNATCH_WITH_EXCEPTIONS
+    try {
+        t.func(t);
+    } catch (const impl::abort_exception&) {
+        // Test aborted, assume its state was already set accordingly.
+    } catch (const std::exception& e) {
+        report_failure(
+            t, {__FILE__, __LINE__}, "unhandled std::exception caught; message:", e.what());
+    } catch (...) {
+        report_failure(t, {__FILE__, __LINE__}, "unhandled unknown exception caught");
+    }
+#else
+    t.func(t);
+#endif
+
+    auto time_end = clock::now();
+
+    t.duration = std::chrono::duration<float>(time_end - time_start).count();
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::test_case_ended{t.id, t.duration});
+    } else if (is_at_least(verbose, verbosity::high)) {
+        print(
+            make_colored("finished:", with_color, color::status), " ",
+            make_colored(full_name, with_color, color::highlight1), " (", t.duration, "s)\n");
+    }
+}
+
+bool registry::run_all_tests(std::string_view run_name) noexcept {
+    return ::run_tests(*this, run_name, [](const test_case&) { return true; });
+}
+
+bool registry::run_tests_matching_name(
+    std::string_view run_name, std::string_view name_filter) noexcept {
     small_string<max_test_name_length> buffer;
-    return run_tests(*this, [&](const test_case& t) {
-        std::string_view v = make_full_name(buffer, t);
+    return ::run_tests(*this, run_name, [&](const test_case& t) {
+        std::string_view v = make_full_name(buffer, t.id);
 
         // TODO: use regex here?
-        return v.find(name) != t.name.npos;
+        return v.find(name_filter) != v.npos;
     });
 }
 
-bool registry::run_tests_with_tag(std::string_view tag) noexcept {
-    return run_tests(*this, [&](const test_case& t) {
+bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
+    return ::run_tests(*this, run_name, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.tags, [&](std::string_view v) {
-            if (v == tag) {
+        for_each_tag(t.id.tags, [&](std::string_view v) {
+            if (v == tag_filter) {
                 selected = true;
             }
         });
@@ -396,15 +595,16 @@ bool registry::run_tests_with_tag(std::string_view tag) noexcept {
 }
 
 void registry::list_all_tags() const noexcept {
-    impl::small_vector<std::string_view, max_unique_tags> tags;
+    small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
-        for_each_tag(t.tags, [&](std::string_view v) {
+        for_each_tag(t.id.tags, [&](std::string_view v) {
             if (std::find(tags.begin(), tags.end(), v) == tags.end()) {
                 if (tags.size() == tags.capacity()) {
-                    std::printf(
-                        "%serror:%s max number of tags reached; "
-                        "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently %zu)\n.",
-                        color::error_start, color::reset, max_unique_tags);
+                    print(
+                        make_colored("error:", with_color, color::fail),
+                        " max number of tags reached; "
+                        "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
+                        max_unique_tags, ")\n.");
                     std::terminate();
                 }
 
@@ -415,8 +615,8 @@ void registry::list_all_tags() const noexcept {
 
     std::sort(tags.begin(), tags.end());
 
-    for (auto c : tags) {
-        std::printf("%.*s\n", static_cast<int>(c.length()), c.data());
+    for (const auto& t : tags) {
+        print(t, "\n");
     }
 }
 
@@ -427,7 +627,7 @@ void registry::list_all_tests() const noexcept {
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
     list_tests(*this, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.tags, [&](std::string_view v) {
+        for_each_tag(t.id.tags, [&](std::string_view v) {
             if (v == tag) {
                 selected = true;
             }
@@ -436,26 +636,28 @@ void registry::list_tests_with_tag(std::string_view tag) const noexcept {
     });
 }
 
-impl::test_case* registry::begin() noexcept {
+test_case* registry::begin() noexcept {
     return test_list.begin();
 }
 
-impl::test_case* registry::end() noexcept {
+test_case* registry::end() noexcept {
     return test_list.end();
 }
 
-const impl::test_case* registry::begin() const noexcept {
+const test_case* registry::begin() const noexcept {
     return test_list.begin();
 }
 
-const impl::test_case* registry::end() const noexcept {
+const test_case* registry::end() const noexcept {
     return test_list.end();
 }
 
-constinit registry tests;
+constinit registry tests = []() {
+    registry r;
+    r.with_color = SNATCH_DEFAULT_WITH_COLOR == 1;
+    return r;
+}();
 } // namespace snatch
-
-#if SNATCH_DEFINE_MAIN
 
 // Main entry point utilities.
 // ---------------------------
@@ -463,8 +665,7 @@ constinit registry tests;
 namespace {
 using namespace std::literals;
 
-constexpr std::size_t max_command_line_args = 1024;
-constexpr std::size_t max_arg_names         = 2;
+constexpr std::size_t max_arg_names = 2;
 
 enum class argument_type { optional, mandatory };
 
@@ -477,19 +678,32 @@ struct expected_argument {
 
 using expected_arguments = small_vector<expected_argument, max_command_line_args>;
 
-struct argument {
-    std::string_view                name;
-    std::optional<std::string_view> value_name;
-    std::optional<std::string_view> value;
+struct parser_settings {
+    bool with_color = true;
 };
 
-using arguments = small_vector<argument, max_command_line_args>;
+std::string_view extract_executable(std::string_view path) {
+    if (auto folder_end = path.find_last_of("\\/"); folder_end != path.npos) {
+        path.remove_prefix(folder_end + 1);
+    }
+    if (auto extension_start = path.find_last_of('.'); extension_start != path.npos) {
+        path.remove_suffix(path.size() - extension_start);
+    }
 
-std::optional<arguments>
-parse_arguments(int argc, char* argv[], const expected_arguments& expected) noexcept {
-    std::optional<arguments> ret(std::in_place);
-    auto&                    args = *ret;
-    bool                     bad  = false;
+    return path;
+}
+
+std::optional<cli::input> parse_arguments(
+    int                       argc,
+    char*                     argv[],
+    const expected_arguments& expected,
+    const parser_settings&    settings = parser_settings{}) noexcept {
+
+    std::optional<cli::input> ret(std::in_place);
+    ret->executable = extract_executable(argv[0]);
+
+    auto& args = ret->arguments;
+    bool  bad  = false;
 
     // Check validity of inputs
     small_vector<bool, max_command_line_args> expected_found;
@@ -531,9 +745,9 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
                 found = true;
 
                 if (expected_found[arg_index]) {
-                    printf(
-                        "%serror:%s duplicate command line argument '%.*s'\n", color::error_start,
-                        color::reset, static_cast<int>(arg.size()), arg.data());
+                    console_print(
+                        make_colored("error:", settings.with_color, color::error),
+                        " duplicate command line argument '", arg, "'\n");
                     bad = true;
                     break;
                 }
@@ -542,29 +756,28 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
 
                 if (e.value_name) {
                     if (argi + 1 == argc) {
-                        printf(
-                            "%serror:%s missing value '<%.*s>' for command line argument '%.*s'\n",
-                            color::error_start, color::reset,
-                            static_cast<int>(e.value_name->size()), e.value_name->data(),
-                            static_cast<int>(arg.size()), arg.data());
+                        console_print(
+                            make_colored("error:", settings.with_color, color::error),
+                            " missing value '<", *e.value_name, ">' for command line argument '",
+                            arg, "'\n");
                         bad = true;
                         break;
                     }
 
                     argi += 1;
-                    args.push_back(
-                        argument{e.names.back(), e.value_name, {std::string_view(argv[argi])}});
+                    args.push_back(cli::argument{
+                        e.names.back(), e.value_name, {std::string_view(argv[argi])}});
                 } else {
-                    args.push_back(argument{e.names.back(), {}, {}});
+                    args.push_back(cli::argument{e.names.back(), {}, {}});
                 }
 
                 break;
             }
 
             if (!found) {
-                printf(
-                    "%swarning:%s unknown command line argument '%.*s'\n", color::warning_start,
-                    color::reset, static_cast<int>(arg.size()), arg.data());
+                console_print(
+                    make_colored("warning:", settings.with_color, color::warning),
+                    " unknown command line argument '", arg, "'\n");
             }
         } else {
             bool found = false;
@@ -577,14 +790,15 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
 
                 found = true;
 
-                args.push_back(argument{""sv, e.value_name, {arg}});
+                args.push_back(cli::argument{""sv, e.value_name, {arg}});
                 expected_found[arg_index] = true;
                 break;
             }
 
             if (!found) {
-                printf(
-                    "%serror:%s too many positional arguments\n", color::error_start, color::reset);
+                console_print(
+                    make_colored("error:", settings.with_color, color::error),
+                    " too many positional arguments\n");
                 bad = true;
             }
         }
@@ -594,13 +808,13 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
         const auto& e = expected[arg_index];
         if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
             if (e.names.empty()) {
-                printf(
-                    "%serror:%s missing positional argument '<%.*s>'\n", color::error_start,
-                    color::reset, static_cast<int>(e.value_name->size()), e.value_name->data());
+                console_print(
+                    make_colored("error:", settings.with_color, color::error),
+                    " missing positional argument '<", *e.value_name, ">'\n");
             } else {
-                printf(
-                    "%serror:%s missing option '<%.*s>'\n", color::error_start, color::reset,
-                    static_cast<int>(e.names.back().size()), e.names.back().data());
+                console_print(
+                    make_colored("error:", settings.with_color, color::error), " missing option '<",
+                    e.names.back(), ">'\n");
             }
             bad = true;
         }
@@ -613,146 +827,210 @@ parse_arguments(int argc, char* argv[], const expected_arguments& expected) noex
     return ret;
 }
 
+struct print_help_settings {
+    bool with_color = true;
+};
+
 void print_help(
-    std::string_view          program_name,
-    std::string_view          program_description,
-    const expected_arguments& expected) {
+    std::string_view           program_name,
+    std::string_view           program_description,
+    const expected_arguments&  expected,
+    const print_help_settings& settings = print_help_settings{}) {
 
     // Print program desription
-    printf(
-        "%s%.*s%s\n", color::highlight2_start, static_cast<int>(program_description.size()),
-        program_description.data(), color::reset);
+    console_print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
 
     // Print command line usage example
-    printf("%sUsage:%s\n", color::pass_start, color::reset);
-    printf("  %.*s", static_cast<int>(program_name.size()), program_name.data());
+    console_print(make_colored("Usage:", settings.with_color, color::pass), "\n");
+    console_print("  ", program_name);
     if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
-        printf(" [options...]");
+        console_print(" [options...]");
     }
+
     for (const auto& e : expected) {
         if (e.names.empty()) {
             if (e.type == argument_type::mandatory) {
-                printf(" <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+                console_print(" <", *e.value_name, ">");
             } else {
-                printf(" [<%.*s>]", static_cast<int>(e.value_name->size()), e.value_name->data());
+                console_print(" [<", *e.value_name, ">]");
             }
         }
     }
-    printf("\n\n");
+
+    console_print("\n\n");
 
     // List arguments
+    small_string<max_message_length> heading;
     for (const auto& e : expected) {
-        printf("  ");
-        printf("%s", color::highlight1_start);
+        heading.clear();
+
+        bool success = true;
         if (!e.names.empty()) {
             if (e.names[0].starts_with("--")) {
-                printf("    ");
+                success = success && append(heading, "    ");
             }
 
-            printf("%.*s", static_cast<int>(e.names[0].size()), e.names[0].data());
+            success = success && append(heading, e.names[0]);
+
             if (e.names.size() == 2) {
-                printf(", %.*s", static_cast<int>(e.names[1].size()), e.names[1].data());
+                success = success && append(heading, ", ", e.names[1]);
             }
 
             if (e.value_name) {
-                printf(" <%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+                success = success && append(heading, " <", *e.value_name, ">");
             }
         } else {
-            printf("<%.*s>", static_cast<int>(e.value_name->size()), e.value_name->data());
+            success = success && append(heading, "<", *e.value_name, ">");
         }
-        printf("%s", color::reset);
-        printf(" %.*s\n", static_cast<int>(e.description.size()), e.description.data());
+
+        if (!success) {
+            terminate_with("argument name is too long");
+        }
+
+        console_print(
+            "  ", make_colored(heading, settings.with_color, color::highlight1), " ", e.description,
+            "\n");
     }
 }
 
-std::optional<argument> get_option(const arguments& args, std::string_view name) {
-    std::optional<argument> ret;
+std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) {
+    std::optional<cli::argument> ret;
 
-    auto iter =
-        std::find_if(args.cbegin(), args.cend(), [&](const auto& arg) { return arg.name == name; });
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
+        return arg.name == name;
+    });
 
-    if (iter != args.cend()) {
+    if (iter != args.arguments.cend()) {
         ret = *iter;
     }
 
     return ret;
 }
 
-std::optional<argument> get_positional_argument(const arguments& args, std::string_view name) {
-    std::optional<argument> ret;
+std::optional<cli::argument>
+get_positional_argument(const cli::input& args, std::string_view name) {
+    std::optional<cli::argument> ret;
 
-    auto iter = std::find_if(args.cbegin(), args.cend(), [&](const auto& arg) {
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
         return arg.name.empty() && arg.value_name == name;
     });
 
-    if (iter != args.cend()) {
+    if (iter != args.arguments.cend()) {
         ret = *iter;
     }
 
     return ret;
 }
+
+// clang-format off
+const expected_arguments expected_args = {
+    {{"-l", "--list-tests"},    {},                    "List tests by name"},
+    {{"--list-tags"},           {},                    "List tags by name"},
+    {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
+    {{"-t", "--tags"},          {},                    "Use tags for filtering, not name"},
+    {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
+    {{"--color"},               {"always|never"},      "Enable/disable color in output"},
+    {{"-h", "--help"},          {},                    "Print help"},
+    {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
+// clang-format on
+
+constexpr bool with_color_default = SNATCH_WITH_COLOR == 1;
 } // namespace
+
+namespace snatch::cli {
+std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
+    std::optional<cli::input> ret_args =
+        parse_arguments(argc, argv, expected_args, {.with_color = with_color_default});
+
+    if (!ret_args) {
+        console_print("\n");
+        print_help(
+            argv[0], "Snatch test runner"sv, expected_args, {.with_color = with_color_default});
+    }
+
+    return ret_args;
+}
+} // namespace snatch::cli
+
+namespace snatch {
+void registry::configure(const cli::input& args) noexcept {
+    if (auto opt = get_option(args, "--color")) {
+        if (*opt->value == "always") {
+            snatch::tests.with_color = true;
+        } else if (*opt->value == "never") {
+            snatch::tests.with_color = false;
+        } else {
+            console_print(
+                make_colored("warning:", snatch::tests.with_color, color::warning),
+                "unknown color directive; please use one of always|never\n");
+        }
+    }
+
+    if (auto opt = get_option(args, "--verbosity")) {
+        if (*opt->value == "quiet") {
+            snatch::tests.verbose = snatch::registry::verbosity::quiet;
+        } else if (*opt->value == "normal") {
+            snatch::tests.verbose = snatch::registry::verbosity::normal;
+        } else if (*opt->value == "high") {
+            snatch::tests.verbose = snatch::registry::verbosity::high;
+        } else {
+            console_print(
+                make_colored("warning:", snatch::tests.with_color, color::warning),
+                "unknown verbosity level; please use one of quiet|normal|high\n");
+        }
+    }
+}
+
+bool registry::run_tests(const cli::input& args) noexcept {
+    if (get_option(args, "--help")) {
+        console_print("\n");
+        print_help(
+            args.executable, "Snatch test runner"sv, expected_args,
+            {.with_color = with_color_default});
+        return true;
+    }
+
+    if (get_option(args, "--list-tests")) {
+        snatch::tests.list_all_tests();
+        return true;
+    }
+
+    if (auto opt = get_option(args, "--list-tests-with-tag")) {
+        snatch::tests.list_tests_with_tag(*opt->value);
+        return true;
+    }
+
+    if (get_option(args, "--list-tags")) {
+        snatch::tests.list_all_tags();
+        return true;
+    }
+
+    if (auto opt = get_positional_argument(args, "test regex")) {
+        if (get_option(args, "--tags")) {
+            return snatch::tests.run_tests_with_tag(args.executable, *opt->value);
+        } else {
+            return snatch::tests.run_tests_matching_name(args.executable, *opt->value);
+        }
+    } else {
+        return snatch::tests.run_all_tests(args.executable);
+    }
+}
+} // namespace snatch
+
+#if SNATCH_DEFINE_MAIN
 
 // Main entry point.
 // -----------------
 
 int main(int argc, char* argv[]) {
-    // clang-format off
-    const expected_arguments expected = {
-        {{"-l", "--list-tests"},    {},             "List tests by name"},
-        {{"--list-tags"},           {},             "List tags by name"},
-        {{"--list-tests-with-tag"}, {"tag"},        "List tests by name with a given tag"},
-        {{"-t", "--tags"},          {},             "Use tags for filtering, not name"},
-        {{"-v", "--verbose"},       {},             "Enable detailed output"},
-        {{"-h", "--help"},          {},             "Print help"},
-        {{},                        {"test regex"}, "A regex to select which test cases (or tags) to run"}};
-    // clang-format on
-
-    std::optional<arguments> ret_args = parse_arguments(argc, argv, expected);
-    if (!ret_args) {
-        printf("\n");
-        print_help(argv[0], "Snatch test runner"sv, expected);
+    std::optional<snatch::cli::input> args = snatch::cli::parse_arguments(argc, argv);
+    if (!args) {
         return 1;
     }
 
-    arguments& args = *ret_args;
+    snatch::tests.configure(*args);
 
-    if (get_option(args, "--help")) {
-        print_help(argv[0], "Snatch test runner"sv, expected);
-        return 0;
-    }
-
-    if (get_option(args, "--list-tests")) {
-        snatch::tests.list_all_tests();
-        return 0;
-    }
-
-    if (auto opt = get_option(args, "--list-tests-with-tag")) {
-        snatch::tests.list_tests_with_tag(*opt->value);
-        return 0;
-    }
-
-    if (get_option(args, "--list-tags")) {
-        snatch::tests.list_all_tags();
-        return 0;
-    }
-
-    if (get_option(args, "--verbose")) {
-        snatch::tests.verbose = true;
-    }
-
-    bool success = true;
-    if (auto opt = get_positional_argument(args, "test regex")) {
-        if (get_option(args, "--tags")) {
-            success = snatch::tests.run_tests_with_tag(*opt->value);
-        } else {
-            success = snatch::tests.run_tests_matching_name(*opt->value);
-        }
-    } else {
-        success = snatch::tests.run_all_tests();
-    }
-
-    return success ? 0 : 1;
+    return snatch::tests.run_tests(*args) ? 0 : 1;
 }
 
 #endif

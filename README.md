@@ -13,6 +13,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
+    - [Reporters](#reporters)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
@@ -21,19 +22,20 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
 ## Features and limitations
 
- - No heap allocation from the testing framework.
+ - No heap allocation from the testing framework, so memory leaks from your code can be detected precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Simple reporting of test results to the standard output, with coloring for readability.
+ - Compiles tests at least 40% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
-   - Additional API not in _Catch2_, or different from _Catch2_:
-     - Macro to mark a test as skipped: `SKIP(msg)`.
-     - Matchers use a different API (see [Matchers](#matchers) below).
+ - Additional API not in _Catch2_, or different from _Catch2_:
+   - Macro to mark a test as skipped: `SKIP(msg)`.
+   - Matchers use a different API (see [Matchers](#matchers) below).
 
 If you need features that are not in the list above, please use _Catch2_ or _doctest_.
 
@@ -41,8 +43,8 @@ Notable current limitations:
 
  - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
  - No set-up/tear-down helpers.
- - Only reports to the standard output; no custom reporter.
  - No multi-threaded test execution.
+ - No `SECTION(...)`.
 
 
 ## Example
@@ -90,26 +92,49 @@ Output:
 
 The following benchmarks were done using real-world tests from another library ([observable_unique_ptr](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were ran on a desktop with the following specs:
 
- - OS: Linux Mint 20.3, linux kernel 5.15.0-48-generic
- - CPU: AMD Ryzen 5 2600 (6 core)
- - RAM: 16GB
- - Storage: NVMe
- - Compiler: GCC 10.3.0 with `-std=c++20`
- - snatch v0.1.2
- - Catch2 0de60d8e7ead1ddd5ba8c46b901c122eac20bf94 (Sept. 14 2022)
- - doctest 86892fc480f80fb57d9a3926cb506c0e974489d8 (Sept. 22 2022)
+ - OS: Linux Mint 20.3, linux kernel 5.15.0-48-generic.
+ - CPU: AMD Ryzen 5 2600 (6 core).
+ - RAM: 16GB.
+ - Storage: NVMe.
+ - Compiler: GCC 10.3.0 with `-std=c++20`.
+ - snatch v0.1.2.
+ - Catch2 0de60d8e7ead1ddd5ba8c46b901c122eac20bf94 (Sept. 14 2022).
+ - doctest 86892fc480f80fb57d9a3926cb506c0e974489d8 (Sept. 22 2022).
+ - Boost.UT cd12498349362cc646a7140451bf51db2a2dac00 (Feb. 1 2022), with modifications (see notes below).
 
-Results:
+Description of results below:
+ - *Build framework*: Time required to build the testing framework library (if any), without any test.
+ - *Build tests*: Time required to build the tests, assuming the framework library was already built (if any).
+ - *Build all*: Total time to build the tests and the framework library (if any).
+ - *Run tests*: Total time require to run the tests.
+ - *Library size*: Size of the compiled testing framework library (if any).
+ - *Executable size*: Size of the compiled test executable, static linking to the testing framework library (if any).
 
-|                 | _Catch2_ (Debug) | _Catch2_ (Release) | _doctest_ (Debug) | _doctest_ (Release) | _snatch_ (Debug) | _snatch_ (Release) |
-|-----------------|------------------|--------------------|-------------------|---------------------|------------------|--------------------|
-| Build framework | 41s              | 48s                | 2.4s              | 4.1s                | 1.0s             | 1.2s               |
-| Build tests     | 86s              | 310s               | 76s               | 208s                | 70s              | 149s               |
-| Build all       | 127s             | 358s               | 78s               | 212s                | 71s              | 150s               |
-| Run tests       | 74ms             | 36ms               | 59ms              | 35ms                | 15ms             | 7ms                |
-| Library size    | 34.6MB           | 2.5MB              | 2.8MB             | 0.39MB              | 0.51MB           | 0.05MB             |
-| Executable size | 51.5MB           | 19.1MB             | 38.6MB            | 15.2MB              | 31.0MB           | 9.3MB              |
+Results for _snatch_:
 
+|                 | _snatch_ (Debug) | _snatch_ (Release) |
+|-----------------|------------------|--------------------|
+| Build framework | 1.5s             | 2.2s               |
+| Build tests     | 65s              | 133s               |
+| Build all       | 67s              | 135s               |
+| Run tests       | 13ms             | 7ms                |
+| Library size    | 2.50MB           | 0.63MB             |
+| Executable size | 28.9MB           | 8.5MB              |
+
+Results for alternative testing frameworks:
+
+|                 | _Catch2_ (Debug) | _Catch2_ (Release) | _doctest_ (Debug) | _doctest_ (Release) | _Boost UT_ (Debug) | _Boost UT_ (Release) |
+|-----------------|------------------|--------------------|-------------------|---------------------|--------------------|----------------------|
+| Build framework | 41s              | 48s                | 2.4s              | 4.1s                | 0s                 | 0s                   |
+| Build tests     | 86s              | 310s               | 76s               | 208s                | 113s               | 279s                 |
+| Build all       | 127s             | 358s               | 78s               | 212s                | 113s               | 279s                 |
+| Run tests       | 74ms             | 36ms               | 59ms              | 35ms                | 20ms               | 10ms                 |
+| Library size    | 34.6MB           | 2.5MB              | 2.8MB             | 0.39MB              | 0MB                | 0MB                  |
+| Executable size | 51.5MB           | 19.1MB             | 38.6MB            | 15.2MB              | 51.7MB             | 11.3MB               |
+
+Notes:
+ - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
+ - _Boost UT_ was unable to compile and pass the tests without modifications to its implementation (issues were reported).
 
 ## Documentation
 
@@ -182,16 +207,66 @@ Matchers in _snatch_ work differently than in _Catch2_. The required interface i
  - `matcher.describe_fail(obj)` must return a `std::string_view` describing why `obj` is not a match. The lifetime of the string referenced by the string view must be equal or greater than the lifetime of the matcher (e.g., the string view can point to a temporary buffer stored inside the matcher).
 
 
+Two matchers are provided with _snatch_:
+
+ - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
+ - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+
+
+### Reporters
+
+By default, _snatch_ will report the test results to the standard output, using its own report format. You can override this by supplying your own "reporter" callback function to the test registry. This requires [using your own main function](#using-your-own-main-function).
+
+The callback is a single `noexcept` function, taking two arguments:
+ - a reference to the `snatch::registry` that generated the event
+ - a reference to the `snatch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
+
+The callback can be registered either as a free function, a stateless lambda, or a member function. You can register your own callback as follows:
+
+```c++
+// Free function.
+// --------------
+void report_function(const snatch::registry& r, const snatch::event::data& e) noexcept {
+    /* ... */
+}
+
+snatch::tests.report_callback = &report_function;
+
+// Stateless lambda (no captures).
+// -------------------------------
+snatch::tests.report_callback = [](const snatch::registry& r, const snatch::event::data& e) noexcept {
+    /* ... */
+};
+
+// Member function (const or non-const, up to you).
+// ------------------------------------------------
+struct Reporter {
+    void report(const snatch::registry& r, const snatch::event::data& e) /*const*/ noexcept {
+        /* ... */
+    }
+};
+
+Reporter reporter; // must remain alive for the duration of the tests!
+
+snatch::tests.report_callback = {reporter, snatch::constant<&Reporter::report>};
+```
+
+If you need to use a reporter member function, please make sure that the reporter object remains alive for the duration of the tests (e.g., declare it static, global, or as a local variable declared in `main()`), or make sure to de-register it when your reporter is destroyed.
+
+An example reporter for _Teamcity_ is included for demonstration, see `include/snatch/snatch_teamcity.hpp`.
+
+
 ### Default main function
 
 The default `main()` function provided in _snatch_ offers the following command-line API:
  - positional argument for filtering tests by name.
  - `-h,--help`: show command line help.
  - `-l,--list-tests`: list all tests.
- - `--list-tags`: list all tags.
- - `--verbose`: turn on verbose mode.
- - `--list-tests-with-tag`: list all tests with a given tag.
- - `--tags`: filter tests by tags instead of by name.
+ - `   --list-tags`: list all tags.
+ - `   --list-tests-with-tag`: list all tests with a given tag.
+ - `-t,--tags`: filter tests by tags instead of by name.
+ - `-v,--verbosity [quiet|normal|high]`: select level of detail for the default reporter.
+ - `   --color [always|never]`: enable/disable colors in the default reporter.
 
 
 ### Using your own main function
@@ -202,13 +277,31 @@ By default _snatch_ defines `main()` for you. To prevent this and provide your o
 set(SNATCH_DEFINE_MAIN OFF)
 ```
 
-just before calling `FetchContent_Declare()`. Then, in your own main function, call
+just before calling `FetchContent_Declare()`.
+
+Here is a recommended `main()` function that replicates the default behavior of snatch:
 
 ```c++
-bool success = snatch::tests.run_all_tests();
-```
+int main(int argc, char* argv[]) {
+    // Parse the command line arguments.
+    std::optional<snatch::cli::input> args = snatch::cli::parse_arguments(argc, argv);
+    if (!args) {
+        // Parsing failed, an error has been reported, just return.
+        return 1;
+    }
 
-or any other method from the `snatch::registry` class. `snatch::tests` is a global registry, which owns all registered test cases.
+    // Configure snatch using command line options.
+    // You can then override the configuration below, or just remove this call to disable
+    // command line options entirely.
+    snatch::tests.configure(*args);
+
+    // Your own initialization code goes here.
+    // ...
+
+    // Actually run the tests.
+    // This will apply any filtering specified on the command line.
+    return snatch::tests.run_tests(*args) ? 0 : 1;
+```
 
 
 ### Exceptions

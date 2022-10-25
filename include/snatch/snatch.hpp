@@ -5,9 +5,11 @@
 #include <cstddef> // for std::size_t
 #include <exception> // for std::exception
 #include <initializer_list> // for std::initializer_list
+#include <optional> // for cli
 #include <string_view> // for all strings
 #include <tuple> // for typed tests
 #include <type_traits> // for std::is_nothrow_*
+#include <variant> // for events
 
 #if !defined(SNATCH_MAX_TEST_CASES)
 #    define SNATCH_MAX_TEST_CASES 5'000
@@ -15,14 +17,17 @@
 #if !defined(SNATCH_MAX_EXPR_LENGTH)
 #    define SNATCH_MAX_EXPR_LENGTH 1'024
 #endif
-#if !defined(SNATCH_MAX_MATCHER_MSG_LENGTH)
-#    define SNATCH_MAX_MATCHER_MSG_LENGTH 1'024
+#if !defined(SNATCH_MAX_MESSAGE_LENGTH)
+#    define SNATCH_MAX_MESSAGE_LENGTH 1'024
 #endif
 #if !defined(SNATCH_MAX_TEST_NAME_LENGTH)
 #    define SNATCH_MAX_TEST_NAME_LENGTH 1'024
 #endif
 #if !defined(SNATCH_MAX_UNIQUE_TAGS)
 #    define SNATCH_MAX_UNIQUE_TAGS 1'024
+#endif
+#if !defined(SNATCH_MAX_COMMAND_LINE_ARGS)
+#    define SNATCH_MAX_COMMAND_LINE_ARGS 1'024
 #endif
 
 #if defined(_MSC_VER)
@@ -58,22 +63,29 @@ constexpr std::size_t max_test_cases = SNATCH_MAX_TEST_CASES;
 // Maximum length of a `CHECK(...)` or `REQUIRE(...)` expression,
 // beyond which automatic variable printing is disabled.
 constexpr std::size_t max_expr_length = SNATCH_MAX_EXPR_LENGTH;
-// Maximum length of error messages that need dynamic formatting;
-// most messages do not.
-constexpr std::size_t max_matcher_msg_length = SNATCH_MAX_MATCHER_MSG_LENGTH;
+// Maximum length of error messages.
+constexpr std::size_t max_message_length = SNATCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
 // Maximum number of unique tags in the whole program.
 constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
+// Maximum number of command line arguments.
+constexpr std::size_t max_command_line_args = SNATCH_MAX_COMMAND_LINE_ARGS;
 } // namespace snatch
 
-// Forward declarations.
-// ---------------------
+// Forward declarations and public utilities.
+// ------------------------------------------
 
 namespace snatch {
 class registry;
-}
+
+struct test_id {
+    std::string_view name;
+    std::string_view tags;
+    std::string_view type;
+};
+} // namespace snatch
 
 // Implementation details.
 // -----------------------
@@ -129,16 +141,28 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 enum class test_state { not_run, success, skipped, failed };
 
 struct test_case {
-    std::string_view name;
-    std::string_view tags;
-    std::string_view type;
-    test_ptr         func  = nullptr;
-    test_state       state = test_state::not_run;
-    std::size_t      tests = 0;
+    test_id     id;
+    test_ptr    func     = nullptr;
+    test_state  state    = test_state::not_run;
+    std::size_t asserts  = 0;
+    float       duration = 0.0f;
 };
+} // namespace snatch::impl
+
+// Public utilities.
+// ------------------------------------------------
+
+namespace snatch {
+template<typename T>
+constexpr std::string_view type_name = impl::get_type_name<T>();
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
+} // namespace snatch
 
+// Public utilities: small_vector.
+// -------------------------------
+
+namespace snatch {
 template<typename ElemType>
 class small_vector_span {
     ElemType*    buffer_ptr  = nullptr;
@@ -166,14 +190,14 @@ public:
     }
     constexpr void resize(std::size_t size) noexcept {
         if (size > buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         *data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
         if (*data_size + elem > buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         *data_size += elem;
@@ -181,7 +205,7 @@ public:
     constexpr ElemType&
     push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
         if (*data_size == buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         ++*data_size;
@@ -194,7 +218,7 @@ public:
     constexpr ElemType&
     push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
         if (*data_size == buffer_size) {
-            impl::terminate_with("small vector is full");
+            terminate_with("small vector is full");
         }
 
         ++*data_size;
@@ -205,14 +229,14 @@ public:
     }
     constexpr ElemType& back() noexcept {
         if (*data_size == 0) {
-            impl::terminate_with("back() called on empty vector");
+            terminate_with("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
     constexpr const ElemType& back() const noexcept {
         if (*data_size == 0) {
-            impl::terminate_with("back() called on empty vector");
+            terminate_with("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
@@ -243,13 +267,13 @@ public:
     }
     constexpr ElemType& operator[](std::size_t i) noexcept {
         if (i >= size()) {
-            impl::terminate_with("operator[] called with incorrect index");
+            terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
         if (i >= size()) {
-            impl::terminate_with("operator[] called with incorrect index");
+            terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
@@ -340,7 +364,12 @@ public:
         return const_cast<small_vector*>(this)->span()[i];
     }
 };
+} // namespace snatch
 
+// Public utilities: small_string.
+// -------------------------------
+
+namespace snatch {
 using small_string_span = small_vector_span<char>;
 
 template<std::size_t MaxLength>
@@ -426,6 +455,9 @@ public:
     constexpr operator small_string_span() noexcept {
         return span();
     }
+    constexpr operator std::string_view() const noexcept {
+        return std::string_view(data(), length());
+    }
 };
 
 [[nodiscard]] bool append(small_string_span ss, std::string_view value) noexcept;
@@ -452,15 +484,105 @@ template<std::size_t N>
 
 template<typename T, typename U, typename... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
-    if (!append(ss, std::forward<T>(t))) {
-        return false;
-    }
-    return append(ss, std::forward<U>(u), std::forward<Args>(args)...);
+    return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
+           (append(ss, std::forward<Args>(args)) && ...);
 }
 
 void truncate_end(small_string_span ss) noexcept;
 
+[[nodiscard]] bool replace_all(
+    small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+} // namespace snatch
+
+// Public utilities: small_function.
+// ---------------------------------
+
+namespace snatch {
+template<typename... Args>
+struct overload : Args... {
+    using Args::operator()...;
+};
+
+template<typename... Args>
+overload(Args...) -> overload<Args...>;
+
+template<auto T>
+struct constant {
+    static constexpr auto value = T;
+};
+
+template<typename T>
+class small_function {
+    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
+};
+
+template<typename Ret, typename... Args>
+class small_function<Ret(Args...) noexcept> {
+    using function_ptr            = Ret (*)(Args...) noexcept;
+    using function_data_ptr       = Ret (*)(void*, Args...) noexcept;
+    using function_const_data_ptr = Ret (*)(const void*, Args...) noexcept;
+
+    struct function_and_data_ptr {
+        void*             data = nullptr;
+        function_data_ptr ptr;
+    };
+
+    struct function_and_const_data_ptr {
+        const void*             data = nullptr;
+        function_const_data_ptr ptr;
+    };
+
+    using data_type = std::
+        variant<std::monostate, function_ptr, function_and_data_ptr, function_and_const_data_ptr>;
+
+    data_type data;
+
+public:
+    constexpr small_function() = default;
+
+    constexpr small_function(function_ptr ptr) noexcept : data{ptr} {};
+
+    template<typename T, auto M>
+    constexpr small_function(T& obj, constant<M>) noexcept :
+        data{function_and_data_ptr{&obj, [](void* ptr, Args... args) noexcept {
+                                       (static_cast<T*>(ptr)->*constant<M>::value)(
+                                           std::move(args)...);
+                                   }}} {};
+
+    template<typename T, auto M>
+    constexpr small_function(const T& obj, constant<M>) noexcept :
+        data{function_and_const_data_ptr{&obj, [](const void* ptr, Args... args) noexcept {
+                                             (static_cast<const T*>(ptr)->*constant<M>::value)(
+                                                 std::move(args)...);
+                                         }}} {};
+
+    template<typename... CArgs>
+    constexpr Ret operator()(CArgs&&... args) const noexcept {
+        return std::visit(
+            overload{
+                [](std::monostate) {},
+                [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
+                [&](const function_and_data_ptr& f) {
+                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                },
+                [&](const function_and_const_data_ptr& f) {
+                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                }},
+            data);
+    }
+
+    constexpr bool empty() const noexcept {
+        return std::holds_alternative<std::monostate>(data);
+    }
+};
+} // namespace snatch
+
+// Implementation details.
+// -----------------------
+
+namespace snatch::impl {
 struct expression {
+    std::string_view              content;
     small_string<max_expr_length> data;
     bool                          failed = false;
 
@@ -469,23 +591,24 @@ struct expression {
         using TD = std::decay_t<T>;
         if constexpr (std::is_integral_v<TD>) {
             if constexpr (std::is_signed_v<TD>) {
-                if (!impl::append(data, static_cast<std::ptrdiff_t>(value))) {
+                if (!snatch::append(data, static_cast<std::ptrdiff_t>(value))) {
                     failed = true;
                 }
             } else {
-                if (!impl::append(data, static_cast<std::size_t>(value))) {
+                if (!snatch::append(data, static_cast<std::size_t>(value))) {
                     failed = true;
                 }
             }
+        } else if constexpr (std::is_enum_v<TD>) {
+            append(static_cast<std::underlying_type_t<TD>>(value));
         } else if constexpr (
             std::is_pointer_v<TD> || std::is_floating_point_v<TD> || std::is_same_v<TD, bool> ||
-            std::is_convertible_v<T, const char*> || std::is_convertible_v<T, std::string> ||
-            std::is_convertible_v<T, std::string_view>) {
-            if (!impl::append(data, value)) {
+            std::is_convertible_v<T, const void*> || std::is_convertible_v<T, std::string_view>) {
+            if (!snatch::append(data, value)) {
                 failed = true;
             }
         } else {
-            failed = true;
+            append("?");
         }
     }
 
@@ -508,25 +631,113 @@ struct expression {
 
 #undef EXPR_OPERATOR
 };
+
+void stdout_print(std::string_view message) noexcept;
+
+struct abort_exception {};
 } // namespace snatch::impl
 
-// Utilities.
-// ----------
+// Events.
+// -------
 
 namespace snatch {
-template<typename T>
-constexpr std::string_view type_name = impl::get_type_name<T>();
+struct assertion_location {
+    std::string_view file;
+    std::size_t      line = 0u;
+};
+
+namespace event {
+struct test_run_started {
+    std::string_view name;
+};
+
+struct test_run_ended {
+    std::string_view name;
+};
+
+struct test_case_started {
+    const test_id& id;
+};
+
+struct test_case_ended {
+    const test_id& id;
+    float          duration = 0.0f;
+};
+
+struct assertion_failed {
+    const test_id&            id;
+    const assertion_location& location;
+    std::string_view          message;
+};
+
+struct test_case_skipped {
+    const test_id&            id;
+    const assertion_location& location;
+    std::string_view          message;
+};
+
+using data = std::variant<
+    test_run_started,
+    test_run_ended,
+    test_case_started,
+    test_case_ended,
+    assertion_failed,
+    test_case_skipped>;
+}; // namespace event
 } // namespace snatch
+
+// Command line interface.
+// -----------------------
+
+namespace snatch::cli {
+struct argument {
+    std::string_view                name;
+    std::optional<std::string_view> value_name;
+    std::optional<std::string_view> value;
+};
+
+struct input {
+    std::string_view                              executable;
+    small_vector<argument, max_command_line_args> arguments;
+};
+
+std::optional<input> parse_arguments(int argc, char* argv[]) noexcept;
+} // namespace snatch::cli
 
 // Test registry.
 // --------------
 
 namespace snatch {
 class registry {
-    impl::small_vector<impl::test_case, max_test_cases> test_list;
+    small_vector<impl::test_case, max_test_cases> test_list;
+
+    void print_location(
+        const impl::test_case& current_case, const assertion_location& location) const noexcept;
+
+    void print_failure() const noexcept;
+    void print_skip() const noexcept;
+    void print_details(std::string_view message) const noexcept;
+    void print_details_expr(const impl::expression& exp) const noexcept;
 
 public:
-    bool verbose = false;
+    enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
+    bool with_color                                      = true;
+
+    using print_function  = small_function<void(std::string_view) noexcept>;
+    using report_function = small_function<void(const registry&, const event::data&) noexcept>;
+
+    print_function  print_callback = &snatch::impl::stdout_print;
+    report_function report_callback;
+
+    template<typename... Args>
+    void print(Args&&... args) const noexcept {
+        small_string<max_message_length> message;
+        if (!append(message, std::forward<Args>(args)...)) {
+            truncate_end(message);
+        }
+
+        this->print_callback(message);
+    }
 
     impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};
@@ -537,35 +748,46 @@ public:
         return {this, name, tags};
     }
 
-    void register_test(
-        std::string_view name,
-        std::string_view tags,
-        std::string_view type,
-        impl::test_ptr   func) noexcept;
+    void register_test(const test_id& id, impl::test_ptr func) noexcept;
 
     template<typename... Args, typename F>
-    void register_type_tests(std::string_view name, std::string_view tags, const F& func) noexcept {
-        (register_test(name, tags, impl::get_type_name<Args>(), impl::to_test_case_ptr<Args>(func)),
+    void
+    register_typed_tests(std::string_view name, std::string_view tags, const F& func) noexcept {
+        (register_test(
+             {name, tags, impl::get_type_name<Args>()}, impl::to_test_case_ptr<Args>(func)),
          ...);
     }
 
-    void print_location(
-        const impl::test_case& current_case, const char* filename, int line_number) const noexcept;
+    void report_failure(
+        impl::test_case&          t,
+        const assertion_location& location,
+        std::string_view          message) const noexcept;
 
-    void print_failure() const noexcept;
-    void print_skip() const noexcept;
-    void print_details(std::string_view message) const noexcept;
-    void print_details_expr(
-        std::string_view        check,
-        std::string_view        exp_str,
-        const impl::expression& exp) const noexcept;
+    void report_failure(
+        impl::test_case&          t,
+        const assertion_location& location,
+        std::string_view          message1,
+        std::string_view          message2) const noexcept;
+
+    void report_failure(
+        impl::test_case&          t,
+        const assertion_location& location,
+        const impl::expression&   exp) const noexcept;
+
+    void report_skipped(
+        impl::test_case&          t,
+        const assertion_location& location,
+        std::string_view          message) const noexcept;
 
     void run(impl::test_case& t) noexcept;
-    void set_state(impl::test_case& t, impl::test_state s) noexcept;
 
-    bool run_all_tests() noexcept;
-    bool run_tests_matching_name(std::string_view name) noexcept;
-    bool run_tests_with_tag(std::string_view tag) noexcept;
+    bool run_all_tests(std::string_view run_name) noexcept;
+    bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;
+    bool run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept;
+
+    bool run_tests(const cli::input& args) noexcept;
+
+    void configure(const cli::input& args) noexcept;
 
     void list_all_tests() const noexcept;
     void list_all_tags() const noexcept;
@@ -588,21 +810,21 @@ template<typename... Args>
 template<typename F>
 const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
     if constexpr (sizeof...(Args) > 0) {
-        tests->template register_type_tests<Args...>(name, tags, func);
+        tests->template register_typed_tests<Args...>(name, tags, func);
     } else {
-        tests->register_test(name, tags, {}, func);
+        tests->register_test({name, tags, {}}, func);
     }
     return name.data();
 }
 } // namespace snatch::impl
 
-// Builtin matchers.
-// -----------------
+// Matchers.
+// ---------
 
 namespace snatch::matchers {
 struct contains_substring {
-    mutable impl::small_string<max_matcher_msg_length> description_buffer;
-    std::string_view                                   substring_pattern;
+    mutable small_string<max_message_length> description_buffer;
+    std::string_view                         substring_pattern;
 
     explicit contains_substring(std::string_view pattern) noexcept;
 
@@ -657,16 +879,15 @@ struct with_what_contains : private contains_substring {
 // ------------
 
 #if SNATCH_WITH_EXCEPTIONS
-#    define SNATCH_TESTING_ABORT(CURRENT_CASE, STATE) throw STATE
+#    define SNATCH_TESTING_ABORT                                                                   \
+        throw snatch::impl::abort_exception {}
 #else
-#    define SNATCH_TESTING_ABORT(CURRENT_CASE, STATE)                                              \
-        snatch::tests.set_state(CURRENT_CASE, STATE);                                              \
-        return
+#    define SNATCH_TESTING_ABORT return
 #endif
 
 #define SNATCH_CONCAT_IMPL(x, y) x##y
 #define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
-#define SNATCH_EXPR(x) snatch::impl::expression{} <= x
+#define SNATCH_EXPR(type, x) snatch::impl::expression{type "(" #x ")", {}, false} <= x
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
@@ -680,58 +901,46 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
-        ++CURRENT_CASE.tests;                                                                      \
+        ++CURRENT_CASE.asserts;                                                                    \
         SNATCH_WARNING_PUSH;                                                                       \
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
         if (!(EXP)) {                                                                              \
-            const auto EXP2 = SNATCH_EXPR(EXP);                                                    \
-            snatch::tests.print_failure();                                                         \
-            snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                        \
-            snatch::tests.print_details_expr("REQUIRE", #EXP, EXP2);                               \
-            SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::failed);                  \
+            snatch::tests.report_failure(                                                          \
+                CURRENT_CASE, {__FILE__, __LINE__}, SNATCH_EXPR("REQUIRE", EXP));                  \
+            SNATCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
         SNATCH_WARNING_POP;                                                                        \
     } while (0)
 
 #define SNATCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
-        ++CURRENT_CASE.tests;                                                                      \
+        ++CURRENT_CASE.asserts;                                                                    \
         SNATCH_WARNING_PUSH;                                                                       \
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
         if (!(EXP)) {                                                                              \
-            const auto EXP2 = SNATCH_EXPR(EXP);                                                    \
-            snatch::tests.print_failure();                                                         \
-            snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                        \
-            snatch::tests.print_details_expr("CHECK", #EXP, EXP2);                                 \
-            snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);               \
+            snatch::tests.report_failure(                                                          \
+                CURRENT_CASE, {__FILE__, __LINE__}, SNATCH_EXPR("CHECK", EXP));                    \
         }                                                                                          \
         SNATCH_WARNING_POP;                                                                        \
     } while (0)
 
 #define SNATCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
-        snatch::tests.print_failure();                                                             \
-        snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                            \
-        snatch::tests.print_details(MESSAGE);                                                      \
-        SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::failed);                      \
+        snatch::tests.report_failure(CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));               \
+        SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
 #define SNATCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
-        snatch::tests.print_failure();                                                             \
-        snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                            \
-        snatch::tests.print_details(MESSAGE);                                                      \
-        snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);                   \
+        snatch::tests.report_failure(CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));               \
     } while (0)
 
 #define SNATCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
-        snatch::tests.print_skip();                                                                \
-        snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                            \
-        snatch::tests.print_details(MESSAGE);                                                      \
-        SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::skipped);                     \
+        snatch::tests.report_skipped(CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));               \
+        SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
 // clang-format off
@@ -756,19 +965,19 @@ struct with_what_contains : private contains_substring {
             } catch (const EXCEPTION&) {                                                           \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
-                snatch::tests.print_failure();                                                     \
-                snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                    \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.print_details(                                                   \
-                        #EXCEPTION " expected but other std::exception thrown; message:");         \
-                    snatch::tests.print_details(e.what());                                         \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
+                        e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.print_details(#EXCEPTION                                         \
-                                                " expected but other unknown exception thrown");   \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
-                SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::failed);              \
+                SNATCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } while (0)
 
@@ -780,19 +989,18 @@ struct with_what_contains : private contains_substring {
             } catch (const EXCEPTION&) {                                                           \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
-                snatch::tests.print_failure();                                                     \
-                snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                    \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.print_details(                                                   \
-                        #EXCEPTION " expected but other std::exception thrown; message:");         \
-                    snatch::tests.print_details(e.what());                                         \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
+                        e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.print_details(#EXCEPTION                                         \
-                                                " expected but other unknown exception thrown");   \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
-                snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);           \
             }                                                                                      \
         } while (0)
 
@@ -803,27 +1011,26 @@ struct with_what_contains : private contains_substring {
                 SNATCH_FAIL(#EXCEPTION " expected but no exception thrown");                       \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
-                    snatch::tests.print_failure();                                                 \
-                    snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                \
-                    snatch::tests.print_details("could not match caught " #EXCEPTION               \
-                                                " with expected content:");                        \
-                    snatch::tests.print_details((MATCHER).describe_fail(e));                       \
-                    SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::failed);          \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        "could not match caught " #EXCEPTION " with expected content: ",           \
+                        (MATCHER).describe_fail(e));                                               \
+                    SNATCH_TESTING_ABORT;                                                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
-                snatch::tests.print_failure();                                                     \
-                snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                    \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.print_details(                                                   \
-                        #EXCEPTION " expected but other std::exception thrown; message:");         \
-                    snatch::tests.print_details(e.what());                                         \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
+                        e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.print_details(#EXCEPTION                                         \
-                                                " expected but other unknown exception thrown");   \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
-                SNATCH_TESTING_ABORT(CURRENT_CASE, snatch::impl::test_state::failed);              \
+                SNATCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } while (0)
 
@@ -834,27 +1041,24 @@ struct with_what_contains : private contains_substring {
                 SNATCH_FAIL_CHECK(#EXCEPTION " expected but no exception thrown");                 \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
-                    snatch::tests.print_failure();                                                 \
-                    snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                \
-                    snatch::tests.print_details("could not match caught " #EXCEPTION               \
-                                                " with expected content:");                        \
-                    snatch::tests.print_details((MATCHER).describe_fail(e));                       \
-                    snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);       \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        "could not match caught " #EXCEPTION " with expected content: ",           \
+                        (MATCHER).describe_fail(e));                                               \
                 }                                                                                  \
             } catch (...) {                                                                        \
-                snatch::tests.print_failure();                                                     \
-                snatch::tests.print_location(CURRENT_CASE, __FILE__, __LINE__);                    \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.print_details(                                                   \
-                        #EXCEPTION " expected but other std::exception thrown; message:");         \
-                    snatch::tests.print_details(e.what());                                         \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
+                        e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.print_details(#EXCEPTION                                         \
-                                                " expected but other unknown exception thrown");   \
+                    snatch::tests.report_failure(                                                  \
+                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
-                snatch::tests.set_state(CURRENT_CASE, snatch::impl::test_state::failed);           \
             }                                                                                      \
         } while (0)
 
