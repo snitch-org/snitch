@@ -13,6 +13,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
+    - [Sections](#sections)
     - [Reporters](#reporters)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
@@ -32,6 +33,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
+   - Nesting multiple tests in a single test case with `SECTION(name)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
@@ -44,7 +46,6 @@ Notable current limitations:
  - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
  - No set-up/tear-down helpers.
  - No multi-threaded test execution.
- - No `SECTION(...)`.
 
 
 ## Example
@@ -109,6 +110,8 @@ Description of results below:
  - *Run tests*: Total time require to run the tests.
  - *Library size*: Size of the compiled testing framework library (if any).
  - *Executable size*: Size of the compiled test executable, static linking to the testing framework library (if any).
+
+TODO: update after adding sections.
 
 Results for _snatch_:
 
@@ -211,6 +214,11 @@ Two matchers are provided with _snatch_:
 
  - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
  - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+
+
+### Sections
+
+TODO.
 
 
 ### Reporters
