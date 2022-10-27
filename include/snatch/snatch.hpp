@@ -227,6 +227,13 @@ public:
 
         return elem;
     }
+    constexpr void pop_back() noexcept {
+        if (*data_size == 0) {
+            terminate_with("pop_back() called on empty vector");
+        }
+
+        --*data_size;
+    }
     constexpr ElemType& back() noexcept {
         if (*data_size == 0) {
             terminate_with("back() called on empty vector");
@@ -320,6 +327,9 @@ public:
     template<typename U>
     constexpr ElemType& push_back(U&& t) noexcept(noexcept(this->span().push_back(t))) {
         return this->span().push_back(t);
+    }
+    constexpr void pop_back() noexcept {
+        return span().pop_back();
     }
     constexpr ElemType& back() noexcept {
         return span().back();
@@ -418,6 +428,9 @@ public:
     }
     constexpr char& push_back(char t) noexcept {
         return span().push_back(t);
+    }
+    constexpr void pop_back() noexcept {
+        return span().pop_back();
     }
     constexpr char& back() noexcept {
         return span().back();
