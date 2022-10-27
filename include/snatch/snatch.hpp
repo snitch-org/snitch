@@ -892,22 +892,22 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
         snatch::tests.add(NAME, TAGS) =                                                            \
-            [](snatch::impl::test_case & CURRENT_CASE [[maybe_unused]]) -> void
+            [](snatch::impl::test_case & SNATCH_CURRENT_CASE [[maybe_unused]]) -> void
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
-        snatch::tests.add_with_types<TYPES>(NAME, TAGS) =                                          \
-            []<typename TestType>(snatch::impl::test_case & CURRENT_CASE [[maybe_unused]]) -> void
+        snatch::tests.add_with_types<TYPES>(NAME, TAGS) = []<typename TestType>(                   \
+            snatch::impl::test_case & SNATCH_CURRENT_CASE [[maybe_unused]]) -> void
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
-        ++CURRENT_CASE.asserts;                                                                    \
+        ++SNATCH_CURRENT_CASE.asserts;                                                             \
         SNATCH_WARNING_PUSH;                                                                       \
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
         if (!(EXP)) {                                                                              \
             snatch::tests.report_failure(                                                          \
-                CURRENT_CASE, {__FILE__, __LINE__}, SNATCH_EXPR("REQUIRE", EXP));                  \
+                SNATCH_CURRENT_CASE, {__FILE__, __LINE__}, SNATCH_EXPR("REQUIRE", EXP));           \
             SNATCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
         SNATCH_WARNING_POP;                                                                        \
@@ -915,31 +915,31 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
-        ++CURRENT_CASE.asserts;                                                                    \
+        ++SNATCH_CURRENT_CASE.asserts;                                                             \
         SNATCH_WARNING_PUSH;                                                                       \
         SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
         if (!(EXP)) {                                                                              \
             snatch::tests.report_failure(                                                          \
-                CURRENT_CASE, {__FILE__, __LINE__}, SNATCH_EXPR("CHECK", EXP));                    \
+                SNATCH_CURRENT_CASE, {__FILE__, __LINE__}, SNATCH_EXPR("CHECK", EXP));             \
         }                                                                                          \
         SNATCH_WARNING_POP;                                                                        \
     } while (0)
 
 #define SNATCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
-        snatch::tests.report_failure(CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));               \
+        snatch::tests.report_failure(SNATCH_CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));        \
         SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
 #define SNATCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
-        snatch::tests.report_failure(CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));               \
+        snatch::tests.report_failure(SNATCH_CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));        \
     } while (0)
 
 #define SNATCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
-        snatch::tests.report_skipped(CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));               \
+        snatch::tests.report_skipped(SNATCH_CURRENT_CASE, {__FILE__, __LINE__}, (MESSAGE));        \
         SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
@@ -969,12 +969,12 @@ struct with_what_contains : private contains_substring {
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
                 SNATCH_TESTING_ABORT;                                                              \
@@ -993,12 +993,12 @@ struct with_what_contains : private contains_substring {
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
             }                                                                                      \
@@ -1012,7 +1012,7 @@ struct with_what_contains : private contains_substring {
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
                         (MATCHER).describe_fail(e));                                               \
                     SNATCH_TESTING_ABORT;                                                          \
@@ -1022,12 +1022,12 @@ struct with_what_contains : private contains_substring {
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
                 SNATCH_TESTING_ABORT;                                                              \
@@ -1042,7 +1042,7 @@ struct with_what_contains : private contains_substring {
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
                         (MATCHER).describe_fail(e));                                               \
                 }                                                                                  \
@@ -1051,12 +1051,12 @@ struct with_what_contains : private contains_substring {
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     snatch::tests.report_failure(                                                  \
-                        CURRENT_CASE, {__FILE__, __LINE__},                                        \
+                        SNATCH_CURRENT_CASE, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
             }                                                                                      \
