@@ -254,6 +254,8 @@ section_entry_checker::~section_entry_checker() {
                 state.levels.pop_back();
             }
         }
+
+        state.current_section.pop_back();
     }
 
     --state.depth;
@@ -268,7 +270,7 @@ section_entry_checker::operator bool() noexcept {
                            "SNATCH_MAX_NESTED_SECTIONS");
         }
 
-        state.levels.push_back(section_nesting_level{});
+        state.levels.push_back({});
     }
 
     auto& level = state.levels[state.depth - 1];
@@ -283,8 +285,8 @@ section_entry_checker::operator bool() noexcept {
                                   state.levels.size() > state.depth))) {
 
         level.previous_section_id = level.current_section_id;
-        level.current_section     = section;
-        entered                   = true;
+        state.current_section.push_back(section);
+        entered = true;
         return true;
     }
 
@@ -467,9 +469,14 @@ void registry::print_location(
     print(
         "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
         "\"\n");
-    print("          at ", location.file, ":", location.line, "\n");
 
-    // TODO: use 'sections' to print section info.
+    for (auto& section : sections.current_section) {
+        print(
+            "          in section \"", make_colored(section.name, with_color, color::highlight1),
+            "\"\n");
+    }
+
+    print("          at ", location.file, ":", location.line, "\n");
 
     if (!current_case.id.type.empty()) {
         print(
@@ -508,8 +515,8 @@ void registry::report_failure(
     set_state(test, test_state::failed);
 
     if (!report_callback.empty()) {
-        // TODO: forward 'sections' to print section info, or convert to something nicer.
-        report_callback(*this, event::assertion_failed{test.id, location, message});
+        report_callback(
+            *this, event::assertion_failed{test.id, sections.current_section, location, message});
     } else {
         print_failure();
         print_location(test, sections, location);
@@ -532,8 +539,8 @@ void registry::report_failure(
     }
 
     if (!report_callback.empty()) {
-        // TODO: forward 'sections' to print section info, or convert to something nicer.
-        report_callback(*this, event::assertion_failed{test.id, location, message});
+        report_callback(
+            *this, event::assertion_failed{test.id, sections.current_section, location, message});
     } else {
         print_failure();
         print_location(test, sections, location);
@@ -550,15 +557,18 @@ void registry::report_failure(
     set_state(test, test_state::failed);
 
     if (!report_callback.empty()) {
-        // TODO: forward 'sections' to print section info, or convert to something nicer.
         if (!exp.failed) {
             small_string<max_message_length> message;
             if (!append(message, exp.content, ", got ", exp.data)) {
                 truncate_end(message);
             }
-            report_callback(*this, event::assertion_failed{test.id, location, message});
+            report_callback(
+                *this,
+                event::assertion_failed{test.id, sections.current_section, location, message});
         } else {
-            report_callback(*this, event::assertion_failed{test.id, location, {exp.content}});
+            report_callback(
+                *this, event::assertion_failed{
+                           test.id, sections.current_section, location, {exp.content}});
         }
     } else {
         print_failure();
@@ -576,8 +586,8 @@ void registry::report_skipped(
     set_state(test, test_state::skipped);
 
     if (!report_callback.empty()) {
-        // TODO: forward 'sections' to print section info, or convert to something nicer.
-        report_callback(*this, event::test_case_skipped{test.id, location, message});
+        report_callback(
+            *this, event::test_case_skipped{test.id, sections.current_section, location, message});
     } else {
         print_skip();
         print_location(test, sections, location);
@@ -606,9 +616,8 @@ void registry::run(test_case& test) noexcept {
     auto time_start = clock::now();
 
     do {
-        for (auto& sections : sections.levels) {
-            sections.current_section_id = 0;
-            sections.current_section    = {};
+        for (std::size_t i = 0; i < sections.levels.size(); ++i) {
+            sections.levels[i].current_section_id = 0;
         }
 
         sections.leaf_executed = false;
@@ -634,6 +643,7 @@ void registry::run(test_case& test) noexcept {
             auto& child = sections.levels[0];
             if (child.previous_section_id == child.max_section_id) {
                 sections.levels.clear();
+                sections.current_section.clear();
             }
         }
     } while (!sections.levels.empty());

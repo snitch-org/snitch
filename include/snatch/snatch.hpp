@@ -90,6 +90,11 @@ struct test_id {
     std::string_view tags;
     std::string_view type;
 };
+
+struct section_id {
+    std::string_view name;
+    std::string_view description;
+};
 } // namespace snatch
 
 // Implementation details.
@@ -383,7 +388,7 @@ public:
     constexpr void grow(std::size_t elem) noexcept {
         span().grow(elem);
     }
-    template<typename U>
+    template<typename U = const ElemType&>
     constexpr ElemType& push_back(U&& t) noexcept(noexcept(this->span().push_back(t))) {
         return this->span().push_back(t);
     }
@@ -721,19 +726,14 @@ void stdout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
 
-struct section_id {
-    std::string_view name;
-    std::string_view description;
-};
-
 struct section_nesting_level {
-    section_id  current_section;
     std::size_t current_section_id  = 0;
     std::size_t previous_section_id = 0;
     std::size_t max_section_id      = 0;
 };
 
 struct section_state {
+    small_vector<section_id, max_nested_sections>            current_section;
     small_vector<section_nesting_level, max_nested_sections> levels;
     std::size_t                                              depth         = 0;
     bool                                                     leaf_executed = false;
@@ -749,6 +749,13 @@ struct section_entry_checker {
     explicit operator bool() noexcept;
 };
 } // namespace snatch::impl
+
+// Sections.
+// ---------
+
+namespace snatch {
+using section_info = small_vector_span<const section_id>;
+}
 
 // Events.
 // -------
@@ -779,12 +786,14 @@ struct test_case_ended {
 
 struct assertion_failed {
     const test_id&            id;
+    section_info              sections;
     const assertion_location& location;
     std::string_view          message;
 };
 
 struct test_case_skipped {
     const test_id&            id;
+    section_info              sections;
     const assertion_location& location;
     std::string_view          message;
 };
