@@ -33,7 +33,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
-   - Nesting multiple tests in a single test case with `SECTION(name)`.
+   - Nesting multiple tests in a single test case with `SECTION(name, description)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.

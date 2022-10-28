@@ -282,9 +282,9 @@ section_entry_checker::operator bool() noexcept {
                                  (level.previous_section_id == level.current_section_id &&
                                   state.levels.size() > state.depth))) {
 
-        level.previous_section_id  = level.current_section_id;
-        level.current_section_name = name;
-        entered                    = true;
+        level.previous_section_id = level.current_section_id;
+        level.current_section     = section;
+        entered                   = true;
         return true;
     }
 
@@ -607,8 +607,8 @@ void registry::run(test_case& test) noexcept {
 
     do {
         for (auto& sections : sections.levels) {
-            sections.current_section_id   = 0;
-            sections.current_section_name = {};
+            sections.current_section_id = 0;
+            sections.current_section    = {};
         }
 
         sections.leaf_executed = false;

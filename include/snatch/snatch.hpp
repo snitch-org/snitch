@@ -655,11 +655,16 @@ void stdout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
 
+struct section_id {
+    std::string_view name;
+    std::string_view description;
+};
+
 struct section_nesting_level {
-    std::string_view current_section_name;
-    std::size_t      current_section_id  = 0;
-    std::size_t      previous_section_id = 0;
-    std::size_t      max_section_id      = 0;
+    section_id  current_section;
+    std::size_t current_section_id  = 0;
+    std::size_t previous_section_id = 0;
+    std::size_t max_section_id      = 0;
 };
 
 struct section_state {
@@ -669,9 +674,9 @@ struct section_state {
 };
 
 struct section_entry_checker {
-    std::string_view name;
-    section_state&   state;
-    bool             entered = false;
+    section_id     section;
+    section_state& state;
+    bool           entered = false;
 
     ~section_entry_checker();
 
@@ -949,9 +954,9 @@ struct with_what_contains : private contains_substring {
             snatch::impl::test_case & SNATCH_CURRENT_CASE [[maybe_unused]],                        \
             snatch::impl::section_state & SNATCH_SECTION_STATE [[maybe_unused]]) -> void
 
-#define SNATCH_SECTION(NAME)                                                                       \
+#define SNATCH_SECTION(NAME, DESCRIPTION)                                                          \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            (NAME), SNATCH_SECTION_STATE})
+            {(NAME), (DESCRIPTION)}, SNATCH_SECTION_STATE})
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
