@@ -620,9 +620,11 @@ void registry::run(test_case& test) noexcept {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_failure(
-                test, {__FILE__, __LINE__}, "unhandled std::exception caught; message:", e.what());
+                test, sections, {__FILE__, __LINE__},
+                "unhandled std::exception caught; message:", e.what());
         } catch (...) {
-            report_failure(test, {__FILE__, __LINE__}, "unhandled unknown exception caught");
+            report_failure(
+                test, sections, {__FILE__, __LINE__}, "unhandled unknown exception caught");
         }
 #else
         test.func(test, sections);
