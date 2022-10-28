@@ -292,6 +292,59 @@ public:
     }
 };
 
+template<typename ElemType>
+class small_vector_span<const ElemType> {
+    const ElemType*    buffer_ptr  = nullptr;
+    std::size_t        buffer_size = 0;
+    const std::size_t* data_size   = nullptr;
+
+public:
+    constexpr explicit small_vector_span(
+        const ElemType* b, std::size_t bl, const std::size_t* s) noexcept :
+        buffer_ptr(b), buffer_size(bl), data_size(s) {}
+
+    constexpr std::size_t capacity() const noexcept {
+        return buffer_size;
+    }
+    constexpr std::size_t available() const noexcept {
+        return capacity() - size();
+    }
+    constexpr std::size_t size() const noexcept {
+        return *data_size;
+    }
+    constexpr bool empty() const noexcept {
+        return *data_size == 0;
+    }
+    constexpr const ElemType& back() const noexcept {
+        if (*data_size == 0) {
+            terminate_with("back() called on empty vector");
+        }
+
+        return buffer_ptr[*data_size - 1];
+    }
+    constexpr const ElemType* data() const noexcept {
+        return buffer_ptr;
+    }
+    constexpr const ElemType* begin() const noexcept {
+        return data();
+    }
+    constexpr const ElemType* end() const noexcept {
+        return begin() + size();
+    }
+    constexpr const ElemType* cbegin() const noexcept {
+        return data();
+    }
+    constexpr const ElemType* cend() const noexcept {
+        return begin() + size();
+    }
+    constexpr const ElemType& operator[](std::size_t i) const noexcept {
+        if (i >= size()) {
+            terminate_with("operator[] called with incorrect index");
+        }
+        return buffer_ptr[i];
+    }
+};
+
 template<typename ElemType, std::size_t MaxLength>
 class small_vector {
     std::array<ElemType, MaxLength> data_buffer;
@@ -370,7 +423,13 @@ public:
     constexpr small_vector_span<ElemType> span() noexcept {
         return small_vector_span<ElemType>(data_buffer.data(), MaxLength, &data_size);
     }
+    constexpr small_vector_span<const ElemType> span() const noexcept {
+        return small_vector_span<const ElemType>(data_buffer.data(), MaxLength, &data_size);
+    }
     constexpr operator small_vector_span<ElemType>() noexcept {
+        return span();
+    }
+    constexpr operator small_vector_span<const ElemType>() const noexcept {
         return span();
     }
     constexpr ElemType& operator[](std::size_t i) noexcept {
@@ -386,7 +445,8 @@ public:
 // -------------------------------
 
 namespace snatch {
-using small_string_span = small_vector_span<char>;
+using small_string_span       = small_vector_span<char>;
+using small_string_const_span = small_vector_span<const char>;
 
 template<std::size_t MaxLength>
 class small_string {
@@ -471,7 +531,13 @@ public:
     constexpr small_string_span span() noexcept {
         return small_string_span(data_buffer.data(), MaxLength, &data_size);
     }
+    constexpr small_string_const_span span() const noexcept {
+        return small_string_const_span(data_buffer.data(), MaxLength, &data_size);
+    }
     constexpr operator small_string_span() noexcept {
+        return span();
+    }
+    constexpr operator small_string_const_span() const noexcept {
         return span();
     }
     constexpr operator std::string_view() const noexcept {
