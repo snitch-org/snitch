@@ -450,8 +450,8 @@ public:
 // -------------------------------
 
 namespace snatch {
-using small_string_span       = small_vector_span<char>;
-using small_string_const_span = small_vector_span<const char>;
+using small_string_span = small_vector_span<char>;
+using small_string_view = small_vector_span<const char>;
 
 template<std::size_t MaxLength>
 class small_string {
@@ -536,13 +536,13 @@ public:
     constexpr small_string_span span() noexcept {
         return small_string_span(data_buffer.data(), MaxLength, &data_size);
     }
-    constexpr small_string_const_span span() const noexcept {
-        return small_string_const_span(data_buffer.data(), MaxLength, &data_size);
+    constexpr small_string_view span() const noexcept {
+        return small_string_view(data_buffer.data(), MaxLength, &data_size);
     }
     constexpr operator small_string_span() noexcept {
         return span();
     }
-    constexpr operator small_string_const_span() const noexcept {
+    constexpr operator small_string_view() const noexcept {
         return span();
     }
     constexpr operator std::string_view() const noexcept {
