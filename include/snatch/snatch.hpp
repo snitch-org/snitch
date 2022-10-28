@@ -940,6 +940,8 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_CONCAT_IMPL(x, y) x##y
 #define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
+#define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
+
 #define SNATCH_EXPR(type, x) snatch::impl::expression{type "(" #x ")", {}, false} <= x
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
@@ -954,9 +956,16 @@ struct with_what_contains : private contains_substring {
             snatch::impl::test_case & SNATCH_CURRENT_CASE [[maybe_unused]],                        \
             snatch::impl::section_state & SNATCH_SECTION_STATE [[maybe_unused]]) -> void
 
-#define SNATCH_SECTION(NAME, DESCRIPTION)                                                          \
+#define SNATCH_SECTION1(NAME)                                                                      \
+    if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
+            {(NAME), {}}, SNATCH_SECTION_STATE})
+
+#define SNATCH_SECTION2(NAME, DESCRIPTION)                                                         \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
             {(NAME), (DESCRIPTION)}, SNATCH_SECTION_STATE})
+
+#define SNATCH_SECTION(...)                                                                        \
+    SNATCH_MACRO_DISPATCH2(__VA_ARGS__, SNATCH_SECTION2, SNATCH_SECTION1)(__VA_ARGS__)
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
@@ -1011,7 +1020,7 @@ struct with_what_contains : private contains_substring {
 #if SNATCH_WITH_SHORTHAND_MACROS
 #    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
-#    define SECTION(NAME)                              SNATCH_SECTION(NAME)
+#    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
 #    define REQUIRE(EXP)                               SNATCH_REQUIRE(EXP)
 #    define CHECK(EXP)                                 SNATCH_CHECK(EXP)
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
