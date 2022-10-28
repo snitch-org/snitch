@@ -928,8 +928,8 @@ struct with_what_contains : private contains_substring {
 #endif
 // clang-format on
 
-// Test macros.
-// ------------
+// Internal test macros.
+// ---------------------
 
 #if SNATCH_WITH_EXCEPTIONS
 #    define SNATCH_TESTING_ABORT                                                                   \
@@ -943,6 +943,9 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
 
 #define SNATCH_EXPR(type, x) snatch::impl::expression{type "(" #x ")", {}, false} <= x
+
+// Public test macros.
+// -------------------
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
