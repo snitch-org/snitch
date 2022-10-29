@@ -1057,30 +1057,30 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
         ++SNATCH_CURRENT_CASE.asserts;                                                             \
-        SNATCH_WARNING_PUSH;                                                                       \
-        SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
-        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
+        SNATCH_WARNING_PUSH                                                                        \
+        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         if (!(EXP)) {                                                                              \
             snatch::tests.report_failure(                                                          \
                 SNATCH_CURRENT_CASE, SNATCH_SECTION_STATE, {__FILE__, __LINE__},                   \
                 SNATCH_EXPR("REQUIRE", EXP));                                                      \
             SNATCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
-        SNATCH_WARNING_POP;                                                                        \
+        SNATCH_WARNING_POP                                                                         \
     } while (0)
 
 #define SNATCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
         ++SNATCH_CURRENT_CASE.asserts;                                                             \
-        SNATCH_WARNING_PUSH;                                                                       \
-        SNATCH_WARNING_DISABLE_PARENTHESES;                                                        \
-        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON;                                                \
+        SNATCH_WARNING_PUSH                                                                        \
+        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         if (!(EXP)) {                                                                              \
             snatch::tests.report_failure(                                                          \
                 SNATCH_CURRENT_CASE, SNATCH_SECTION_STATE, {__FILE__, __LINE__},                   \
                 SNATCH_EXPR("CHECK", EXP));                                                        \
         }                                                                                          \
-        SNATCH_WARNING_POP;                                                                        \
+        SNATCH_WARNING_POP                                                                         \
     } while (0)
 
 #define SNATCH_FAIL(MESSAGE)                                                                       \
