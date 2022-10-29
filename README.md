@@ -218,7 +218,52 @@ Two matchers are provided with _snatch_:
 
 ### Sections
 
-TODO.
+As in _Catch2_, _snatch_ supports nesting multiple tests inside a single test case, to share set-up/tear-down logic. This is done using the `SECTION("name")` macro. Please see the [Catch2 documentation](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md#test-cases-and-sections) for more details. Here is a brief example to demonstrate the flow of the test:
+
+```c++
+TEST_CASE( "test with sections", "[section]" ) {
+    std::cout << "set-up" << std::endl;
+    // shared set-up logic here...
+
+    SECTION( "first section" ) {
+        std::cout << " 1" << std::endl;
+    }
+    SECTION( "second section" ) {
+        std::cout << " 2" << std::endl;
+    }
+    SECTION( "third section" ) {
+        std::cout << " 3" << std::endl;
+        SECTION( "nested section 1" ) {
+            std::cout << "  3.1" << std::endl;
+        }
+        SECTION( "nested section 2" ) {
+            std::cout << "  3.2" << std::endl;
+        }
+    }
+
+    std::cout << "tear-down" << std::endl;
+    // shared tear-down logic here...
+};
+```
+
+The output of this test will be:
+```
+set-up
+ 1
+tear-down
+set-up
+ 2
+tear-down
+set-up
+ 3
+  3.1
+tear-down
+set-up
+ 3
+  3.2
+tear-down
+
+```
 
 
 ### Reporters
