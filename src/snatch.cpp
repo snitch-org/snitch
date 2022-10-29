@@ -220,10 +220,7 @@ bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
 template<typename... Args>
 void console_print(Args&&... args) noexcept {
     small_string<max_message_length> message;
-    if (!append(message, std::forward<Args>(args)...)) {
-        truncate_end(message);
-    }
-
+    append_or_truncate(message, std::forward<Args>(args)...);
     stdout_print(message);
 }
 
@@ -307,11 +304,8 @@ bool contains_substring::match(std::string_view message) const noexcept {
 
 std::string_view contains_substring::describe_fail(std::string_view message) const noexcept {
     description_buffer.clear();
-    if (!append(
-            description_buffer, "could not find '", substring_pattern, "' in '", message, "'")) {
-        truncate_end(description_buffer);
-    }
-
+    append_or_truncate(
+        description_buffer, "could not find '", substring_pattern, "' in '", message, "'");
     return description_buffer.str();
 }
 
@@ -534,9 +528,7 @@ void registry::report_failure(
     set_state(test, test_state::failed);
 
     small_string<max_message_length> message;
-    if (!append(message, message1, message2)) {
-        truncate_end(message);
-    }
+    append_or_truncate(message, message1, message2);
 
     if (!report_callback.empty()) {
         report_callback(
@@ -559,9 +551,7 @@ void registry::report_failure(
     if (!report_callback.empty()) {
         if (!exp.failed) {
             small_string<max_message_length> message;
-            if (!append(message, exp.content, ", got ", exp.data)) {
-                truncate_end(message);
-            }
+            append_or_truncate(message, exp.content, ", got ", exp.data);
             report_callback(
                 *this,
                 event::assertion_failed{test.id, sections.current_section, location, message});

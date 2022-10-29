@@ -582,6 +582,16 @@ template<typename T, typename U, typename... Args>
 
 void truncate_end(small_string_span ss) noexcept;
 
+template<typename... Args>
+bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
+    if (!append(ss, std::forward<Args>(args)...)) {
+        truncate_end(ss);
+        return false;
+    }
+
+    return true;
+}
+
 [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
 } // namespace snatch
@@ -858,10 +868,7 @@ public:
     template<typename... Args>
     void print(Args&&... args) const noexcept {
         small_string<max_message_length> message;
-        if (!append(message, std::forward<Args>(args)...)) {
-            truncate_end(message);
-        }
-
+        append_or_truncate(message, std::forward<Args>(args)...);
         this->print_callback(message);
     }
 

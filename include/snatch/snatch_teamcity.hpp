@@ -32,13 +32,9 @@ void send_message(
 small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
     small_string<max_test_name_length> name;
     if (id.type.length() != 0) {
-        if (!append(name, id.name, "(\"", id.type, "\")")) {
-            truncate_end(name);
-        }
+        append_or_truncate(name, id.name, "(\"", id.type, "\")");
     } else {
-        if (!append(name, id.name)) {
-            truncate_end(name);
-        }
+        append_or_truncate(name, id.name);
     }
 
     escape(name);
@@ -58,20 +54,16 @@ make_full_message(const snatch::assertion_location& location, std::string_view m
 
 small_string<max_message_length> make_escaped(std::string_view string) noexcept {
     small_string<max_message_length> escaped_string;
-    if (!append(escaped_string, string)) {
-        truncate_end(escaped_string);
-    }
-
+    append_or_truncate(escaped_string, string);
     escape(escaped_string);
     return escaped_string;
 }
 
-small_string<32> make_duration(float duration) noexcept {
-    small_string<32> string;
-    if (!append(string, static_cast<std::size_t>(duration * 1e6))) {
-        truncate_end(string);
-    }
+constexpr std::size_t max_duration_length = 32;
 
+small_string<max_duration_length> make_duration(float duration) noexcept {
+    small_string<max_duration_length> string;
+    append_or_truncate(string, static_cast<std::size_t>(duration * 1e6));
     return string;
 }
 
