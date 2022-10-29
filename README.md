@@ -111,18 +111,16 @@ Description of results below:
  - *Library size*: Size of the compiled testing framework library (if any).
  - *Executable size*: Size of the compiled test executable, static linking to the testing framework library (if any).
 
-TODO: update after adding sections.
-
 Results for _snatch_:
 
 |                 | _snatch_ (Debug) | _snatch_ (Release) |
 |-----------------|------------------|--------------------|
-| Build framework | 1.5s             | 2.2s               |
+| Build framework | 1.6s             | 2.4s               |
 | Build tests     | 65s              | 133s               |
 | Build all       | 67s              | 135s               |
-| Run tests       | 13ms             | 7ms                |
-| Library size    | 2.50MB           | 0.63MB             |
-| Executable size | 28.9MB           | 8.5MB              |
+| Run tests       | 15ms             | 8ms                |
+| Library size    | 2.70MB           | 0.68MB             |
+| Executable size | 29.9MB           | 8.8MB              |
 
 Results for alternative testing frameworks:
 
