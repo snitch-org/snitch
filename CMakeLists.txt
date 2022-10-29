@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.8)
 project(snatch LANGUAGES CXX VERSION 1.0)
 
 set(SNATCH_MAX_TEST_CASES         5000 CACHE STRING "Maximum number of test cases in a test application.")
+set(SNATCH_MAX_NESTED_SECTIONS    8    CACHE STRING "Maximum depth of nested sections in a test case.")
 set(SNATCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
 set(SNATCH_MAX_MESSAGE_LENGTH     1024 CACHE STRING "Maximum length of error or status messages.")
 set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
@@ -24,6 +25,7 @@ target_include_directories(snatch PUBLIC
 
 target_compile_definitions(snatch PUBLIC
   SNATCH_MAX_TEST_CASES=${SNATCH_MAX_TEST_CASES}
+  SNATCH_MAX_NESTED_SECTIONS=${SNATCH_MAX_NESTED_SECTIONS}
   SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
   SNATCH_MAX_MESSAGE_LENGTH=${SNATCH_MAX_MESSAGE_LENGTH}
   SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}

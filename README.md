@@ -13,6 +13,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
+    - [Sections](#sections)
     - [Reporters](#reporters)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
@@ -32,6 +33,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
+   - Nesting multiple tests in a single test case with `SECTION(name, description)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
@@ -44,7 +46,6 @@ Notable current limitations:
  - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
  - No set-up/tear-down helpers.
  - No multi-threaded test execution.
- - No `SECTION(...)`.
 
 
 ## Example
@@ -114,12 +115,12 @@ Results for _snatch_:
 
 |                 | _snatch_ (Debug) | _snatch_ (Release) |
 |-----------------|------------------|--------------------|
-| Build framework | 1.5s             | 2.2s               |
+| Build framework | 1.6s             | 2.4s               |
 | Build tests     | 65s              | 133s               |
 | Build all       | 67s              | 135s               |
-| Run tests       | 13ms             | 7ms                |
-| Library size    | 2.50MB           | 0.63MB             |
-| Executable size | 28.9MB           | 8.5MB              |
+| Run tests       | 15ms             | 8ms                |
+| Library size    | 2.70MB           | 0.68MB             |
+| Executable size | 29.9MB           | 8.8MB              |
 
 Results for alternative testing frameworks:
 
@@ -211,6 +212,56 @@ Two matchers are provided with _snatch_:
 
  - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
  - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+
+
+### Sections
+
+As in _Catch2_, _snatch_ supports nesting multiple tests inside a single test case, to share set-up/tear-down logic. This is done using the `SECTION("name")` macro. Please see the [Catch2 documentation](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md#test-cases-and-sections) for more details. Here is a brief example to demonstrate the flow of the test:
+
+```c++
+TEST_CASE( "test with sections", "[section]" ) {
+    std::cout << "set-up" << std::endl;
+    // shared set-up logic here...
+
+    SECTION( "first section" ) {
+        std::cout << " 1" << std::endl;
+    }
+    SECTION( "second section" ) {
+        std::cout << " 2" << std::endl;
+    }
+    SECTION( "third section" ) {
+        std::cout << " 3" << std::endl;
+        SECTION( "nested section 1" ) {
+            std::cout << "  3.1" << std::endl;
+        }
+        SECTION( "nested section 2" ) {
+            std::cout << "  3.2" << std::endl;
+        }
+    }
+
+    std::cout << "tear-down" << std::endl;
+    // shared tear-down logic here...
+};
+```
+
+The output of this test will be:
+```
+set-up
+ 1
+tear-down
+set-up
+ 2
+tear-down
+set-up
+ 3
+  3.1
+tear-down
+set-up
+ 3
+  3.2
+tear-down
+
+```
 
 
 ### Reporters

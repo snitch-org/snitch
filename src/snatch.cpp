@@ -220,10 +220,7 @@ bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
 template<typename... Args>
 void console_print(Args&&... args) noexcept {
     small_string<max_message_length> message;
-    if (!append(message, std::forward<Args>(args)...)) {
-        truncate_end(message);
-    }
-
+    append_or_truncate(message, std::forward<Args>(args)...);
     stdout_print(message);
 }
 
@@ -240,6 +237,60 @@ namespace snatch {
 }
 } // namespace snatch
 
+// Sections implementation.
+// ------------------------
+
+namespace snatch::impl {
+section_entry_checker::~section_entry_checker() noexcept {
+    if (entered) {
+        if (state.levels.size() == state.depth) {
+            state.leaf_executed = true;
+        } else {
+            auto& child = state.levels[state.depth];
+            if (child.previous_section_id == child.max_section_id) {
+                state.levels.pop_back();
+            }
+        }
+
+        state.current_section.pop_back();
+    }
+
+    --state.depth;
+}
+
+section_entry_checker::operator bool() noexcept {
+    ++state.depth;
+
+    if (state.depth > state.levels.size()) {
+        if (state.depth > max_nested_sections) {
+            terminate_with("max number of nested sections reached; please increase "
+                           "SNATCH_MAX_NESTED_SECTIONS");
+        }
+
+        state.levels.push_back({});
+    }
+
+    auto& level = state.levels[state.depth - 1];
+
+    ++level.current_section_id;
+    if (level.max_section_id < level.current_section_id) {
+        level.max_section_id = level.current_section_id;
+    }
+
+    if (!state.leaf_executed && (level.previous_section_id + 1 == level.current_section_id ||
+                                 (level.previous_section_id == level.current_section_id &&
+                                  state.levels.size() > state.depth))) {
+
+        level.previous_section_id = level.current_section_id;
+        state.current_section.push_back(section);
+        entered = true;
+        return true;
+    }
+
+    return false;
+}
+} // namespace snatch::impl
+
 // Matcher implementation.
 // -----------------------
 
@@ -253,11 +304,8 @@ bool contains_substring::match(std::string_view message) const noexcept {
 
 std::string_view contains_substring::describe_fail(std::string_view message) const noexcept {
     description_buffer.clear();
-    if (!append(
-            description_buffer, "could not find '", substring_pattern, "' in '", message, "'")) {
-        truncate_end(description_buffer);
-    }
-
+    append_or_truncate(
+        description_buffer, "could not find '", substring_pattern, "' in '", message, "'");
     return description_buffer.str();
 }
 
@@ -408,11 +456,20 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
 }
 
 void registry::print_location(
-    const impl::test_case& current_case, const assertion_location& location) const noexcept {
+    const impl::test_case&     current_case,
+    const impl::section_state& sections,
+    const assertion_location&  location) const noexcept {
 
     print(
         "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
         "\"\n");
+
+    for (auto& section : sections.current_section) {
+        print(
+            "          in section \"", make_colored(section.name, with_color, color::highlight1),
+            "\"\n");
+    }
+
     print("          at ", location.file, ":", location.line, "\n");
 
     if (!current_case.id.type.empty()) {
@@ -444,126 +501,152 @@ void registry::print_details_expr(const expression& exp) const noexcept {
 }
 
 void registry::report_failure(
-    impl::test_case&          t,
-    const assertion_location& location,
-    std::string_view          message) const noexcept {
+    impl::test_case&           test,
+    const impl::section_state& sections,
+    const assertion_location&  location,
+    std::string_view           message) const noexcept {
 
-    set_state(t, test_state::failed);
+    set_state(test, test_state::failed);
 
     if (!report_callback.empty()) {
-        report_callback(*this, event::assertion_failed{t.id, location, message});
+        report_callback(
+            *this, event::assertion_failed{test.id, sections.current_section, location, message});
     } else {
         print_failure();
-        print_location(t, location);
+        print_location(test, sections, location);
         print_details(message);
     }
 }
 
 void registry::report_failure(
-    impl::test_case&          t,
-    const assertion_location& location,
-    std::string_view          message1,
-    std::string_view          message2) const noexcept {
+    impl::test_case&           test,
+    const impl::section_state& sections,
+    const assertion_location&  location,
+    std::string_view           message1,
+    std::string_view           message2) const noexcept {
 
-    set_state(t, test_state::failed);
+    set_state(test, test_state::failed);
 
     small_string<max_message_length> message;
-    if (!append(message, message1, message2)) {
-        truncate_end(message);
-    }
+    append_or_truncate(message, message1, message2);
 
     if (!report_callback.empty()) {
-        report_callback(*this, event::assertion_failed{t.id, location, message});
+        report_callback(
+            *this, event::assertion_failed{test.id, sections.current_section, location, message});
     } else {
         print_failure();
-        print_location(t, location);
+        print_location(test, sections, location);
         print_details(message);
     }
 }
 
 void registry::report_failure(
-    impl::test_case&          t,
-    const assertion_location& location,
-    const impl::expression&   exp) const noexcept {
+    impl::test_case&           test,
+    const impl::section_state& sections,
+    const assertion_location&  location,
+    const impl::expression&    exp) const noexcept {
 
-    set_state(t, test_state::failed);
+    set_state(test, test_state::failed);
 
     if (!report_callback.empty()) {
         if (!exp.failed) {
             small_string<max_message_length> message;
-            if (!append(message, exp.content, ", got ", exp.data)) {
-                truncate_end(message);
-            }
-            report_callback(*this, event::assertion_failed{t.id, location, message});
+            append_or_truncate(message, exp.content, ", got ", exp.data);
+            report_callback(
+                *this,
+                event::assertion_failed{test.id, sections.current_section, location, message});
         } else {
-            report_callback(*this, event::assertion_failed{t.id, location, {exp.content}});
+            report_callback(
+                *this, event::assertion_failed{
+                           test.id, sections.current_section, location, {exp.content}});
         }
     } else {
         print_failure();
-        print_location(t, location);
+        print_location(test, sections, location);
         print_details_expr(exp);
     }
 }
 
 void registry::report_skipped(
-    impl::test_case&          t,
-    const assertion_location& location,
-    std::string_view          message) const noexcept {
+    impl::test_case&           test,
+    const impl::section_state& sections,
+    const assertion_location&  location,
+    std::string_view           message) const noexcept {
 
-    set_state(t, test_state::skipped);
+    set_state(test, test_state::skipped);
 
     if (!report_callback.empty()) {
-        report_callback(*this, event::test_case_skipped{t.id, location, message});
+        report_callback(
+            *this, event::test_case_skipped{test.id, sections.current_section, location, message});
     } else {
         print_skip();
-        print_location(t, location);
+        print_location(test, sections, location);
         print_details(message);
     }
 }
 
-void registry::run(test_case& t) noexcept {
+void registry::run(test_case& test) noexcept {
     small_string<max_test_name_length> full_name;
 
     if (!report_callback.empty()) {
-        report_callback(*this, event::test_case_started{t.id});
+        report_callback(*this, event::test_case_started{test.id});
     } else if (is_at_least(verbose, verbosity::high)) {
-        make_full_name(full_name, t.id);
+        make_full_name(full_name, test.id);
         print(
             make_colored("starting:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
     }
 
-    t.asserts = 0;
-    t.state   = test_state::success;
+    test.asserts = 0;
+    test.state   = test_state::success;
+
+    section_state sections;
 
     using clock     = std::chrono::high_resolution_clock;
     auto time_start = clock::now();
 
+    do {
+        for (std::size_t i = 0; i < sections.levels.size(); ++i) {
+            sections.levels[i].current_section_id = 0;
+        }
+
+        sections.leaf_executed = false;
+
 #if SNATCH_WITH_EXCEPTIONS
-    try {
-        t.func(t);
-    } catch (const impl::abort_exception&) {
-        // Test aborted, assume its state was already set accordingly.
-    } catch (const std::exception& e) {
-        report_failure(
-            t, {__FILE__, __LINE__}, "unhandled std::exception caught; message:", e.what());
-    } catch (...) {
-        report_failure(t, {__FILE__, __LINE__}, "unhandled unknown exception caught");
-    }
+        try {
+            test.func(test, sections);
+        } catch (const impl::abort_exception&) {
+            // Test aborted, assume its state was already set accordingly.
+        } catch (const std::exception& e) {
+            report_failure(
+                test, sections, {__FILE__, __LINE__},
+                "unhandled std::exception caught; message:", e.what());
+        } catch (...) {
+            report_failure(
+                test, sections, {__FILE__, __LINE__}, "unhandled unknown exception caught");
+        }
 #else
-    t.func(t);
+        test.func(test, sections);
 #endif
 
-    auto time_end = clock::now();
+        if (sections.levels.size() == 1) {
+            auto& child = sections.levels[0];
+            if (child.previous_section_id == child.max_section_id) {
+                sections.levels.clear();
+                sections.current_section.clear();
+            }
+        }
+    } while (!sections.levels.empty());
 
-    t.duration = std::chrono::duration<float>(time_end - time_start).count();
+    auto time_end = clock::now();
+    test.duration = std::chrono::duration<float>(time_end - time_start).count();
 
     if (!report_callback.empty()) {
-        report_callback(*this, event::test_case_ended{t.id, t.duration});
+        report_callback(*this, event::test_case_ended{test.id, test.duration});
     } else if (is_at_least(verbose, verbosity::high)) {
         print(
             make_colored("finished:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), " (", t.duration, "s)\n");
+            make_colored(full_name, with_color, color::highlight1), " (", test.duration, "s)\n");
     }
 }
 
