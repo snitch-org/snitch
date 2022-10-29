@@ -241,7 +241,7 @@ namespace snatch {
 // ------------------------
 
 namespace snatch::impl {
-section_entry_checker::~section_entry_checker() {
+section_entry_checker::~section_entry_checker() noexcept {
     if (entered) {
         if (state.levels.size() == state.depth) {
             state.leaf_executed = true;

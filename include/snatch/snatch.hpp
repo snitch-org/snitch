@@ -756,7 +756,7 @@ struct section_entry_checker {
     section_state& state;
     bool           entered = false;
 
-    ~section_entry_checker();
+    ~section_entry_checker() noexcept;
 
     explicit operator bool() noexcept;
 };
