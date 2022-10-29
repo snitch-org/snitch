@@ -1,16 +1,6 @@
 #ifndef SNATCH_HPP
 #define SNATCH_HPP
 
-#include <array> // for small_vector
-#include <cstddef> // for std::size_t
-#include <exception> // for std::exception
-#include <initializer_list> // for std::initializer_list
-#include <optional> // for cli
-#include <string_view> // for all strings
-#include <tuple> // for typed tests
-#include <type_traits> // for std::is_nothrow_*
-#include <variant> // for events
-
 #if !defined(SNATCH_MAX_TEST_CASES)
 #    define SNATCH_MAX_TEST_CASES 5'000
 #endif
@@ -54,6 +44,18 @@
 #if !defined(SNATCH_WITH_SHORTHAND_MACROS)
 #    define SNATCH_WITH_SHORTHAND_MACROS 1
 #endif
+
+#include <array> // for small_vector
+#include <cstddef> // for std::size_t
+#if SNATCH_WITH_EXCEPTIONS
+#    include <exception> // for std::exception
+#endif
+#include <initializer_list> // for std::initializer_list
+#include <optional> // for cli
+#include <string_view> // for all strings
+#include <tuple> // for typed tests
+#include <type_traits> // for std::is_nothrow_*
+#include <variant> // for events
 
 // Testing framework configuration.
 // --------------------------------
