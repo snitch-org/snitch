@@ -338,10 +338,10 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
             continue;
         }
 
-        r.run(t);
+        auto state = r.run(t);
 
         ++run_count;
-        assertion_count += t.asserts;
+        assertion_count += state.asserts;
         if (t.state == test_state::failed) {
             ++fail_count;
             success = false;
@@ -585,7 +585,7 @@ void registry::report_skipped(
     }
 }
 
-void registry::run(test_case& test) noexcept {
+test_run registry::run(test_case& test) noexcept {
     small_string<max_test_name_length> full_name;
 
     if (!report_callback.empty()) {
@@ -597,8 +597,7 @@ void registry::run(test_case& test) noexcept {
             make_colored(full_name, with_color, color::highlight1), "\n");
     }
 
-    test.asserts = 0;
-    test.state   = test_state::success;
+    test.state = test_state::success;
 
     test_run state{.reg = *this, .test = test};
 
@@ -639,13 +638,13 @@ void registry::run(test_case& test) noexcept {
     } while (!state.sections.levels.empty());
 
 #if SNATCH_WITH_TIMINGS
-    auto time_end = clock::now();
-    test.duration = std::chrono::duration<float>(time_end - time_start).count();
+    auto time_end  = clock::now();
+    state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
     if (!report_callback.empty()) {
 #if SNATCH_WITH_TIMINGS
-        report_callback(*this, event::test_case_ended{test.id, test.duration});
+        report_callback(*this, event::test_case_ended{test.id, state.duration});
 #else
         report_callback(*this, event::test_case_ended{test.id});
 #endif
@@ -653,13 +652,15 @@ void registry::run(test_case& test) noexcept {
 #if SNATCH_WITH_TIMINGS
         print(
             make_colored("finished:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), " (", test.duration, "s)\n");
+            make_colored(full_name, with_color, color::highlight1), " (", state.duration, "s)\n");
 #else
         print(
             make_colored("finished:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), "\n");
 #endif
     }
+
+    return state;
 }
 
 bool registry::run_all_tests(std::string_view run_name) noexcept {

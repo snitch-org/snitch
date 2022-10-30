@@ -685,13 +685,9 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 enum class test_state { not_run, success, skipped, failed };
 
 struct test_case {
-    test_id     id;
-    test_ptr    func    = nullptr;
-    test_state  state   = test_state::not_run;
-    std::size_t asserts = 0;
-#if SNATCH_WITH_TIMINGS
-    float duration = 0.0f;
-#endif
+    test_id    id;
+    test_ptr   func  = nullptr;
+    test_state state = test_state::not_run;
 };
 
 struct section_nesting_level {
@@ -711,6 +707,10 @@ struct test_run {
     registry&     reg;
     test_case&    test;
     section_state sections;
+    std::size_t   asserts = 0;
+#if SNATCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
 };
 
 struct section_entry_checker {
@@ -931,7 +931,7 @@ public:
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
-    void run(impl::test_case& test) noexcept;
+    impl::test_run run(impl::test_case& test) noexcept;
 
     bool run_all_tests(std::string_view run_name) noexcept;
     bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;
@@ -1069,7 +1069,7 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
-        ++SNATCH_CURRENT_CASE.asserts;                                                             \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
@@ -1083,7 +1083,7 @@ struct with_what_contains : private contains_substring {
 
 #define SNATCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
-        ++SNATCH_CURRENT_CASE.asserts;                                                             \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
