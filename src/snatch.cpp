@@ -1,10 +1,13 @@
 #include "snatch/snatch.hpp"
 
 #include <algorithm> // for std::sort
-#include <chrono> // for measuring test time
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
+
+#if SNATCH_WITH_TIMINGS
+#    include <chrono> // for measuring test time
+#endif
 
 // Testing framework implementation utilities.
 // -------------------------------------------
@@ -599,8 +602,10 @@ void registry::run(test_case& test) noexcept {
 
     test_run state{.reg = *this, .test = test};
 
+#if SNATCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;
     auto time_start = clock::now();
+#endif
 
     do {
         for (std::size_t i = 0; i < state.sections.levels.size(); ++i) {
@@ -633,15 +638,27 @@ void registry::run(test_case& test) noexcept {
         }
     } while (!state.sections.levels.empty());
 
+#if SNATCH_WITH_TIMINGS
     auto time_end = clock::now();
     test.duration = std::chrono::duration<float>(time_end - time_start).count();
+#endif
 
     if (!report_callback.empty()) {
+#if SNATCH_WITH_TIMINGS
         report_callback(*this, event::test_case_ended{test.id, test.duration});
+#else
+        report_callback(*this, event::test_case_ended{test.id});
+#endif
     } else if (is_at_least(verbose, verbosity::high)) {
+#if SNATCH_WITH_TIMINGS
         print(
             make_colored("finished:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), " (", test.duration, "s)\n");
+#else
+        print(
+            make_colored("finished:", with_color, color::status), " ",
+            make_colored(full_name, with_color, color::highlight1), "\n");
+#endif
     }
 }
 

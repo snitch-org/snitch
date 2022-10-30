@@ -28,6 +28,9 @@
 #if !defined(SNATCH_WITH_EXCEPTIONS)
 #    define SNATCH_WITH_EXCEPTIONS 1
 #endif
+#if !defined(SNATCH_WITH_TIMINGS)
+#    define SNATCH_WITH_TIMINGS 1
+#endif
 #if !defined(SNATCH_WITH_SHORTHAND_MACROS)
 #    define SNATCH_WITH_SHORTHAND_MACROS 1
 #endif
@@ -683,10 +686,12 @@ enum class test_state { not_run, success, skipped, failed };
 
 struct test_case {
     test_id     id;
-    test_ptr    func     = nullptr;
-    test_state  state    = test_state::not_run;
-    std::size_t asserts  = 0;
-    float       duration = 0.0f;
+    test_ptr    func    = nullptr;
+    test_state  state   = test_state::not_run;
+    std::size_t asserts = 0;
+#if SNATCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
 };
 
 struct section_nesting_level {
@@ -805,7 +810,9 @@ struct test_case_started {
 
 struct test_case_ended {
     const test_id& id;
-    float          duration = 0.0f;
+#if SNATCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
 };
 
 struct assertion_failed {
