@@ -551,6 +551,25 @@ template<std::size_t N>
     return append(ss, std::string_view(str));
 }
 
+template<typename T>
+[[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
+    using TD = std::decay_t<T>;
+    if constexpr (std::is_integral_v<TD>) {
+        if constexpr (std::is_signed_v<TD>) {
+            return snatch::append(ss, static_cast<std::ptrdiff_t>(value));
+        } else {
+            return snatch::append(ss, static_cast<std::size_t>(value));
+        }
+    } else if constexpr (std::is_enum_v<TD>) {
+        return append(ss, static_cast<std::underlying_type_t<TD>>(value));
+    } else if constexpr (std::is_convertible_v<TD, std::string_view>) {
+        return snatch::append(ss, std::string_view(value));
+    } else {
+        static_assert(!std::is_same_v<T, T>, "this type cannot be serialized to a string");
+        return false;
+    }
+}
+
 template<typename T, typename U, typename... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
     return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
@@ -723,6 +742,11 @@ struct section_entry_checker {
     explicit operator bool() noexcept;
 };
 
+template<class T>
+concept StringAppendable = requires(small_string_span str, T value) {
+    append(str, value);
+};
+
 struct expression {
     std::string_view              content;
     small_string<max_expr_length> data;
@@ -730,27 +754,14 @@ struct expression {
 
     template<typename T>
     void append(T&& value) noexcept {
-        using TD = std::decay_t<T>;
-        if constexpr (std::is_integral_v<TD>) {
-            if constexpr (std::is_signed_v<TD>) {
-                if (!snatch::append(data, static_cast<std::ptrdiff_t>(value))) {
-                    failed = true;
-                }
-            } else {
-                if (!snatch::append(data, static_cast<std::size_t>(value))) {
-                    failed = true;
-                }
-            }
-        } else if constexpr (std::is_enum_v<TD>) {
-            append(static_cast<std::underlying_type_t<TD>>(value));
-        } else if constexpr (
-            std::is_pointer_v<TD> || std::is_floating_point_v<TD> || std::is_same_v<TD, bool> ||
-            std::is_convertible_v<T, const void*> || std::is_convertible_v<T, std::string_view>) {
-            if (!snatch::append(data, value)) {
+        if constexpr (StringAppendable<T>) {
+            if (!snatch::append(data, std::forward<T>(value))) {
                 failed = true;
             }
         } else {
-            append("?");
+            if (!snatch::append(data, "?")) {
+                failed = true;
+            }
         }
     }
 
