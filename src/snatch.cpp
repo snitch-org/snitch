@@ -6,13 +6,6 @@
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
 
-#if !defined(SNATCH_DEFINE_MAIN)
-#    define SNATCH_DEFINE_MAIN 1
-#endif
-#if !defined(SNATCH_WITH_COLOR)
-#    define SNATCH_WITH_COLOR 1
-#endif
-
 // Testing framework implementation utilities.
 // -------------------------------------------
 
@@ -1019,7 +1012,7 @@ const expected_arguments expected_args = {
     {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
 // clang-format on
 
-constexpr bool with_color_default = SNATCH_WITH_COLOR == 1;
+constexpr bool with_color_default = SNATCH_DEFAULT_WITH_COLOR == 1;
 } // namespace
 
 namespace snatch::cli {

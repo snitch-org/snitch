@@ -22,6 +22,18 @@
 #if !defined(SNATCH_MAX_COMMAND_LINE_ARGS)
 #    define SNATCH_MAX_COMMAND_LINE_ARGS 1'024
 #endif
+#if !defined(SNATCH_DEFINE_MAIN)
+#    define SNATCH_DEFINE_MAIN 1
+#endif
+#if !defined(SNATCH_WITH_EXCEPTIONS)
+#    define SNATCH_WITH_EXCEPTIONS 1
+#endif
+#if !defined(SNATCH_WITH_SHORTHAND_MACROS)
+#    define SNATCH_WITH_SHORTHAND_MACROS 1
+#endif
+#if !defined(SNATCH_DEFAULT_WITH_COLOR)
+#    define SNATCH_DEFAULT_WITH_COLOR 1
+#endif
 
 #if defined(_MSC_VER)
 #    if defined(_KERNEL_MODE) || (defined(_HAS_EXCEPTIONS) && !_HAS_EXCEPTIONS)
@@ -33,16 +45,9 @@
 #    endif
 #endif
 
-#if !defined(SNATCH_WITH_EXCEPTIONS)
-#    define SNATCH_WITH_EXCEPTIONS 1
-#endif
 #if defined(SNATCH_EXCEPTIONS_NOT_AVAILABLE)
 #    undef SNATCH_WITH_EXCEPTIONS
 #    define SNATCH_WITH_EXCEPTIONS 0
-#endif
-
-#if !defined(SNATCH_WITH_SHORTHAND_MACROS)
-#    define SNATCH_WITH_SHORTHAND_MACROS 1
 #endif
 
 #include <array> // for small_vector
