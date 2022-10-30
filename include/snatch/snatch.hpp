@@ -828,12 +828,13 @@ void stdout_print(std::string_view message) noexcept;
 struct abort_exception {};
 } // namespace snatch::impl
 
-// Sections.
+// Sections and captures.
 // ---------
 
 namespace snatch {
 using section_info = small_vector_span<const section_id>;
-}
+using capture_info = small_vector_span<const std::string_view>;
+} // namespace snatch
 
 // Events.
 // -------
@@ -867,6 +868,7 @@ struct test_case_ended {
 struct assertion_failed {
     const test_id&            id;
     section_info              sections;
+    capture_info              captures;
     const assertion_location& location;
     std::string_view          message;
 };
@@ -874,6 +876,7 @@ struct assertion_failed {
 struct test_case_skipped {
     const test_id&            id;
     section_info              sections;
+    capture_info              captures;
     const assertion_location& location;
     std::string_view          message;
 };

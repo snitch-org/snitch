@@ -510,6 +510,15 @@ void set_state(test_case& t, test_state s) noexcept {
         t.state = s;
     }
 }
+
+small_vector<std::string_view, max_captures> make_capture_buffer(const capture_state& captures) {
+    small_vector<std::string_view, max_captures> captures_buffer;
+    for (const auto& c : captures) {
+        captures_buffer.push_back(c);
+    }
+
+    return captures_buffer;
+}
 } // namespace
 
 namespace snatch {
@@ -594,9 +603,11 @@ void registry::report_failure(
     set_state(state.test, test_state::failed);
 
     if (!report_callback.empty()) {
+        const auto captures_buffer = make_capture_buffer(state.captures);
         report_callback(
             *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, location, message});
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message});
     } else {
         print_failure();
         print_location(state.test, state.sections, state.captures, location);
@@ -616,9 +627,11 @@ void registry::report_failure(
     append_or_truncate(message, message1, message2);
 
     if (!report_callback.empty()) {
+        const auto captures_buffer = make_capture_buffer(state.captures);
         report_callback(
             *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, location, message});
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message});
     } else {
         print_failure();
         print_location(state.test, state.sections, state.captures, location);
@@ -634,16 +647,22 @@ void registry::report_failure(
     set_state(state.test, test_state::failed);
 
     if (!report_callback.empty()) {
+        const auto captures_buffer = make_capture_buffer(state.captures);
         if (!exp.failed) {
             small_string<max_message_length> message;
             append_or_truncate(message, exp.content, ", got ", exp.data);
             report_callback(
                 *this, event::assertion_failed{
-                           state.test.id, state.sections.current_section, location, message});
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
         } else {
             report_callback(
                 *this, event::assertion_failed{
-                           state.test.id, state.sections.current_section, location, {exp.content}});
+                           state.test.id,
+                           state.sections.current_section,
+                           captures_buffer.span(),
+                           location,
+                           {exp.content}});
         }
     } else {
         print_failure();
@@ -660,9 +679,11 @@ void registry::report_skipped(
     set_state(state.test, test_state::skipped);
 
     if (!report_callback.empty()) {
+        const auto captures_buffer = make_capture_buffer(state.captures);
         report_callback(
             *this, event::test_case_skipped{
-                       state.test.id, state.sections.current_section, location, message});
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message});
     } else {
         print_skip();
         print_location(state.test, state.sections, state.captures, location);
