@@ -224,6 +224,18 @@ bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosit
     using underlying_type = std::underlying_type_t<snatch::registry::verbosity>;
     return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
 }
+
+void trim(std::string_view& str, std::string_view patterns) noexcept {
+    std::size_t start = str.find_first_not_of(patterns);
+    if (start == str.npos)
+        return;
+
+    str.remove_prefix(start);
+
+    std::size_t end = str.find_last_not_of(patterns);
+    if (end != str.npos)
+        str.remove_suffix(str.size() - end - 1);
+}
 } // namespace
 
 namespace snatch {
@@ -289,6 +301,74 @@ section_entry_checker::operator bool() noexcept {
     }
 
     return false;
+}
+} // namespace snatch::impl
+
+// Captures implementation.
+// ------------------------
+
+namespace snatch::impl {
+std::string_view extract_next_name(std::string_view& names) noexcept {
+    std::string_view result;
+
+    auto pos = names.find_first_of(",()\"\"''");
+
+    bool in_string = false;
+    bool in_char   = false;
+    int  parens    = 0;
+    while (pos != names.npos && pos != names.size() - 1) {
+        switch (names[pos]) {
+        case '"':
+            if (!in_char) {
+                in_string = !in_string;
+            }
+            break;
+        case '\'':
+            if (!in_string) {
+                in_char = !in_char;
+            }
+            break;
+        case '(':
+            if (!in_string && !in_char) {
+                ++parens;
+            }
+            break;
+        case ')':
+            if (!in_string && !in_char) {
+                --parens;
+            }
+            break;
+        case ',':
+            if (!in_string && !in_char && parens == 0) {
+                result = names.substr(0, pos);
+                trim(result, " \t\n\r");
+                names.remove_prefix(pos + 1);
+                return result;
+            }
+            break;
+        }
+
+        pos = names.find_first_of(",()\"\"''", pos + 1);
+    }
+
+    std::swap(result, names);
+    trim(result, " \t\n\r");
+    return result;
+}
+
+small_string<max_capture_length>& add_capture(test_run& state) noexcept {
+    if (state.captures.available() == 0) {
+        state.reg.print(
+            make_colored("error:", state.reg.with_color, color::fail),
+            " max number of captures reached; "
+            "please increase 'SNATCH_MAX_CAPTURES' (currently ",
+            max_captures, ")\n.");
+        std::terminate();
+    }
+
+    state.captures.grow(1);
+    state.captures.back().clear();
+    return state.captures.back();
 }
 } // namespace snatch::impl
 
@@ -459,6 +539,7 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
 void registry::print_location(
     const impl::test_case&     current_case,
     const impl::section_state& sections,
+    const impl::capture_state& captures,
     const assertion_location&  location) const noexcept {
 
     print(
@@ -477,6 +558,10 @@ void registry::print_location(
         print(
             "          for type ",
             make_colored(current_case.id.type, with_color, color::highlight1), "\n");
+    }
+
+    for (auto& capture : captures) {
+        print("          with ", make_colored(capture, with_color, color::highlight1), "\n");
     }
 }
 
@@ -514,7 +599,7 @@ void registry::report_failure(
                        state.test.id, state.sections.current_section, location, message});
     } else {
         print_failure();
-        print_location(state.test, state.sections, location);
+        print_location(state.test, state.sections, state.captures, location);
         print_details(message);
     }
 }
@@ -536,7 +621,7 @@ void registry::report_failure(
                        state.test.id, state.sections.current_section, location, message});
     } else {
         print_failure();
-        print_location(state.test, state.sections, location);
+        print_location(state.test, state.sections, state.captures, location);
         print_details(message);
     }
 }
@@ -562,7 +647,7 @@ void registry::report_failure(
         }
     } else {
         print_failure();
-        print_location(state.test, state.sections, location);
+        print_location(state.test, state.sections, state.captures, location);
         print_details_expr(exp);
     }
 }
@@ -580,7 +665,7 @@ void registry::report_skipped(
                        state.test.id, state.sections.current_section, location, message});
     } else {
         print_skip();
-        print_location(state.test, state.sections, location);
+        print_location(state.test, state.sections, state.captures, location);
         print_details(message);
     }
 }

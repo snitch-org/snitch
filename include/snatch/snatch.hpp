@@ -16,6 +16,12 @@
 #if !defined(SNATCH_MAX_TEST_NAME_LENGTH)
 #    define SNATCH_MAX_TEST_NAME_LENGTH 1'024
 #endif
+#if !defined(SNATCH_MAX_CAPTURES)
+#    define SNATCH_MAX_CAPTURES 8
+#endif
+#if !defined(SNATCH_MAX_CAPTURE_LENGTH)
+#    define SNATCH_MAX_CAPTURE_LENGTH 256
+#endif
 #if !defined(SNATCH_MAX_UNIQUE_TAGS)
 #    define SNATCH_MAX_UNIQUE_TAGS 1'024
 #endif
@@ -83,6 +89,10 @@ constexpr std::size_t max_message_length = SNATCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
+// Maximum number of captured expressions in a test case.
+constexpr std::size_t max_captures = SNATCH_MAX_CAPTURES;
+// Maximum length of a captured expression.
+constexpr std::size_t max_capture_length = SNATCH_MAX_CAPTURE_LENGTH;
 // Maximum number of unique tags in the whole program.
 constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
 // Maximum number of command line arguments.
@@ -722,10 +732,13 @@ struct section_state {
     bool                                                     leaf_executed = false;
 };
 
+using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
+
 struct test_run {
     registry&     reg;
     test_case&    test;
     section_state sections;
+    capture_state captures;
     std::size_t   asserts = 0;
 #if SNATCH_WITH_TIMINGS
     float duration = 0.0f;
@@ -784,6 +797,31 @@ struct expression {
 
 #undef EXPR_OPERATOR
 };
+
+struct scoped_capture {
+    capture_state& captures;
+    std::size_t    count = 0;
+
+    ~scoped_capture() noexcept {
+        captures.resize(captures.size() - count);
+    }
+};
+
+std::string_view extract_next_name(std::string_view& names) noexcept;
+
+small_string<max_capture_length>& add_capture(test_run& state) noexcept;
+
+template<typename T>
+void add_capture(test_run& state, std::string_view& names, const T& arg) noexcept {
+    auto& capture = add_capture(state);
+    append_or_truncate(capture, extract_next_name(names), " := ", arg);
+}
+
+template<typename... Args>
+scoped_capture add_captures(test_run& state, std::string_view names, const Args&... args) noexcept {
+    (add_capture(state, names, args), ...);
+    return {state.captures, sizeof...(args)};
+}
 
 void stdout_print(std::string_view message) noexcept;
 
@@ -878,6 +916,7 @@ class registry {
     void print_location(
         const impl::test_case&     current_case,
         const impl::section_state& sections,
+        const impl::capture_state& captures,
         const assertion_location&  location) const noexcept;
 
     void print_failure() const noexcept;
@@ -1078,6 +1117,10 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_SECTION(...)                                                                        \
     SNATCH_MACRO_DISPATCH2(__VA_ARGS__, SNATCH_SECTION2, SNATCH_SECTION1)(__VA_ARGS__)
 
+#define SNATCH_CAPTURE(...)                                                                        \
+    auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
+        snatch::impl::add_captures(SNATCH_CURRENT_TEST, #__VA_ARGS__, __VA_ARGS__)
+
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
@@ -1127,6 +1170,7 @@ struct with_what_contains : private contains_substring {
 #    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
+#    define CAPTURE(...)                               SNATCH_CAPTURE(__VA_ARGS__)
 #    define REQUIRE(EXP)                               SNATCH_REQUIRE(EXP)
 #    define CHECK(EXP)                                 SNATCH_CHECK(EXP)
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
