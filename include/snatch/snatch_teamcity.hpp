@@ -85,9 +85,13 @@ void report(const registry& r, const snatch::event::data& event) noexcept {
                 send_message(r, "testStarted", {{"name", make_full_name(e.id)}});
             },
             [&](const snatch::event::test_case_ended& e) {
+#if SNATCH_WITH_TIMINGS
                 send_message(
                     r, "testFinished",
                     {{"name", make_full_name(e.id)}, {"duration", make_duration(e.duration)}});
+#else
+                send_message(r, "testFinished", {{"name", make_full_name(e.id)}});
+#endif
             },
             [&](const snatch::event::test_case_skipped& e) {
                 send_message(

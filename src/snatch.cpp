@@ -1,16 +1,12 @@
 #include "snatch/snatch.hpp"
 
 #include <algorithm> // for std::sort
-#include <chrono> // for measuring test time
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
 
-#if !defined(SNATCH_DEFINE_MAIN)
-#    define SNATCH_DEFINE_MAIN 1
-#endif
-#if !defined(SNATCH_WITH_COLOR)
-#    define SNATCH_WITH_COLOR 1
+#if SNATCH_WITH_TIMINGS
+#    include <chrono> // for measuring test time
 #endif
 
 // Testing framework implementation utilities.
@@ -243,46 +239,51 @@ namespace snatch {
 namespace snatch::impl {
 section_entry_checker::~section_entry_checker() noexcept {
     if (entered) {
-        if (state.levels.size() == state.depth) {
-            state.leaf_executed = true;
+        if (state.sections.levels.size() == state.sections.depth) {
+            state.sections.leaf_executed = true;
         } else {
-            auto& child = state.levels[state.depth];
+            auto& child = state.sections.levels[state.sections.depth];
             if (child.previous_section_id == child.max_section_id) {
-                state.levels.pop_back();
+                state.sections.levels.pop_back();
             }
         }
 
-        state.current_section.pop_back();
+        state.sections.current_section.pop_back();
     }
 
-    --state.depth;
+    --state.sections.depth;
 }
 
 section_entry_checker::operator bool() noexcept {
-    ++state.depth;
+    ++state.sections.depth;
 
-    if (state.depth > state.levels.size()) {
-        if (state.depth > max_nested_sections) {
-            terminate_with("max number of nested sections reached; please increase "
-                           "SNATCH_MAX_NESTED_SECTIONS");
+    if (state.sections.depth > state.sections.levels.size()) {
+        if (state.sections.depth > max_nested_sections) {
+            state.reg.print(
+                make_colored("error:", state.reg.with_color, color::fail),
+                " max number of nested sections reached; "
+                "please increase 'SNATCH_MAX_NESTED_SECTIONS' (currently ",
+                max_nested_sections, ")\n.");
+            std::terminate();
         }
 
-        state.levels.push_back({});
+        state.sections.levels.push_back({});
     }
 
-    auto& level = state.levels[state.depth - 1];
+    auto& level = state.sections.levels[state.sections.depth - 1];
 
     ++level.current_section_id;
     if (level.max_section_id < level.current_section_id) {
         level.max_section_id = level.current_section_id;
     }
 
-    if (!state.leaf_executed && (level.previous_section_id + 1 == level.current_section_id ||
-                                 (level.previous_section_id == level.current_section_id &&
-                                  state.levels.size() > state.depth))) {
+    if (!state.sections.leaf_executed &&
+        (level.previous_section_id + 1 == level.current_section_id ||
+         (level.previous_section_id == level.current_section_id &&
+          state.sections.levels.size() > state.sections.depth))) {
 
         level.previous_section_id = level.current_section_id;
-        state.current_section.push_back(section);
+        state.sections.current_section.push_back(section);
         entered = true;
         return true;
     }
@@ -337,10 +338,10 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
             continue;
         }
 
-        r.run(t);
+        auto state = r.run(t);
 
         ++run_count;
-        assertion_count += t.asserts;
+        assertion_count += state.asserts;
         if (t.state == test_state::failed) {
             ++fail_count;
             success = false;
@@ -501,91 +502,90 @@ void registry::print_details_expr(const expression& exp) const noexcept {
 }
 
 void registry::report_failure(
-    impl::test_case&           test,
-    const impl::section_state& sections,
-    const assertion_location&  location,
-    std::string_view           message) const noexcept {
+    impl::test_run&           state,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
 
-    set_state(test, test_state::failed);
+    set_state(state.test, test_state::failed);
 
     if (!report_callback.empty()) {
         report_callback(
-            *this, event::assertion_failed{test.id, sections.current_section, location, message});
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, location, message});
     } else {
         print_failure();
-        print_location(test, sections, location);
+        print_location(state.test, state.sections, location);
         print_details(message);
     }
 }
 
 void registry::report_failure(
-    impl::test_case&           test,
-    const impl::section_state& sections,
-    const assertion_location&  location,
-    std::string_view           message1,
-    std::string_view           message2) const noexcept {
+    impl::test_run&           state,
+    const assertion_location& location,
+    std::string_view          message1,
+    std::string_view          message2) const noexcept {
 
-    set_state(test, test_state::failed);
+    set_state(state.test, test_state::failed);
 
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
 
     if (!report_callback.empty()) {
         report_callback(
-            *this, event::assertion_failed{test.id, sections.current_section, location, message});
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, location, message});
     } else {
         print_failure();
-        print_location(test, sections, location);
+        print_location(state.test, state.sections, location);
         print_details(message);
     }
 }
 
 void registry::report_failure(
-    impl::test_case&           test,
-    const impl::section_state& sections,
-    const assertion_location&  location,
-    const impl::expression&    exp) const noexcept {
+    impl::test_run&           state,
+    const assertion_location& location,
+    const impl::expression&   exp) const noexcept {
 
-    set_state(test, test_state::failed);
+    set_state(state.test, test_state::failed);
 
     if (!report_callback.empty()) {
         if (!exp.failed) {
             small_string<max_message_length> message;
             append_or_truncate(message, exp.content, ", got ", exp.data);
             report_callback(
-                *this,
-                event::assertion_failed{test.id, sections.current_section, location, message});
+                *this, event::assertion_failed{
+                           state.test.id, state.sections.current_section, location, message});
         } else {
             report_callback(
                 *this, event::assertion_failed{
-                           test.id, sections.current_section, location, {exp.content}});
+                           state.test.id, state.sections.current_section, location, {exp.content}});
         }
     } else {
         print_failure();
-        print_location(test, sections, location);
+        print_location(state.test, state.sections, location);
         print_details_expr(exp);
     }
 }
 
 void registry::report_skipped(
-    impl::test_case&           test,
-    const impl::section_state& sections,
-    const assertion_location&  location,
-    std::string_view           message) const noexcept {
+    impl::test_run&           state,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
 
-    set_state(test, test_state::skipped);
+    set_state(state.test, test_state::skipped);
 
     if (!report_callback.empty()) {
         report_callback(
-            *this, event::test_case_skipped{test.id, sections.current_section, location, message});
+            *this, event::test_case_skipped{
+                       state.test.id, state.sections.current_section, location, message});
     } else {
         print_skip();
-        print_location(test, sections, location);
+        print_location(state.test, state.sections, location);
         print_details(message);
     }
 }
 
-void registry::run(test_case& test) noexcept {
+test_run registry::run(test_case& test) noexcept {
     small_string<max_test_name_length> full_name;
 
     if (!report_callback.empty()) {
@@ -597,57 +597,70 @@ void registry::run(test_case& test) noexcept {
             make_colored(full_name, with_color, color::highlight1), "\n");
     }
 
-    test.asserts = 0;
-    test.state   = test_state::success;
+    test.state = test_state::success;
 
-    section_state sections;
+    test_run state{.reg = *this, .test = test};
 
+#if SNATCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;
     auto time_start = clock::now();
+#endif
 
     do {
-        for (std::size_t i = 0; i < sections.levels.size(); ++i) {
-            sections.levels[i].current_section_id = 0;
+        for (std::size_t i = 0; i < state.sections.levels.size(); ++i) {
+            state.sections.levels[i].current_section_id = 0;
         }
 
-        sections.leaf_executed = false;
+        state.sections.leaf_executed = false;
 
 #if SNATCH_WITH_EXCEPTIONS
         try {
-            test.func(test, sections);
+            test.func(state);
         } catch (const impl::abort_exception&) {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_failure(
-                test, sections, {__FILE__, __LINE__},
-                "unhandled std::exception caught; message:", e.what());
+                state, {__FILE__, __LINE__}, "unhandled std::exception caught; message:", e.what());
         } catch (...) {
-            report_failure(
-                test, sections, {__FILE__, __LINE__}, "unhandled unknown exception caught");
+            report_failure(state, {__FILE__, __LINE__}, "unhandled unknown exception caught");
         }
 #else
-        test.func(test, sections);
+        test.func(state);
 #endif
 
-        if (sections.levels.size() == 1) {
-            auto& child = sections.levels[0];
+        if (state.sections.levels.size() == 1) {
+            auto& child = state.sections.levels[0];
             if (child.previous_section_id == child.max_section_id) {
-                sections.levels.clear();
-                sections.current_section.clear();
+                state.sections.levels.clear();
+                state.sections.current_section.clear();
             }
         }
-    } while (!sections.levels.empty());
+    } while (!state.sections.levels.empty());
 
-    auto time_end = clock::now();
-    test.duration = std::chrono::duration<float>(time_end - time_start).count();
+#if SNATCH_WITH_TIMINGS
+    auto time_end  = clock::now();
+    state.duration = std::chrono::duration<float>(time_end - time_start).count();
+#endif
 
     if (!report_callback.empty()) {
-        report_callback(*this, event::test_case_ended{test.id, test.duration});
+#if SNATCH_WITH_TIMINGS
+        report_callback(*this, event::test_case_ended{test.id, state.duration});
+#else
+        report_callback(*this, event::test_case_ended{test.id});
+#endif
     } else if (is_at_least(verbose, verbosity::high)) {
+#if SNATCH_WITH_TIMINGS
         print(
             make_colored("finished:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), " (", test.duration, "s)\n");
+            make_colored(full_name, with_color, color::highlight1), " (", state.duration, "s)\n");
+#else
+        print(
+            make_colored("finished:", with_color, color::status), " ",
+            make_colored(full_name, with_color, color::highlight1), "\n");
+#endif
     }
+
+    return state;
 }
 
 bool registry::run_all_tests(std::string_view run_name) noexcept {
@@ -1017,7 +1030,7 @@ const expected_arguments expected_args = {
     {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
 // clang-format on
 
-constexpr bool with_color_default = SNATCH_WITH_COLOR == 1;
+constexpr bool with_color_default = SNATCH_DEFAULT_WITH_COLOR == 1;
 } // namespace
 
 namespace snatch::cli {

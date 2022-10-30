@@ -10,9 +10,10 @@ set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test ca
 set(SNATCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
 set(SNATCH_MAX_COMMAND_LINE_ARGS  1024 CACHE STRING "Maximum number of command line arguments to a test application.")
 set(SNATCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snatch -- disable to provide your own main() function.")
-set(SNATCH_WITH_EXCEPTIONS        ON   CACHE BOOL   "Use exceptions in snatch implementation -- will be force OFF if exceptions are not available.")
+set(SNATCH_WITH_EXCEPTIONS        ON   CACHE BOOL   "Use exceptions in snatch implementation -- will be forced OFF if exceptions are not available.")
+set(SNATCH_WITH_TIMINGS           ON   CACHE BOOL   "Measure the time taken by each test case -- disable to speed up tests.")
 set(SNATCH_WITH_SHORTHAND_MACROS  ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
-set(SNATCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled on command line.")
+set(SNATCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
 
 add_library(snatch ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
 
@@ -33,6 +34,7 @@ target_compile_definitions(snatch PUBLIC
   SNATCH_MAX_COMMAND_LINE_ARGS=${SNATCH_MAX_COMMAND_LINE_ARGS}
   SNATCH_DEFINE_MAIN=$<BOOL:${SNATCH_DEFINE_MAIN}>
   SNATCH_WITH_EXCEPTIONS=$<BOOL:${SNATCH_WITH_EXCEPTIONS}>
+  SNATCH_WITH_TIMINGS=$<BOOL:${SNATCH_WITH_TIMINGS}>
   SNATCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNATCH_WITH_SHORTHAND_MACROS}>
   SNATCH_DEFAULT_WITH_COLOR=$<BOOL:${SNATCH_DEFAULT_WITH_COLOR}>)
 
