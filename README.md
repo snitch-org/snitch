@@ -14,6 +14,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
     - [Sections](#sections)
+    - [Captures](#captures)
     - [Custom string serialization](#custom-string-serialization)
     - [Reporters](#reporters)
     - [Default main function](#default-main-function)
@@ -35,6 +36,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Nesting multiple tests in a single test case with `SECTION(name, description)`.
+   - Capturing context information to display on failure with `CAPTURE(vars...)` and `INFO(message)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
@@ -264,6 +266,128 @@ tear-down
 
 ```
 
+
+### Captures
+
+As in _Catch2_, _snatch_ supports capturing contextual information to be displayed in the test failure report. This can be done with the `INFO(message)` and `CAPTURE(vars...)` macros. The captured information is "scoped", and will only be displayed for failures happening:
+ - after the capture, and
+ - in the same scope (or deeper).
+
+For example, in the test below we compute a complicated formula in a `CHECK()`:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test without captures", "[captures]") {
+    for (std::size_t i = 0; i < 10; ++i) {
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4);
+    }
+};
+
+```
+
+The output of this test is:
+
+```
+failed: running test case "test without captures"
+          at test.cpp:116
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309018 <= 0.400000
+failed: running test case "test without captures"
+          at test.cpp:116
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
+failed: running test case "test without captures"
+          at test.cpp:116
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309015 <= 0.400000
+```
+
+We are told the computed values that failed the check, but from just this information, it is difficult to recover the value of the loop index `i` which triggered the failure. To fix this, we can add `CAPTURE(i)` to capture the value of `i`:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test with captures", "[captures]") {
+    for (std::size_t i = 0; i < 10; ++i) {
+        CAPTURE(i);
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4);
+    }
+};
+
+```
+
+This new test now outputs:
+
+```
+failed: running test case "test with captures"
+          at test.cpp:116
+          with i := 4
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309018 <= 0.400000
+failed: running test case "test with captures"
+          at test.cpp:116
+          with i := 5
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
+failed: running test case "test with captures"
+          at test.cpp:116
+          with i := 6
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309015 <= 0.400000
+```
+
+For convenience, any number of variables or expressions may be captured in a single `CAPTURE()` call; this is equivalent to writing multiple `CAPTURE()` calls:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test with many captures", "[captures]") {
+    for (std::size_t i = 0; i < 10; ++i) {
+        CAPTURE(i, 2 * i, std::pow(i, 3.0f));
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
+    }
+};
+
+```
+
+This outputs:
+
+```
+failed: running test case "test with many captures"
+          at test.cpp:122
+          with i := 5
+          with 2 * i := 10
+          with std::pow(i, 3.0f) := 125.000000
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
+```
+
+The only requirement is that the captured variable or expression must of a type that _snatch_ can serialize to a string. See [Custom string serialization](#custom-string-serialization) for more information.
+
+A more free-form way to add context to the tests is to use `INFO(...)`. The parameters to this macro will be serialized together to form a single string, which will be appended as one capture. This can be combined with `CAPTURE()`. For example:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test with info", "[captures]") {
+    for (std::size_t i = 0; i < 5; ++i) {
+        INFO("first loop (i < 5, with i = ", i, ")");
+        CAPTURE(i);
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
+    }
+    for (std::size_t i = 5; i < 10; ++i) {
+        INFO("second loop (i >= 5, with i = ", i, ")");
+        CAPTURE(i);
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
+    }
+};
+
+```
+
+This outputs:
+
+```
+failed: running test case "test with info"
+          at test.cpp:123
+          with second loop (i >= 5, with i = 5)
+          with i := 5
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2), got 0.000001 <= 0.200000
+
+```
 
 ### Custom string serialization
 
