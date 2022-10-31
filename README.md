@@ -47,7 +47,7 @@ If you need features that are not in the list above, please use _Catch2_ or _doc
 Notable current limitations:
 
  - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
- - No set-up/tear-down helpers.
+ - No fixtures, or set-up/tear-down helpers (`SECTION()` can be used to share set-up/tear-down logic).
  - No multi-threaded test execution.
 
 
