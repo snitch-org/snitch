@@ -588,7 +588,7 @@ void registry::print_details(std::string_view message) const noexcept {
 void registry::print_details_expr(const expression& exp) const noexcept {
     print("          ", make_colored(exp.content, with_color, color::highlight2));
 
-    if (!exp.failed) {
+    if (!exp.serialization_failed) {
         print(", got ", make_colored(exp.data, with_color, color::highlight2));
     }
 
@@ -648,7 +648,7 @@ void registry::report_failure(
 
     if (!report_callback.empty()) {
         const auto captures_buffer = make_capture_buffer(state.captures);
-        if (!exp.failed) {
+        if (!exp.serialization_failed) {
             small_string<max_message_length> message;
             append_or_truncate(message, exp.content, ", got ", exp.data);
             report_callback(

@@ -776,30 +776,64 @@ struct section_entry_checker {
 struct expression {
     std::string_view              content;
     small_string<max_expr_length> data;
-    bool                          failed = false;
+    bool                          serialization_failed = false;
+    bool                          pass                 = false;
 
     template<string_appendable T>
     void append(T&& value) noexcept {
         if (!snatch::append(data, std::forward<T>(value))) {
-            failed = true;
+            serialization_failed = true;
         }
     }
 
     template<typename T>
     void append(T&&) noexcept {
         if (!snatch::append(data, "?")) {
-            failed = true;
+            serialization_failed = true;
         }
     }
+};
+
+struct final_expression {
+    expression& exp;
+
+#define EXPR_OPERATOR(OP)                                                                          \
+    template<typename T>                                                                           \
+    bool operator OP(const T&) noexcept {                                                          \
+        static_assert(                                                                             \
+            !std::is_same_v<T, T>,                                                                 \
+            "cannot chain expression in this way; please decompose it into multiple checks");      \
+        return false;                                                                              \
+    }
+
+    EXPR_OPERATOR(<=)
+    EXPR_OPERATOR(<)
+    EXPR_OPERATOR(>=)
+    EXPR_OPERATOR(>)
+    EXPR_OPERATOR(==)
+    EXPR_OPERATOR(!=)
+    EXPR_OPERATOR(&&)
+    EXPR_OPERATOR(||)
+
+#undef EXPR_OPERATOR
+
+    explicit operator bool() noexcept {
+        return exp.pass;
+    }
+}; // namespace snatch::impl
+
+template<typename T>
+struct value_holder {
+    const T&    held_value;
+    expression& exp;
 
 #define EXPR_OPERATOR(OP, INVERSE_OP)                                                              \
-    template<typename T>                                                                           \
-    expression& operator OP(const T& value) noexcept {                                             \
-        if (!data.empty()) {                                                                       \
-            append(" " #INVERSE_OP " ");                                                           \
-        }                                                                                          \
-        append(value);                                                                             \
-        return *this;                                                                              \
+    template<typename U>                                                                           \
+    final_expression operator OP(const U& value) noexcept {                                        \
+        exp.append(" " #INVERSE_OP " ");                                                           \
+        exp.append(value);                                                                         \
+        exp.pass = held_value OP value;                                                            \
+        return {exp};                                                                              \
     }
 
     EXPR_OPERATOR(<=, >)
@@ -810,7 +844,17 @@ struct expression {
     EXPR_OPERATOR(!=, ==)
 
 #undef EXPR_OPERATOR
+
+    explicit operator bool() noexcept {
+        return static_cast<bool>(held_value);
+    }
 };
+
+template<typename T>
+value_holder<T> operator<=(expression& exp, const T& value) noexcept {
+    exp.append(value);
+    return {value, exp};
+}
 
 struct scoped_capture {
     capture_state& captures;
@@ -1115,7 +1159,10 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
 #define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
 
-#define SNATCH_EXPR(type, x) snatch::impl::expression{type "(" #x ")", {}, false} <= x
+#define SNATCH_EXPR(TYPE, EXP)                                                                     \
+    auto SNATCH_CURRENT_EXPRESSION =                                                               \
+        snatch::impl::expression{TYPE "(" #EXP ")", {}, false, false};                             \
+    !(SNATCH_CURRENT_EXPRESSION <= EXP)
 
 // Public test macros.
 // -------------------
@@ -1155,9 +1202,9 @@ struct with_what_contains : private contains_substring {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (!(EXP)) {                                                                              \
+        if (SNATCH_EXPR("REQUIRE", EXP)) {                                                         \
             snatch::tests.report_failure(                                                          \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_EXPR("REQUIRE", EXP));           \
+                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
             SNATCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
@@ -1169,9 +1216,9 @@ struct with_what_contains : private contains_substring {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (!(EXP)) {                                                                              \
+        if (SNATCH_EXPR("CHECK", EXP)) {                                                           \
             snatch::tests.report_failure(                                                          \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_EXPR("CHECK", EXP));             \
+                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
     } while (0)
