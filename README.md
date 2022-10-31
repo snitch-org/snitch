@@ -14,6 +14,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
     - [Sections](#sections)
+    - [Custom string serialization](#custom-string-serialization)
     - [Reporters](#reporters)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
@@ -157,7 +158,7 @@ The following macros can be used inside a test body, either immediately in the b
 
 `REQUIRE(EXPR);`
 
-This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any.
+This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any. The value of each operand of the expression will be displayed on failure, provided the types involved can be serialized to a string. See [Custom string serialization](#custom-string-serialization) for more information.
 
 
 `CHECK(EXPR);`
@@ -262,6 +263,55 @@ set-up
 tear-down
 
 ```
+
+
+### Custom string serialization
+
+When the _snatch_ framework needs to serialize a value to a string, it does so with the function `snatch::append(span, value)`, where `span` is a `snatch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
+
+Builtin serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
+
+If you want to serialize custom types not supported out of the box by _snatch_, you need to provide your own overload of the `append()` function in the `snatch` namespace. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
+
+```c++
+struct vec3d {
+    float x;
+    float y;
+    float z;
+};
+
+namespace snatch {
+    bool append(small_string_span ss, const vec3d& v) {
+        return append(ss, "{", v.x, ",", v.y, ",", v.z, "}");
+    }
+}
+```
+
+Alternatively, to serialize a class with an existing `toString()` member:
+
+```c++
+class MyClass {
+    // ...
+
+public:
+    std::string toString() const;
+};
+
+namespace snatch {
+    bool append(small_string_span ss, const MyClass& c) {
+        return append(ss, c.toString());
+    }
+}
+```
+
+If you cannot write your serialization function in this way (or for optimal speed), you will have to explicitly manage the string span. This typically involves:
+ - calculating the expected length `n` of the textual representation of your value,
+ - checking if `n` would exceed `ss.available()` (return `false` if so),
+ - storing the current size of the span, using `old_size = ss.size()`,
+ - growing the string span by this amount using `ss.grow(n)` or `ss.resize(old_size + n)`,
+ - actually writing the textual representation of your value into the raw character array, accessible between `ss.begin() + old_size` and `ss.end()`.
+
+Note that _snatch_ small strings have a fixed capacity; once this capacity is reached, the string cannot grow further, and the output must be truncated. This will normally be indicated by a `...` at the end of the strings being reported (this is automatically added by _snatch_; you do not need to do this yourself). If this happens, depending on which string was truncated, there are a number of compilation options that can be modified to increase the maximum string length. See `CMakeLists.txt`, or at the top of `snatch.hpp`, for a complete list.
 
 
 ### Reporters
