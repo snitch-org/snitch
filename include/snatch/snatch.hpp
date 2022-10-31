@@ -561,25 +561,34 @@ template<std::size_t N>
     return append(ss, std::string_view(str));
 }
 
-template<std::signed_integral T>
+template<typename T>
+concept signed_integral = std::is_signed_v<T>;
+
+template<typename T>
+concept unsigned_integral = std::is_unsigned_v<T>;
+
+template<typename T, typename U>
+concept convertible_to = std::is_convertible_v<T, U>;
+
+template<typename T>
+concept enumeration = std::is_enum_v<T>;
+
+template<signed_integral T>
 [[nodiscard]] bool append(small_string_span ss, T value) noexcept {
     return snatch::append(ss, static_cast<std::ptrdiff_t>(value));
 }
 
-template<std::unsigned_integral T>
+template<unsigned_integral T>
 [[nodiscard]] bool append(small_string_span ss, T value) noexcept {
     return snatch::append(ss, static_cast<std::size_t>(value));
 }
-
-template<typename T>
-concept enumeration = std::is_enum_v<T>;
 
 template<enumeration T>
 [[nodiscard]] bool append(small_string_span ss, T value) noexcept {
     return append(ss, static_cast<std::underlying_type_t<T>>(value));
 }
 
-template<std::convertible_to<std::string_view> T>
+template<convertible_to<std::string_view> T>
 [[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
     return snatch::append(ss, std::string_view(value));
 }
