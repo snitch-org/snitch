@@ -7,6 +7,8 @@ set(SNATCH_MAX_NESTED_SECTIONS    8    CACHE STRING "Maximum depth of nested sec
 set(SNATCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
 set(SNATCH_MAX_MESSAGE_LENGTH     1024 CACHE STRING "Maximum length of error or status messages.")
 set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
+set(SNATCH_MAX_CAPTURES           8    CACHE STRING "Maximum number of captured expressions in a test case.")
+set(SNATCH_MAX_CAPTURE_LENGTH     256  CACHE STRING "Maximum length of a captured expression.")
 set(SNATCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
 set(SNATCH_MAX_COMMAND_LINE_ARGS  1024 CACHE STRING "Maximum number of command line arguments to a test application.")
 set(SNATCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snatch -- disable to provide your own main() function.")

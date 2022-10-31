@@ -44,12 +44,16 @@ small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
 small_string<max_message_length> make_full_message(
     const snatch::assertion_location& location,
     const snatch::section_info&       sections,
+    const snatch::capture_info&       captures,
     std::string_view                  message) noexcept {
 
     small_string<max_message_length> full_message;
     append_or_truncate(full_message, location.file, ":", location.line, "\n");
     for (const auto& s : sections) {
         append_or_truncate(full_message, s.name, "\n");
+    }
+    for (const auto& c : captures) {
+        append_or_truncate(full_message, c, "\n");
     }
 
     append_or_truncate(full_message, "  ", message);
@@ -97,13 +101,15 @@ void report(const registry& r, const snatch::event::data& event) noexcept {
                 send_message(
                     r, "testIgnored",
                     {{"name", make_full_name(e.id)},
-                     {"message", make_full_message(e.location, e.sections, e.message)}});
+                     {"message",
+                      make_full_message(e.location, e.sections, e.captures, e.message)}});
             },
             [&](const snatch::event::assertion_failed& e) {
                 send_message(
                     r, "testFailed",
                     {{"name", make_full_name(e.id)},
-                     {"message", make_full_message(e.location, e.sections, e.message)}});
+                     {"message",
+                      make_full_message(e.location, e.sections, e.captures, e.message)}});
             }},
         event);
 }

@@ -14,6 +14,8 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
     - [Sections](#sections)
+    - [Captures](#captures)
+    - [Custom string serialization](#custom-string-serialization)
     - [Reporters](#reporters)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
@@ -34,6 +36,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Nesting multiple tests in a single test case with `SECTION(name, description)`.
+   - Capturing context information to display on failure with `CAPTURE(vars...)` and `INFO(message)`.
    - Optional `main()` with simple command-line API similar to _Catch2_.
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
@@ -115,12 +118,12 @@ Results for _snatch_:
 
 |                 | _snatch_ (Debug) | _snatch_ (Release) |
 |-----------------|------------------|--------------------|
-| Build framework | 1.6s             | 2.4s               |
-| Build tests     | 64s              | 130s               |
-| Build all       | 66s              | 132s               |
-| Run tests       | 13ms             | 8ms                |
-| Library size    | 2.60MB           | 0.60MB             |
-| Executable size | 29.2MB           | 8.6MB              |
+| Build framework | 1.7s             | 2.5s               |
+| Build tests     | 64s              | 131s               |
+| Build all       | 65s              | 134s               |
+| Run tests       | 16ms             | 8ms                |
+| Library size    | 2.70MB           | 0.60MB             |
+| Executable size | 29.5MB           | 8.5MB              |
 
 Results for alternative testing frameworks:
 
@@ -157,7 +160,7 @@ The following macros can be used inside a test body, either immediately in the b
 
 `REQUIRE(EXPR);`
 
-This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any.
+This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any. The value of each operand of the expression will be displayed on failure, provided the types involved can be serialized to a string. See [Custom string serialization](#custom-string-serialization) for more information.
 
 
 `CHECK(EXPR);`
@@ -264,6 +267,177 @@ tear-down
 ```
 
 
+### Captures
+
+As in _Catch2_, _snatch_ supports capturing contextual information to be displayed in the test failure report. This can be done with the `INFO(message)` and `CAPTURE(vars...)` macros. The captured information is "scoped", and will only be displayed for failures happening:
+ - after the capture, and
+ - in the same scope (or deeper).
+
+For example, in the test below we compute a complicated formula in a `CHECK()`:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test without captures", "[captures]") {
+    for (std::size_t i = 0; i < 10; ++i) {
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4);
+    }
+};
+
+```
+
+The output of this test is:
+
+```
+failed: running test case "test without captures"
+          at test.cpp:116
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309018 <= 0.400000
+failed: running test case "test without captures"
+          at test.cpp:116
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
+failed: running test case "test without captures"
+          at test.cpp:116
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309015 <= 0.400000
+```
+
+We are told the computed values that failed the check, but from just this information, it is difficult to recover the value of the loop index `i` which triggered the failure. To fix this, we can add `CAPTURE(i)` to capture the value of `i`:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test with captures", "[captures]") {
+    for (std::size_t i = 0; i < 10; ++i) {
+        CAPTURE(i);
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4);
+    }
+};
+
+```
+
+This new test now outputs:
+
+```
+failed: running test case "test with captures"
+          at test.cpp:116
+          with i := 4
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309018 <= 0.400000
+failed: running test case "test with captures"
+          at test.cpp:116
+          with i := 5
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
+failed: running test case "test with captures"
+          at test.cpp:116
+          with i := 6
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.309015 <= 0.400000
+```
+
+For convenience, any number of variables or expressions may be captured in a single `CAPTURE()` call; this is equivalent to writing multiple `CAPTURE()` calls:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test with many captures", "[captures]") {
+    for (std::size_t i = 0; i < 10; ++i) {
+        CAPTURE(i, 2 * i, std::pow(i, 3.0f));
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
+    }
+};
+
+```
+
+This outputs:
+
+```
+failed: running test case "test with many captures"
+          at test.cpp:122
+          with i := 5
+          with 2 * i := 10
+          with std::pow(i, 3.0f) := 125.000000
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
+```
+
+The only requirement is that the captured variable or expression must of a type that _snatch_ can serialize to a string. See [Custom string serialization](#custom-string-serialization) for more information.
+
+A more free-form way to add context to the tests is to use `INFO(...)`. The parameters to this macro will be serialized together to form a single string, which will be appended as one capture. This can be combined with `CAPTURE()`. For example:
+
+```c++
+#include <cmath>
+
+TEST_CASE("test with info", "[captures]") {
+    for (std::size_t i = 0; i < 5; ++i) {
+        INFO("first loop (i < 5, with i = ", i, ")");
+        CAPTURE(i);
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
+    }
+    for (std::size_t i = 5; i < 10; ++i) {
+        INFO("second loop (i >= 5, with i = ", i, ")");
+        CAPTURE(i);
+        CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
+    }
+};
+
+```
+
+This outputs:
+
+```
+failed: running test case "test with info"
+          at test.cpp:123
+          with second loop (i >= 5, with i = 5)
+          with i := 5
+          CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2), got 0.000001 <= 0.200000
+
+```
+
+### Custom string serialization
+
+When the _snatch_ framework needs to serialize a value to a string, it does so with the function `snatch::append(span, value)`, where `span` is a `snatch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
+
+Builtin serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
+
+If you want to serialize custom types not supported out of the box by _snatch_, you need to provide your own overload of the `append()` function in the `snatch` namespace. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
+
+```c++
+struct vec3d {
+    float x;
+    float y;
+    float z;
+};
+
+namespace snatch {
+    bool append(small_string_span ss, const vec3d& v) {
+        return append(ss, "{", v.x, ",", v.y, ",", v.z, "}");
+    }
+}
+```
+
+Alternatively, to serialize a class with an existing `toString()` member:
+
+```c++
+class MyClass {
+    // ...
+
+public:
+    std::string toString() const;
+};
+
+namespace snatch {
+    bool append(small_string_span ss, const MyClass& c) {
+        return append(ss, c.toString());
+    }
+}
+```
+
+If you cannot write your serialization function in this way (or for optimal speed), you will have to explicitly manage the string span. This typically involves:
+ - calculating the expected length `n` of the textual representation of your value,
+ - checking if `n` would exceed `ss.available()` (return `false` if so),
+ - storing the current size of the span, using `old_size = ss.size()`,
+ - growing the string span by this amount using `ss.grow(n)` or `ss.resize(old_size + n)`,
+ - actually writing the textual representation of your value into the raw character array, accessible between `ss.begin() + old_size` and `ss.end()`.
+
+Note that _snatch_ small strings have a fixed capacity; once this capacity is reached, the string cannot grow further, and the output must be truncated. This will normally be indicated by a `...` at the end of the strings being reported (this is automatically added by _snatch_; you do not need to do this yourself). If this happens, depending on which string was truncated, there are a number of compilation options that can be modified to increase the maximum string length. See `CMakeLists.txt`, or at the top of `snatch.hpp`, for a complete list.
+
+
 ### Reporters
 
 By default, _snatch_ will report the test results to the standard output, using its own report format. You can override this by supplying your own "reporter" callback function to the test registry. This requires [using your own main function](#using-your-own-main-function).
@@ -303,6 +477,8 @@ snatch::tests.report_callback = {reporter, snatch::constant<&Reporter::report>};
 ```
 
 If you need to use a reporter member function, please make sure that the reporter object remains alive for the duration of the tests (e.g., declare it static, global, or as a local variable declared in `main()`), or make sure to de-register it when your reporter is destroyed.
+
+Likewise, when receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snatch::small_string`) from the `std::string_view` stored in the event object.
 
 An example reporter for _Teamcity_ is included for demonstration, see `include/snatch/snatch_teamcity.hpp`.
 

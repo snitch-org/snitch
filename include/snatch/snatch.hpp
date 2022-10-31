@@ -16,6 +16,12 @@
 #if !defined(SNATCH_MAX_TEST_NAME_LENGTH)
 #    define SNATCH_MAX_TEST_NAME_LENGTH 1'024
 #endif
+#if !defined(SNATCH_MAX_CAPTURES)
+#    define SNATCH_MAX_CAPTURES 8
+#endif
+#if !defined(SNATCH_MAX_CAPTURE_LENGTH)
+#    define SNATCH_MAX_CAPTURE_LENGTH 256
+#endif
 #if !defined(SNATCH_MAX_UNIQUE_TAGS)
 #    define SNATCH_MAX_UNIQUE_TAGS 1'024
 #endif
@@ -83,6 +89,10 @@ constexpr std::size_t max_message_length = SNATCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
+// Maximum number of captured expressions in a test case.
+constexpr std::size_t max_captures = SNATCH_MAX_CAPTURES;
+// Maximum length of a captured expression.
+constexpr std::size_t max_capture_length = SNATCH_MAX_CAPTURE_LENGTH;
 // Maximum number of unique tags in the whole program.
 constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
 // Maximum number of command line arguments.
@@ -551,7 +561,44 @@ template<std::size_t N>
     return append(ss, std::string_view(str));
 }
 
-template<typename T, typename U, typename... Args>
+template<typename T>
+concept signed_integral = std::is_signed_v<T>;
+
+template<typename T>
+concept unsigned_integral = std::is_unsigned_v<T>;
+
+template<typename T, typename U>
+concept convertible_to = std::is_convertible_v<T, U>;
+
+template<typename T>
+concept enumeration = std::is_enum_v<T>;
+
+template<signed_integral T>
+[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+    return snatch::append(ss, static_cast<std::ptrdiff_t>(value));
+}
+
+template<unsigned_integral T>
+[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+    return snatch::append(ss, static_cast<std::size_t>(value));
+}
+
+template<enumeration T>
+[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+    return append(ss, static_cast<std::underlying_type_t<T>>(value));
+}
+
+template<convertible_to<std::string_view> T>
+[[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
+    return snatch::append(ss, std::string_view(value));
+}
+
+template<typename T>
+concept string_appendable = requires(small_string_span ss, T value) {
+    append(ss, value);
+};
+
+template<string_appendable T, string_appendable U, string_appendable... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
     return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
            (append(ss, std::forward<Args>(args)) && ...);
@@ -559,7 +606,7 @@ template<typename T, typename U, typename... Args>
 
 void truncate_end(small_string_span ss) noexcept;
 
-template<typename... Args>
+template<string_appendable... Args>
 bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
     if (!append(ss, std::forward<Args>(args)...)) {
         truncate_end(ss);
@@ -703,10 +750,13 @@ struct section_state {
     bool                                                     leaf_executed = false;
 };
 
+using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
+
 struct test_run {
     registry&     reg;
     test_case&    test;
     section_state sections;
+    capture_state captures;
     std::size_t   asserts = 0;
 #if SNATCH_WITH_TIMINGS
     float duration = 0.0f;
@@ -728,29 +778,17 @@ struct expression {
     small_string<max_expr_length> data;
     bool                          failed = false;
 
-    template<typename T>
+    template<string_appendable T>
     void append(T&& value) noexcept {
-        using TD = std::decay_t<T>;
-        if constexpr (std::is_integral_v<TD>) {
-            if constexpr (std::is_signed_v<TD>) {
-                if (!snatch::append(data, static_cast<std::ptrdiff_t>(value))) {
-                    failed = true;
-                }
-            } else {
-                if (!snatch::append(data, static_cast<std::size_t>(value))) {
-                    failed = true;
-                }
-            }
-        } else if constexpr (std::is_enum_v<TD>) {
-            append(static_cast<std::underlying_type_t<TD>>(value));
-        } else if constexpr (
-            std::is_pointer_v<TD> || std::is_floating_point_v<TD> || std::is_same_v<TD, bool> ||
-            std::is_convertible_v<T, const void*> || std::is_convertible_v<T, std::string_view>) {
-            if (!snatch::append(data, value)) {
-                failed = true;
-            }
-        } else {
-            append("?");
+        if (!snatch::append(data, std::forward<T>(value))) {
+            failed = true;
+        }
+    }
+
+    template<typename T>
+    void append(T&&) noexcept {
+        if (!snatch::append(data, "?")) {
+            failed = true;
         }
     }
 
@@ -774,17 +812,50 @@ struct expression {
 #undef EXPR_OPERATOR
 };
 
+struct scoped_capture {
+    capture_state& captures;
+    std::size_t    count = 0;
+
+    ~scoped_capture() noexcept {
+        captures.resize(captures.size() - count);
+    }
+};
+
+std::string_view extract_next_name(std::string_view& names) noexcept;
+
+small_string<max_capture_length>& add_capture(test_run& state) noexcept;
+
+template<string_appendable T>
+void add_capture(test_run& state, std::string_view& names, const T& arg) noexcept {
+    auto& capture = add_capture(state);
+    append_or_truncate(capture, extract_next_name(names), " := ", arg);
+}
+
+template<string_appendable... Args>
+scoped_capture add_captures(test_run& state, std::string_view names, const Args&... args) noexcept {
+    (add_capture(state, names, args), ...);
+    return {state.captures, sizeof...(args)};
+}
+
+template<string_appendable... Args>
+scoped_capture add_info(test_run& state, const Args&... args) noexcept {
+    auto& capture = add_capture(state);
+    append_or_truncate(capture, args...);
+    return {state.captures, 1};
+}
+
 void stdout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
 } // namespace snatch::impl
 
-// Sections.
+// Sections and captures.
 // ---------
 
 namespace snatch {
 using section_info = small_vector_span<const section_id>;
-}
+using capture_info = small_vector_span<const std::string_view>;
+} // namespace snatch
 
 // Events.
 // -------
@@ -818,6 +889,7 @@ struct test_case_ended {
 struct assertion_failed {
     const test_id&            id;
     section_info              sections;
+    capture_info              captures;
     const assertion_location& location;
     std::string_view          message;
 };
@@ -825,6 +897,7 @@ struct assertion_failed {
 struct test_case_skipped {
     const test_id&            id;
     section_info              sections;
+    capture_info              captures;
     const assertion_location& location;
     std::string_view          message;
 };
@@ -867,6 +940,7 @@ class registry {
     void print_location(
         const impl::test_case&     current_case,
         const impl::section_state& sections,
+        const impl::capture_state& captures,
         const assertion_location&  location) const noexcept;
 
     void print_failure() const noexcept;
@@ -1067,6 +1141,14 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_SECTION(...)                                                                        \
     SNATCH_MACRO_DISPATCH2(__VA_ARGS__, SNATCH_SECTION2, SNATCH_SECTION1)(__VA_ARGS__)
 
+#define SNATCH_CAPTURE(...)                                                                        \
+    auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
+        snatch::impl::add_captures(SNATCH_CURRENT_TEST, #__VA_ARGS__, __VA_ARGS__)
+
+#define SNATCH_INFO(...)                                                                           \
+    auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
+        snatch::impl::add_info(SNATCH_CURRENT_TEST, __VA_ARGS__)
+
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
@@ -1116,6 +1198,8 @@ struct with_what_contains : private contains_substring {
 #    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
+#    define CAPTURE(...)                               SNATCH_CAPTURE(__VA_ARGS__)
+#    define INFO(...)                                  SNATCH_INFO(__VA_ARGS__)
 #    define REQUIRE(EXP)                               SNATCH_REQUIRE(EXP)
 #    define CHECK(EXP)                                 SNATCH_CHECK(EXP)
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
