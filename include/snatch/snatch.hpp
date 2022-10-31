@@ -561,26 +561,35 @@ template<std::size_t N>
     return append(ss, std::string_view(str));
 }
 
-template<typename T>
-[[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
-    using TD = std::decay_t<T>;
-    if constexpr (std::is_integral_v<TD>) {
-        if constexpr (std::is_signed_v<TD>) {
-            return snatch::append(ss, static_cast<std::ptrdiff_t>(value));
-        } else {
-            return snatch::append(ss, static_cast<std::size_t>(value));
-        }
-    } else if constexpr (std::is_enum_v<TD>) {
-        return append(ss, static_cast<std::underlying_type_t<TD>>(value));
-    } else if constexpr (std::is_convertible_v<TD, std::string_view>) {
-        return snatch::append(ss, std::string_view(value));
-    } else {
-        static_assert(!std::is_same_v<T, T>, "this type cannot be serialized to a string");
-        return false;
-    }
+template<std::signed_integral T>
+[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+    return snatch::append(ss, static_cast<std::ptrdiff_t>(value));
 }
 
-template<typename T, typename U, typename... Args>
+template<std::unsigned_integral T>
+[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+    return snatch::append(ss, static_cast<std::size_t>(value));
+}
+
+template<typename T>
+concept enumeration = std::is_enum_v<T>;
+
+template<enumeration T>
+[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+    return append(ss, static_cast<std::underlying_type_t<T>>(value));
+}
+
+template<std::convertible_to<std::string_view> T>
+[[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
+    return snatch::append(ss, std::string_view(value));
+}
+
+template<typename T>
+concept string_appendable = requires(small_string_span ss, T value) {
+    append(ss, value);
+};
+
+template<string_appendable T, string_appendable U, string_appendable... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
     return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
            (append(ss, std::forward<Args>(args)) && ...);
@@ -588,7 +597,7 @@ template<typename T, typename U, typename... Args>
 
 void truncate_end(small_string_span ss) noexcept;
 
-template<typename... Args>
+template<string_appendable... Args>
 bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
     if (!append(ss, std::forward<Args>(args)...)) {
         truncate_end(ss);
@@ -755,26 +764,22 @@ struct section_entry_checker {
     explicit operator bool() noexcept;
 };
 
-template<class T>
-concept StringAppendable = requires(small_string_span str, T value) {
-    append(str, value);
-};
-
 struct expression {
     std::string_view              content;
     small_string<max_expr_length> data;
     bool                          failed = false;
 
-    template<typename T>
+    template<string_appendable T>
     void append(T&& value) noexcept {
-        if constexpr (StringAppendable<T>) {
-            if (!snatch::append(data, std::forward<T>(value))) {
-                failed = true;
-            }
-        } else {
-            if (!snatch::append(data, "?")) {
-                failed = true;
-            }
+        if (!snatch::append(data, std::forward<T>(value))) {
+            failed = true;
+        }
+    }
+
+    template<typename T>
+    void append(T&&) noexcept {
+        if (!snatch::append(data, "?")) {
+            failed = true;
         }
     }
 
@@ -811,13 +816,13 @@ std::string_view extract_next_name(std::string_view& names) noexcept;
 
 small_string<max_capture_length>& add_capture(test_run& state) noexcept;
 
-template<typename T>
+template<string_appendable T>
 void add_capture(test_run& state, std::string_view& names, const T& arg) noexcept {
     auto& capture = add_capture(state);
     append_or_truncate(capture, extract_next_name(names), " := ", arg);
 }
 
-template<typename... Args>
+template<string_appendable... Args>
 scoped_capture add_captures(test_run& state, std::string_view names, const Args&... args) noexcept {
     (add_capture(state, names, args), ...);
     return {state.captures, sizeof...(args)};
