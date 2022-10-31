@@ -828,6 +828,13 @@ scoped_capture add_captures(test_run& state, std::string_view names, const Args&
     return {state.captures, sizeof...(args)};
 }
 
+template<string_appendable... Args>
+scoped_capture add_info(test_run& state, const Args&... args) noexcept {
+    auto& capture = add_capture(state);
+    append_or_truncate(capture, args...);
+    return {state.captures, 1};
+}
+
 void stdout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
@@ -1129,6 +1136,10 @@ struct with_what_contains : private contains_substring {
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
         snatch::impl::add_captures(SNATCH_CURRENT_TEST, #__VA_ARGS__, __VA_ARGS__)
 
+#define SNATCH_INFO(...)                                                                           \
+    auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
+        snatch::impl::add_info(SNATCH_CURRENT_TEST, __VA_ARGS__)
+
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
@@ -1179,6 +1190,7 @@ struct with_what_contains : private contains_substring {
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
 #    define CAPTURE(...)                               SNATCH_CAPTURE(__VA_ARGS__)
+#    define INFO(...)                                  SNATCH_INFO(__VA_ARGS__)
 #    define REQUIRE(EXP)                               SNATCH_REQUIRE(EXP)
 #    define CHECK(EXP)                                 SNATCH_CHECK(EXP)
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
