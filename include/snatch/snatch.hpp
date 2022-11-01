@@ -773,11 +773,58 @@ struct section_entry_checker {
     explicit operator bool() noexcept;
 };
 
+struct operator_less {
+    static constexpr std::string_view inverse = " >= ";
+    template<typename T, typename U>
+    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
+        return lhs < rhs;
+    }
+};
+
+struct operator_greater {
+    static constexpr std::string_view inverse = " <= ";
+    template<typename T, typename U>
+    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
+        return lhs > rhs;
+    }
+};
+
+struct operator_less_equal {
+    static constexpr std::string_view inverse = " > ";
+    template<typename T, typename U>
+    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
+        return lhs <= rhs;
+    }
+};
+
+struct operator_greater_equal {
+    static constexpr std::string_view inverse = " < ";
+    template<typename T, typename U>
+    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
+        return lhs >= rhs;
+    }
+};
+
+struct operator_equal {
+    static constexpr std::string_view inverse = " != ";
+    template<typename T, typename U>
+    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
+        return lhs == rhs;
+    }
+};
+
+struct operator_not_equal {
+    static constexpr std::string_view inverse = " == ";
+    template<typename T, typename U>
+    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
+        return lhs != rhs;
+    }
+};
+
 struct expression {
     std::string_view              content;
     small_string<max_expr_length> data;
     bool                          serialization_failed = false;
-    bool                          pass                 = false;
 
     template<string_appendable T>
     void append(T&& value) noexcept {
@@ -794,14 +841,17 @@ struct expression {
     }
 };
 
-struct final_expression {
-    expression& exp;
+template<typename T, typename O, typename U>
+struct extracted_binary_expression {
+    expression& expr;
+    const T&    lhs;
+    const U&    rhs;
 
 #define EXPR_OPERATOR(OP)                                                                          \
-    template<typename T>                                                                           \
-    bool operator OP(const T&) noexcept {                                                          \
+    template<typename V>                                                                           \
+    bool operator OP(const V&) noexcept {                                                          \
         static_assert(                                                                             \
-            !std::is_same_v<T, T>,                                                                 \
+            !std::is_same_v<V, V>,                                                                 \
             "cannot chain expression in this way; please decompose it into multiple checks");      \
         return false;                                                                              \
     }
@@ -817,44 +867,57 @@ struct final_expression {
 
 #undef EXPR_OPERATOR
 
-    explicit operator bool() noexcept {
-        return exp.pass;
-    }
-}; // namespace snatch::impl
+    explicit operator bool() const noexcept {
+        if (!O{}(lhs, rhs)) {
+            expr.append(lhs);
+            expr.append(O::inverse);
+            expr.append(rhs);
+            return true;
+        }
 
-template<typename T>
-struct value_holder {
-    const T&    held_value;
-    expression& exp;
-
-#define EXPR_OPERATOR(OP, INVERSE_OP)                                                              \
-    template<typename U>                                                                           \
-    final_expression operator OP(const U& value) noexcept {                                        \
-        exp.append(" " #INVERSE_OP " ");                                                           \
-        exp.append(value);                                                                         \
-        exp.pass = held_value OP value;                                                            \
-        return {exp};                                                                              \
-    }
-
-    EXPR_OPERATOR(<=, >)
-    EXPR_OPERATOR(<, >=)
-    EXPR_OPERATOR(>=, <)
-    EXPR_OPERATOR(>, <=)
-    EXPR_OPERATOR(==, !=)
-    EXPR_OPERATOR(!=, ==)
-
-#undef EXPR_OPERATOR
-
-    explicit operator bool() noexcept {
-        return static_cast<bool>(held_value);
+        return false;
     }
 };
 
 template<typename T>
-value_holder<T> operator<=(expression& exp, const T& value) noexcept {
-    exp.append(value);
-    return {value, exp};
-}
+struct extracted_unary_expression {
+    expression& expr;
+    const T&    lhs;
+
+#define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
+    template<typename U>                                                                           \
+    constexpr extracted_binary_expression<T, OP_TYPE, U> operator OP(const U& rhs)                 \
+        const noexcept {                                                                           \
+        return {expr, lhs, rhs};                                                                   \
+    }
+
+    EXPR_OPERATOR(<, operator_less)
+    EXPR_OPERATOR(>, operator_greater)
+    EXPR_OPERATOR(<=, operator_less_equal)
+    EXPR_OPERATOR(>=, operator_greater_equal)
+    EXPR_OPERATOR(==, operator_equal)
+    EXPR_OPERATOR(!=, operator_not_equal)
+
+#undef EXPR_OPERATOR
+
+    explicit operator bool() const noexcept {
+        if (!static_cast<bool>(lhs)) {
+            expr.append(lhs);
+            return true;
+        }
+
+        return false;
+    }
+};
+
+struct expression_extractor {
+    expression& expr;
+
+    template<typename T>
+    constexpr extracted_unary_expression<T> operator<=(const T& lhs) const noexcept {
+        return {expr, lhs};
+    }
+};
 
 struct scoped_capture {
     capture_state& captures;
@@ -1160,9 +1223,8 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
 
 #define SNATCH_EXPR(TYPE, EXP)                                                                     \
-    auto SNATCH_CURRENT_EXPRESSION =                                                               \
-        snatch::impl::expression{TYPE "(" #EXP ")", {}, false, false};                             \
-    !(SNATCH_CURRENT_EXPRESSION <= EXP)
+    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}, false};       \
+    snatch::impl::expression_extractor{SNATCH_CURRENT_EXPRESSION} <= EXP
 
 // Public test macros.
 // -------------------
