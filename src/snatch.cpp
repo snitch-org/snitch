@@ -383,6 +383,14 @@ bool contains_substring::match(std::string_view message) const noexcept {
     return message.find(substring_pattern) != message.npos;
 }
 
+bool operator==(std::string_view message, const contains_substring& m) noexcept {
+    return m.match(message);
+}
+
+bool operator==(const contains_substring& m, std::string_view message) noexcept {
+    return m.match(message);
+}
+
 std::string_view contains_substring::describe_fail(std::string_view message) const noexcept {
     description_buffer.clear();
     append_or_truncate(

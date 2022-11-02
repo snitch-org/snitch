@@ -1163,6 +1163,10 @@ struct contains_substring {
     std::string_view describe_fail(std::string_view message) const noexcept;
 };
 
+bool operator==(std::string_view message, const contains_substring& m) noexcept;
+
+bool operator==(const contains_substring& m, std::string_view message) noexcept;
+
 struct with_what_contains : private contains_substring {
     explicit with_what_contains(std::string_view pattern) noexcept;
 
@@ -1176,6 +1180,16 @@ struct with_what_contains : private contains_substring {
         return contains_substring::describe_fail(e.what());
     }
 };
+
+template<typename E>
+bool operator==(const E& e, const with_what_contains& m) noexcept {
+    return m.match(e);
+}
+
+template<typename E>
+bool operator==(const with_what_contains& m, const E& e) noexcept {
+    return m.match(e);
+}
 } // namespace snatch::matchers
 
 // Compiler warning handling.
