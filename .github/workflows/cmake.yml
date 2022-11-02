@@ -65,21 +65,21 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}}
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNATCH_DO_TEST=1
 
     - name: Build
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --parallel 2
 
-    # - name: Test
-    #   shell: bash
-    #   working-directory: ${{github.workspace}}/build
-    #   run: cmake --build . --config ${{matrix.build-type}} --target snatch_tests
+    - name: Test
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_run
 
-    # - name: Compute Code Coverage
-    #   if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
-    #   run: |
-    #     gcov ${{github.workspace}}/build/tests/CMakeFiles/oup_runtime_tests.dir/*.gcda
-    #     ls | grep '.gcov' | grep -v observable_unique_ptr | xargs -d"\n" rm
-    #     bash <(curl -s https://codecov.io/bash)
+    - name: Compute Code Coverage
+      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
+      run: |
+        gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/*.gcda
+        ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
+        bash <(curl -s https://codecov.io/bash)
