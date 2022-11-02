@@ -1,4 +1,4 @@
-#include "snatch/snatch.hpp"
+#include "testing.hpp"
 
 TEST_CASE("small vector", "[utility]") {
     struct test_struct {

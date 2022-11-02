@@ -1,4 +1,4 @@
-#include "snatch/snatch.hpp"
+#include "testing.hpp"
 
 struct global_test_struct {
     int  i = 0;

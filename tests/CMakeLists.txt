@@ -29,14 +29,30 @@ function(add_platform_definitions TARGET)
     endif()
 endfunction()
 
+include(FetchContent)
+
+set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
+
+FetchContent_Declare(doctest
+                     GIT_REPOSITORY https://github.com/doctest/doctest.git
+                     GIT_TAG        v2.4.9)
+FetchContent_MakeAvailable(doctest)
+
 set(RUNTIME_TEST_FILES
+  ${PROJECT_SOURCE_DIR}/src/snatch.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests_type_name.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests_small_vector.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests_small_string.cpp)
 
 add_executable(snatch_runtime_tests ${RUNTIME_TEST_FILES})
-target_link_libraries(snatch_runtime_tests PRIVATE snatch::snatch)
+target_include_directories(snatch_runtime_tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(snatch_runtime_tests PRIVATE doctest::doctest)
+target_link_libraries(snatch_runtime_tests PRIVATE doctest::doctest_with_main)
 add_platform_definitions(snatch_runtime_tests)
+target_compile_features(snatch_runtime_tests PUBLIC cxx_std_20)
+target_compile_definitions(snatch_runtime_tests PUBLIC
+  SNATCH_DEFINE_MAIN=0
+  SNATCH_WITH_SHORTHAND_MACROS=0)
 
 add_custom_target(snatch_runtime_tests_run
   COMMAND snatch_runtime_tests
