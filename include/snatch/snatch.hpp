@@ -822,22 +822,17 @@ struct operator_not_equal {
 };
 
 struct expression {
-    std::string_view              content;
-    small_string<max_expr_length> data;
-    bool                          serialization_failed = false;
+    std::string_view              expected;
+    small_string<max_expr_length> actual;
 
     template<string_appendable T>
-    void append(T&& value) noexcept {
-        if (!snatch::append(data, std::forward<T>(value))) {
-            serialization_failed = true;
-        }
+    [[nodiscard]] bool append(T&& value) noexcept {
+        return snatch::append(actual, std::forward<T>(value));
     }
 
     template<typename T>
-    void append(T&&) noexcept {
-        if (!snatch::append(data, "?")) {
-            serialization_failed = true;
-        }
+    [[nodiscard]] bool append(T&&) noexcept {
+        return snatch::append(actual, "?");
     }
 };
 
@@ -869,9 +864,10 @@ struct extracted_binary_expression {
 
     explicit operator bool() const noexcept {
         if (!O{}(lhs, rhs)) {
-            expr.append(lhs);
-            expr.append(O::inverse);
-            expr.append(rhs);
+            if (!expr.append(lhs) || !expr.append(O::inverse) || !expr.append(rhs)) {
+                expr.actual.clear();
+            }
+
             return true;
         }
 
@@ -902,7 +898,10 @@ struct extracted_unary_expression {
 
     explicit operator bool() const noexcept {
         if (!static_cast<bool>(lhs)) {
-            expr.append(lhs);
+            if (!expr.append(lhs)) {
+                expr.actual.clear();
+            }
+
             return true;
         }
 
@@ -1223,7 +1222,7 @@ struct with_what_contains : private contains_substring {
 #define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
 
 #define SNATCH_EXPR(TYPE, EXP)                                                                     \
-    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}, false};       \
+    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
     snatch::impl::expression_extractor{SNATCH_CURRENT_EXPRESSION} <= EXP
 
 // Public test macros.

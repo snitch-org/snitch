@@ -586,10 +586,10 @@ void registry::print_details(std::string_view message) const noexcept {
 }
 
 void registry::print_details_expr(const expression& exp) const noexcept {
-    print("          ", make_colored(exp.content, with_color, color::highlight2));
+    print("          ", make_colored(exp.expected, with_color, color::highlight2));
 
-    if (!exp.serialization_failed) {
-        print(", got ", make_colored(exp.data, with_color, color::highlight2));
+    if (!exp.actual.empty()) {
+        print(", got ", make_colored(exp.actual, with_color, color::highlight2));
     }
 
     print("\n");
@@ -648,9 +648,9 @@ void registry::report_failure(
 
     if (!report_callback.empty()) {
         const auto captures_buffer = make_capture_buffer(state.captures);
-        if (!exp.serialization_failed) {
+        if (!exp.actual.empty()) {
             small_string<max_message_length> message;
-            append_or_truncate(message, exp.content, ", got ", exp.data);
+            append_or_truncate(message, exp.expected, ", got ", exp.actual);
             report_callback(
                 *this, event::assertion_failed{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
@@ -662,7 +662,7 @@ void registry::report_failure(
                            state.sections.current_section,
                            captures_buffer.span(),
                            location,
-                           {exp.content}});
+                           {exp.expected}});
         }
     } else {
         print_failure();
