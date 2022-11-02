@@ -28,7 +28,8 @@ TEST_CASE("type name", "[utility]") {
         snatch::type_name<std::string_view> ==
         snatch::matchers::is_any_of(
             "std::basic_string_view<char>"sv, "std::string_view"sv,
-            "class std::basic_string_view<char,struct std::char_traits<char> >"sv));
+            "class std::basic_string_view<char,struct std::char_traits<char> >"sv,
+            "std::__1::basic_string_view<char, std::__1::char_traits<char> >"sv));
 
     CHECK(
         snatch::type_name<global_test_struct> ==
