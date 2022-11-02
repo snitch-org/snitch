@@ -155,8 +155,6 @@ template<typename T>
 constexpr std::string_view type_name = impl::get_type_name<T>();
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
-
-struct registry;
 } // namespace snatch
 
 // Public utilities: small_vector.
