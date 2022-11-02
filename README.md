@@ -108,33 +108,33 @@ The following benchmarks were done using real-world tests from another library (
 
 Description of results below:
  - *Build framework*: Time required to build the testing framework library (if any), without any test.
- - *Build tests*: Time required to build the tests, assuming the framework library was already built (if any).
+ - *Build tests*: Time required to build the tests, assuming the framework library (if any) was already built.
  - *Build all*: Total time to build the tests and the framework library (if any).
- - *Run tests*: Total time require to run the tests.
+ - *Run tests*: Total time required to run the tests.
  - *Library size*: Size of the compiled testing framework library (if any).
  - *Executable size*: Size of the compiled test executable, static linking to the testing framework library (if any).
 
-Results for _snatch_:
+Results for Debug builds:
 
-|                 | _snatch_ (Debug) | _snatch_ (Release) |
-|-----------------|------------------|--------------------|
-| Build framework | 1.7s             | 2.5s               |
-| Build tests     | 64s              | 131s               |
-| Build all       | 65s              | 134s               |
-| Run tests       | 16ms             | 8ms                |
-| Library size    | 2.70MB           | 0.60MB             |
-| Executable size | 29.5MB           | 8.5MB              |
+|                 | _snatch_ (Debug)   | _Catch2_ (Debug)   | _doctest_ (Debug)   | _Boost UT_ (Debug)  |
+|-----------------|--------------------|--------------------|---------------------|---------------------|
+| Build framework | 1.7s               | 41s                | 2.4s                | 0s                  |
+| Build tests     | 68s                | 86s                | 76s                 | 113s                |
+| Build all       | 70s                | 127s               | 78s                 | 113s                |
+| Run tests       | 17ms               | 74ms               | 59ms                | 20ms                |
+| Library size    | 2.70MB             | 34.6MB             | 2.8MB               | 0MB                 |
+| Executable size | 31.4MB             | 51.5MB             | 38.6MB              | 51.7MB              |
 
-Results for alternative testing frameworks:
+Results for Release builds:
 
-|                 | _Catch2_ (Debug) | _Catch2_ (Release) | _doctest_ (Debug) | _doctest_ (Release) | _Boost UT_ (Debug) | _Boost UT_ (Release) |
-|-----------------|------------------|--------------------|-------------------|---------------------|--------------------|----------------------|
-| Build framework | 41s              | 48s                | 2.4s              | 4.1s                | 0s                 | 0s                   |
-| Build tests     | 86s              | 310s               | 76s               | 208s                | 113s               | 279s                 |
-| Build all       | 127s             | 358s               | 78s               | 212s                | 113s               | 279s                 |
-| Run tests       | 74ms             | 36ms               | 59ms              | 35ms                | 20ms               | 10ms                 |
-| Library size    | 34.6MB           | 2.5MB              | 2.8MB             | 0.39MB              | 0MB                | 0MB                  |
-| Executable size | 51.5MB           | 19.1MB             | 38.6MB            | 15.2MB              | 51.7MB             | 11.3MB               |
+|                 | _snatch_ (Release) | _Catch2_ (Release) | _doctest_ (Release)| _Boost UT_ (Release) |
+|-----------------|--------------------|--------------------|--------------------|----------------------|
+| Build framework | 2.4s               | 48s                | 4.1s               | 0s                   |
+| Build tests     | 140s               | 310s               | 208s               | 279s                 |
+| Build all       | 142s               | 358s               | 212s               | 279s                 |
+| Run tests       | 9ms                | 36ms               | 35ms               | 10ms                 |
+| Library size    | 0.60MB             | 2.5MB              | 0.39MB             | 0MB                  |
+| Executable size | 9.3MB              | 19.1MB             | 15.2MB             | 11.3MB               |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
