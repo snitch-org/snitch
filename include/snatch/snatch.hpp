@@ -1167,6 +1167,54 @@ bool operator==(std::string_view message, const contains_substring& m) noexcept;
 
 bool operator==(const contains_substring& m, std::string_view message) noexcept;
 
+template<typename T, std::size_t N>
+struct is_any_of {
+    mutable small_string<max_message_length> description_buffer;
+    small_vector<T, N>                       list;
+
+    template<typename... Args>
+    explicit is_any_of(const Args&... args) noexcept : list({args...}) {}
+
+    bool match(const T& value) const noexcept {
+        for (const auto& v : list) {
+            if (v == value) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    std::string_view describe_fail(const T& value) const noexcept {
+        description_buffer.clear();
+        append_or_truncate(description_buffer, "'", value, "' was not found in {");
+        bool first = true;
+        for (const auto& v : list) {
+            if (!first) {
+                append_or_truncate(", '", v, "'");
+            } else {
+                append_or_truncate("'", v, "'");
+            }
+            first = false;
+        }
+        append_or_truncate(description_buffer, "}");
+        return description_buffer.str();
+    }
+};
+
+template<typename T, typename... Args>
+is_any_of(T, Args...) -> is_any_of<T, sizeof...(Args) + 1>;
+
+template<typename T, std::size_t N>
+bool operator==(const T& value, const is_any_of<T, N>& m) noexcept {
+    return m.match(value);
+}
+
+template<typename T, std::size_t N>
+bool operator==(const is_any_of<T, N>& m, const T& value) noexcept {
+    return m.match(value);
+}
+
 struct with_what_contains : private contains_substring {
     explicit with_what_contains(std::string_view pattern) noexcept;
 
