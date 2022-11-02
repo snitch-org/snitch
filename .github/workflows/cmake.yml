@@ -5,7 +5,7 @@ on: push
 env:
   EM_VERSION: 2.0.16
   EM_CACHE_FOLDER: 'emsdk-cache'
-  CODECOV_TOKEN: '99959e57-0b92-48b4-bf55-559d43d41b58'
+  CODECOV_TOKEN: 'f8197851-e753-4291-a835-2d76090f2c92'
 
 jobs:
   build:
