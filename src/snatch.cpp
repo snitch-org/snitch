@@ -705,7 +705,12 @@ test_run registry::run(test_case& test) noexcept {
 
     test.state = test_state::success;
 
-    test_run state{.reg = *this, .test = test};
+    test_run state {
+        .reg = *this, .test = test, .sections = {}, .captures = {}, .asserts = 0,
+#if SNATCH_WITH_TIMINGS
+        .duration = 0.0f
+#endif
+    };
 
 #if SNATCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;
