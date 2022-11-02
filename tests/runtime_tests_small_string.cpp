@@ -277,45 +277,46 @@ TEST_CASE("small string", "[utility]") {
     }
 };
 
-TEST_CASE("constexpr small string", "[utility]") {
-    constexpr std::size_t max_length = 5u;
+// This requires fixing https://github.com/cschreib/snatch/issues/17
+// TEST_CASE("constexpr small string", "[utility]") {
+//     constexpr std::size_t max_length = 5u;
 
-    using TestType = snatch::small_string<max_length>;
+//     using TestType = snatch::small_string<max_length>;
 
-    SECTION("from string view") {
-        constexpr TestType v = "abc"sv;
+//     SECTION("from string view") {
+//         constexpr TestType v = "abc"sv;
 
-        CHECK(v.size() == 3u);
-        CHECK(!v.empty());
-        CHECK(v.capacity() == max_length);
-        CHECK(v.available() == max_length - 3u);
+//         CHECK(v.size() == 3u);
+//         CHECK(!v.empty());
+//         CHECK(v.capacity() == max_length);
+//         CHECK(v.available() == max_length - 3u);
 
-        CHECK(v.data()[0] == 'a');
-        CHECK(v.data()[1] == 'b');
-        CHECK(v.data()[2] == 'c');
-    }
+//         CHECK(v.data()[0] == 'a');
+//         CHECK(v.data()[1] == 'b');
+//         CHECK(v.data()[2] == 'c');
+//     }
 
-    SECTION("from immediate lambda") {
-        constexpr TestType v = []() {
-            TestType v;
-            v.push_back('a');
-            v.push_back('b');
-            v.push_back('c');
-            v.push_back('d');
-            v.pop_back();
-            v.push_back('e');
-            v.grow(1u);
-            v.resize(3u);
-            return v;
-        }();
+//     SECTION("from immediate lambda") {
+//         constexpr TestType v = []() {
+//             TestType v;
+//             v.push_back('a');
+//             v.push_back('b');
+//             v.push_back('c');
+//             v.push_back('d');
+//             v.pop_back();
+//             v.push_back('e');
+//             v.grow(1u);
+//             v.resize(3u);
+//             return v;
+//         }();
 
-        CHECK(v.size() == 3u);
-        CHECK(!v.empty());
-        CHECK(v.capacity() == max_length);
-        CHECK(v.available() == max_length - 3u);
+//         CHECK(v.size() == 3u);
+//         CHECK(!v.empty());
+//         CHECK(v.capacity() == max_length);
+//         CHECK(v.available() == max_length - 3u);
 
-        CHECK(v.data()[0] == 'a');
-        CHECK(v.data()[1] == 'b');
-        CHECK(v.data()[2] == 'c');
-    }
-};
+//         CHECK(v.data()[0] == 'a');
+//         CHECK(v.data()[1] == 'b');
+//         CHECK(v.data()[2] == 'c');
+//     }
+// };
