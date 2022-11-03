@@ -1298,6 +1298,9 @@ bool operator==(const with_what_contains& m, const E& e) noexcept {
         snatch::tests.add_with_types<TYPES>(NAME, TAGS) = []<typename TestType>(                   \
             snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
+#define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
+    SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, (std::tuple<__VA_ARGS__>))
+
 #define SNATCH_SECTION1(NAME)                                                                      \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
             {(NAME), {}}, SNATCH_CURRENT_TEST})
@@ -1365,6 +1368,7 @@ bool operator==(const with_what_contains& m, const E& e) noexcept {
 #if SNATCH_WITH_SHORTHAND_MACROS
 #    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
+#    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
 #    define CAPTURE(...)                               SNATCH_CAPTURE(__VA_ARGS__)
 #    define INFO(...)                                  SNATCH_INFO(__VA_ARGS__)

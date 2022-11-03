@@ -34,7 +34,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
-   - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
+   - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)` and  `TEMPLATE_TEST_CASE(name, tags, types...)`.
    - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Nesting multiple tests in a single test case with `SECTION(name, description)`.
@@ -153,6 +153,11 @@ This must be called at namespace, global, or class scope; not inside a function 
 `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ };`
 
 This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES`. `TYPES` must be a `std::tuple`. Within the test body, the current type can be accessed as `TestType`.
+
+
+`TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ };`
+
+This is equivalent to `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, std::tuple<TYPES...>)`, and is provided for compatibility with _Catch2_. It saves you having to type `std::tuple<>` if the list of types is used only once. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
 
 
 ### Test check macros
