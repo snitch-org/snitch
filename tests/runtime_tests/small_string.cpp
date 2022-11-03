@@ -379,9 +379,9 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
 //         CHECK(v.end() = v.begin() + 3u);
 //         CHECK(v.cend() = v.cbegin() + 3u);
 
-//         CHECK(v.data()[0] == 'a');
-//         CHECK(v.data()[1] == 'b');
-//         CHECK(v.data()[2] == 'c');
+//         CHECK(v[0] == 'a');
+//         CHECK(v[1] == 'b');
+//         CHECK(v[2] == 'c');
 //     }
 
 //     SECTION("from immediate lambda") {
@@ -405,8 +405,8 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
 //         CHECK(v.end() = v.begin() + 3u);
 //         CHECK(v.cend() = v.cbegin() + 3u);
 
-//         CHECK(v.data()[0] == 'a');
-//         CHECK(v.data()[1] == 'b');
-//         CHECK(v.data()[2] == 'c');
+//         CHECK(v[0] == 'a');
+//         CHECK(v[1] == 'b');
+//         CHECK(v[2] == 'c');
 //     }
 // };
