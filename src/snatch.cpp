@@ -1,6 +1,7 @@
 #include "snatch/snatch.hpp"
 
 #include <algorithm> // for std::sort
+#include <charconv> // for std::to_chars
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
@@ -41,17 +42,12 @@ colored<T> make_colored(const T& t, bool with_color, color_t start) {
 } // namespace
 
 namespace {
+using snatch::small_string;
 using snatch::small_string_span;
 
 template<typename T>
 constexpr const char* get_format_code() noexcept {
-    if constexpr (std::is_same_v<T, const void*>) {
-        return "%p";
-    } else if constexpr (std::is_same_v<T, std::size_t>) {
-        return "%zu";
-    } else if constexpr (std::is_same_v<T, std::ptrdiff_t>) {
-        return "%td";
-    } else if constexpr (std::is_same_v<T, float>) {
+    if constexpr (std::is_same_v<T, float>) {
         return "%f";
     } else if constexpr (std::is_same_v<T, double>) {
         return "%lf";
@@ -61,13 +57,24 @@ constexpr const char* get_format_code() noexcept {
 }
 
 template<typename T>
-bool append_fmt(small_string_span ss, T value) noexcept {
-    const int return_code = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
+bool append_snprintf(small_string_span ss, T value) noexcept {
+    if (ss.available() <= 1) {
+        // snprintf will always print a null-terminating character,
+        // so abort early if only space for one or zero character, as
+        // this would clobber the original string.
+        return false;
+    }
+
+    // Calculate required length.
+    const int return_code = std::snprintf(nullptr, 0, get_format_code<T>(), value);
     if (return_code < 0) {
         return false;
     }
 
-    const std::size_t length    = static_cast<std::size_t>(return_code);
+    // 'return_code' holds the number of characters that are required,
+    // excluding the null-terminating character, which always gets appended,
+    // so we need to +1.
+    const std::size_t length    = static_cast<std::size_t>(return_code) + 1;
     const bool        could_fit = length <= ss.available();
 
     const std::size_t offset     = ss.size();
@@ -75,7 +82,32 @@ bool append_fmt(small_string_span ss, T value) noexcept {
     ss.resize(std::min(ss.size() + length, ss.capacity()));
     std::snprintf(ss.begin() + offset, prev_space, get_format_code<T>(), value);
 
+    // Pop the null-terminating character, always printed unfortunately.
+    ss.pop_back();
+
     return could_fit;
+}
+
+template<typename T>
+bool append_to_chars(small_string_span ss, T value, int base = 10) noexcept {
+    auto [end, err] = std::to_chars(ss.end(), ss.begin() + ss.capacity(), value, base);
+    if (err != std::errc{}) {
+        // Not enough space, try into a temporary string that *should* be big enough,
+        // and copy whatever we can. 32 characters is enough for all integers and floating
+        // point values encoded on 64 bit or less.
+        small_string<32> fallback;
+        auto [end2, err2] =
+            std::to_chars(fallback.end(), fallback.begin() + fallback.capacity(), value, base);
+        if (err2 != std::errc{}) {
+            return false;
+        }
+
+        fallback.grow(end2 - fallback.end());
+        return append(ss, fallback);
+    }
+
+    ss.grow(end - ss.end());
+    return true;
 }
 } // namespace
 
@@ -92,7 +124,7 @@ bool append(small_string_span ss, std::string_view str) noexcept {
 }
 
 bool append(small_string_span ss, const void* ptr) noexcept {
-    return append_fmt(ss, ptr);
+    return append(ss, "0x") && append_to_chars(ss, reinterpret_cast<std::size_t>(ptr), 16);
 }
 
 bool append(small_string_span ss, std::nullptr_t) noexcept {
@@ -100,19 +132,19 @@ bool append(small_string_span ss, std::nullptr_t) noexcept {
 }
 
 bool append(small_string_span ss, std::size_t i) noexcept {
-    return append_fmt(ss, i);
+    return append_to_chars(ss, i);
 }
 
 bool append(small_string_span ss, std::ptrdiff_t i) noexcept {
-    return append_fmt(ss, i);
+    return append_to_chars(ss, i);
 }
 
 bool append(small_string_span ss, float f) noexcept {
-    return append_fmt(ss, f);
+    return append_snprintf(ss, f);
 }
 
 bool append(small_string_span ss, double d) noexcept {
-    return append_fmt(ss, d);
+    return append_snprintf(ss, d);
 }
 
 bool append(small_string_span ss, bool value) noexcept {
