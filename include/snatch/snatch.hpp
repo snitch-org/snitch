@@ -532,6 +532,12 @@ public:
     constexpr operator small_string_view() const noexcept {
         return span();
     }
+    constexpr char& operator[](std::size_t i) noexcept {
+        return span()[i];
+    }
+    constexpr char operator[](std::size_t i) const noexcept {
+        return const_cast<small_string*>(this)->span()[i];
+    }
     constexpr operator std::string_view() const noexcept {
         return std::string_view(data(), length());
     }
