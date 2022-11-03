@@ -13,7 +13,7 @@
 #    undef TEST_CASE
 #    define TEST_CASE(name, tags) DOCTEST_TEST_CASE(tags " " name)
 #    define TEMPLATE_TEST_CASE(name, tags, ...)                                                    \
-        DOCTEST_TEST_CASE_TEMPLATE(tags " " name, __VA_ARGS__)
+        DOCTEST_TEST_CASE_TEMPLATE(tags " " name, TestType, __VA_ARGS__)
 
 #    include <ostream>
 #endif

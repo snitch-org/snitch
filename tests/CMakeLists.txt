@@ -40,12 +40,13 @@ FetchContent_MakeAvailable(doctest)
 
 set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/src/snatch.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests_type_name.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests_small_vector.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests_small_string.cpp)
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp)
 
 add_executable(snatch_runtime_tests ${RUNTIME_TEST_FILES})
 target_include_directories(snatch_runtime_tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(snatch_runtime_tests PRIVATE ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snatch_runtime_tests PRIVATE doctest::doctest)
 target_link_libraries(snatch_runtime_tests PRIVATE doctest::doctest_with_main)
 add_platform_definitions(snatch_runtime_tests)
