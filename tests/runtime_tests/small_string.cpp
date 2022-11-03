@@ -376,8 +376,8 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
 //         CHECK(!v.empty());
 //         CHECK(v.capacity() == max_length);
 //         CHECK(v.available() == max_length - 3u);
-//         CHECK(v.end() = v.begin() + 3u);
-//         CHECK(v.cend() = v.cbegin() + 3u);
+//         CHECK(v.end() == v.begin() + 3u);
+//         CHECK(v.cend() == v.cbegin() + 3u);
 
 //         CHECK(v[0] == 'a');
 //         CHECK(v[1] == 'b');
