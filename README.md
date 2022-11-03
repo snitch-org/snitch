@@ -209,14 +209,16 @@ This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test cas
 
 Matchers in _snatch_ work differently than in _Catch2_. The required interface is:
 
- - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise
+ - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise.
  - `matcher.describe_fail(obj)` must return a `std::string_view` describing why `obj` is not a match. The lifetime of the string referenced by the string view must be equal or greater than the lifetime of the matcher (e.g., the string view can point to a temporary buffer stored inside the matcher).
+ - `matcher == obj` and `obj == matcher` must return `matcher.match(obj)`.
 
 
-Two matchers are provided with _snatch_:
+The following matchers are provided with _snatch_:
 
  - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
  - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+ - `snatch::matchers::is_any_of{T...}`: accepts an object of any type `T`, and will return a match if it is equal to any of the `T...`.
 
 
 ### Sections
