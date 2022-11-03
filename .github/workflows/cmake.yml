@@ -80,6 +80,6 @@ jobs:
     - name: Compute Code Coverage
       if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
       run: |
-        gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/*.gcda
+        gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/runtime_tests/*.gcda
         ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
         bash <(curl -s https://codecov.io/bash)
