@@ -62,18 +62,32 @@ constexpr const char* get_format_code() noexcept {
 
 template<typename T>
 bool append_fmt(small_string_span ss, T value) noexcept {
-    const int return_code = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
+    if (ss.available() <= 1) {
+        // snprintf will always print a null-terminating character,
+        // so abort early if only space for one or zero character, as
+        // this would clobber the original string.
+        return false;
+    }
+
+    // Calculate required length.
+    const int return_code = std::snprintf(nullptr, 0, get_format_code<T>(), value);
     if (return_code < 0) {
         return false;
     }
 
-    const std::size_t length    = static_cast<std::size_t>(return_code);
+    // 'return_code' holds the number of characters that are required,
+    // excluding the null-terminating character, which always gets appended,
+    // so we need to +1.
+    const std::size_t length    = static_cast<std::size_t>(return_code) + 1;
     const bool        could_fit = length <= ss.available();
 
     const std::size_t offset     = ss.size();
     const std::size_t prev_space = ss.available();
     ss.resize(std::min(ss.size() + length, ss.capacity()));
     std::snprintf(ss.begin() + offset, prev_space, get_format_code<T>(), value);
+
+    // Pop the null-terminating character, always printed unfortunately.
+    ss.pop_back();
 
     return could_fit;
 }
