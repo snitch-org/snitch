@@ -72,14 +72,19 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --parallel 2
 
-    - name: Test
+    - name: Test (with doctest)
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_run
 
+    - name: Test (with snatch)
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_run
+
     - name: Compute Code Coverage
       if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
       run: |
-        gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/runtime_tests/*.gcda
+        gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/runtime_tests/*.gcda ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests_self.dir/runtime_tests/*.gcda
         ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
         bash <(curl -s https://codecov.io/bash)

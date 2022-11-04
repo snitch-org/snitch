@@ -1,4 +1,4 @@
-#if SNATCH_TEST_WITH_SNATCH
+#if defined(SNATCH_TEST_WITH_SNATCH)
 // The library being tested is also the library used for testing...
 #    include "snatch/snatch.hpp"
 #else

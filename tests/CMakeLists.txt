@@ -62,3 +62,18 @@ add_custom_target(snatch_runtime_tests_run
   SOURCES ${RUNTIME_TEST_FILES}
 )
 set_target_properties(snatch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
+
+
+add_executable(snatch_runtime_tests_self ${RUNTIME_TEST_FILES})
+target_include_directories(snatch_runtime_tests_self PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(snatch_runtime_tests_self PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+add_platform_definitions(snatch_runtime_tests_self)
+target_compile_features(snatch_runtime_tests_self PUBLIC cxx_std_20)
+target_compile_definitions(snatch_runtime_tests_self PUBLIC SNATCH_TEST_WITH_SNATCH)
+
+add_custom_target(snatch_runtime_tests_self_run
+  COMMAND snatch_runtime_tests_self
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  SOURCES ${RUNTIME_TEST_FILES}
+)
+set_target_properties(snatch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
