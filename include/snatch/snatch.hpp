@@ -1305,7 +1305,9 @@ bool operator==(const with_what_contains& m, const E& e) noexcept {
             snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
-    SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, (std::tuple<__VA_ARGS__>))
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snatch::tests.add_with_types<std::tuple<__VA_ARGS__>>(NAME, TAGS) = []<typename TestType>( \
+            snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_SECTION1(NAME)                                                                      \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
