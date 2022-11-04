@@ -1295,12 +1295,12 @@ bool operator==(const with_what_contains& m, const E& e) noexcept {
 // -------------------
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snatch::tests.add(NAME, TAGS) =                                                            \
             [](snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snatch::tests.add_with_types<TYPES>(NAME, TAGS) = []<typename TestType>(                   \
             snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
