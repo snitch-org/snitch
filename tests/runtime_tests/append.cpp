@@ -2,7 +2,7 @@
 
 using namespace std::literals;
 
-constexpr std::size_t max_length = 15u;
+constexpr std::size_t max_length = 16u;
 
 using string_type = snatch::small_string<max_length>;
 
@@ -67,7 +67,7 @@ TEMPLATE_TEST_CASE(
     }
 
     SECTION("on partially full") {
-        std::string_view initial = "abcdefghijklm"sv;
+        std::string_view initial = "abcdefghijklmn"sv;
         string_type      s       = initial;
 
         auto [value, expected] = create_value();
@@ -85,7 +85,7 @@ TEMPLATE_TEST_CASE(
     }
 
     SECTION("on full") {
-        std::string_view initial = "abcdefghijklmno"sv;
+        std::string_view initial = "abcdefghijklmnop"sv;
         string_type      s       = initial;
 
         auto [value, expected] = create_value();
@@ -103,22 +103,22 @@ TEST_CASE("append multiple", "[utility]") {
     }
 
     SECTION("enough space") {
-        CHECK(append(s, "int=", 5));
-        CHECK(std::string_view(s) == "int=5"sv);
+        CHECK(append(s, "int=", 12));
+        CHECK(std::string_view(s) == "int=12"sv);
     }
 
     SECTION("just enough space") {
-        CHECK(append(s, "int=", 5, " bool=", true));
-        CHECK(std::string_view(s) == "int=5 bool=true"sv);
+        CHECK(append(s, "int=", 12, " bool=", true));
+        CHECK(std::string_view(s) == "int=12 bool=true"sv);
     }
 
     SECTION("not enough space between arguments") {
-        CHECK(!append(s, "int=", 5, " bool=", true, " float=", 3.1415));
-        CHECK(std::string_view(s) == "int=5 bool=true"sv);
+        CHECK(!append(s, "int=", 12, " bool=", true, " float=", 3.1415));
+        CHECK(std::string_view(s) == "int=12 bool=true"sv);
     }
 
     SECTION("not enough space in middle of argument") {
-        CHECK(!append(s, "int=", 5, ", bool=", true));
-        CHECK(std::string_view(s) == "int=5, bool=tru"sv);
+        CHECK(!append(s, "int=", 12, ", bool=", true));
+        CHECK(std::string_view(s) == "int=12, bool=tru"sv);
     }
 };
