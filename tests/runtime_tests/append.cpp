@@ -59,7 +59,7 @@ TEMPLATE_TEST_CASE(
             CHECK(std::string_view(s) == expected);
         } else {
 #if defined(SNATCH_COMPILER_MSVC)
-            CHECK(std::string_view(s).size() > 0);
+            CHECK(std::string_view(s).size() > 0u);
 #else
             CHECK(std::string_view(s).starts_with(expected));
 #endif
@@ -78,7 +78,7 @@ TEMPLATE_TEST_CASE(
             std::is_pointer_v<TestType>) {
             // We are stuck with snprintf, which insists on writing a null-terminator character,
             // therefore we loose one character at the end.
-            CHECK(s.size() == max_length - 1);
+            CHECK(s.size() == max_length - 1u);
             CHECK(expected.substr(0, 1) == std::string_view(s).substr(s.size() - 1, 1));
         } else {
             CHECK(s.size() == max_length);
