@@ -78,8 +78,10 @@ TEMPLATE_TEST_CASE(
             std::is_pointer_v<TestType>) {
             // We are stuck with snprintf, which insists on writing a null-terminator character,
             // therefore we loose one character at the end.
+            CHECK(s.size() == max_length - 1);
             CHECK(expected.substr(0, 1) == std::string_view(s).substr(s.size() - 1, 1));
         } else {
+            CHECK(s.size() == max_length);
             CHECK(expected.substr(0, 2) == std::string_view(s).substr(s.size() - 2, 2));
         }
     }
