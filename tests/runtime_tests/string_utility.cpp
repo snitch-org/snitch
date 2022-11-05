@@ -124,3 +124,72 @@ TEST_CASE("append multiple", "[utility]") {
         CHECK(std::string_view(s) == "int=123456, bool=tru"sv);
     }
 };
+
+TEMPLATE_TEST_CASE(
+    "truncate_end",
+    "[utility]",
+    snatch::small_string<1>,
+    snatch::small_string<2>,
+    snatch::small_string<3>,
+    snatch::small_string<4>,
+    snatch::small_string<5>) {
+
+    TestType s;
+
+    SECTION("on empty") {
+        truncate_end(s);
+
+        CHECK(s.size() == std::min<std::size_t>(s.capacity(), 3u));
+        CHECK(std::string_view(s) == "..."sv.substr(0, s.size()));
+    }
+
+    SECTION("on non-empty") {
+        s = "a"sv;
+        truncate_end(s);
+
+        CHECK(s.size() == std::min<std::size_t>(s.capacity(), 4u));
+        if (s.capacity() > 3) {
+            CHECK(std::string_view(s) == "a...");
+        } else {
+            CHECK(std::string_view(s) == "..."sv.substr(0, s.size()));
+        }
+    }
+
+    SECTION("on full") {
+        s = "abcde"sv.substr(0, s.capacity());
+        truncate_end(s);
+
+        CHECK(s.size() == s.capacity());
+        if (s.capacity() > 3) {
+            CAPTURE(s);
+            CHECK(std::string_view(s).starts_with("abcde"sv.substr(0, s.capacity() - 3u)));
+            CHECK(std::string_view(s).ends_with("..."));
+        } else {
+            CHECK(std::string_view(s) == "..."sv.substr(0, s.size()));
+        }
+    }
+};
+
+TEMPLATE_TEST_CASE(
+    "append_or_truncate",
+    "[utility]",
+    snatch::small_string<1>,
+    snatch::small_string<2>,
+    snatch::small_string<3>,
+    snatch::small_string<4>,
+    snatch::small_string<5>,
+    snatch::small_string<6>) {
+
+    TestType s;
+    append_or_truncate(s, "i=", "1", "+", "2");
+
+    if (s.capacity() >= 5) {
+        CHECK(std::string_view(s) == "i=1+2");
+    } else if (s.capacity() > 3) {
+        CAPTURE(s);
+        CHECK(std::string_view(s).starts_with("i=1+2"sv.substr(0, s.capacity() - 3u)));
+        CHECK(std::string_view(s).ends_with("..."));
+    } else {
+        CHECK(std::string_view(s) == "..."sv.substr(0, s.capacity()));
+    }
+};
