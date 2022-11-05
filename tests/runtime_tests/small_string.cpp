@@ -9,10 +9,12 @@ using span_type   = snatch::small_string_span;
 using view_type   = snatch::small_string_view;
 
 TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_type) {
-    constexpr bool is_string = std::is_same_v<TestType, string_type>;
-    constexpr bool is_const  = std::is_same_v<TestType, view_type>;
-
     auto create_type = [&](auto create_string) -> TestType {
+        // Duplicate these here for MSVC because of their bug
+        // https://developercommunity.visualstudio.com/t/Capture-of-constexpr-variable-not-workin/10190629
+        constexpr bool is_string = std::is_same_v<TestType, string_type>;
+        constexpr bool is_const  = std::is_same_v<TestType, view_type>;
+
         if constexpr (is_string) {
             return create_string();
         } else {
@@ -25,6 +27,9 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
             }
         }
     };
+
+    constexpr bool is_string = std::is_same_v<TestType, string_type>;
+    constexpr bool is_const  = std::is_same_v<TestType, view_type>;
 
     SECTION("from empty") {
         auto create_string = []() { return string_type{}; };

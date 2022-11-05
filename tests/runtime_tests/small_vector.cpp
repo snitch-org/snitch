@@ -14,10 +14,12 @@ using span_type       = snatch::small_vector_span<test_struct>;
 using const_span_type = snatch::small_vector_span<const test_struct>;
 
 TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_span_type) {
-    constexpr bool is_vector = std::is_same_v<TestType, vector_type>;
-    constexpr bool is_const  = std::is_same_v<TestType, const_span_type>;
-
     auto create_type = [&](auto create_vector) -> TestType {
+        // Duplicate these here for MSVC because of their bug
+        // https://developercommunity.visualstudio.com/t/Capture-of-constexpr-variable-not-workin/10190629
+        constexpr bool is_vector = std::is_same_v<TestType, vector_type>;
+        constexpr bool is_const  = std::is_same_v<TestType, const_span_type>;
+
         if constexpr (is_vector) {
             return create_vector();
         } else {
@@ -30,6 +32,8 @@ TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_sp
             }
         }
     };
+
+    constexpr bool is_const = std::is_same_v<TestType, const_span_type>;
 
     SECTION("from empty") {
         auto create_vector = []() { return vector_type{}; };
