@@ -120,10 +120,10 @@ Results for Debug builds:
 
 |                 | _snatch_ (Debug)   | _Catch2_ (Debug)   | _doctest_ (Debug)   | _Boost UT_ (Debug)  |
 |-----------------|--------------------|--------------------|---------------------|---------------------|
-| Build framework | 1.7s               | 41s                | 2.4s                | 0s                  |
+| Build framework | 1.6s               | 41s                | 2.4s                | 0s                  |
 | Build tests     | 68s                | 86s                | 76s                 | 113s                |
 | Build all       | 70s                | 127s               | 78s                 | 113s                |
-| Run tests       | 17ms               | 74ms               | 59ms                | 20ms                |
+| Run tests       | 16ms               | 74ms               | 59ms                | 20ms                |
 | Library size    | 2.70MB             | 34.6MB             | 2.8MB               | 0MB                 |
 | Executable size | 31.4MB             | 51.5MB             | 38.6MB              | 51.7MB              |
 
@@ -132,9 +132,9 @@ Results for Release builds:
 |                 | _snatch_ (Release) | _Catch2_ (Release) | _doctest_ (Release)| _Boost UT_ (Release) |
 |-----------------|--------------------|--------------------|--------------------|----------------------|
 | Build framework | 2.4s               | 48s                | 4.1s               | 0s                   |
-| Build tests     | 140s               | 310s               | 208s               | 279s                 |
-| Build all       | 142s               | 358s               | 212s               | 279s                 |
-| Run tests       | 9ms                | 36ms               | 35ms               | 10ms                 |
+| Build tests     | 137s               | 310s               | 208s               | 279s                 |
+| Build all       | 140s               | 358s               | 212s               | 279s                 |
+| Run tests       | 11s                | 36ms               | 35ms               | 10ms                 |
 | Library size    | 0.60MB             | 2.5MB              | 0.39MB             | 0MB                  |
 | Executable size | 9.3MB              | 19.1MB             | 15.2MB             | 11.3MB               |
 
