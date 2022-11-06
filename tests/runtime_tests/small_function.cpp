@@ -76,9 +76,18 @@ TEMPLATE_TEST_CASE(
                 f = &test_class<TestType>::method_static;
 
                 if constexpr (std::is_same_v<R, void>) {
-                    f(values...);
+                    if constexpr (sizeof...(Args) > 0) {
+                        f(values...);
+                    } else {
+                        f();
+                    }
                 } else {
-                    auto return_value = f(values...);
+                    int return_value = 0;
+                    if constexpr (sizeof...(Args) > 0) {
+                        return_value = f(values...);
+                    } else {
+                        return_value = f();
+                    }
                     CHECK(return_value == 44);
                 }
 
@@ -91,9 +100,18 @@ TEMPLATE_TEST_CASE(
                 f = {obj, snatch::constant<&test_class<TestType>::method>{}};
 
                 if constexpr (std::is_same_v<R, void>) {
-                    f(values...);
+                    if constexpr (sizeof...(Args) > 0) {
+                        f(values...);
+                    } else {
+                        f();
+                    }
                 } else {
-                    auto return_value = f(values...);
+                    int return_value = 0;
+                    if constexpr (sizeof...(Args) > 0) {
+                        return_value = f(values...);
+                    } else {
+                        return_value = f();
+                    }
                     CHECK(return_value == 42);
                 }
 
@@ -106,9 +124,18 @@ TEMPLATE_TEST_CASE(
                 f = {obj, snatch::constant<&test_class<TestType>::method_const>{}};
 
                 if constexpr (std::is_same_v<R, void>) {
-                    f(values...);
+                    if constexpr (sizeof...(Args) > 0) {
+                        f(values...);
+                    } else {
+                        f();
+                    }
                 } else {
-                    auto return_value = f(values...);
+                    int return_value = 0;
+                    if constexpr (sizeof...(Args) > 0) {
+                        return_value = f(values...);
+                    } else {
+                        return_value = f();
+                    }
                     CHECK(return_value == 43);
                 }
 
@@ -125,9 +152,18 @@ TEMPLATE_TEST_CASE(
                 }};
 
                 if constexpr (std::is_same_v<R, void>) {
-                    f(values...);
+                    if constexpr (sizeof...(Args) > 0) {
+                        f(values...);
+                    } else {
+                        f();
+                    }
                 } else {
-                    auto return_value = f(values...);
+                    int return_value = 0;
+                    if constexpr (sizeof...(Args) > 0) {
+                        return_value = f(values...);
+                    } else {
+                        return_value = f();
+                    }
                     CHECK(return_value == 45);
                 }
 
