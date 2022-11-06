@@ -1,6 +1,6 @@
 # snatch
 
-![Build Status](https://github.com/cschreib/snatch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snatch/branch/main/graph/badge.svg?token=8C11D2U94D)](https://codecov.io/gh/cschreib/snatch)
+![Build Status](https://github.com/cschreib/snatch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snatch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snatch)
 
 Lightweight C++20 testing framework.
 
