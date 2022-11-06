@@ -1391,6 +1391,24 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
+#define SNATCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
+    do {                                                                                           \
+        const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
+        const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
+        if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
+            FAIL(SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                            \
+        }                                                                                          \
+    } while (0)
+
+#define SNATCH_CHECK_THAT(EXPR, MATCHER)                                                           \
+    do {                                                                                           \
+        const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
+        const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
+        if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
+            FAIL_CHECK(SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                      \
+        }                                                                                          \
+    } while (0)
+
 // clang-format off
 #if SNATCH_WITH_SHORTHAND_MACROS
 #    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
@@ -1404,6 +1422,8 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
 #    define FAIL_CHECK(MESSAGE)                        SNATCH_FAIL_CHECK(MESSAGE)
 #    define SKIP(MESSAGE)                              SNATCH_SKIP(MESSAGE)
+#    define REQUIRE_THAT(EXP, MATCHER)                 SNATCH_REQUIRE(EXP, MATCHER)
+#    define CHECK_THAT(EXP, MATCHER)                   SNATCH_CHECK(EXP, MATCHER)
 #endif
 // clang-format on
 

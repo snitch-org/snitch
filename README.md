@@ -35,7 +35,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)` and  `TEMPLATE_TEST_CASE(name, tags, types...)`.
-   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
+   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`, `REQUIRE_THAT(expr, matcher)`, `CHECK_THAT(expr, matcher)`, .
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Nesting multiple tests in a single test case with `SECTION(name, description)`.
    - Capturing context information to display on failure with `CAPTURE(vars...)` and `INFO(message)`.
@@ -167,12 +167,22 @@ The following macros can be used inside a test body, either immediately in the b
 
 `REQUIRE(EXPR);`
 
-This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any. The value of each operand of the expression will be displayed on failure, provided the types involved can be serialized to a string. See [Custom string serialization](#custom-string-serialization) for more information.
+This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any. The value of each operand of the expression will be displayed on failure, provided the types involved can be serialized to a string. See [Custom string serialization](#custom-string-serialization) for more information. If one of the operands is a [matcher](#matchers) and the operation is `==`, then this will report a failure if there is no match. Conversely, if the operation is `!=`, then this will report a failure if there is a match.
 
 
 `CHECK(EXPR);`
 
 This is similar to `REQUIRE`, except that on failure the test case continues. Further failures may be reported in the same test case.
+
+
+`REQUIRE_THAT(EXPR, MATCHER);`
+
+This is equivalent to `REQUIRE(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.
+
+
+`CHECK_THAT(EXPR, MATCHER);`
+
+This is equivalent to `CHECK(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.
 
 
 `FAIL(MSG);`
