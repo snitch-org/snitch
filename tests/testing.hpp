@@ -3,8 +3,6 @@
 #    include "snatch/snatch.hpp"
 #else
 // The library being tested.
-#    undef SNATCH_WITH_SHORTHAND_MACROS
-#    define SNATCH_WITH_SHORTHAND_MACROS 0
 #    include "snatch/snatch.hpp"
 // The library used for testing.
 #    include "doctest/doctest.h"
