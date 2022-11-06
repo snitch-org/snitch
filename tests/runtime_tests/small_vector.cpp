@@ -1,7 +1,5 @@
 #include "testing.hpp"
 
-#include <iostream>
-
 constexpr std::size_t max_test_elements = 5u;
 
 struct test_struct {
