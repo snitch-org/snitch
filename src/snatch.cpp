@@ -148,7 +148,7 @@ bool replace_all(
 
     if (replacement.size() == pattern.size()) {
         std::string_view sv(string.begin(), string.size());
-        auto             pos = sv.find_first_of(pattern);
+        auto             pos = sv.find(pattern);
 
         while (pos != sv.npos) {
             // Replace pattern by replacement
@@ -193,10 +193,13 @@ bool replace_all(
                 overflow = true;
             }
             string.grow(char_growth);
-            std::rotate(string.begin() + pos, string.end() - char_growth, string.end());
+
+            if (char_diff <= string.size() && string.size() - char_diff > pos) {
+                std::rotate(string.begin() + pos, string.end() - char_diff, string.end());
+            }
 
             // Replace pattern by replacement
-            const std::size_t max_chars = pattern.size() + char_growth;
+            const std::size_t max_chars = std::min(replacement.size(), string.size() - pos);
             std::memcpy(string.data() + pos, replacement.data(), max_chars);
             pos += max_chars;
 
