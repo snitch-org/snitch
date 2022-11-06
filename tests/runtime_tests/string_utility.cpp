@@ -193,3 +193,145 @@ TEMPLATE_TEST_CASE(
         CHECK(std::string_view(s) == "..."sv.substr(0, s.capacity()));
     }
 };
+
+TEMPLATE_TEST_CASE(
+    "replace_all",
+    "[utility]",
+    snatch::small_string<5>,
+    snatch::small_string<6>,
+    snatch::small_string<7>,
+    snatch::small_string<8>,
+    snatch::small_string<9>,
+    snatch::small_string<10>) {
+    TestType s;
+
+    SECTION("same size different value") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "a", "b"));
+        CHECK(std::string_view(s) == "bbbcb");
+    }
+
+    SECTION("same size same value") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "a", "a"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("same size no match") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "t", "a"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("same size with pattern bigger than capacity") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "abacaabcdefghijklmqrst", "tsrqmlkjihgfedcbaacaba"));
+        CAPTURE(std::string_view(s));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("smaller different value") {
+        s = "atata"sv;
+        CHECK(replace_all(s, "ta", "c"));
+        CHECK(std::string_view(s) == "acc");
+        s = "atata"sv;
+        CHECK(replace_all(s, "at", "c"));
+        CHECK(std::string_view(s) == "cca");
+    }
+
+    SECTION("smaller same value") {
+        s = "atata"sv;
+        CHECK(replace_all(s, "ta", "t"));
+        CHECK(std::string_view(s) == "att");
+        s = "taata"sv;
+        CHECK(replace_all(s, "ta", "t"));
+        CHECK(std::string_view(s) == "tat");
+        s = "atata"sv;
+        CHECK(replace_all(s, "at", "a"));
+        CHECK(std::string_view(s) == "aaa");
+    }
+
+    SECTION("smaller no match") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "ta", "a"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("smaller with pattern bigger than capacity") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "abacaabcdefghijklmqrst", "a"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("smaller with replacement bigger than capacity") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "abcdefghijklmnopqrstabcdefghijklmnopqrst", "abcdefghijklmnopqrst"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("bigger different value") {
+        s = "abaca"sv;
+
+        bool success = replace_all(s, "a", "bb");
+        if (s.capacity() >= 8u) {
+            CHECK(success);
+            CHECK(std::string_view(s) == "bbbbbcbb");
+        } else {
+            CHECK(!success);
+            CHECK(std::string_view(s) == "bbbbbcbb"sv.substr(0, s.capacity()));
+        }
+
+        s = "ababa"sv;
+
+        success = replace_all(s, "b", "aa");
+        if (s.capacity() >= 7u) {
+            CHECK(success);
+            CHECK(std::string_view(s) == "aaaaaaa");
+        } else {
+            CHECK(!success);
+            CHECK(std::string_view(s) == "aaaaaaa"sv.substr(0, s.capacity()));
+        }
+    }
+
+    SECTION("bigger same value") {
+        s = "abaca"sv;
+
+        bool success = replace_all(s, "a", "aa");
+        if (s.capacity() >= 8u) {
+            CHECK(success);
+            CHECK(std::string_view(s) == "aabaacaa");
+        } else {
+            CHECK(!success);
+            CHECK(std::string_view(s) == "aabaacaa"sv.substr(0, s.capacity()));
+        }
+
+        s = "ababa"sv;
+
+        success = replace_all(s, "b", "bb");
+        if (s.capacity() >= 7u) {
+            CHECK(success);
+            CHECK(std::string_view(s) == "abbabba");
+        } else {
+            CHECK(!success);
+            CHECK(std::string_view(s) == "abbabba"sv.substr(0, s.capacity()));
+        }
+    }
+
+    SECTION("bigger no match") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "t", "aa"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+
+    SECTION("bigger with replacement bigger than capacity") {
+        s = "abaca"sv;
+        CHECK(!replace_all(s, "a", "abcdefghijklmnopqrst"));
+        CHECK(std::string_view(s) == "abcdefghijklmnopqrst"sv.substr(0, s.capacity()));
+    }
+
+    SECTION("bigger with pattern bigger than capacity") {
+        s = "abaca"sv;
+        CHECK(replace_all(s, "abacaabcdefghijklmqrst", "abcdefghijklmnopqrstabcdefghijklmnopqrst"));
+        CHECK(std::string_view(s) == "abaca");
+    }
+};
