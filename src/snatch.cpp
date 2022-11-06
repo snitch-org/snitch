@@ -400,19 +400,13 @@ bool contains_substring::match(std::string_view message) const noexcept {
     return message.find(substring_pattern) != message.npos;
 }
 
-bool operator==(std::string_view message, const contains_substring& m) noexcept {
-    return m.match(message);
-}
-
-bool operator==(const contains_substring& m, std::string_view message) noexcept {
-    return m.match(message);
-}
-
-std::string_view contains_substring::describe_fail(std::string_view message) const noexcept {
-    description_buffer.clear();
+small_string<max_message_length>
+contains_substring::describe_match(std::string_view message, match_status status) const noexcept {
+    small_string<max_message_length> description_buffer;
     append_or_truncate(
-        description_buffer, "could not find '", substring_pattern, "' in '", message, "'");
-    return description_buffer.str();
+        description_buffer, (status == match_status::matched ? "found" : "could not find"), " '",
+        substring_pattern, "' in '", message, "'");
+    return description_buffer;
 }
 
 with_what_contains::with_what_contains(std::string_view pattern) noexcept :

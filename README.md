@@ -215,15 +215,48 @@ This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test cas
 Matchers in _snatch_ work differently than in _Catch2_. The required interface is:
 
  - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise.
- - `matcher.describe_fail(obj)` must return a `std::string_view` describing why `obj` is not a match. The lifetime of the string referenced by the string view must be equal or greater than the lifetime of the matcher (e.g., the string view can point to a temporary buffer stored inside the matcher).
- - `matcher == obj` and `obj == matcher` must return `matcher.match(obj)`.
-
+ - `matcher.describe_match(obj, status)` must return a value convertible to `std::string_view`, describing why `obj` is or is not a match, depending on the value of `snatch::matchers::match_status`.
+ - `matcher == obj` and `obj == matcher` must return `matcher.match(obj)`, and `matcher != obj` and `obj != matcher` must return `!matcher.match(obj)`; any matcher defined in the `snatch::matchers` namespace will have these operators defined automatically.
 
 The following matchers are provided with _snatch_:
 
  - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
  - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
  - `snatch::matchers::is_any_of{T...}`: accepts an object of any type `T`, and will return a match if it is equal to any of the `T...`.
+
+
+Here is an example matcher that, given a prefix `p`, checks if a string starts with the prefix `"<p>:"`:
+```c++
+namespace snatch::matchers {
+struct has_prefix {
+    std::string_view prefix;
+
+    explicit has_prefix(std::string_view p) noexcept : prefix(p) {}
+
+    bool match(std::string_view s) const noexcept {
+        return s.starts_with(prefix) && s.size() >= prefix.size() + 1 && s[prefix.size()] == ':';
+    }
+
+    small_string<max_message_length>
+    describe_match(std::string_view s, match_status status) const noexcept {
+        small_string<max_message_length> message;
+        append_or_truncate(
+            message, status == match_status::matched ? "found" : "could not find", " prefix '",
+            prefix, ":' in '", s, "'");
+
+        if (status == match_status::failed) {
+            if (auto pos = s.find_first_of(':'); pos != s.npos) {
+                append_or_truncate(message, "; found prefix '", s.substr(0, pos), ":'");
+            } else {
+                append_or_truncate(message, "; no prefix found");
+            }
+        }
+
+        return message;
+    }
+};
+} // namespace snatch::matchers
+```
 
 
 ### Sections

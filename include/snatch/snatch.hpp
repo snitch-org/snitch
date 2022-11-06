@@ -117,6 +117,10 @@ struct section_id {
 };
 } // namespace snatch
 
+namespace snatch::matchers {
+enum class match_status { failed, matched };
+} // namespace snatch::matchers
+
 // Implementation details.
 // -----------------------
 
@@ -622,6 +626,14 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 
 [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+
+template<typename T, typename U>
+concept matcher_for = requires(const T& m, const U& value) {
+    { m.match(value) }
+    ->convertible_to<bool>;
+    { m.describe_match(value, matchers::match_status{}) }
+    ->convertible_to<std::string_view>;
+};
 } // namespace snatch
 
 // Public utilities: small_function.
@@ -868,8 +880,24 @@ struct extracted_binary_expression {
 
     explicit operator bool() const noexcept {
         if (!O{}(lhs, rhs)) {
-            if (!expr.append(lhs) || !expr.append(O::inverse) || !expr.append(rhs)) {
-                expr.actual.clear();
+            if constexpr (matcher_for<T, U>) {
+                using namespace snatch::matchers;
+                constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
+                                                                          : match_status::matched;
+                if (!expr.append(lhs.describe_match(rhs, status))) {
+                    expr.actual.clear();
+                }
+            } else if constexpr (matcher_for<U, T>) {
+                using namespace snatch::matchers;
+                constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
+                                                                          : match_status::matched;
+                if (!expr.append(rhs.describe_match(lhs, status))) {
+                    expr.actual.clear();
+                }
+            } else {
+                if (!expr.append(lhs) || !expr.append(O::inverse) || !expr.append(rhs)) {
+                    expr.actual.clear();
+                }
             }
 
             return true;
@@ -1159,24 +1187,19 @@ const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
 
 namespace snatch::matchers {
 struct contains_substring {
-    mutable small_string<max_message_length> description_buffer;
-    std::string_view                         substring_pattern;
+    std::string_view substring_pattern;
 
     explicit contains_substring(std::string_view pattern) noexcept;
 
     bool match(std::string_view message) const noexcept;
 
-    std::string_view describe_fail(std::string_view message) const noexcept;
+    small_string<max_message_length>
+    describe_match(std::string_view message, match_status status) const noexcept;
 };
-
-bool operator==(std::string_view message, const contains_substring& m) noexcept;
-
-bool operator==(const contains_substring& m, std::string_view message) noexcept;
 
 template<typename T, std::size_t N>
 struct is_any_of {
-    mutable small_string<max_message_length> description_buffer;
-    small_vector<T, N>                       list;
+    small_vector<T, N> list;
 
     template<typename... Args>
     explicit is_any_of(const Args&... args) noexcept : list({args...}) {}
@@ -1191,35 +1214,30 @@ struct is_any_of {
         return false;
     }
 
-    std::string_view describe_fail(const T& value) const noexcept {
-        description_buffer.clear();
-        append_or_truncate(description_buffer, "'", value, "' was not found in {");
+    small_string<max_message_length>
+    describe_match(const T& value, match_status status) const noexcept {
+        small_string<max_message_length> description_buffer;
+        append_or_truncate(
+            description_buffer, "'", value, "' was ", (status == match_status::failed ? "not" : ""),
+            " found in {");
+
         bool first = true;
         for (const auto& v : list) {
             if (!first) {
-                append_or_truncate(", '", v, "'");
+                append_or_truncate(description_buffer, ", '", v, "'");
             } else {
-                append_or_truncate("'", v, "'");
+                append_or_truncate(description_buffer, "'", v, "'");
             }
             first = false;
         }
         append_or_truncate(description_buffer, "}");
-        return description_buffer.str();
+
+        return description_buffer;
     }
 };
 
 template<typename T, typename... Args>
 is_any_of(T, Args...) -> is_any_of<T, sizeof...(Args) + 1>;
-
-template<typename T, std::size_t N>
-bool operator==(const T& value, const is_any_of<T, N>& m) noexcept {
-    return m.match(value);
-}
-
-template<typename T, std::size_t N>
-bool operator==(const is_any_of<T, N>& m, const T& value) noexcept {
-    return m.match(value);
-}
 
 struct with_what_contains : private contains_substring {
     explicit with_what_contains(std::string_view pattern) noexcept;
@@ -1230,19 +1248,20 @@ struct with_what_contains : private contains_substring {
     }
 
     template<typename E>
-    std::string_view describe_fail(const E& e) const noexcept {
-        return contains_substring::describe_fail(e.what());
+    small_string<max_message_length>
+    describe_match(const E& e, match_status status) const noexcept {
+        return contains_substring::describe_match(e.what(), status);
     }
 };
 
-template<typename E>
-bool operator==(const E& e, const with_what_contains& m) noexcept {
-    return m.match(e);
+template<typename T, matcher_for<T> M>
+bool operator==(const T& value, const M& m) noexcept {
+    return m.match(value);
 }
 
-template<typename E>
-bool operator==(const with_what_contains& m, const E& e) noexcept {
-    return m.match(e);
+template<typename T, matcher_for<T> M>
+bool operator==(const M& m, const T& value) noexcept {
+    return m.match(value);
 }
 } // namespace snatch::matchers
 
@@ -1447,7 +1466,7 @@ bool operator==(const with_what_contains& m, const E& e) noexcept {
                     snatch::tests.report_failure(                                                  \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_fail(e));                                               \
+                        (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
                     SNATCH_TESTING_ABORT;                                                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
@@ -1477,7 +1496,7 @@ bool operator==(const with_what_contains& m, const E& e) noexcept {
                     snatch::tests.report_failure(                                                  \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_fail(e));                                               \
+                        (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
