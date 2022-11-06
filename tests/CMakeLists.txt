@@ -43,7 +43,8 @@ set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp)
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/matchers.cpp)
 
 add_executable(snatch_runtime_tests ${RUNTIME_TEST_FILES})
 target_include_directories(snatch_runtime_tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
