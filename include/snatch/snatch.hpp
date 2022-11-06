@@ -686,17 +686,25 @@ public:
 
     template<typename T, auto M>
     constexpr small_function(T& obj, constant<M>) noexcept :
-        data{function_and_data_ptr{&obj, [](void* ptr, Args... args) noexcept {
-                                       (static_cast<T*>(ptr)->*constant<M>::value)(
-                                           std::move(args)...);
-                                   }}} {};
+        data{function_and_data_ptr{
+            &obj, [](void* ptr, Args... args) noexcept {
+                if constexpr (std::is_same_v<Ret, void>) {
+                    (static_cast<T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                } else {
+                    return (static_cast<T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                }
+            }}} {};
 
     template<typename T, auto M>
     constexpr small_function(const T& obj, constant<M>) noexcept :
-        data{function_and_const_data_ptr{&obj, [](const void* ptr, Args... args) noexcept {
-                                             (static_cast<const T*>(ptr)->*constant<M>::value)(
-                                                 std::move(args)...);
-                                         }}} {};
+        data{function_and_const_data_ptr{
+            &obj, [](const void* ptr, Args... args) noexcept {
+                if constexpr (std::is_same_v<Ret, void>) {
+                    (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                } else {
+                    return (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                }
+            }}} {};
 
     template<typename... CArgs>
     constexpr Ret operator()(CArgs&&... args) const noexcept {
