@@ -708,17 +708,35 @@ public:
 
     template<typename... CArgs>
     constexpr Ret operator()(CArgs&&... args) const noexcept {
-        return std::visit(
-            overload{
-                [](std::monostate) {},
-                [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
-                [&](const function_and_data_ptr& f) {
-                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                },
-                [&](const function_and_const_data_ptr& f) {
-                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                }},
-            data);
+        if constexpr (std::is_same_v<Ret, void>) {
+            std::visit(
+                overload{
+                    [](std::monostate) {
+                        terminate_with("small_function called without an implementation");
+                    },
+                    [&](function_ptr f) { (*f)(std::forward<CArgs>(args)...); },
+                    [&](const function_and_data_ptr& f) {
+                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    },
+                    [&](const function_and_const_data_ptr& f) {
+                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    }},
+                data);
+        } else {
+            return std::visit(
+                overload{
+                    [](std::monostate) -> Ret {
+                        terminate_with("small_function called without an implementation");
+                    },
+                    [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
+                    [&](const function_and_data_ptr& f) {
+                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    },
+                    [&](const function_and_const_data_ptr& f) {
+                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    }},
+                data);
+        }
     }
 
     constexpr bool empty() const noexcept {
