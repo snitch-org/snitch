@@ -35,7 +35,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
    - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)` and  `TEMPLATE_TEST_CASE(name, tags, types...)`.
-   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`, `REQUIRE_THAT(expr, matcher)`, `CHECK_THAT(expr, matcher)`, .
+   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `REQUIRE_THAT(expr, matcher)`, `CHECK_THAT(expr, matcher)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Nesting multiple tests in a single test case with `SECTION(name, description)`.
    - Capturing context information to display on failure with `CAPTURE(vars...)` and `INFO(message)`.
