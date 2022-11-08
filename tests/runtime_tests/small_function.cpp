@@ -2,6 +2,7 @@
 
 std::size_t test_object_instances = 0u;
 bool        function_called       = false;
+int         return_value          = 0u;
 
 struct test_object {
     test_object() noexcept {
@@ -56,6 +57,17 @@ template struct test_class<function_2_int>;
 template<typename T>
 struct type_holder {};
 
+// MSVC has a bug that prevents us from writing the test nicely. Work around it.
+// https://developercommunity.visualstudio.com/t/Parameter-pack-argument-is-not-recognize/10191888
+template<typename R, typename... Args>
+void call_function(snatch::small_function<R(Args...) noexcept>& f) {
+    if constexpr (std::is_same_v<R, void>) {
+        std::apply(f, std::tuple<Args...>{});
+    } else {
+        return_value = std::apply(f, std::tuple<Args...>{});
+    }
+}
+
 TEMPLATE_TEST_CASE(
     "small function",
     "[utility]",
@@ -65,114 +77,67 @@ TEMPLATE_TEST_CASE(
     function_2_int) {
 
     [&]<typename R, typename... Args>(type_holder<R(Args...) noexcept>) {
-        auto run_tests = [&](Args... values) {
-            snatch::small_function<TestType> f;
+        snatch::small_function<TestType> f;
 
-            test_object_instances                    = 0u;
-            function_called                          = false;
-            constexpr std::size_t expected_instances = sizeof...(Args) > 0 ? 2u : 0u;
+        test_object_instances                    = 0u;
+        return_value                             = 0u;
+        function_called                          = false;
+        constexpr std::size_t expected_instances = sizeof...(Args) > 0 ? 3u : 0u;
 
-            SECTION("from free function") {
-                f = &test_class<TestType>::method_static;
+        SECTION("from free function") {
+            f = &test_class<TestType>::method_static;
 
-                if constexpr (std::is_same_v<R, void>) {
-                    if constexpr (sizeof...(Args) > 0) {
-                        f(values...);
-                    } else {
-                        f();
-                    }
-                } else {
-                    int return_value = 0;
-                    if constexpr (sizeof...(Args) > 0) {
-                        return_value = f(values...);
-                    } else {
-                        return_value = f();
-                    }
-                    CHECK(return_value == 44);
-                }
+            call_function(f);
 
-                CHECK(function_called);
-                CHECK(test_object_instances <= expected_instances);
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 44);
             }
+            CHECK(test_object_instances <= expected_instances);
+        }
 
-            SECTION("from non-const member function") {
-                test_class<TestType> obj;
-                f = {obj, snatch::constant<&test_class<TestType>::method>{}};
+        SECTION("from non-const member function") {
+            test_class<TestType> obj;
+            f = {obj, snatch::constant<&test_class<TestType>::method>{}};
 
-                if constexpr (std::is_same_v<R, void>) {
-                    if constexpr (sizeof...(Args) > 0) {
-                        f(values...);
-                    } else {
-                        f();
-                    }
-                } else {
-                    int return_value = 0;
-                    if constexpr (sizeof...(Args) > 0) {
-                        return_value = f(values...);
-                    } else {
-                        return_value = f();
-                    }
-                    CHECK(return_value == 42);
-                }
+            call_function(f);
 
-                CHECK(function_called);
-                CHECK(test_object_instances <= expected_instances);
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 42);
             }
+            CHECK(test_object_instances <= expected_instances);
+        }
 
-            SECTION("from const member function") {
-                const test_class<TestType> obj;
-                f = {obj, snatch::constant<&test_class<TestType>::method_const>{}};
+        SECTION("from const member function") {
+            const test_class<TestType> obj;
+            f = {obj, snatch::constant<&test_class<TestType>::method_const>{}};
 
-                if constexpr (std::is_same_v<R, void>) {
-                    if constexpr (sizeof...(Args) > 0) {
-                        f(values...);
-                    } else {
-                        f();
-                    }
-                } else {
-                    int return_value = 0;
-                    if constexpr (sizeof...(Args) > 0) {
-                        return_value = f(values...);
-                    } else {
-                        return_value = f();
-                    }
-                    CHECK(return_value == 43);
-                }
+            call_function(f);
 
-                CHECK(function_called);
-                CHECK(test_object_instances <= expected_instances);
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 43);
             }
+            CHECK(test_object_instances <= expected_instances);
+        }
 
-            SECTION("from lambda") {
-                f = snatch::small_function<TestType>{[](Args...) noexcept -> R {
-                    function_called = true;
-                    if constexpr (!std::is_same_v<R, void>) {
-                        return 45;
-                    }
-                }};
-
-                if constexpr (std::is_same_v<R, void>) {
-                    if constexpr (sizeof...(Args) > 0) {
-                        f(values...);
-                    } else {
-                        f();
-                    }
-                } else {
-                    int return_value = 0;
-                    if constexpr (sizeof...(Args) > 0) {
-                        return_value = f(values...);
-                    } else {
-                        return_value = f();
-                    }
-                    CHECK(return_value == 45);
+        SECTION("from lambda") {
+            f = snatch::small_function<TestType>{[](Args...) noexcept -> R {
+                function_called = true;
+                if constexpr (!std::is_same_v<R, void>) {
+                    return 45;
                 }
+            }};
 
-                CHECK(function_called);
-                CHECK(test_object_instances <= expected_instances);
+            call_function(f);
+
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 45);
             }
-        };
-
-        std::apply(run_tests, std::tuple<Args...>{});
+            CHECK(test_object_instances <= expected_instances);
+        }
     }
     (type_holder<TestType>{});
 };
