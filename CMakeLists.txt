@@ -62,3 +62,9 @@ configure_package_config_file(
 install(FILES
   "${PROJECT_BINARY_DIR}/snatch-config.cmake"
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snatch COMPONENT Development)
+
+# Setup tests
+if (SNATCH_DO_TEST)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

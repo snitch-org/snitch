@@ -5,7 +5,7 @@ on: push
 env:
   EM_VERSION: 2.0.16
   EM_CACHE_FOLDER: 'emsdk-cache'
-  CODECOV_TOKEN: '99959e57-0b92-48b4-bf55-559d43d41b58'
+  CODECOV_TOKEN: 'f8197851-e753-4291-a835-2d76090f2c92'
 
 jobs:
   build:
@@ -65,21 +65,26 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}}
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNATCH_DO_TEST=1
 
     - name: Build
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --parallel 2
 
-    # - name: Test
-    #   shell: bash
-    #   working-directory: ${{github.workspace}}/build
-    #   run: cmake --build . --config ${{matrix.build-type}} --target snatch_tests
+    - name: Test (with doctest)
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_run
 
-    # - name: Compute Code Coverage
-    #   if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
-    #   run: |
-    #     gcov ${{github.workspace}}/build/tests/CMakeFiles/oup_runtime_tests.dir/*.gcda
-    #     ls | grep '.gcov' | grep -v observable_unique_ptr | xargs -d"\n" rm
-    #     bash <(curl -s https://codecov.io/bash)
+    - name: Test (with snatch)
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_run
+
+    - name: Compute Code Coverage
+      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
+      run: |
+        gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/runtime_tests/*.gcda ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests_self.dir/runtime_tests/*.gcda
+        ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
+        bash <(curl -s https://codecov.io/bash)

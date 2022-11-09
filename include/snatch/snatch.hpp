@@ -117,6 +117,10 @@ struct section_id {
 };
 } // namespace snatch
 
+namespace snatch::matchers {
+enum class match_status { failed, matched };
+} // namespace snatch::matchers
+
 // Implementation details.
 // -----------------------
 
@@ -155,8 +159,6 @@ template<typename T>
 constexpr std::string_view type_name = impl::get_type_name<T>();
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
-
-struct registry;
 } // namespace snatch
 
 // Public utilities: small_vector.
@@ -534,6 +536,12 @@ public:
     constexpr operator small_string_view() const noexcept {
         return span();
     }
+    constexpr char& operator[](std::size_t i) noexcept {
+        return span()[i];
+    }
+    constexpr char operator[](std::size_t i) const noexcept {
+        return const_cast<small_string*>(this)->span()[i];
+    }
     constexpr operator std::string_view() const noexcept {
         return std::string_view(data(), length());
     }
@@ -618,6 +626,14 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 
 [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+
+template<typename T, typename U>
+concept matcher_for = requires(const T& m, const U& value) {
+    { m.match(value) }
+    ->convertible_to<bool>;
+    { m.describe_match(value, matchers::match_status{}) }
+    ->convertible_to<std::string_view>;
+};
 } // namespace snatch
 
 // Public utilities: small_function.
@@ -670,31 +686,57 @@ public:
 
     template<typename T, auto M>
     constexpr small_function(T& obj, constant<M>) noexcept :
-        data{function_and_data_ptr{&obj, [](void* ptr, Args... args) noexcept {
-                                       (static_cast<T*>(ptr)->*constant<M>::value)(
-                                           std::move(args)...);
-                                   }}} {};
+        data{function_and_data_ptr{
+            &obj, [](void* ptr, Args... args) noexcept {
+                if constexpr (std::is_same_v<Ret, void>) {
+                    (static_cast<T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                } else {
+                    return (static_cast<T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                }
+            }}} {};
 
     template<typename T, auto M>
     constexpr small_function(const T& obj, constant<M>) noexcept :
-        data{function_and_const_data_ptr{&obj, [](const void* ptr, Args... args) noexcept {
-                                             (static_cast<const T*>(ptr)->*constant<M>::value)(
-                                                 std::move(args)...);
-                                         }}} {};
+        data{function_and_const_data_ptr{
+            &obj, [](const void* ptr, Args... args) noexcept {
+                if constexpr (std::is_same_v<Ret, void>) {
+                    (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                } else {
+                    return (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
+                }
+            }}} {};
 
     template<typename... CArgs>
     constexpr Ret operator()(CArgs&&... args) const noexcept {
-        return std::visit(
-            overload{
-                [](std::monostate) {},
-                [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
-                [&](const function_and_data_ptr& f) {
-                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                },
-                [&](const function_and_const_data_ptr& f) {
-                    return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                }},
-            data);
+        if constexpr (std::is_same_v<Ret, void>) {
+            std::visit(
+                overload{
+                    [](std::monostate) {
+                        terminate_with("small_function called without an implementation");
+                    },
+                    [&](function_ptr f) { (*f)(std::forward<CArgs>(args)...); },
+                    [&](const function_and_data_ptr& f) {
+                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    },
+                    [&](const function_and_const_data_ptr& f) {
+                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    }},
+                data);
+        } else {
+            return std::visit(
+                overload{
+                    [](std::monostate) -> Ret {
+                        terminate_with("small_function called without an implementation");
+                    },
+                    [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
+                    [&](const function_and_data_ptr& f) {
+                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    },
+                    [&](const function_and_const_data_ptr& f) {
+                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    }},
+                data);
+        }
     }
 
     constexpr bool empty() const noexcept {
@@ -864,8 +906,24 @@ struct extracted_binary_expression {
 
     explicit operator bool() const noexcept {
         if (!O{}(lhs, rhs)) {
-            if (!expr.append(lhs) || !expr.append(O::inverse) || !expr.append(rhs)) {
-                expr.actual.clear();
+            if constexpr (matcher_for<T, U>) {
+                using namespace snatch::matchers;
+                constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
+                                                                          : match_status::matched;
+                if (!expr.append(lhs.describe_match(rhs, status))) {
+                    expr.actual.clear();
+                }
+            } else if constexpr (matcher_for<U, T>) {
+                using namespace snatch::matchers;
+                constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
+                                                                          : match_status::matched;
+                if (!expr.append(rhs.describe_match(lhs, status))) {
+                    expr.actual.clear();
+                }
+            } else {
+                if (!expr.append(lhs) || !expr.append(O::inverse) || !expr.append(rhs)) {
+                    expr.actual.clear();
+                }
             }
 
             return true;
@@ -1155,15 +1213,57 @@ const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
 
 namespace snatch::matchers {
 struct contains_substring {
-    mutable small_string<max_message_length> description_buffer;
-    std::string_view                         substring_pattern;
+    std::string_view substring_pattern;
 
     explicit contains_substring(std::string_view pattern) noexcept;
 
     bool match(std::string_view message) const noexcept;
 
-    std::string_view describe_fail(std::string_view message) const noexcept;
+    small_string<max_message_length>
+    describe_match(std::string_view message, match_status status) const noexcept;
 };
+
+template<typename T, std::size_t N>
+struct is_any_of {
+    small_vector<T, N> list;
+
+    template<typename... Args>
+    explicit is_any_of(const Args&... args) noexcept : list({args...}) {}
+
+    bool match(const T& value) const noexcept {
+        for (const auto& v : list) {
+            if (v == value) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    small_string<max_message_length>
+    describe_match(const T& value, match_status status) const noexcept {
+        small_string<max_message_length> description_buffer;
+        append_or_truncate(
+            description_buffer, "'", value, "' was ", (status == match_status::failed ? "not" : ""),
+            " found in {");
+
+        bool first = true;
+        for (const auto& v : list) {
+            if (!first) {
+                append_or_truncate(description_buffer, ", '", v, "'");
+            } else {
+                append_or_truncate(description_buffer, "'", v, "'");
+            }
+            first = false;
+        }
+        append_or_truncate(description_buffer, "}");
+
+        return description_buffer;
+    }
+};
+
+template<typename T, typename... Args>
+is_any_of(T, Args...) -> is_any_of<T, sizeof...(Args) + 1>;
 
 struct with_what_contains : private contains_substring {
     explicit with_what_contains(std::string_view pattern) noexcept;
@@ -1174,10 +1274,21 @@ struct with_what_contains : private contains_substring {
     }
 
     template<typename E>
-    std::string_view describe_fail(const E& e) const noexcept {
-        return contains_substring::describe_fail(e.what());
+    small_string<max_message_length>
+    describe_match(const E& e, match_status status) const noexcept {
+        return contains_substring::describe_match(e.what(), status);
     }
 };
+
+template<typename T, matcher_for<T> M>
+bool operator==(const T& value, const M& m) noexcept {
+    return m.match(value);
+}
+
+template<typename T, matcher_for<T> M>
+bool operator==(const M& m, const T& value) noexcept {
+    return m.match(value);
+}
 } // namespace snatch::matchers
 
 // Compiler warning handling.
@@ -1229,13 +1340,18 @@ struct with_what_contains : private contains_substring {
 // -------------------
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snatch::tests.add(NAME, TAGS) =                                                            \
             [](snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) =                                \
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snatch::tests.add_with_types<TYPES>(NAME, TAGS) = []<typename TestType>(                   \
+            snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
+
+#define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snatch::tests.add_with_types<std::tuple<__VA_ARGS__>>(NAME, TAGS) = []<typename TestType>( \
             snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_SECTION1(NAME)                                                                      \
@@ -1301,10 +1417,29 @@ struct with_what_contains : private contains_substring {
         SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
+#define SNATCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
+    do {                                                                                           \
+        const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
+        const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
+        if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
+            FAIL(SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                            \
+        }                                                                                          \
+    } while (0)
+
+#define SNATCH_CHECK_THAT(EXPR, MATCHER)                                                           \
+    do {                                                                                           \
+        const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
+        const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
+        if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
+            FAIL_CHECK(SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                      \
+        }                                                                                          \
+    } while (0)
+
 // clang-format off
 #if SNATCH_WITH_SHORTHAND_MACROS
 #    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
+#    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
 #    define CAPTURE(...)                               SNATCH_CAPTURE(__VA_ARGS__)
 #    define INFO(...)                                  SNATCH_INFO(__VA_ARGS__)
@@ -1313,6 +1448,8 @@ struct with_what_contains : private contains_substring {
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
 #    define FAIL_CHECK(MESSAGE)                        SNATCH_FAIL_CHECK(MESSAGE)
 #    define SKIP(MESSAGE)                              SNATCH_SKIP(MESSAGE)
+#    define REQUIRE_THAT(EXP, MATCHER)                 SNATCH_REQUIRE(EXP, MATCHER)
+#    define CHECK_THAT(EXP, MATCHER)                   SNATCH_CHECK(EXP, MATCHER)
 #endif
 // clang-format on
 
@@ -1375,7 +1512,7 @@ struct with_what_contains : private contains_substring {
                     snatch::tests.report_failure(                                                  \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_fail(e));                                               \
+                        (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
                     SNATCH_TESTING_ABORT;                                                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
@@ -1405,7 +1542,7 @@ struct with_what_contains : private contains_substring {
                     snatch::tests.report_failure(                                                  \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_fail(e));                                               \
+                        (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \

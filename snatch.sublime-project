@@ -50,8 +50,32 @@
 					"shell_cmd": "make -j12 rebuild_cache",
 				},
 				{
+					"name": "test",
+					"shell_cmd": "make -j12 test",
+				},
+				{
+					"name": "snatch_runtime_tests_run",
+					"shell_cmd": "make -j12 snatch_runtime_tests_run",
+				},
+				{
+					"name": "snatch_runtime_tests_self_run",
+					"shell_cmd": "make -j12 snatch_runtime_tests_self_run",
+				},
+				{
+					"name": "doctest_with_main",
+					"shell_cmd": "make -j12 doctest_with_main",
+				},
+				{
 					"name": "snatch",
 					"shell_cmd": "make -j12 snatch",
+				},
+				{
+					"name": "snatch_runtime_tests",
+					"shell_cmd": "make -j12 snatch_runtime_tests",
+				},
+				{
+					"name": "snatch_runtime_tests_self",
+					"shell_cmd": "make -j12 snatch_runtime_tests_self",
 				},
 				{
 					"name": "src/snatch.o",
@@ -59,12 +83,12 @@
 				},
 				{
 					"name": "src/snatch.i",
-					"shell_cmd": "make -j12 src/snatch.i",
+					"shell_cmd": "make -j12 src/snatch.i"
 				},
 				{
 					"name": "src/snatch.s",
-					"shell_cmd": "make -j12 src/snatch.s",
-				}
+					"shell_cmd": "make -j12 src/snatch.s"
+				},
 			],
 			"working_dir": "$folder/build",
 		}

@@ -62,18 +62,32 @@ constexpr const char* get_format_code() noexcept {
 
 template<typename T>
 bool append_fmt(small_string_span ss, T value) noexcept {
-    const int return_code = std::snprintf(ss.end(), 0, get_format_code<T>(), value);
+    if (ss.available() <= 1) {
+        // snprintf will always print a null-terminating character,
+        // so abort early if only space for one or zero character, as
+        // this would clobber the original string.
+        return false;
+    }
+
+    // Calculate required length.
+    const int return_code = std::snprintf(nullptr, 0, get_format_code<T>(), value);
     if (return_code < 0) {
         return false;
     }
 
-    const std::size_t length    = static_cast<std::size_t>(return_code);
+    // 'return_code' holds the number of characters that are required,
+    // excluding the null-terminating character, which always gets appended,
+    // so we need to +1.
+    const std::size_t length    = static_cast<std::size_t>(return_code) + 1;
     const bool        could_fit = length <= ss.available();
 
     const std::size_t offset     = ss.size();
     const std::size_t prev_space = ss.available();
     ss.resize(std::min(ss.size() + length, ss.capacity()));
     std::snprintf(ss.begin() + offset, prev_space, get_format_code<T>(), value);
+
+    // Pop the null-terminating character, always printed unfortunately.
+    ss.pop_back();
 
     return could_fit;
 }
@@ -134,7 +148,7 @@ bool replace_all(
 
     if (replacement.size() == pattern.size()) {
         std::string_view sv(string.begin(), string.size());
-        auto             pos = sv.find_first_of(pattern);
+        auto             pos = sv.find(pattern);
 
         while (pos != sv.npos) {
             // Replace pattern by replacement
@@ -179,10 +193,13 @@ bool replace_all(
                 overflow = true;
             }
             string.grow(char_growth);
-            std::rotate(string.begin() + pos, string.end() - char_growth, string.end());
+
+            if (char_diff <= string.size() && string.size() - char_diff > pos) {
+                std::rotate(string.begin() + pos, string.end() - char_diff, string.end());
+            }
 
             // Replace pattern by replacement
-            const std::size_t max_chars = pattern.size() + char_growth;
+            const std::size_t max_chars = std::min(replacement.size(), string.size() - pos);
             std::memcpy(string.data() + pos, replacement.data(), max_chars);
             pos += max_chars;
 
@@ -383,11 +400,13 @@ bool contains_substring::match(std::string_view message) const noexcept {
     return message.find(substring_pattern) != message.npos;
 }
 
-std::string_view contains_substring::describe_fail(std::string_view message) const noexcept {
-    description_buffer.clear();
+small_string<max_message_length>
+contains_substring::describe_match(std::string_view message, match_status status) const noexcept {
+    small_string<max_message_length> description_buffer;
     append_or_truncate(
-        description_buffer, "could not find '", substring_pattern, "' in '", message, "'");
-    return description_buffer.str();
+        description_buffer, (status == match_status::matched ? "found" : "could not find"), " '",
+        substring_pattern, "' in '", message, "'");
+    return description_buffer;
 }
 
 with_what_contains::with_what_contains(std::string_view pattern) noexcept :
@@ -705,7 +724,12 @@ test_run registry::run(test_case& test) noexcept {
 
     test.state = test_state::success;
 
-    test_run state{.reg = *this, .test = test};
+    test_run state {
+        .reg = *this, .test = test, .sections = {}, .captures = {}, .asserts = 0,
+#if SNATCH_WITH_TIMINGS
+        .duration = 0.0f
+#endif
+    };
 
 #if SNATCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;

@@ -1,5 +1,7 @@
 # snatch
 
+![Build Status](https://github.com/cschreib/snatch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snatch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snatch)
+
 Lightweight C++20 testing framework.
 
 The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly testing framework. The design philosophy is to keep the testing API lean, including only what is strictly necessary to present clear messages when a test fails.
@@ -32,8 +34,8 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
    - Simple test cases with `TEST_CASE(name, tags)`.
-   - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)`.
-   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
+   - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)` and  `TEMPLATE_TEST_CASE(name, tags, types...)`.
+   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `REQUIRE_THAT(expr, matcher)`, `CHECK_THAT(expr, matcher)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
    - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
    - Nesting multiple tests in a single test case with `SECTION(name, description)`.
    - Capturing context information to display on failure with `CAPTURE(vars...)` and `INFO(message)`.
@@ -118,10 +120,10 @@ Results for Debug builds:
 
 |                 | _snatch_ (Debug)   | _Catch2_ (Debug)   | _doctest_ (Debug)   | _Boost UT_ (Debug)  |
 |-----------------|--------------------|--------------------|---------------------|---------------------|
-| Build framework | 1.7s               | 41s                | 2.4s                | 0s                  |
+| Build framework | 1.6s               | 41s                | 2.4s                | 0s                  |
 | Build tests     | 68s                | 86s                | 76s                 | 113s                |
 | Build all       | 70s                | 127s               | 78s                 | 113s                |
-| Run tests       | 17ms               | 74ms               | 59ms                | 20ms                |
+| Run tests       | 16ms               | 74ms               | 59ms                | 20ms                |
 | Library size    | 2.70MB             | 34.6MB             | 2.8MB               | 0MB                 |
 | Executable size | 31.4MB             | 51.5MB             | 38.6MB              | 51.7MB              |
 
@@ -130,9 +132,9 @@ Results for Release builds:
 |                 | _snatch_ (Release) | _Catch2_ (Release) | _doctest_ (Release)| _Boost UT_ (Release) |
 |-----------------|--------------------|--------------------|--------------------|----------------------|
 | Build framework | 2.4s               | 48s                | 4.1s               | 0s                   |
-| Build tests     | 140s               | 310s               | 208s               | 279s                 |
-| Build all       | 142s               | 358s               | 212s               | 279s                 |
-| Run tests       | 9ms                | 36ms               | 35ms               | 10ms                 |
+| Build tests     | 137s               | 310s               | 208s               | 279s                 |
+| Build all       | 140s               | 358s               | 212s               | 279s                 |
+| Run tests       | 11ms               | 36ms               | 35ms               | 10ms                 |
 | Library size    | 0.60MB             | 2.5MB              | 0.39MB             | 0MB                  |
 | Executable size | 9.3MB              | 19.1MB             | 15.2MB             | 11.3MB               |
 
@@ -153,6 +155,11 @@ This must be called at namespace, global, or class scope; not inside a function 
 This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES`. `TYPES` must be a `std::tuple`. Within the test body, the current type can be accessed as `TestType`.
 
 
+`TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ };`
+
+This is equivalent to `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, std::tuple<TYPES...>)`, and is provided for compatibility with _Catch2_. It saves you having to type `std::tuple<>` if the list of types is used only once. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
+
+
 ### Test check macros
 
 The following macros can be used inside a test body, either immediately in the body itself, or inside a lambda function defined inside the body (if the lambda uses automatic by-reference capture, `[&]`). They _cannot_ be used inside other functions.
@@ -160,12 +167,22 @@ The following macros can be used inside a test body, either immediately in the b
 
 `REQUIRE(EXPR);`
 
-This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any. The value of each operand of the expression will be displayed on failure, provided the types involved can be serialized to a string. See [Custom string serialization](#custom-string-serialization) for more information.
+This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure if `EXPR` evaluates to `false`. On failure, the current test case is stopped. Execution then continues with the next test case, if any. The value of each operand of the expression will be displayed on failure, provided the types involved can be serialized to a string. See [Custom string serialization](#custom-string-serialization) for more information. If one of the operands is a [matcher](#matchers) and the operation is `==`, then this will report a failure if there is no match. Conversely, if the operation is `!=`, then this will report a failure if there is a match.
 
 
 `CHECK(EXPR);`
 
 This is similar to `REQUIRE`, except that on failure the test case continues. Further failures may be reported in the same test case.
+
+
+`REQUIRE_THAT(EXPR, MATCHER);`
+
+This is equivalent to `REQUIRE(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.
+
+
+`CHECK_THAT(EXPR, MATCHER);`
+
+This is equivalent to `CHECK(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.
 
 
 `FAIL(MSG);`
@@ -207,14 +224,49 @@ This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test cas
 
 Matchers in _snatch_ work differently than in _Catch2_. The required interface is:
 
- - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise
- - `matcher.describe_fail(obj)` must return a `std::string_view` describing why `obj` is not a match. The lifetime of the string referenced by the string view must be equal or greater than the lifetime of the matcher (e.g., the string view can point to a temporary buffer stored inside the matcher).
+ - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise.
+ - `matcher.describe_match(obj, status)` must return a value convertible to `std::string_view`, describing why `obj` is or is not a match, depending on the value of `snatch::matchers::match_status`.
+ - `matcher == obj` and `obj == matcher` must return `matcher.match(obj)`, and `matcher != obj` and `obj != matcher` must return `!matcher.match(obj)`; any matcher defined in the `snatch::matchers` namespace will have these operators defined automatically.
 
-
-Two matchers are provided with _snatch_:
+The following matchers are provided with _snatch_:
 
  - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
  - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+ - `snatch::matchers::is_any_of{T...}`: accepts an object of any type `T`, and will return a match if it is equal to any of the `T...`.
+
+
+Here is an example matcher that, given a prefix `p`, checks if a string starts with the prefix `"<p>:"`:
+```c++
+namespace snatch::matchers {
+struct has_prefix {
+    std::string_view prefix;
+
+    explicit has_prefix(std::string_view p) noexcept : prefix(p) {}
+
+    bool match(std::string_view s) const noexcept {
+        return s.starts_with(prefix) && s.size() >= prefix.size() + 1 && s[prefix.size()] == ':';
+    }
+
+    small_string<max_message_length>
+    describe_match(std::string_view s, match_status status) const noexcept {
+        small_string<max_message_length> message;
+        append_or_truncate(
+            message, status == match_status::matched ? "found" : "could not find", " prefix '",
+            prefix, ":' in '", s, "'");
+
+        if (status == match_status::failed) {
+            if (auto pos = s.find_first_of(':'); pos != s.npos) {
+                append_or_truncate(message, "; found prefix '", s.substr(0, pos), ":'");
+            } else {
+                append_or_truncate(message, "; no prefix found");
+            }
+        }
+
+        return message;
+    }
+};
+} // namespace snatch::matchers
+```
 
 
 ### Sections
