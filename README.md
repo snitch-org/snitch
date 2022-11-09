@@ -134,7 +134,7 @@ Results for Release builds:
 | Build framework | 2.4s               | 48s                | 4.1s               | 0s                   |
 | Build tests     | 137s               | 310s               | 208s               | 279s                 |
 | Build all       | 140s               | 358s               | 212s               | 279s                 |
-| Run tests       | 11s                | 36ms               | 35ms               | 10ms                 |
+| Run tests       | 11ms               | 36ms               | 35ms               | 10ms                 |
 | Library size    | 0.60MB             | 2.5MB              | 0.39MB             | 0MB                  |
 | Executable size | 9.3MB              | 19.1MB             | 15.2MB             | 11.3MB               |
 
