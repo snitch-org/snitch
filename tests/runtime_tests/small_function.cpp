@@ -84,8 +84,11 @@ TEMPLATE_TEST_CASE(
         function_called                          = false;
         constexpr std::size_t expected_instances = sizeof...(Args) > 0 ? 3u : 0u;
 
+        CHECK(f.empty());
+
         SECTION("from free function") {
             f = &test_class<TestType>::method_static;
+            CHECK(!f.empty());
 
             call_function(f);
 
@@ -99,6 +102,7 @@ TEMPLATE_TEST_CASE(
         SECTION("from non-const member function") {
             test_class<TestType> obj;
             f = {obj, snatch::constant<&test_class<TestType>::method>{}};
+            CHECK(!f.empty());
 
             call_function(f);
 
@@ -112,6 +116,7 @@ TEMPLATE_TEST_CASE(
         SECTION("from const member function") {
             const test_class<TestType> obj;
             f = {obj, snatch::constant<&test_class<TestType>::method_const>{}};
+            CHECK(!f.empty());
 
             call_function(f);
 
@@ -129,6 +134,7 @@ TEMPLATE_TEST_CASE(
                     return 45;
                 }
             }};
+            CHECK(!f.empty());
 
             call_function(f);
 
