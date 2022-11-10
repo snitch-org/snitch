@@ -19,7 +19,7 @@ struct event_deep_copy {
 
 event_deep_copy deep_copy(const snatch::event::data& e) {
     return std::visit(
-        snatch::overload(
+        snatch::overload{
             [](const snatch::event::assertion_failed& a) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::assertion_failed;
@@ -31,7 +31,7 @@ event_deep_copy deep_copy(const snatch::event::data& e) {
                 append_or_truncate(c.message, a.message);
                 return c;
             },
-            [](const auto&) -> event_deep_copy { snatch::terminate_with("event not handled"); }),
+            [](const auto&) -> event_deep_copy { snatch::terminate_with("event not handled"); }},
         e);
 }
 
