@@ -59,7 +59,7 @@ TEST_CASE("check", "[test macros]") {
 
     SECTION("unary") {
         SECTION("bool true") {
-            const bool value = true;
+            bool value = true;
 
 #define SNATCH_CURRENT_TEST mock_run
             SNATCH_CHECK(value);
@@ -71,7 +71,7 @@ TEST_CASE("check", "[test macros]") {
         }
 
         SECTION("bool false") {
-            const bool value = false;
+            bool value = false;
 
 #define SNATCH_CURRENT_TEST mock_run
             // clang-format off
