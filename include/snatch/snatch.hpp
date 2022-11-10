@@ -1380,7 +1380,7 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         if (SNATCH_EXPR("REQUIRE", EXP)) {                                                         \
-            snatch::tests.report_failure(                                                          \
+            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
             SNATCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
@@ -1394,7 +1394,7 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         if (SNATCH_EXPR("CHECK", EXP)) {                                                           \
-            snatch::tests.report_failure(                                                          \
+            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
@@ -1402,18 +1402,21 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
-        snatch::tests.report_failure(SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));        \
+        SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
+            SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
         SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
 #define SNATCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
-        snatch::tests.report_failure(SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));        \
+        SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
+            SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
     } while (0)
 
 #define SNATCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
-        snatch::tests.report_skipped(SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));        \
+        SNATCH_CURRENT_TEST.reg.report_skipped(                                                    \
+            SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
         SNATCH_TESTING_ABORT;                                                                      \
     } while (0)
 
@@ -1466,12 +1469,12 @@ bool operator==(const M& m, const T& value) noexcept {
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
@@ -1490,12 +1493,12 @@ bool operator==(const M& m, const T& value) noexcept {
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
@@ -1509,7 +1512,7 @@ bool operator==(const M& m, const T& value) noexcept {
                 SNATCH_FAIL(#EXCEPTION " expected but no exception thrown");                       \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
                         (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
@@ -1519,12 +1522,12 @@ bool operator==(const M& m, const T& value) noexcept {
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
@@ -1539,7 +1542,7 @@ bool operator==(const M& m, const T& value) noexcept {
                 SNATCH_FAIL_CHECK(#EXCEPTION " expected but no exception thrown");                 \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
                         (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
@@ -1548,12 +1551,12 @@ bool operator==(const M& m, const T& value) noexcept {
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    snatch::tests.report_failure(                                                  \
+                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
