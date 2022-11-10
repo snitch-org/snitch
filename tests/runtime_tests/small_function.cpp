@@ -127,7 +127,7 @@ TEMPLATE_TEST_CASE(
             CHECK(test_object_instances <= expected_instances);
         }
 
-        SECTION("from lambda") {
+        SECTION("from stateless lambda") {
             f = snatch::small_function<TestType>{[](Args...) noexcept -> R {
                 function_called = true;
                 if constexpr (!std::is_same_v<R, void>) {
@@ -141,6 +141,27 @@ TEMPLATE_TEST_CASE(
             CHECK(function_called);
             if (!std::is_same_v<R, void>) {
                 CHECK(return_value == 45);
+            }
+            CHECK(test_object_instances <= expected_instances);
+        }
+
+        SECTION("from stateful lambda") {
+            int  answer = 46;
+            auto lambda = [&](Args...) noexcept -> R {
+                function_called = true;
+                if constexpr (!std::is_same_v<R, void>) {
+                    return answer;
+                }
+            };
+
+            f = snatch::small_function<TestType>{lambda};
+            CHECK(!f.empty());
+
+            call_function(f);
+
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 46);
             }
             CHECK(test_object_instances <= expected_instances);
         }

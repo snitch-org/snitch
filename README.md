@@ -515,6 +515,15 @@ snatch::tests.report_callback = [](const snatch::registry& r, const snatch::even
     /* ... */
 };
 
+// Stateful lambda (with captures).
+// -------------------------------
+auto lambda = [&](const snatch::registry& r, const snatch::event::data& e) noexcept {
+    /* ... */
+};
+
+// 'lambda' must remain alive for the duration of the tests!
+snatch::tests.report_callback = lambda;
+
 // Member function (const or non-const, up to you).
 // ------------------------------------------------
 struct Reporter {

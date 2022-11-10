@@ -684,6 +684,9 @@ public:
 
     constexpr small_function(function_ptr ptr) noexcept : data{ptr} {};
 
+    template<convertible_to<function_ptr> T>
+    constexpr small_function(T&& obj) noexcept : data{static_cast<function_ptr>(obj)} {};
+
     template<typename T, auto M>
     constexpr small_function(T& obj, constant<M>) noexcept :
         data{function_and_data_ptr{
@@ -705,6 +708,36 @@ public:
                     return (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
                 }
             }}} {};
+
+    template<typename T>
+    constexpr small_function(T& obj) noexcept :
+        data{function_and_data_ptr{&obj, [](void* ptr, Args... args) noexcept {
+                                       if constexpr (std::is_same_v<Ret, void>) {
+                                           static_cast<T*>(ptr)->operator()(std::move(args)...);
+                                       } else {
+                                           return static_cast<T*>(ptr)->operator()(
+                                               std::move(args)...);
+                                       }
+                                   }}} {};
+
+    template<typename T>
+    constexpr small_function(const T& obj) noexcept :
+        data{function_and_const_data_ptr{
+            &obj, [](const void* ptr, Args... args) noexcept {
+                if constexpr (std::is_same_v<Ret, void>) {
+                    static_cast<const T*>(ptr)->operator()(std::move(args)...);
+                } else {
+                    return static_cast<const T*>(ptr)->operator()(std::move(args)...);
+                }
+            }}} {};
+
+    // Prevent inadervently using temporary stateful lambda; not supported at the moment.
+    template<typename T>
+    constexpr small_function(T&& obj) noexcept = delete;
+
+    // Prevent inadervently using temporary object; not supported at the moment.
+    template<typename T, auto M>
+    constexpr small_function(T&& obj, constant<M>) noexcept = delete;
 
     template<typename... CArgs>
     constexpr Ret operator()(CArgs&&... args) const noexcept {
