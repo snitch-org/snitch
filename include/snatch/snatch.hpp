@@ -731,11 +731,11 @@ public:
                 }
             }}} {};
 
-    // Prevent inadervently using temporary stateful lambda; not supported at the moment.
+    // Prevent inadvertently using temporary stateful lambda; not supported at the moment.
     template<typename T>
     constexpr small_function(T&& obj) noexcept = delete;
 
-    // Prevent inadervently using temporary object; not supported at the moment.
+    // Prevent inadvertently using temporary object; not supported at the moment.
     template<typename T, auto M>
     constexpr small_function(T&& obj, constant<M>) noexcept = delete;
 
