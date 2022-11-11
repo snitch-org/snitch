@@ -241,8 +241,6 @@ namespace snatch::matchers {
 struct has_prefix {
     std::string_view prefix;
 
-    explicit has_prefix(std::string_view p) noexcept : prefix(p) {}
-
     bool match(std::string_view s) const noexcept {
         return s.starts_with(prefix) && s.size() >= prefix.size() + 1 && s[prefix.size()] == ':';
     }
