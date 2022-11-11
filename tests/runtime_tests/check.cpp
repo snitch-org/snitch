@@ -199,4 +199,228 @@ TEST_CASE("check", "[test macros]") {
             CHECK(event.message == "CHECK(value++), got 0"sv);
         }
     }
+
+    SECTION("binary") {
+        SECTION("integer == pass") {
+            int value1 = 0;
+            int value2 = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value1 == value2);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 0);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer != pass") {
+            int value1 = 0;
+            int value2 = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value1 != value2);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer < pass") {
+            int value1 = 0;
+            int value2 = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value1 < value2);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer > pass") {
+            int value1 = 1;
+            int value2 = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value1 > value2);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 1);
+            CHECK(value2 == 0);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer <= pass") {
+            int value1 = 0;
+            int value2 = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value1 <= value2);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer >= pass") {
+            int value1 = 1;
+            int value2 = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value1 >= value2);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 1);
+            CHECK(value2 == 0);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer == fail") {
+            int value1 = 0;
+            int value2 = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value1 == value2); const std::size_t failure_line = __LINE__;
+            // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 1);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value1 == value2), got 0 != 1"sv);
+        }
+
+        SECTION("integer != fail") {
+            int value1 = 0;
+            int value2 = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value1 != value2); const std::size_t failure_line = __LINE__;
+            // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 0);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value1 != value2), got 0 == 0"sv);
+        }
+
+        SECTION("integer < fail") {
+            int value1 = 1;
+            int value2 = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value1 < value2); const std::size_t failure_line = __LINE__;
+            // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 1);
+            CHECK(value2 == 0);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value1 < value2), got 1 >= 0"sv);
+        }
+
+        SECTION("integer > fail") {
+            int value1 = 0;
+            int value2 = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value1 > value2); const std::size_t failure_line = __LINE__;
+            // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 1);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value1 > value2), got 0 <= 1"sv);
+        }
+
+        SECTION("integer <= fail") {
+            int value1 = 1;
+            int value2 = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value1 <= value2); const std::size_t failure_line = __LINE__;
+            // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 1);
+            CHECK(value2 == 0);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value1 <= value2), got 1 > 0"sv);
+        }
+
+        SECTION("integer >= fail") {
+            int value1 = 0;
+            int value2 = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value1 >= value2); const std::size_t failure_line = __LINE__;
+            // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value1 == 0);
+            CHECK(value2 == 1);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value1 >= value2), got 0 < 1"sv);
+        }
+    }
 };
