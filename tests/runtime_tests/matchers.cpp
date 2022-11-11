@@ -6,8 +6,6 @@ namespace snatch::matchers {
 struct has_prefix {
     std::string_view prefix;
 
-    explicit has_prefix(std::string_view p) noexcept : prefix(p) {}
-
     bool match(std::string_view s) const noexcept {
         return s.starts_with(prefix) && s.size() >= prefix.size() + 1 && s[prefix.size()] == ':';
     }
@@ -34,12 +32,14 @@ struct has_prefix {
 
 TEST_CASE("matcher", "[utility]") {
     // Passes
-    CHECK("info: hello"sv == snatch::matchers::has_prefix("info"));
-    CHECK("info: hello"sv != snatch::matchers::has_prefix("warning"));
-    CHECK("hello"sv != snatch::matchers::has_prefix("info"));
+    CHECK("info: hello"sv == snatch::matchers::has_prefix{"info"});
+    CHECK("info: hello"sv != snatch::matchers::has_prefix{"warning"});
+    CHECK("hello"sv != snatch::matchers::has_prefix{"info"});
+
+    snatch::matchers::with_what_contains{"error"};
 
     // Failures
-    // CHECK("warning: hello"sv == snatch::matchers::has_prefix("info"));
-    // CHECK("warning: hello"sv != snatch::matchers::has_prefix("warning"));
-    // CHECK("hello"sv == snatch::matchers::has_prefix("info"));
+    // CHECK("warning: hello"sv == snatch::matchers::has_prefix{"info"});
+    // CHECK("warning: hello"sv != snatch::matchers::has_prefix{"warning"});
+    // CHECK("hello"sv == snatch::matchers::has_prefix{"info"});
 };
