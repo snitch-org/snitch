@@ -35,6 +35,15 @@ event_deep_copy deep_copy(const snatch::event::data& e) {
         e);
 }
 
+#define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
+    CHECK(ACTUAL.test_id_name == EXPECTED.name);                                                   \
+    CHECK(ACTUAL.test_id_tags == EXPECTED.tags);                                                   \
+    CHECK(ACTUAL.test_id_type == EXPECTED.type)
+
+#define CHECK_EVENT_LOCATION(ACTUAL, FILE, LINE)                                                   \
+    CHECK(ACTUAL.location_file == std::string_view(FILE));                                         \
+    CHECK(ACTUAL.location_line == LINE)
+
 TEST_CASE("check", "[test macros]") {
     snatch::registry mock_registry;
 
@@ -86,12 +95,108 @@ TEST_CASE("check", "[test macros]") {
             const auto& event = last_event.value();
             CHECK(event.event_type == event_deep_copy::type::assertion_failed);
 
-            CHECK(event.test_id_name == mock_case.id.name);
-            CHECK(event.test_id_tags == mock_case.id.tags);
-            CHECK(event.test_id_type == mock_case.id.type);
-            CHECK(event.location_file == std::string_view(__FILE__));
-            CHECK(event.location_line == failure_line);
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
             CHECK(event.message == "CHECK(value), got false"sv);
+        }
+
+        SECTION("bool !true") {
+            bool value = true;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(!value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == true);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(!value), got false"sv);
+        }
+
+        SECTION("bool !false") {
+            bool value = false;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(!value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == false);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer non-zero") {
+            int value = 5;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 5);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer zero") {
+            int value = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 0);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value), got 0"sv);
+        }
+
+        SECTION("integer pre increment") {
+            int value = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(++value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer post increment") {
+            int value = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(value++); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 1);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(value++), got 0"sv);
         }
     }
 };
