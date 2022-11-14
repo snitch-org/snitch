@@ -1,5 +1,7 @@
 #include "testing.hpp"
 
+#include <algorithm>
+
 using namespace std::literals;
 
 struct event_deep_copy {
@@ -422,5 +424,32 @@ TEST_CASE("check", "[test macros]") {
             CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
             CHECK(event.message == "CHECK(value1 >= value2), got 0 < 1"sv);
         }
+    }
+
+    SECTION("out of space") {
+        constexpr std::size_t large_string_length = 768;
+        snatch::small_string<large_string_length> string1;
+        snatch::small_string<large_string_length> string2;
+
+        string1.resize(large_string_length);
+        string2.resize(large_string_length);
+        std::fill(string1.begin(), string1.end(), '0');
+        std::fill(string2.begin(), string2.end(), '1');
+
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK(string1.str() == string2.str()); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(string1.str() == string2.str())"sv);
     }
 };
