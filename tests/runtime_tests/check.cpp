@@ -200,6 +200,171 @@ TEST_CASE("check", "[test macros]") {
             CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
             CHECK(event.message == "CHECK(value++), got 0"sv);
         }
+
+        SECTION("integer expression * pass") {
+            int value = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(2 * value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer expression / pass") {
+            int value = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(2 / value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer expression + pass") {
+            int value = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(2 + value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 1);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer expression - pass") {
+            int value = 3;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(2 - value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 3);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer expression % pass") {
+            int value = 3;
+
+#define SNATCH_CURRENT_TEST mock_run
+            SNATCH_CHECK(2 % value);
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 3);
+            CHECK(mock_run.asserts == 1u);
+            CHECK(!last_event.has_value());
+        }
+
+        SECTION("integer expression * fail") {
+            int value = 0;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(2 * value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 0);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(2 * value), got 0"sv);
+        }
+
+        SECTION("integer expression / fail") {
+            int value = 5;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(2 / value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 5);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(2 / value), got 0"sv);
+        }
+
+        SECTION("integer expression + fail") {
+            int value = -2;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(2 + value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == -2);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(2 + value), got 0"sv);
+        }
+
+        SECTION("integer expression - fail") {
+            int value = 2;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(2 - value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 2);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(2 - value), got 0"sv);
+        }
+
+        SECTION("integer expression % fail") {
+            int value = 1;
+
+#define SNATCH_CURRENT_TEST mock_run
+            // clang-format off
+            SNATCH_CHECK(2 % value); const std::size_t failure_line = __LINE__;
+            // clang-format on
+#undef SNATCH_CURRENT_TEST
+
+            CHECK(value == 1);
+            CHECK(mock_run.asserts == 1u);
+
+            REQUIRE(last_event.has_value());
+            const auto& event = last_event.value();
+            CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+            CHECK_EVENT_TEST_ID(event, mock_case.id);
+            CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+            CHECK(event.message == "CHECK(2 % value), got 0"sv);
+        }
     }
 
     SECTION("binary") {
