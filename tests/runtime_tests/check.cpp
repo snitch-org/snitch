@@ -4,6 +4,31 @@
 
 using namespace std::literals;
 
+struct non_relocatable {
+    int value = 0;
+
+    explicit non_relocatable(int v) : value(v) {}
+    non_relocatable(const non_relocatable&) = delete;
+    non_relocatable(non_relocatable&&)      = delete;
+    non_relocatable& operator=(const non_relocatable&) = delete;
+    non_relocatable& operator=(non_relocatable&&) = delete;
+    ~non_relocatable() {
+        value = 0;
+    }
+
+    bool operator==(const non_relocatable& other) const {
+        return this->value == other.value;
+    }
+
+    bool operator!=(const non_relocatable& other) const {
+        return this->value != other.value;
+    }
+};
+
+bool append(snatch::small_string_span ss, const non_relocatable& o) noexcept {
+    return append(ss, "non_relocatable{", o.value, "}");
+}
+
 struct event_deep_copy {
     enum class type { unknown, assertion_failed };
 
@@ -616,5 +641,32 @@ TEST_CASE("check", "[test macros]") {
         CHECK_EVENT_TEST_ID(event, mock_case.id);
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(event.message == "CHECK(string1.str() == string2.str())"sv);
+    }
+
+    SECTION("non copiable non movable pass") {
+#define SNATCH_CURRENT_TEST mock_run
+        SNATCH_CHECK(non_relocatable(1) != non_relocatable(2));
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+        CHECK(!last_event.has_value());
+    }
+
+    SECTION("non copiable non movable fail") {
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK(non_relocatable(1) == non_relocatable(2)); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(non_relocatable(1) == non_relocatable(2)), got non_relocatable{1} != non_relocatable{2}"sv);
     }
 };
