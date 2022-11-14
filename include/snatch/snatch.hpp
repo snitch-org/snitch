@@ -886,13 +886,13 @@ struct expression {
     small_string<max_expr_length> actual;
 
     template<string_appendable T>
-    [[nodiscard]] bool append(T&& value) noexcept {
-        return snatch::append(actual, std::forward<T>(value));
+    [[nodiscard]] bool append_value(T&& value) noexcept {
+        return append(actual, std::forward<T>(value));
     }
 
     template<typename T>
-    [[nodiscard]] bool append(T&&) noexcept {
-        return snatch::append(actual, "?");
+    [[nodiscard]] bool append_value(T&&) noexcept {
+        return append(actual, "?");
     }
 };
 
@@ -928,18 +928,19 @@ struct extracted_binary_expression {
                 using namespace snatch::matchers;
                 constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
                                                                           : match_status::matched;
-                if (!expr.append(lhs.describe_match(rhs, status))) {
+                if (!expr.append_value(lhs.describe_match(rhs, status))) {
                     expr.actual.clear();
                 }
             } else if constexpr (matcher_for<U, T>) {
                 using namespace snatch::matchers;
                 constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
                                                                           : match_status::matched;
-                if (!expr.append(rhs.describe_match(lhs, status))) {
+                if (!expr.append_value(rhs.describe_match(lhs, status))) {
                     expr.actual.clear();
                 }
             } else {
-                if (!expr.append(lhs) || !expr.append(O::inverse) || !expr.append(rhs)) {
+                if (!expr.append_value(lhs) || !expr.append_value(O::inverse) ||
+                    !expr.append_value(rhs)) {
                     expr.actual.clear();
                 }
             }
@@ -974,7 +975,7 @@ struct extracted_unary_expression {
 
     explicit operator bool() const noexcept {
         if (!static_cast<bool>(lhs)) {
-            if (!expr.append(lhs)) {
+            if (!expr.append_value(lhs)) {
                 expr.actual.clear();
             }
 

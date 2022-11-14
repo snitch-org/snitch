@@ -441,20 +441,20 @@ failed: running test case "test with info"
 
 ### Custom string serialization
 
-When the _snatch_ framework needs to serialize a value to a string, it does so with the function `snatch::append(span, value)`, where `span` is a `snatch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
+When the _snatch_ framework needs to serialize a value to a string, it does so with the free function `append(span, value)`, where `span` is a `snatch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
 
 Builtin serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
 
-If you want to serialize custom types not supported out of the box by _snatch_, you need to provide your own overload of the `append()` function in the `snatch` namespace. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
+If you want to serialize custom types not supported out of the box by _snatch_, you need to provide your own `append()` function. This function must be placed in the same namespace as your custom type or in the `snatch` namespace, so it can be found by ADL. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
 
 ```c++
-struct vec3d {
-    float x;
-    float y;
-    float z;
-};
+namespace my_namespace {
+    struct vec3d {
+        float x;
+        float y;
+        float z;
+    };
 
-namespace snatch {
     bool append(small_string_span ss, const vec3d& v) {
         return append(ss, "{", v.x, ",", v.y, ",", v.z, "}");
     }
@@ -464,14 +464,14 @@ namespace snatch {
 Alternatively, to serialize a class with an existing `toString()` member:
 
 ```c++
-class MyClass {
-    // ...
+namespace my_namespace {
+    class MyClass {
+        // ...
 
-public:
-    std::string toString() const;
-};
+    public:
+        std::string toString() const;
+    };
 
-namespace snatch {
     bool append(small_string_span ss, const MyClass& c) {
         return append(ss, c.toString());
     }
