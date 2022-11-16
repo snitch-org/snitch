@@ -39,6 +39,15 @@ TEST_CASE("example matcher has_prefix", "[utility]") {
     CHECK(snatch::matchers::has_prefix{"info"} == "info: hello"sv);
     CHECK(snatch::matchers::has_prefix{"warning"} != "info: hello"sv);
     CHECK(snatch::matchers::has_prefix{"info"} != "hello"sv);
+
+    CHECK(
+        snatch::matchers::has_prefix{"info"}.describe_match(
+            "info: hello"sv, snatch::matchers::match_status::matched) ==
+        "found prefix 'info:' in 'info: hello'"sv);
+    CHECK(
+        snatch::matchers::has_prefix{"warning"}.describe_match(
+            "info: hello"sv, snatch::matchers::match_status::failed) ==
+        "could not find prefix 'warning:' in 'info: hello'; found prefix 'info:'"sv);
 };
 
 TEST_CASE("matcher contains_substring", "[utility]") {
@@ -46,6 +55,15 @@ TEST_CASE("matcher contains_substring", "[utility]") {
     CHECK("info: hello"sv != snatch::matchers::contains_substring{"warning"});
     CHECK(snatch::matchers::contains_substring{"hello"} == "info: hello"sv);
     CHECK(snatch::matchers::contains_substring{"warning"} != "info: hello"sv);
+
+    CHECK(
+        snatch::matchers::contains_substring{"hello"}.describe_match(
+            "info: hello"sv, snatch::matchers::match_status::matched) ==
+        "found 'hello' in 'info: hello'"sv);
+    CHECK(
+        snatch::matchers::contains_substring{"warning"}.describe_match(
+            "info: hello"sv, snatch::matchers::match_status::failed) ==
+        "could not find 'warning' in 'info: hello'"sv);
 };
 
 TEST_CASE("matcher with_what_contains", "[utility]") {
@@ -57,19 +75,37 @@ TEST_CASE("matcher with_what_contains", "[utility]") {
     CHECK(snatch::matchers::with_what_contains{"not good"} == std::runtime_error{"not good"});
     CHECK(snatch::matchers::with_what_contains{"bad"} != std::runtime_error{"not good"});
     CHECK(snatch::matchers::with_what_contains{"is good"} != std::runtime_error{"not good"});
+
+    CHECK(
+        snatch::matchers::with_what_contains{"good"}.describe_match(
+            std::runtime_error{"not good"}, snatch::matchers::match_status::matched) ==
+        "found 'good' in 'not good'"sv);
+    CHECK(
+        snatch::matchers::with_what_contains{"bad"}.describe_match(
+            std::runtime_error{"not good"}, snatch::matchers::match_status::failed) ==
+        "could not find 'bad' in 'not good'"sv);
 };
 
 TEST_CASE("matcher is_any_of", "[utility]") {
-    CHECK(1u == (snatch::matchers::is_any_of{1u, 2u, 3u}));
-    CHECK(2u == (snatch::matchers::is_any_of{1u, 2u, 3u}));
-    CHECK(3u == (snatch::matchers::is_any_of{1u, 2u, 3u}));
-    CHECK(0u != (snatch::matchers::is_any_of{1u, 2u, 3u}));
-    CHECK(4u != (snatch::matchers::is_any_of{1u, 2u, 3u}));
-    CHECK(5u != (snatch::matchers::is_any_of{1u, 2u, 3u}));
-    CHECK((snatch::matchers::is_any_of{1u, 2u, 3u}) == 1u);
-    CHECK((snatch::matchers::is_any_of{1u, 2u, 3u}) == 2u);
-    CHECK((snatch::matchers::is_any_of{1u, 2u, 3u}) == 3u);
-    CHECK((snatch::matchers::is_any_of{1u, 2u, 3u}) != 0u);
-    CHECK((snatch::matchers::is_any_of{1u, 2u, 3u}) != 4u);
-    CHECK((snatch::matchers::is_any_of{1u, 2u, 3u}) != 5u);
+    const auto m = snatch::matchers::is_any_of{1u, 2u, 3u};
+
+    CHECK(1u == m);
+    CHECK(2u == m);
+    CHECK(3u == m);
+    CHECK(0u != m);
+    CHECK(4u != m);
+    CHECK(5u != m);
+    CHECK(m == 1u);
+    CHECK(m == 2u);
+    CHECK(m == 3u);
+    CHECK(m != 0u);
+    CHECK(m != 4u);
+    CHECK(m != 5u);
+
+    CHECK(
+        m.describe_match(2u, snatch::matchers::match_status::matched) ==
+        "'2' was found in {'1', '2', '3'}"sv);
+    CHECK(
+        m.describe_match(5u, snatch::matchers::match_status::failed) ==
+        "'5' was not found in {'1', '2', '3'}"sv);
 };
