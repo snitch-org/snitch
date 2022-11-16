@@ -1030,6 +1030,12 @@ scoped_capture add_info(test_run& state, const Args&... args) noexcept {
 void stdout_print(std::string_view message) noexcept;
 
 struct abort_exception {};
+
+template<typename T>
+concept exception_with_what = requires(const T& e) {
+    { e.what() }
+    ->convertible_to<std::string_view>;
+};
 } // namespace snatch::impl
 
 // Sections and captures.
@@ -1287,12 +1293,12 @@ is_any_of(T, Args...) -> is_any_of<T, sizeof...(Args) + 1>;
 struct with_what_contains : private contains_substring {
     explicit with_what_contains(std::string_view pattern) noexcept;
 
-    template<typename E>
+    template<snatch::impl::exception_with_what E>
     bool match(const E& e) const noexcept {
         return contains_substring::match(e.what());
     }
 
-    template<typename E>
+    template<snatch::impl::exception_with_what E>
     small_string<max_message_length>
     describe_match(const E& e, match_status status) const noexcept {
         return contains_substring::describe_match(e.what(), status);
