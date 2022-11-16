@@ -1269,8 +1269,8 @@ struct is_any_of {
     describe_match(const T& value, match_status status) const noexcept {
         small_string<max_message_length> description_buffer;
         append_or_truncate(
-            description_buffer, "'", value, "' was ", (status == match_status::failed ? "not" : ""),
-            " found in {");
+            description_buffer, "'", value, "' was ",
+            (status == match_status::failed ? "not " : ""), "found in {");
 
         bool first = true;
         for (const auto& v : list) {
