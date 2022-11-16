@@ -31,15 +31,10 @@ struct has_prefix {
 } // namespace snatch::matchers
 
 TEST_CASE("matcher", "[utility]") {
-    // Passes
     CHECK("info: hello"sv == snatch::matchers::has_prefix{"info"});
     CHECK("info: hello"sv != snatch::matchers::has_prefix{"warning"});
     CHECK("hello"sv != snatch::matchers::has_prefix{"info"});
-
-    snatch::matchers::with_what_contains{"error"};
-
-    // Failures
-    // CHECK("warning: hello"sv == snatch::matchers::has_prefix{"info"});
-    // CHECK("warning: hello"sv != snatch::matchers::has_prefix{"warning"});
-    // CHECK("hello"sv == snatch::matchers::has_prefix{"info"});
+    CHECK(snatch::matchers::has_prefix{"info"} == "info: hello"sv);
+    CHECK(snatch::matchers::has_prefix{"warning"} != "info: hello"sv);
+    CHECK(snatch::matchers::has_prefix{"info"} != "hello"sv);
 };

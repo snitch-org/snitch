@@ -743,4 +743,22 @@ TEST_CASE("check misc", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(event.message == "CHECK(non_appendable(1) == non_appendable(2)), got ? != ?"sv);
     }
+
+    SECTION("matcher fail") {
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK("hello"sv == snatch::matchers::contains_substring{"foo"}); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(\"hello\"sv == snatch::matchers::contains_substring{\"foo\"}), got could not find 'foo' in 'hello'"sv);
+    }
 };
