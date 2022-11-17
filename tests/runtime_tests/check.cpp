@@ -79,6 +79,22 @@ struct event_deep_copy {
     snatch::small_string<snatch::max_message_length> message;
 };
 
+namespace snatch::matchers {
+struct long_matcher_always_fails {
+    bool match(std::string_view) const noexcept {
+        return false;
+    }
+
+    small_string<max_expr_length * 2>
+    describe_match(std::string_view, match_status) const noexcept {
+        small_string<max_expr_length * 2> message;
+        message.resize(message.capacity());
+        std::fill(message.begin(), message.end(), '0');
+        return message;
+    }
+};
+} // namespace snatch::matchers
+
 event_deep_copy deep_copy(const snatch::event::data& e) {
     return std::visit(
         snatch::overload{
@@ -712,7 +728,7 @@ TEST_CASE("check misc", "[test macros]") {
     }
 
     SECTION("out of space binary lhs") {
-        constexpr std::size_t large_string_length = 2048;
+        constexpr std::size_t large_string_length = snatch::max_expr_length*2;
         snatch::small_string<large_string_length> string1;
         snatch::small_string<large_string_length> string2;
 
@@ -739,7 +755,34 @@ TEST_CASE("check misc", "[test macros]") {
     }
 
     SECTION("out of space binary rhs") {
-        constexpr std::size_t large_string_length = 768;
+        constexpr std::size_t large_string_length = snatch::max_expr_length*3/2;
+        snatch::small_string<large_string_length> string1;
+        snatch::small_string<large_string_length> string2;
+
+        string1.resize(large_string_length);
+        string2.resize(large_string_length);
+        std::fill(string1.begin(), string1.end(), '0');
+        std::fill(string2.begin(), string2.end(), '1');
+
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK(string1.str() == string2.str()); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(string1.str() == string2.str())"sv);
+    }
+
+    SECTION("out of space binary op") {
+        constexpr std::size_t large_string_length = snatch::max_expr_length - 2;
         snatch::small_string<large_string_length> string1;
         snatch::small_string<large_string_length> string2;
 
@@ -810,7 +853,61 @@ TEST_CASE("check misc", "[test macros]") {
         CHECK(event.message == "CHECK(non_appendable(1) == non_appendable(2)), got ? != ?"sv);
     }
 
-    SECTION("matcher fail") {
+    SECTION("matcher fail lhs") {
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK(snatch::matchers::long_matcher_always_fails{} == "hello"sv); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(snatch::matchers::long_matcher_always_fails{} == \"hello\"sv)"sv);
+    }
+
+    SECTION("matcher fail rhs") {
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK("hello"sv == snatch::matchers::long_matcher_always_fails{}); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(\"hello\"sv == snatch::matchers::long_matcher_always_fails{})"sv);
+    }
+
+    SECTION("out of space matcher lhs") {
+#define SNATCH_CURRENT_TEST mock_run
+        // clang-format off
+        SNATCH_CHECK(snatch::matchers::contains_substring{"foo"} == "hello"sv); const std::size_t failure_line = __LINE__;
+        // clang-foramt on
+#undef SNATCH_CURRENT_TEST
+
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(snatch::matchers::contains_substring{\"foo\"} == \"hello\"sv), got could not find 'foo' in 'hello'"sv);
+    }
+
+    SECTION("out of space matcher rhs") {
 #define SNATCH_CURRENT_TEST mock_run
         // clang-format off
         SNATCH_CHECK("hello"sv == snatch::matchers::contains_substring{"foo"}); const std::size_t failure_line = __LINE__;
