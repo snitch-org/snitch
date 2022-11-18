@@ -62,13 +62,14 @@ if(SNATCH_CREATE_HEADER_ONLY)
   # Build as a header-only library.
   file(READ ${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp SNATCH_FILE_CONFIG)
   file(READ ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp SNATCH_FILE_HEADER)
-  file(READ ${PROJECT_SOURCE_DIR}/include/snatch/snatch_teamcity.hpp SNATCH_FILE_TEAMCITY_HEADER)
   file(READ ${PROJECT_SOURCE_DIR}/src/snatch.cpp SNATCH_FILE_SOURCE)
 
-  file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp
-    CONTENT
-    "${SNATCH_FILE_CONFIG}\n${SNATCH_FILE_HEADER}\n${SNATCH_FILE_TEAMCITY_HEADER}\n#if defined(SNATCH_IMPLEMENTATION)\n${SNATCH_FILE_SOURCE}\n#endif"
-    )
+  set(SNATCH_ALL_CONTENT "${SNATCH_FILE_CONFIG}\n${SNATCH_FILE_HEADER}\n#if defined(SNATCH_IMPLEMENTATION)\n${SNATCH_FILE_SOURCE}\n#endif")
+
+  # Remove includes to snatch.hpp; it's all one header now
+  string(REPLACE "#include \"snatch/snatch.hpp\"\n\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
+
+  file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp CONTENT "${SNATCH_ALL_CONTENT}")
 
   add_library(snatch-header-only INTERFACE)
   add_library(snatch::snatch-header-only ALIAS snatch-header-only)

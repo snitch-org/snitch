@@ -608,7 +608,7 @@ If _snatch_ detects that exceptions are not available (or is configured with exc
 
 The recommended way to use _snatch_ is to build and consume it like any other library. This provides the best incremental build times, a standard way to include and link to the _snatch_ implementation, and a cleaner separation between your code and _snatch_ code, but this also requires a bit more set up (running CMake, etc.).
 
-For extra convenience, _snatch_ is also provided as a single-header, header-only library. This header is called `snatch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake build, so you can also use it like other CMake libraries; just link to `snatch::snatch-header-only` instead of `snatch::snatch`.
+For extra convenience, _snatch_ is also provided as a header-only library. The main header is called `snatch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake build, so you can also use it like other CMake libraries; just link to `snatch::snatch-header-only` instead of `snatch::snatch`. This is the only header required to use the library; other headers may be provided for convenience functions (e.g., reporters for common CI frameworks) and these must still be included separately.
 
 To use _snatch_ as header-only in your code, simply include `snatch_all.hpp` instead of `snatch.hpp`. Then, one of your file must include the _snatch_ implementation. This can be done with a `.cpp` file containing only the following:
 
