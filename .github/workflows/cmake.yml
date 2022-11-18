@@ -82,6 +82,11 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_run
 
+    - name: Test header-only (with snatch)
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_header_only_run
+
     - name: Compute Code Coverage
       if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
       run: |

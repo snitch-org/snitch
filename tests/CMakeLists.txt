@@ -40,7 +40,6 @@ FetchContent_Declare(doctest
 FetchContent_MakeAvailable(doctest)
 
 set(RUNTIME_TEST_FILES
-  ${PROJECT_SOURCE_DIR}/src/snatch.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
@@ -49,7 +48,7 @@ set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/matchers.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp)
 
-add_executable(snatch_runtime_tests ${RUNTIME_TEST_FILES})
+add_executable(snatch_runtime_tests ${PROJECT_SOURCE_DIR}/src/snatch.cpp ${RUNTIME_TEST_FILES})
 target_include_directories(snatch_runtime_tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(snatch_runtime_tests PRIVATE ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snatch_runtime_tests PRIVATE doctest::doctest)
@@ -68,7 +67,7 @@ add_custom_target(snatch_runtime_tests_run
 set_target_properties(snatch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
 
-add_executable(snatch_runtime_tests_self ${RUNTIME_TEST_FILES})
+add_executable(snatch_runtime_tests_self ${PROJECT_SOURCE_DIR}/src/snatch.cpp ${RUNTIME_TEST_FILES})
 target_include_directories(snatch_runtime_tests_self PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(snatch_runtime_tests_self PRIVATE ${PROJECT_SOURCE_DIR}/tests)
 add_platform_definitions(snatch_runtime_tests_self)
@@ -81,3 +80,19 @@ add_custom_target(snatch_runtime_tests_self_run
   SOURCES ${RUNTIME_TEST_FILES}
 )
 set_target_properties(snatch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
+
+
+add_executable(snatch_runtime_tests_self_header_only ${PROJECT_SOURCE_DIR}/tests/testing.cpp ${RUNTIME_TEST_FILES})
+target_include_directories(snatch_runtime_tests_self_header_only PRIVATE ${PROJECT_BINARY_DIR})
+target_include_directories(snatch_runtime_tests_self_header_only PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+add_platform_definitions(snatch_runtime_tests_self_header_only)
+target_compile_features(snatch_runtime_tests_self_header_only PUBLIC cxx_std_20)
+target_compile_definitions(snatch_runtime_tests_self_header_only PUBLIC SNATCH_TEST_WITH_SNATCH)
+target_compile_definitions(snatch_runtime_tests_self_header_only PUBLIC SNATCH_TEST_HEADER_ONLY)
+
+add_custom_target(snatch_runtime_tests_self_header_only_run
+  COMMAND snatch_runtime_tests_self_header_only
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  SOURCES ${RUNTIME_TEST_FILES}
+)
+set_target_properties(snatch_runtime_tests_self_header_only_run PROPERTIES EXCLUDE_FROM_ALL True)

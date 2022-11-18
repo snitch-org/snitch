@@ -58,6 +58,10 @@
 					"shell_cmd": "make -j12 snatch_runtime_tests_run",
 				},
 				{
+					"name": "snatch_runtime_tests_self_header_only_run",
+					"shell_cmd": "make -j12 snatch_runtime_tests_self_header_only_run",
+				},
+				{
 					"name": "snatch_runtime_tests_self_run",
 					"shell_cmd": "make -j12 snatch_runtime_tests_self_run",
 				},
@@ -76,6 +80,10 @@
 				{
 					"name": "snatch_runtime_tests_self",
 					"shell_cmd": "make -j12 snatch_runtime_tests_self",
+				},
+				{
+					"name": "snatch_runtime_tests_self_header_only",
+					"shell_cmd": "make -j12 snatch_runtime_tests_self_header_only",
 				},
 				{
 					"name": "src/snatch.o",
