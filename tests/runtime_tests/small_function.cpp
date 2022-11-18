@@ -84,8 +84,11 @@ TEMPLATE_TEST_CASE(
         function_called                          = false;
         constexpr std::size_t expected_instances = sizeof...(Args) > 0 ? 3u : 0u;
 
+        CHECK(f.empty());
+
         SECTION("from free function") {
             f = &test_class<TestType>::method_static;
+            CHECK(!f.empty());
 
             call_function(f);
 
@@ -99,6 +102,7 @@ TEMPLATE_TEST_CASE(
         SECTION("from non-const member function") {
             test_class<TestType> obj;
             f = {obj, snatch::constant<&test_class<TestType>::method>{}};
+            CHECK(!f.empty());
 
             call_function(f);
 
@@ -112,6 +116,7 @@ TEMPLATE_TEST_CASE(
         SECTION("from const member function") {
             const test_class<TestType> obj;
             f = {obj, snatch::constant<&test_class<TestType>::method_const>{}};
+            CHECK(!f.empty());
 
             call_function(f);
 
@@ -122,19 +127,41 @@ TEMPLATE_TEST_CASE(
             CHECK(test_object_instances <= expected_instances);
         }
 
-        SECTION("from lambda") {
+        SECTION("from stateless lambda") {
             f = snatch::small_function<TestType>{[](Args...) noexcept -> R {
                 function_called = true;
                 if constexpr (!std::is_same_v<R, void>) {
                     return 45;
                 }
             }};
+            CHECK(!f.empty());
 
             call_function(f);
 
             CHECK(function_called);
             if (!std::is_same_v<R, void>) {
                 CHECK(return_value == 45);
+            }
+            CHECK(test_object_instances <= expected_instances);
+        }
+
+        SECTION("from stateful lambda") {
+            int  answer = 46;
+            auto lambda = [&](Args...) noexcept -> R {
+                function_called = true;
+                if constexpr (!std::is_same_v<R, void>) {
+                    return answer;
+                }
+            };
+
+            f = snatch::small_function<TestType>{lambda};
+            CHECK(!f.empty());
+
+            call_function(f);
+
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 46);
             }
             CHECK(test_object_instances <= expected_instances);
         }

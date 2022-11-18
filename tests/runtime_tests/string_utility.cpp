@@ -6,6 +6,8 @@ constexpr std::size_t max_length = 20u;
 
 using string_type = snatch::small_string<max_length>;
 
+enum class enum_type { value1 = 0, value2 = 12 };
+
 TEMPLATE_TEST_CASE(
     "append",
     "[utility]",
@@ -19,7 +21,8 @@ TEMPLATE_TEST_CASE(
     void*,
     const void*,
     std::nullptr_t,
-    std::string_view) {
+    std::string_view,
+    enum_type) {
 
     auto create_value = []() -> std::pair<TestType, std::string_view> {
         if constexpr (std::is_same_v<TestType, int>) {
@@ -46,6 +49,8 @@ TEMPLATE_TEST_CASE(
             return {{}, "nullptr"};
         } else if constexpr (std::is_same_v<TestType, std::string_view>) {
             return {"hello"sv, "hello"sv};
+        } else if constexpr (std::is_same_v<TestType, enum_type>) {
+            return {enum_type::value2, "12"sv};
         }
     };
 
@@ -75,7 +80,7 @@ TEMPLATE_TEST_CASE(
         CHECK(std::string_view(s).starts_with(initial));
         if constexpr (
             (std::is_arithmetic_v<TestType> && !std::is_same_v<TestType, bool>) ||
-            std::is_pointer_v<TestType>) {
+            std::is_pointer_v<TestType> || std::is_enum_v<TestType>) {
             // We are stuck with snprintf, which insists on writing a null-terminator character,
             // therefore we loose one character at the end.
             CHECK(s.size() == max_length - 1u);
