@@ -17,7 +17,8 @@ set(SNATCH_WITH_TIMINGS           ON   CACHE BOOL   "Measure the time taken by e
 set(SNATCH_WITH_SHORTHAND_MACROS  ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
 set(SNATCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
 
-add_library(snatch ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
+configure_file("${PROJECT_SOURCE_DIR}/include/snatch/snatch_config.hpp.config"
+               "${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp")
 
 add_library(snatch::snatch ALIAS snatch)
 
@@ -40,7 +41,10 @@ target_compile_definitions(snatch PUBLIC
   SNATCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNATCH_WITH_SHORTHAND_MACROS}>
   SNATCH_DEFAULT_WITH_COLOR=$<BOOL:${SNATCH_DEFAULT_WITH_COLOR}>)
 
-install(FILES ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
+install(FILES
+  ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
+  ${PROJECT_SOURCE_DIR}/include/snatch/snatch_teamcity.hpp
+  ${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
 
 install(TARGETS snatch EXPORT snatch-targets)
