@@ -48,6 +48,7 @@ set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_function.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/matchers.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/skip.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/capture.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/section.cpp)
 
