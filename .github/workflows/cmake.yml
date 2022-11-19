@@ -102,16 +102,16 @@ jobs:
 
     - name: Zip full build
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
-      working-directory: ${{github.workspace}}
       uses: vimtor/action-zip@v1
+      working-directory: ${{github.workspace}}
       with:
         files: install/ LICENSE
         dest: snatch-${{matrix.platform.build}}.zip
 
     - name: Zip header-only
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
-      working-directory: ${{github.workspace}}
       uses: vimtor/action-zip@v1
+      working-directory: ${{github.workspace}}
       with:
         files: install/include/snatch/snatch_all.hpp LICENSE
         dest: snatch-header-only.zip
