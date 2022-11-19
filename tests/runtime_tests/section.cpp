@@ -6,6 +6,9 @@
 
 using namespace std::literals;
 
+SNATCH_WARNING_PUSH
+SNATCH_WARNING_DISABLE_UNREACHABLE
+
 TEST_CASE("section", "[test macros]") {
     snatch::registry mock_registry;
 
@@ -77,9 +80,6 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.1");
     }
 
-    SNATCH_WARNING_PUSH
-    SNATCH_WARNING_DISABLE_UNREACHABLE
-
     SECTION("nested sections abort early") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             SNATCH_SECTION("section 1") {
@@ -137,8 +137,6 @@ TEST_CASE("section", "[test macros]") {
         CHECK_NO_SECTION;
     }
 
-    SNATCH_WARNING_POP
-
     SECTION("nested sections varying depth") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             SNATCH_SECTION("section 1") {
@@ -174,6 +172,8 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 3");
     }
 };
+
+SNATCH_WARNING_POP
 
 TEST_CASE("section readme example", "[test macros]") {
     snatch::registry mock_registry;
