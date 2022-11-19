@@ -107,7 +107,8 @@ jobs:
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
       uses: actions/upload-artifact@v2
       with:
-        files: |
+        name: snatch-build
+        path: |
           ${{github.workspace}}/snatch-${{matrix.platform.build}}.zip
           ${{github.workspace}}/snatch-header-only.zip
 
