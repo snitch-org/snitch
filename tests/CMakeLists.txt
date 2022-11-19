@@ -46,7 +46,8 @@ set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_function.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/matchers.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp)
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/capture.cpp)
 
 # Test snatch with doctest
 add_executable(snatch_runtime_tests ${PROJECT_SOURCE_DIR}/src/snatch.cpp ${RUNTIME_TEST_FILES})
