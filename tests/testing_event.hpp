@@ -2,7 +2,13 @@
 #include <vector>
 
 struct event_deep_copy {
-    enum class type { unknown, test_case_started, test_case_ended, assertion_failed };
+    enum class type {
+        unknown,
+        test_case_started,
+        test_case_ended,
+        test_case_skipped,
+        assertion_failed
+    };
 
     type event_type = type::unknown;
 
@@ -23,14 +29,30 @@ struct event_deep_copy {
 
 event_deep_copy deep_copy(const snatch::event::data& e);
 
-std::optional<event_deep_copy>
-get_failure_event(const std::vector<event_deep_copy>& events, std::size_t id = 0);
+struct mock_framework {
+    snatch::registry registry;
 
-std::size_t get_num_runs(const std::vector<event_deep_copy>& events);
-std::size_t get_num_failures(const std::vector<event_deep_copy>& events);
+    snatch::impl::test_case test_case{
+        .id    = {"mock_test", "[mock_tag]", "mock_type"},
+        .func  = nullptr,
+        .state = snatch::impl::test_state::not_run};
 
-void pop_first_run(std::vector<event_deep_copy>& events);
-void pop_first_failure(std::vector<event_deep_copy>& events);
+    std::vector<event_deep_copy> events;
+
+    mock_framework();
+
+    void report(const snatch::registry&, const snatch::event::data& e) noexcept;
+
+    void run_test();
+
+    std::optional<event_deep_copy> get_failure_event(std::size_t id = 0) const;
+
+    std::optional<event_deep_copy> get_skip_event() const;
+
+    std::size_t get_num_runs() const;
+    std::size_t get_num_failures() const;
+    std::size_t get_num_skips() const;
+};
 
 #define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
     CHECK(ACTUAL.test_id_name == EXPECTED.name);                                                   \
@@ -43,7 +65,7 @@ void pop_first_failure(std::vector<event_deep_copy>& events);
 
 #define CHECK_CAPTURES_FOR_FAILURE(FAILURE_ID, ...)                                                \
     do {                                                                                           \
-        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        auto failure = framework.get_failure_event(FAILURE_ID);                                    \
         REQUIRE(failure.has_value());                                                              \
         const char* EXPECTED_CAPTURES[] = {__VA_ARGS__};                                           \
         REQUIRE(                                                                                   \
@@ -59,7 +81,7 @@ void pop_first_failure(std::vector<event_deep_copy>& events);
 
 #define CHECK_NO_CAPTURE_FOR_FAILURE(FAILURE_ID)                                                   \
     do {                                                                                           \
-        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        auto failure = framework.get_failure_event(FAILURE_ID);                                    \
         REQUIRE(failure.has_value());                                                              \
         CHECK(failure.value().captures.empty());                                                   \
     } while (0)
@@ -68,7 +90,7 @@ void pop_first_failure(std::vector<event_deep_copy>& events);
 
 #define CHECK_SECTIONS_FOR_FAILURE(FAILURE_ID, ...)                                                \
     do {                                                                                           \
-        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        auto failure = framework.get_failure_event(FAILURE_ID);                                    \
         REQUIRE(failure.has_value());                                                              \
         const char* EXPECTED_SECTIONS[] = {__VA_ARGS__};                                           \
         REQUIRE(                                                                                   \
@@ -84,7 +106,7 @@ void pop_first_failure(std::vector<event_deep_copy>& events);
 
 #define CHECK_NO_SECTION_FOR_FAILURE(FAILURE_ID)                                                   \
     do {                                                                                           \
-        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        auto failure = framework.get_failure_event(FAILURE_ID);                                    \
         REQUIRE(failure.has_value());                                                              \
         CHECK(failure.value().sections.empty());                                                   \
     } while (0)
