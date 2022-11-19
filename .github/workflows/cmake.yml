@@ -106,9 +106,8 @@ jobs:
     - name: Upload build as an artifact
       if: matrix.build-type == 'Release' && startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-artifact@v2
-      working-directory: ${{github.workspace}}
       with:
         files: |
-          snatch-${{matrix.platform.build}}.zip
-          snatch-header-only.zip
+          ${{github.workspace}}/snatch-${{matrix.platform.build}}.zip
+          ${{github.workspace}}/snatch-header-only.zip
 
