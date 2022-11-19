@@ -1,4 +1,6 @@
-namespace {
+#include <algorithm>
+#include <vector>
+
 struct event_deep_copy {
     enum class type { unknown, test_case_started, test_case_ended, assertion_failed };
 
@@ -14,45 +16,21 @@ struct event_deep_copy {
     snatch::small_string<snatch::max_message_length> message;
     snatch::small_vector<snatch::small_string<snatch::max_message_length>, snatch::max_captures>
         captures;
+    snatch::
+        small_vector<snatch::small_string<snatch::max_message_length>, snatch::max_nested_sections>
+            sections;
 };
 
-event_deep_copy deep_copy(const snatch::event::data& e) {
-    return std::visit(
-        snatch::overload{
-            [](const snatch::event::assertion_failed& a) {
-                event_deep_copy c;
-                c.event_type = event_deep_copy::type::assertion_failed;
-                append_or_truncate(c.test_id_name, a.id.name);
-                append_or_truncate(c.test_id_tags, a.id.tags);
-                append_or_truncate(c.test_id_type, a.id.type);
-                append_or_truncate(c.location_file, a.location.file);
-                c.location_line = a.location.line;
-                append_or_truncate(c.message, a.message);
-                for (const auto& ac : a.captures) {
-                    c.captures.push_back(ac);
-                }
-                return c;
-            },
-            [](const snatch::event::test_case_started& s) {
-                event_deep_copy c;
-                c.event_type = event_deep_copy::type::test_case_started;
-                append_or_truncate(c.test_id_name, s.id.name);
-                append_or_truncate(c.test_id_tags, s.id.tags);
-                append_or_truncate(c.test_id_type, s.id.type);
-                return c;
-            },
-            [](const snatch::event::test_case_ended& s) {
-                event_deep_copy c;
-                c.event_type = event_deep_copy::type::test_case_ended;
-                append_or_truncate(c.test_id_name, s.id.name);
-                append_or_truncate(c.test_id_tags, s.id.tags);
-                append_or_truncate(c.test_id_type, s.id.type);
-                return c;
-            },
-            [](const auto&) -> event_deep_copy { snatch::terminate_with("event not handled"); }},
-        e);
-}
-} // namespace
+event_deep_copy deep_copy(const snatch::event::data& e);
+
+std::optional<event_deep_copy>
+get_failure_event(const std::vector<event_deep_copy>& events, std::size_t id = 0);
+
+std::size_t get_num_runs(const std::vector<event_deep_copy>& events);
+std::size_t get_num_failures(const std::vector<event_deep_copy>& events);
+
+void pop_first_run(std::vector<event_deep_copy>& events);
+void pop_first_failure(std::vector<event_deep_copy>& events);
 
 #define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
     CHECK(ACTUAL.test_id_name == EXPECTED.name);                                                   \
@@ -62,3 +40,53 @@ event_deep_copy deep_copy(const snatch::event::data& e) {
 #define CHECK_EVENT_LOCATION(ACTUAL, FILE, LINE)                                                   \
     CHECK(ACTUAL.location_file == std::string_view(FILE));                                         \
     CHECK(ACTUAL.location_line == LINE)
+
+#define CHECK_CAPTURES_FOR_FAILURE(FAILURE_ID, ...)                                                \
+    do {                                                                                           \
+        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        REQUIRE(failure.has_value());                                                              \
+        const char* EXPECTED_CAPTURES[] = {__VA_ARGS__};                                           \
+        REQUIRE(                                                                                   \
+            failure.value().captures.size() == sizeof(EXPECTED_CAPTURES) / sizeof(const char*));   \
+        std::size_t CAPTURE_INDEX = 0;                                                             \
+        for (std::string_view CAPTURED_VALUE : EXPECTED_CAPTURES) {                                \
+            CHECK(failure.value().captures[CAPTURE_INDEX] == CAPTURED_VALUE);                      \
+            ++CAPTURE_INDEX;                                                                       \
+        }                                                                                          \
+    } while (0)
+
+#define CHECK_CAPTURES(...) CHECK_CAPTURES_FOR_FAILURE(0u, __VA_ARGS__)
+
+#define CHECK_NO_CAPTURE_FOR_FAILURE(FAILURE_ID)                                                   \
+    do {                                                                                           \
+        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        REQUIRE(failure.has_value());                                                              \
+        CHECK(failure.value().captures.empty());                                                   \
+    } while (0)
+
+#define CHECK_NO_CAPTURE CHECK_NO_CAPTURE_FOR_FAILURE(0u)
+
+#define CHECK_SECTIONS_FOR_FAILURE(FAILURE_ID, ...)                                                \
+    do {                                                                                           \
+        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        REQUIRE(failure.has_value());                                                              \
+        const char* EXPECTED_SECTIONS[] = {__VA_ARGS__};                                           \
+        REQUIRE(                                                                                   \
+            failure.value().sections.size() == sizeof(EXPECTED_SECTIONS) / sizeof(const char*));   \
+        std::size_t SECTION_INDEX = 0;                                                             \
+        for (std::string_view SECTION_NAME : EXPECTED_SECTIONS) {                                  \
+            CHECK(failure.value().sections[SECTION_INDEX] == SECTION_NAME);                        \
+            ++SECTION_INDEX;                                                                       \
+        }                                                                                          \
+    } while (0)
+
+#define CHECK_SECTIONS(...) CHECK_SECTIONS_FOR_FAILURE(0u, __VA_ARGS__)
+
+#define CHECK_NO_SECTION_FOR_FAILURE(FAILURE_ID)                                                   \
+    do {                                                                                           \
+        auto failure = get_failure_event(events, FAILURE_ID);                                      \
+        REQUIRE(failure.has_value());                                                              \
+        CHECK(failure.value().sections.empty());                                                   \
+    } while (0)
+
+#define CHECK_NO_SECTION CHECK_NO_SECTION_FOR_FAILURE(0u)

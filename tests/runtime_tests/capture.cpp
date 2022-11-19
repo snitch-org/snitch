@@ -1,44 +1,9 @@
 #include "testing.hpp"
 #include "testing_event.hpp"
 
-#include <algorithm>
 #include <string>
-#include <vector>
 
 using namespace std::literals;
-
-std::optional<event_deep_copy> get_failure_event(const std::vector<event_deep_copy>& events) {
-    auto iter = std::find_if(events.cbegin(), events.cend(), [](const event_deep_copy& e) {
-        return e.event_type == event_deep_copy::type::assertion_failed;
-    });
-
-    if (iter == events.cend()) {
-        return {};
-    } else {
-        return *iter;
-    }
-}
-
-#define CHECK_CAPTURES(...)                                                                        \
-    do {                                                                                           \
-        auto failure = get_failure_event(events);                                                  \
-        REQUIRE(failure.has_value());                                                              \
-        const char* EXPECTED_CAPTURES[] = {__VA_ARGS__};                                           \
-        REQUIRE(                                                                                   \
-            failure.value().captures.size() == sizeof(EXPECTED_CAPTURES) / sizeof(const char*));   \
-        std::size_t CAPTURE_INDEX = 0;                                                             \
-        for (std::string_view CAPTURED_VALUE : EXPECTED_CAPTURES) {                                \
-            CHECK(failure.value().captures[CAPTURE_INDEX] == CAPTURED_VALUE);                      \
-            ++CAPTURE_INDEX;                                                                       \
-        }                                                                                          \
-    } while (0)
-
-#define CHECK_NO_CAPTURE                                                                           \
-    do {                                                                                           \
-        auto failure = get_failure_event(events);                                                  \
-        REQUIRE(failure.has_value());                                                              \
-        CHECK(failure.value().captures.empty());                                                   \
-    } while (0)
 
 TEST_CASE("capture", "[test macros]") {
     snatch::registry mock_registry;
@@ -169,7 +134,7 @@ TEST_CASE("capture", "[test macros]") {
         CHECK_NO_CAPTURE;
     }
 
-    SECTION("scoped out multiple") {
+    SECTION("scoped out multiple capture") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             int i = 1;
             SNATCH_CAPTURE(i);
@@ -184,6 +149,35 @@ TEST_CASE("capture", "[test macros]") {
 
         mock_registry.run(mock_case);
         CHECK_CAPTURES("i := 1");
+    }
+
+    SECTION("multiple failures") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            int i = 1;
+            SNATCH_CAPTURE(i);
+            SNATCH_FAIL_CHECK("trigger1");
+            SNATCH_FAIL_CHECK("trigger2");
+        };
+
+        mock_registry.run(mock_case);
+        REQUIRE(get_num_failures(events) == 2u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
+        CHECK_CAPTURES_FOR_FAILURE(1u, "i := 1");
+    }
+
+    SECTION("multiple failures interleaved") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            int i = 1;
+            SNATCH_CAPTURE(i);
+            SNATCH_FAIL_CHECK("trigger1");
+            SNATCH_CAPTURE(2 * i);
+            SNATCH_FAIL_CHECK("trigger2");
+        };
+
+        mock_registry.run(mock_case);
+        REQUIRE(get_num_failures(events) == 2u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
+        CHECK_CAPTURES_FOR_FAILURE(1u, "i := 1", "2 * i := 2");
     }
 };
 
@@ -307,6 +301,35 @@ TEST_CASE("info", "[test macros]") {
 
         mock_registry.run(mock_case);
         CHECK_CAPTURES("1");
+    }
+
+    SECTION("multiple failures") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            int i = 1;
+            SNATCH_INFO(i);
+            SNATCH_FAIL_CHECK("trigger1");
+            SNATCH_FAIL_CHECK("trigger2");
+        };
+
+        mock_registry.run(mock_case);
+        REQUIRE(get_num_failures(events) == 2u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "1");
+        CHECK_CAPTURES_FOR_FAILURE(1u, "1");
+    }
+
+    SECTION("multiple failures interleaved") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            int i = 1;
+            SNATCH_INFO(i);
+            SNATCH_FAIL_CHECK("trigger1");
+            SNATCH_INFO(2 * i);
+            SNATCH_FAIL_CHECK("trigger2");
+        };
+
+        mock_registry.run(mock_case);
+        REQUIRE(get_num_failures(events) == 2u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "1");
+        CHECK_CAPTURES_FOR_FAILURE(1u, "1", "2");
     }
 
     SECTION("mixed with capture") {
