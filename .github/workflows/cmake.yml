@@ -94,14 +94,27 @@ jobs:
         ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
         bash <(curl -s https://codecov.io/bash)
 
-    - name: Install and zip
+    - name: Install
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: |
-        cmake --build . --config ${{matrix.build-type}} --target install
-        zip ${{github.workspace}}/snatch-${{matrix.platform.build}}.zip ${{github.workspace}}/install/* ${{github.workspace}}/LICENSE
-        zip ${{github.workspace}}/snatch-header-only.zip ${{github.workspace}}/install/include/snatch/snatch_all.hpp ${{github.workspace}}/LICENSE
+      run: cmake --build . --config ${{matrix.build-type}} --target install
+
+    - name: Zip full build
+      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
+      working-directory: ${{github.workspace}}
+      uses: vimtor/action-zip@v1
+      with:
+        files: install/ LICENSE
+        dest: snatch-${{matrix.platform.build}}.zip
+
+    - name: Zip header-only
+      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
+      working-directory: ${{github.workspace}}
+      uses: vimtor/action-zip@v1
+      with:
+        files: install/include/snatch/snatch_all.hpp LICENSE
+        dest: snatch-header-only.zip
 
     - name: Upload build as an artifact
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
