@@ -1,4 +1,7 @@
+// clang-format off
+#include "snatch/snatch_config.hpp"
 #include "snatch/snatch.hpp"
+// clang-format on
 
 #include <algorithm> // for std::sort
 #include <cstdio> // for std::printf, std::snprintf
@@ -424,6 +427,11 @@ template<typename F>
 bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     if (!r.report_callback.empty()) {
         r.report_callback(r, event::test_run_started{run_name});
+    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
+        r.print(
+            make_colored("starting tests with ", r.with_color, color::highlight2),
+            make_colored("snatch v" SNATCH_FULL_VERSION "\n", r.with_color, color::highlight1));
+        r.print("==========================================\n");
     }
 
     bool        success         = true;
@@ -1161,6 +1169,8 @@ const expected_arguments expected_args = {
 // clang-format on
 
 constexpr bool with_color_default = SNATCH_DEFAULT_WITH_COLOR == 1;
+
+constexpr const char* program_description = "Test runner (snatch v" SNATCH_FULL_VERSION ")";
 } // namespace
 
 namespace snatch::cli {
@@ -1170,8 +1180,7 @@ std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
 
     if (!ret_args) {
         console_print("\n");
-        print_help(
-            argv[0], "Snatch test runner"sv, expected_args, {.with_color = with_color_default});
+        print_help(argv[0], program_description, expected_args, {.with_color = with_color_default});
     }
 
     return ret_args;
@@ -1211,7 +1220,7 @@ bool registry::run_tests(const cli::input& args) noexcept {
     if (get_option(args, "--help")) {
         console_print("\n");
         print_help(
-            args.executable, "Snatch test runner"sv, expected_args,
+            args.executable, program_description, expected_args,
             {.with_color = with_color_default});
         return true;
     }

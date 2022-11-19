@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(snatch LANGUAGES CXX VERSION 1.0)
+project(snatch LANGUAGES CXX VERSION 1.0.0)
 
 set(SNATCH_MAX_TEST_CASES         5000 CACHE STRING "Maximum number of test cases in a test application.")
 set(SNATCH_MAX_NESTED_SECTIONS    8    CACHE STRING "Maximum depth of nested sections in a test case.")
@@ -19,6 +19,20 @@ set(SNATCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by d
 set(SNATCH_CREATE_HEADER_ONLY     ON   CACHE BOOL   "Create a single-header header-only version of snatch.")
 set(SNATCH_CREATE_LIBRARY         ON   CACHE BOOL   "Build a compiled library version of snatch.")
 
+# Figure out git hash, if any
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  RESULT_VARIABLE GIT_COMMAND_SUCCESS
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if (GIT_COMMAND_SUCCESS EQUAL 0)
+    set(SNATCH_FULL_VERSION "${CMAKE_PROJECT_VERSION}.${GIT_COMMIT_HASH}")
+endif()
+
+# Create configure file to store CMake build parameter
 configure_file("${PROJECT_SOURCE_DIR}/include/snatch/snatch_config.hpp.config"
                "${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp")
 
@@ -35,6 +49,7 @@ if (SNATCH_CREATE_LIBRARY)
   target_compile_features(snatch PUBLIC cxx_std_20)
   target_include_directories(snatch PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
   target_compile_definitions(snatch PUBLIC
@@ -67,7 +82,8 @@ if(SNATCH_CREATE_HEADER_ONLY)
   set(SNATCH_ALL_CONTENT "${SNATCH_FILE_CONFIG}\n${SNATCH_FILE_HEADER}\n#if defined(SNATCH_IMPLEMENTATION)\n${SNATCH_FILE_SOURCE}\n#endif")
 
   # Remove includes to snatch.hpp; it's all one header now
-  string(REPLACE "#include \"snatch/snatch.hpp\"\n\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
+  string(REPLACE "#include \"snatch/snatch.hpp\"\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
+  string(REPLACE "#include \"snatch/snatch_config.hpp\"\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
 
   file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp CONTENT "${SNATCH_ALL_CONTENT}")
 
