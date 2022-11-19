@@ -22,7 +22,7 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("no section") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
-            SNATCH_FAIL("trigger");
+            SNATCH_FAIL_CHECK("trigger");
         };
 
         mock_registry.run(mock_case);
@@ -33,7 +33,7 @@ TEST_CASE("section", "[test macros]") {
     SECTION("single section") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             SNATCH_SECTION("section 1") {
-                SNATCH_FAIL("trigger");
+                SNATCH_FAIL_CHECK("trigger");
             }
         };
 
@@ -45,10 +45,10 @@ TEST_CASE("section", "[test macros]") {
     SECTION("two sections") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             SNATCH_SECTION("section 1") {
-                SNATCH_FAIL("trigger1");
+                SNATCH_FAIL_CHECK("trigger1");
             }
             SNATCH_SECTION("section 2") {
-                SNATCH_FAIL("trigger2");
+                SNATCH_FAIL_CHECK("trigger2");
             }
         };
 
@@ -84,12 +84,53 @@ TEST_CASE("section", "[test macros]") {
                     SNATCH_FAIL_CHECK("trigger2");
                 }
             }
+            SNATCH_SECTION("section 2") {
+                SNATCH_FAIL("trigger2");
+            }
         };
 
         mock_registry.run(mock_case);
 
         REQUIRE(get_num_failures(events) == 1u);
         CHECK_SECTIONS("section 1");
+    }
+
+    SECTION("nested sections std::exception throw") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            SNATCH_SECTION("section 1") {
+                throw std::runtime_error("no can do");
+                SNATCH_SECTION("section 1.1") {
+                    SNATCH_FAIL_CHECK("trigger2");
+                }
+            }
+            SNATCH_SECTION("section 2") {
+                SNATCH_FAIL("trigger2");
+            }
+        };
+
+        mock_registry.run(mock_case);
+
+        REQUIRE(get_num_failures(events) == 1u);
+        CHECK_NO_SECTION;
+    }
+
+    SECTION("nested sections unknown exception throw") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            SNATCH_SECTION("section 1") {
+                throw 1;
+                SNATCH_SECTION("section 1.1") {
+                    SNATCH_FAIL_CHECK("trigger2");
+                }
+            }
+            SNATCH_SECTION("section 2") {
+                SNATCH_FAIL("trigger2");
+            }
+        };
+
+        mock_registry.run(mock_case);
+
+        REQUIRE(get_num_failures(events) == 1u);
+        CHECK_NO_SECTION;
     }
 
     SECTION("nested sections varying depth") {
