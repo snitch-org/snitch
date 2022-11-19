@@ -151,18 +151,18 @@ TEST_CASE("section readme example", "[test macros]") {
     mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
         SNATCH_CURRENT_TEST.reg.print("S");
 
-        SECTION("first section") {
+        SNATCH_SECTION("first section") {
             SNATCH_CURRENT_TEST.reg.print("1");
         }
-        SECTION("second section") {
+        SNATCH_SECTION("second section") {
             SNATCH_CURRENT_TEST.reg.print("2");
         }
-        SECTION("third section") {
+        SNATCH_SECTION("third section") {
             SNATCH_CURRENT_TEST.reg.print("3");
-            SECTION("nested section 1") {
+            SNATCH_SECTION("nested section 1") {
                 SNATCH_CURRENT_TEST.reg.print("3.1");
             }
-            SECTION("nested section 2") {
+            SNATCH_SECTION("nested section 2") {
                 SNATCH_CURRENT_TEST.reg.print("3.2");
             }
         }
