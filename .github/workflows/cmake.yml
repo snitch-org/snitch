@@ -100,19 +100,21 @@ jobs:
       shell: bash
       run: cmake --build . --config ${{matrix.build-type}} --target install
 
+    # In action-zip, all paths are relative to ${{github.workspace}}
     - name: Zip full build
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
       uses: vimtor/action-zip@v1
       with:
-        files: ${{github.workspace}}/install/ ${{github.workspace}}/LICENSE
-        dest: ${{github.workspace}}/snatch-${{matrix.platform.build}}.zip
+        files: install/ LICENSE
+        dest: snatch-${{matrix.platform.build}}.zip
 
+    # In action-zip, all paths are relative to ${{github.workspace}}
     - name: Zip header-only
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
       uses: vimtor/action-zip@v1
       with:
-        files: ${{github.workspace}}/install/include/snatch/snatch_all.hpp ${{github.workspace}}/LICENSE
-        dest: ${{github.workspace}}/snatch-header-only.zip
+        files: install/include/snatch/snatch_all.hpp LICENSE
+        dest: snatch-header-only.zip
 
     - name: Upload build as an artifact
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/update'
