@@ -96,12 +96,12 @@ jobs:
 
     - name: Install and zip
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
-      working-directory: ${{github.workspace}}
+      working-directory: ${{github.workspace}}/build
       shell: bash
       run: |
         cmake --build . --config ${{matrix.build-type}} --target install
-        zip snatch-${{matrix.platform.build}}.zip ${{github.workspace}}/install/* ${{github.workspace}}/LICENSE
-        zip snatch-header-only.zip ${{github.workspace}}/install/include/snatch/snatch_all.hpp ${{github.workspace}}/LICENSE
+        zip ${{github.workspace}}/snatch-${{matrix.platform.build}}.zip ${{github.workspace}}/install/* ${{github.workspace}}/LICENSE
+        zip ${{github.workspace}}/snatch-header-only.zip ${{github.workspace}}/install/include/snatch/snatch_all.hpp ${{github.workspace}}/LICENSE
 
     - name: Upload build as an artifact
       if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
