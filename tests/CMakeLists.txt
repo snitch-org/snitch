@@ -26,6 +26,8 @@ function(add_platform_definitions TARGET)
       target_compile_options(${TARGET} PRIVATE /W4)
       target_compile_options(${TARGET} PRIVATE /WX)
       target_compile_options(${TARGET} PRIVATE /EHs)
+      # Increase default stack size to match default for Linux
+      target_compile_options(${TARGET} PRIVATE "/F 8388608")
     endif()
 endfunction()
 
