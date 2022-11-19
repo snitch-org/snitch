@@ -1,6 +1,7 @@
 #include "testing.hpp"
 #include "testing_event.hpp"
 
+#include <stdexcept>
 #include <string>
 
 using namespace std::literals;
