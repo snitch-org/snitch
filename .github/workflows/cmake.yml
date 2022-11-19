@@ -13,12 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Ubuntu GCC,   os: ubuntu-latest,  compiler: g++,     arch: "64", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage'"}
-        - { name: Ubuntu Clang, os: ubuntu-latest,  compiler: clang++, arch: "64", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++'"}
-        - { name: Windows 32,   os: windows-latest, compiler: vs2019,  arch: "32", cmakepp: "",        flags: "-A Win32"}
-        - { name: Windows 64,   os: windows-latest, compiler: vs2019,  arch: "64", cmakepp: "",        flags: "-A x64"}
-        - { name: MacOS,        os: macos-latest,   compiler: clang++, arch: "64", cmakepp: "",        flags: ""}
-        - { name: WebAssembly,  os: ubuntu-latest,  compiler: em++,    arch: "32", cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
+        - { name: Ubuntu GCC,   os: ubuntu-latest,  compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage'"}
+        - { name: Ubuntu Clang, os: ubuntu-latest,  compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++'"}
+        - { name: Windows 32,   os: windows-latest, compiler: vs2019,  arch: "32", build: "win32-vs2019",       cmakepp: "",        flags: "-A Win32"}
+        - { name: Windows 64,   os: windows-latest, compiler: vs2019,  arch: "64", build: "win64-vs2019",       cmakepp: "",        flags: "-A x64"}
+        - { name: MacOS,        os: macos-latest,   compiler: clang++, arch: "64", build: "osx-libc++",         cmakepp: "",        flags: ""}
+        - { name: WebAssembly,  os: ubuntu-latest,  compiler: em++,    arch: "32", build: "wasm32",             cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
         build-type:
         - Release
         - Debug
@@ -65,7 +65,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNATCH_DO_TEST=1
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNATCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
     - name: Build
       shell: bash
@@ -82,9 +82,32 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_run
 
-    - name: Compute Code Coverage
+    - name: Test header-only (with snatch)
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_header_only_run
+
+    - name: Compute code coverage
       if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
       run: |
         gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/runtime_tests/*.gcda ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests_self.dir/runtime_tests/*.gcda
         ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
         bash <(curl -s https://codecov.io/bash)
+
+    - name: Install and zip
+      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
+      working-directory: ${{github.workspace}}
+      shell: bash
+      run: |
+        cmake --build . --config ${{matrix.build-type}} --target install
+        zip snatch-${{matrix.platform.build}}.zip ${{github.workspace}}/install/* ${{github.workspace}}/LICENSE
+        zip snatch-header-only.zip ${{github.workspace}}/install/include/snatch/snatch_all.hpp ${{github.workspace}}/LICENSE
+
+    - name: Upload build as an artifact
+      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v2
+      with:
+        files: |
+          ${{github.workspace}}/snatch-${{matrix.platform.build}}.zip
+          ${{github.workspace}}/snatch-header-only.zip
+

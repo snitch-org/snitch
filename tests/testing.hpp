@@ -1,9 +1,17 @@
 #if defined(SNATCH_TEST_WITH_SNATCH)
 // The library being tested is also the library used for testing...
-#    include "snatch/snatch.hpp"
+#    if defined(SNATCH_TEST_HEADER_ONLY)
+#        include "snatch/snatch_all.hpp"
+#    else
+#        include "snatch/snatch.hpp"
+#    endif
 #else
 // The library being tested.
-#    include "snatch/snatch.hpp"
+#    if defined(SNATCH_TEST_HEADER_ONLY)
+#        include "snatch/snatch_all.hpp"
+#    else
+#        include "snatch/snatch.hpp"
+#    endif
 // The library used for testing.
 #    include "doctest/doctest.h"
 // Adjust doctest macros to match the snatch API

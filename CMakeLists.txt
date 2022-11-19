@@ -16,41 +16,93 @@ set(SNATCH_WITH_EXCEPTIONS        ON   CACHE BOOL   "Use exceptions in snatch im
 set(SNATCH_WITH_TIMINGS           ON   CACHE BOOL   "Measure the time taken by each test case -- disable to speed up tests.")
 set(SNATCH_WITH_SHORTHAND_MACROS  ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
 set(SNATCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
+set(SNATCH_CREATE_HEADER_ONLY     ON   CACHE BOOL   "Create a single-header header-only version of snatch.")
+set(SNATCH_CREATE_LIBRARY         ON   CACHE BOOL   "Build a compiled library version of snatch.")
 
-add_library(snatch ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
+configure_file("${PROJECT_SOURCE_DIR}/include/snatch/snatch_config.hpp.config"
+               "${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp")
 
-add_library(snatch::snatch ALIAS snatch)
+if (SNATCH_CREATE_LIBRARY)
+  # Build as a standard library (static or dynamic) with header.
+  add_library(snatch
+    ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snatch/snatch_teamcity.hpp
+    ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
 
-target_compile_features(snatch PUBLIC cxx_std_20)
-target_include_directories(snatch PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+  add_library(snatch::snatch ALIAS snatch)
+  set_target_properties(snatch PROPERTIES EXPORT_NAME snatch::snatch)
 
-target_compile_definitions(snatch PUBLIC
-  SNATCH_MAX_TEST_CASES=${SNATCH_MAX_TEST_CASES}
-  SNATCH_MAX_NESTED_SECTIONS=${SNATCH_MAX_NESTED_SECTIONS}
-  SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
-  SNATCH_MAX_MESSAGE_LENGTH=${SNATCH_MAX_MESSAGE_LENGTH}
-  SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}
-  SNATCH_MAX_UNIQUE_TAGS=${SNATCH_MAX_UNIQUE_TAGS}
-  SNATCH_MAX_COMMAND_LINE_ARGS=${SNATCH_MAX_COMMAND_LINE_ARGS}
-  SNATCH_DEFINE_MAIN=$<BOOL:${SNATCH_DEFINE_MAIN}>
-  SNATCH_WITH_EXCEPTIONS=$<BOOL:${SNATCH_WITH_EXCEPTIONS}>
-  SNATCH_WITH_TIMINGS=$<BOOL:${SNATCH_WITH_TIMINGS}>
-  SNATCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNATCH_WITH_SHORTHAND_MACROS}>
-  SNATCH_DEFAULT_WITH_COLOR=$<BOOL:${SNATCH_DEFAULT_WITH_COLOR}>)
+  target_compile_features(snatch PUBLIC cxx_std_20)
+  target_include_directories(snatch PUBLIC
+      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-install(FILES ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
+  target_compile_definitions(snatch PUBLIC
+    SNATCH_MAX_TEST_CASES=${SNATCH_MAX_TEST_CASES}
+    SNATCH_MAX_NESTED_SECTIONS=${SNATCH_MAX_NESTED_SECTIONS}
+    SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
+    SNATCH_MAX_MESSAGE_LENGTH=${SNATCH_MAX_MESSAGE_LENGTH}
+    SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}
+    SNATCH_MAX_UNIQUE_TAGS=${SNATCH_MAX_UNIQUE_TAGS}
+    SNATCH_MAX_COMMAND_LINE_ARGS=${SNATCH_MAX_COMMAND_LINE_ARGS}
+    SNATCH_DEFINE_MAIN=$<BOOL:${SNATCH_DEFINE_MAIN}>
+    SNATCH_WITH_EXCEPTIONS=$<BOOL:${SNATCH_WITH_EXCEPTIONS}>
+    SNATCH_WITH_TIMINGS=$<BOOL:${SNATCH_WITH_TIMINGS}>
+    SNATCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNATCH_WITH_SHORTHAND_MACROS}>
+    SNATCH_DEFAULT_WITH_COLOR=$<BOOL:${SNATCH_DEFAULT_WITH_COLOR}>)
 
-install(TARGETS snatch EXPORT snatch-targets)
+  install(FILES
+    ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snatch/snatch_teamcity.hpp
+    ${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
+endif()
+
+if(SNATCH_CREATE_HEADER_ONLY)
+  # Build as a header-only library.
+  file(READ ${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp SNATCH_FILE_CONFIG)
+  file(READ ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp SNATCH_FILE_HEADER)
+  file(READ ${PROJECT_SOURCE_DIR}/src/snatch.cpp SNATCH_FILE_SOURCE)
+
+  set(SNATCH_ALL_CONTENT "${SNATCH_FILE_CONFIG}\n${SNATCH_FILE_HEADER}\n#if defined(SNATCH_IMPLEMENTATION)\n${SNATCH_FILE_SOURCE}\n#endif")
+
+  # Remove includes to snatch.hpp; it's all one header now
+  string(REPLACE "#include \"snatch/snatch.hpp\"\n\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
+
+  file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp CONTENT "${SNATCH_ALL_CONTENT}")
+
+  add_library(snatch-header-only INTERFACE)
+  add_library(snatch::snatch-header-only ALIAS snatch-header-only)
+  set_target_properties(snatch-header-only PROPERTIES EXPORT_NAME snatch::snatch-header-only)
+
+  target_sources(snatch-header-only INTERFACE
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snatch/snatch_all.hpp>)
+  set_source_files_properties(${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp PROPERTIES GENERATED TRUE)
+  target_include_directories(snatch-header-only INTERFACE
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+  target_compile_features(snatch-header-only INTERFACE cxx_std_20)
+
+  install(FILES
+    ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
+endif()
+
+# Setup CMake config file
+if (SNATCH_CREATE_LIBRARY AND SNATCH_CREATE_HEADER_ONLY)
+  install(TARGETS snatch snatch-header-only EXPORT snatch-targets)
+elseif (SNATCH_CREATE_LIBRARY)
+  install(TARGETS snatch EXPORT snatch-targets)
+elseif (SNATCH_CREATE_HEADER_ONLY)
+  install(TARGETS snatch-header-only EXPORT snatch-targets)
+endif()
 
 install(EXPORT snatch-targets
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snatch COMPONENT Development)
 
 export(EXPORT snatch-targets)
 
-# Setup CMake config file
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
   "${PROJECT_SOURCE_DIR}/cmake/snatch-config.cmake.in"

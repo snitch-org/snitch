@@ -1,6 +1,9 @@
 #ifndef SNATCH_HPP
 #define SNATCH_HPP
 
+// These should be defined from build-time configuration in snatch_config.hpp.
+// In case the user does not want or care to use snatch_config.hpp, provide some
+// sensible defaults here.
 #if !defined(SNATCH_MAX_TEST_CASES)
 #    define SNATCH_MAX_TEST_CASES 5'000
 #endif
