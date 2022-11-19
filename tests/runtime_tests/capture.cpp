@@ -111,12 +111,24 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("expression string") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             std::string s = "hello";
-            SNATCH_CAPTURE(s + ", 'world'");
+            SNATCH_CAPTURE(s + ", 'world' (string),)(");
             SNATCH_FAIL("trigger");
         };
 
         mock_registry.run(mock_case);
-        CHECK_CAPTURES("s + \", 'world'\" := hello, 'world'");
+        CHECK_CAPTURES("s + \", 'world' (string),)(\" := hello, 'world' (string),)(");
+    }
+
+    SECTION("expression function call & char") {
+        mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            std::string s = "hel\"lo";
+            SNATCH_CAPTURE(s.find_first_of('e'));
+            SNATCH_CAPTURE(s.find_first_of('"'));
+            SNATCH_FAIL("trigger");
+        };
+
+        mock_registry.run(mock_case);
+        CHECK_CAPTURES("s.find_first_of('e') := 1", "s.find_first_of('\"') := 3");
     }
 
     SECTION("two variables") {
