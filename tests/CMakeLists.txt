@@ -31,6 +31,15 @@ function(add_platform_definitions TARGET)
     endif()
 endfunction()
 
+function(configure_snatch_for_tests TARGET)
+  target_compile_definitions(${TARGET} PUBLIC
+    SNATCH_MAX_TEST_CASES=100
+    SNATCH_MAX_EXPR_LENGTH=128
+    SNATCH_MAX_MESSAGE_LENGTH=128
+    SNATCH_MAX_TEST_NAME_LENGTH=128
+    SNATCH_MAX_CAPTURE_LENGTH=128)
+endfunction()
+
 include(FetchContent)
 
 set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
@@ -64,6 +73,7 @@ target_link_libraries(snatch_runtime_tests PRIVATE
   doctest::doctest
   doctest::doctest_with_main)
 add_platform_definitions(snatch_runtime_tests)
+configure_snatch_for_tests(snatch_runtime_tests)
 target_compile_features(snatch_runtime_tests PUBLIC cxx_std_20)
 target_compile_definitions(snatch_runtime_tests PUBLIC
   SNATCH_DEFINE_MAIN=0
@@ -83,8 +93,10 @@ target_include_directories(snatch_runtime_tests_self PRIVATE
   ${PROJECT_BINARY_DIR}
   ${PROJECT_SOURCE_DIR}/tests)
 add_platform_definitions(snatch_runtime_tests_self)
+configure_snatch_for_tests(snatch_runtime_tests_self)
 target_compile_features(snatch_runtime_tests_self PUBLIC cxx_std_20)
-target_compile_definitions(snatch_runtime_tests_self PUBLIC SNATCH_TEST_WITH_SNATCH)
+target_compile_definitions(snatch_runtime_tests_self PUBLIC
+  SNATCH_TEST_WITH_SNATCH)
 
 add_custom_target(snatch_runtime_tests_self_run
   COMMAND snatch_runtime_tests_self
@@ -99,6 +111,7 @@ target_include_directories(snatch_runtime_tests_self_header_only PRIVATE
   ${PROJECT_BINARY_DIR}
   ${PROJECT_SOURCE_DIR}/tests)
 add_platform_definitions(snatch_runtime_tests_self_header_only)
+configure_snatch_for_tests(snatch_runtime_tests_self_header_only)
 target_compile_features(snatch_runtime_tests_self_header_only PUBLIC cxx_std_20)
 target_compile_definitions(snatch_runtime_tests_self_header_only PUBLIC
   SNATCH_TEST_WITH_SNATCH
