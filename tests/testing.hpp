@@ -23,3 +23,13 @@
 
 #    include <ostream>
 #endif
+
+#if defined(__clang__)
+#    define SNATCH_WARNING_DISABLE_UNREACHABLE
+#elif defined(__GNUC__)
+#    define SNATCH_WARNING_DISABLE_UNREACHABLE
+#elif defined(_MSC_VER)
+#    define SNATCH_WARNING_DISABLE_UNREACHABLE _Pragma("warning(disable: 4702)")
+#else
+#    define SNATCH_WARNING_DISABLE_UNREACHABLE
+#endif

@@ -76,6 +76,9 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.1");
     }
 
+    SNATCH_WARNING_PUSH
+    SNATCH_WARNING_DISABLE_UNREACHABLE
+
     SECTION("nested sections abort early") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
             SNATCH_SECTION("section 1") {
@@ -132,6 +135,8 @@ TEST_CASE("section", "[test macros]") {
         REQUIRE(get_num_failures(events) == 1u);
         CHECK_NO_SECTION;
     }
+
+    SNATCH_WARNING_POP
 
     SECTION("nested sections varying depth") {
         mock_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
