@@ -71,7 +71,8 @@ TEMPLATE_TEST_CASE(
         auto [value, expected] = create_value();
         CHECK(append(s, value));
 
-        if constexpr (!std::is_pointer_v<TestType>) {
+        if constexpr (
+            !std::is_pointer_v<TestType> || std::is_function_v<std::remove_pointer_t<TestType>>) {
             CHECK(std::string_view(s) == expected);
         } else {
 #if defined(SNATCH_COMPILER_MSVC)
