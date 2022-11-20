@@ -1,7 +1,4 @@
-// clang-format off
-#include "snatch/snatch_config.hpp"
 #include "snatch/snatch.hpp"
-// clang-format on
 
 #include <algorithm> // for std::sort
 #include <cstdio> // for std::printf, std::snprintf

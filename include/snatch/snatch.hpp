@@ -1,66 +1,7 @@
 #ifndef SNATCH_HPP
 #define SNATCH_HPP
 
-// These should be defined from build-time configuration in snatch_config.hpp.
-// In case the user does not want or care to use snatch_config.hpp, provide some
-// sensible defaults here.
-#if !defined(SNATCH_MAX_TEST_CASES)
-#    define SNATCH_MAX_TEST_CASES 5'000
-#endif
-#if !defined(SNATCH_MAX_NESTED_SECTIONS)
-#    define SNATCH_MAX_NESTED_SECTIONS 8
-#endif
-#if !defined(SNATCH_MAX_EXPR_LENGTH)
-#    define SNATCH_MAX_EXPR_LENGTH 1'024
-#endif
-#if !defined(SNATCH_MAX_MESSAGE_LENGTH)
-#    define SNATCH_MAX_MESSAGE_LENGTH 1'024
-#endif
-#if !defined(SNATCH_MAX_TEST_NAME_LENGTH)
-#    define SNATCH_MAX_TEST_NAME_LENGTH 1'024
-#endif
-#if !defined(SNATCH_MAX_CAPTURES)
-#    define SNATCH_MAX_CAPTURES 8
-#endif
-#if !defined(SNATCH_MAX_CAPTURE_LENGTH)
-#    define SNATCH_MAX_CAPTURE_LENGTH 256
-#endif
-#if !defined(SNATCH_MAX_UNIQUE_TAGS)
-#    define SNATCH_MAX_UNIQUE_TAGS 1'024
-#endif
-#if !defined(SNATCH_MAX_COMMAND_LINE_ARGS)
-#    define SNATCH_MAX_COMMAND_LINE_ARGS 1'024
-#endif
-#if !defined(SNATCH_DEFINE_MAIN)
-#    define SNATCH_DEFINE_MAIN 1
-#endif
-#if !defined(SNATCH_WITH_EXCEPTIONS)
-#    define SNATCH_WITH_EXCEPTIONS 1
-#endif
-#if !defined(SNATCH_WITH_TIMINGS)
-#    define SNATCH_WITH_TIMINGS 1
-#endif
-#if !defined(SNATCH_WITH_SHORTHAND_MACROS)
-#    define SNATCH_WITH_SHORTHAND_MACROS 1
-#endif
-#if !defined(SNATCH_DEFAULT_WITH_COLOR)
-#    define SNATCH_DEFAULT_WITH_COLOR 1
-#endif
-
-#if defined(_MSC_VER)
-#    if defined(_KERNEL_MODE) || (defined(_HAS_EXCEPTIONS) && !_HAS_EXCEPTIONS)
-#        define SNATCH_EXCEPTIONS_NOT_AVAILABLE
-#    endif
-#elif defined(__clang__) || defined(__GNUC__)
-#    if !defined(__EXCEPTIONS)
-#        define SNATCH_EXCEPTIONS_NOT_AVAILABLE
-#    endif
-#endif
-
-#if defined(SNATCH_EXCEPTIONS_NOT_AVAILABLE)
-#    undef SNATCH_WITH_EXCEPTIONS
-#    define SNATCH_WITH_EXCEPTIONS 0
-#endif
+#include "snatch/snatch_config.hpp"
 
 #include <array> // for small_vector
 #include <cstddef> // for std::size_t
