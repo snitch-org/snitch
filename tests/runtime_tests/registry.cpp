@@ -78,6 +78,9 @@ TEST_CASE("add test", "[registry]") {
     }
 };
 
+SNATCH_WARNING_PUSH
+SNATCH_WARNING_DISABLE_UNREACHABLE
+
 TEST_CASE("report failure", "[registry]") {
     mock_framework framework;
     framework.registry.with_color = false;
@@ -151,3 +154,5 @@ TEST_CASE("report failure", "[registry]") {
         CHECK(framework.messages == snatch::matchers::contains_substring("there are four lights"));
     }
 };
+
+SNATCH_WARNING_POP
