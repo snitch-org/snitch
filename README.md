@@ -109,7 +109,7 @@ include(FetchContent)
 
 FetchContent_Declare(snatch
                      GIT_REPOSITORY https://github.com/cschreib/snatch.git
-                     GIT_TAG        d1db51bb922909e44fc0983f196d9e43e452a8c4)
+                     GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
 FetchContent_MakeAvailable(snatch)
 
 set(RUNTIME_TEST_FILES
@@ -132,7 +132,7 @@ include(FetchContent)
 
 FetchContent_Declare(snatch
                      GIT_REPOSITORY https://github.com/cschreib/snatch.git
-                     GIT_TAG        d1db51bb922909e44fc0983f196d9e43e452a8c4)
+                     GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
 FetchContent_MakeAvailable(snatch)
 
 set(RUNTIME_TEST_FILES
