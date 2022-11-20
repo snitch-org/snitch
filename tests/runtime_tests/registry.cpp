@@ -26,7 +26,7 @@ TEST_CASE("add test", "[registry]") {
         CHECK(test.id.name == "name"sv);
         CHECK(test.id.tags == "[tag]"sv);
         CHECK(test.id.type == ""sv);
-        REQUIRE((test.func != nullptr));
+        REQUIRE(test.func != nullptr);
 
         framework.registry.run(test);
         CHECK(test_called == true);
@@ -54,7 +54,7 @@ TEST_CASE("add test", "[registry]") {
         CHECK(test1.id.name == "name"sv);
         CHECK(test1.id.tags == "[tag]"sv);
         CHECK(test1.id.type == "int"sv);
-        REQUIRE((test1.func != nullptr));
+        REQUIRE(test1.func != nullptr);
 
         framework.registry.run(test1);
         CHECK(test_called == false);
@@ -69,7 +69,7 @@ TEST_CASE("add test", "[registry]") {
         CHECK(test2.id.name == "name"sv);
         CHECK(test2.id.tags == "[tag]"sv);
         CHECK(test2.id.type == "float"sv);
-        REQUIRE((test2.func != nullptr));
+        REQUIRE(test2.func != nullptr);
 
         framework.registry.run(test2);
         CHECK(test_called == false);

@@ -504,6 +504,9 @@ template<typename T>
 [[nodiscard]] bool append(small_string_span ss, T* ptr) noexcept {
     if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
         return append(ss, std::string_view(ptr));
+    } else if constexpr (std::is_function_v<T>) {
+        return append(
+            ss, ptr != nullptr ? std::string_view("funcptr") : std::string_view("nullptr"));
     } else {
         return append(ss, static_cast<const void*>(ptr));
     }
