@@ -12,6 +12,9 @@ coverage:
       # adjust accordingly based on how flaky your tests are
       # this allows a drop from the previous base commit coverage
       threshold: 1%
+    patch:
+      default:
+        target: 0%
 
 parsers:
   gcov:
