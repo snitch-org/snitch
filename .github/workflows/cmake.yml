@@ -75,6 +75,8 @@ jobs:
     - name: Test (with doctest)
       shell: bash
       working-directory: ${{github.workspace}}/build
+      # Run even if previous tests failed
+      if: always()
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_run
 
     - name: Test (with snatch)
