@@ -505,8 +505,9 @@ template<typename T>
     if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
         return append(ss, std::string_view(ptr));
     } else if constexpr (std::is_function_v<T>) {
-        return append(
-            ss, ptr != nullptr ? std::string_view("funcptr") : std::string_view("nullptr"));
+        constexpr std::string_view fptr = "funcptr";
+        constexpr std::string_view nptr = "nullptr";
+        return append(ss, ptr != nullptr ? fptr : nptr);
     } else {
         return append(ss, static_cast<const void*>(ptr));
     }
