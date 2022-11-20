@@ -59,7 +59,7 @@ TEMPLATE_TEST_CASE(
         } else if constexpr (std::is_same_v<TestType, enum_type>) {
             return {enum_type::value2, "12"sv};
         } else if constexpr (std::is_same_v<TestType, function_ptr_type1>) {
-            return {&foo, "funcptr"sv};
+            return {&foo, "0x????????"sv};
         } else if constexpr (std::is_same_v<TestType, function_ptr_type2>) {
             return {nullptr, "nullptr"sv};
         }
