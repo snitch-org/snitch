@@ -5,6 +5,9 @@
 
 using namespace std::literals;
 
+SNATCH_WARNING_PUSH
+SNATCH_WARNING_DISABLE_UNREACHABLE
+
 TEST_CASE("capture", "[test macros]") {
     mock_framework framework;
 
@@ -320,3 +323,5 @@ TEST_CASE("info", "[test macros]") {
         CHECK_CAPTURES("1", "i := 1");
     }
 };
+
+SNATCH_WARNING_POP
