@@ -10,6 +10,7 @@ SNATCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("capture", "[test macros]") {
     mock_framework framework;
+    framework.setup_reporter();
 
     SECTION("literal int") {
         framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
@@ -174,6 +175,7 @@ TEST_CASE("capture", "[test macros]") {
 
 TEST_CASE("info", "[test macros]") {
     mock_framework framework;
+    framework.setup_reporter();
 
     SECTION("literal int") {
         framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {

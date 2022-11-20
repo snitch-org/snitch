@@ -11,6 +11,7 @@ SNATCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("section", "[test macros]") {
     mock_framework framework;
+    framework.setup_reporter();
 
     SECTION("no section") {
         framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {

@@ -37,11 +37,14 @@ struct mock_framework {
         .func  = nullptr,
         .state = snatch::impl::test_state::not_run};
 
-    std::vector<event_deep_copy> events;
-
-    mock_framework();
+    snatch::small_vector<event_deep_copy, 16>        events;
+    snatch::small_string<snatch::max_message_length> messages;
 
     void report(const snatch::registry&, const snatch::event::data& e) noexcept;
+    void print(std::string_view msg) noexcept;
+
+    void setup_reporter();
+    void setup_print();
 
     void run_test();
 

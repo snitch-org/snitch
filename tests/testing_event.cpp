@@ -26,8 +26,10 @@ void copy_full_location(event_deep_copy& c, const T& e) {
     }
 }
 
-std::optional<event_deep_copy>
-get_event(const std::vector<event_deep_copy>& events, event_deep_copy::type type, std::size_t id) {
+std::optional<event_deep_copy> get_event(
+    snatch::small_vector_span<const event_deep_copy> events,
+    event_deep_copy::type                            type,
+    std::size_t                                      id) {
     auto iter  = events.cbegin();
     bool first = true;
 
@@ -50,7 +52,8 @@ get_event(const std::vector<event_deep_copy>& events, event_deep_copy::type type
     }
 }
 
-std::size_t count_events(const std::vector<event_deep_copy>& events, event_deep_copy::type type) {
+std::size_t
+count_events(snatch::small_vector_span<const event_deep_copy> events, event_deep_copy::type type) {
     return std::count_if(events.cbegin(), events.cend(), [&](const event_deep_copy& e) {
         return e.event_type == type;
     });
@@ -89,12 +92,22 @@ event_deep_copy deep_copy(const snatch::event::data& e) {
         e);
 }
 
-mock_framework::mock_framework() {
-    registry.report_callback = {*this, snatch::constant<&mock_framework::report>{}};
-}
-
 void mock_framework::report(const snatch::registry&, const snatch::event::data& e) noexcept {
     events.push_back(deep_copy(e));
+}
+
+void mock_framework::print(std::string_view msg) noexcept {
+    append_or_truncate(messages, msg);
+}
+
+void mock_framework::setup_reporter() {
+    registry.report_callback = {*this, snatch::constant<&mock_framework::report>{}};
+    registry.print_callback  = {};
+}
+
+void mock_framework::setup_print() {
+    registry.report_callback = {};
+    registry.print_callback  = {*this, snatch::constant<&mock_framework::print>{}};
 }
 
 void mock_framework::run_test() {
