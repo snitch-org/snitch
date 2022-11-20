@@ -1,7 +1,4 @@
-// clang-format off
-#include "snatch/snatch_config.hpp"
 #include "snatch/snatch.hpp"
-// clang-format on
 
 #include <algorithm> // for std::sort
 #include <cstdio> // for std::printf, std::snprintf
@@ -336,7 +333,7 @@ std::string_view extract_next_name(std::string_view& names) noexcept {
     bool in_string = false;
     bool in_char   = false;
     int  parens    = 0;
-    while (pos != names.npos && pos != names.size() - 1) {
+    while (pos != names.npos) {
         switch (names[pos]) {
         case '"':
             if (!in_char) {

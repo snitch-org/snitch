@@ -10,6 +10,9 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
 - [Features and limitations](#features-and-limitations)
 - [Example](#example)
+- [Example build configurations with CMake](#example-build-configurations-with-cmake)
+    - [Using _snatch_ as a regular library](#using-snatch-as-a-regular-library)
+    - [Using _snatch_ as a header-only library](#using-snatch-as-a-header-only-library)
 - [Benchmark](#benchmark)
 - [Documentation](#documentation)
     - [Test case macros](#test-case-macros)
@@ -93,6 +96,60 @@ TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside std
 Output:
 
 ![Screenshot from 2022-10-16 16-16-50](https://user-images.githubusercontent.com/2236577/196043558-ed9ab329-5934-4bb3-a422-b48d6781cf96.png)
+
+
+## Example build configurations with CMake
+
+### Using _snatch_ as a regular library
+
+Here is an example CMake file to download _snatch_ and define a test application:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(snatch
+                     GIT_REPOSITORY https://github.com/cschreib/snatch.git
+                     GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
+FetchContent_MakeAvailable(snatch)
+
+set(RUNTIME_TEST_FILES
+  # add your test files here...
+  )
+
+add_executable(my_tests ${YOUR_TEST_FILES})
+target_link_libraries(my_tests PRIVATE snatch::snatch)
+```
+
+_snatch_ will provide the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
+
+
+### Using _snatch_ as a header-only library
+
+Here is an example CMake file to download _snatch_ and define a test application:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(snatch
+                     GIT_REPOSITORY https://github.com/cschreib/snatch.git
+                     GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
+FetchContent_MakeAvailable(snatch)
+
+set(RUNTIME_TEST_FILES
+  # add your test files here...
+  )
+
+add_executable(my_tests ${YOUR_TEST_FILES})
+target_link_libraries(my_tests PRIVATE snatch::snatch-header-only)
+```
+
+One (and only one!) of your test files needs to include _snatch_ as:
+```c++
+#define SNATCH_IMPLEMENTATION
+#include <snatch_all.hpp>
+```
+
+See the documentation for the [header-only mode](#header-only-build) for more information. This will include the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
 
 
 ## Benchmark
@@ -270,7 +327,9 @@ struct has_prefix {
 
 ### Sections
 
-As in _Catch2_, _snatch_ supports nesting multiple tests inside a single test case, to share set-up/tear-down logic. This is done using the `SECTION("name")` macro. Please see the [Catch2 documentation](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md#test-cases-and-sections) for more details. Here is a brief example to demonstrate the flow of the test:
+As in _Catch2_, _snatch_ supports nesting multiple tests inside a single test case, to share set-up/tear-down logic. This is done using the `SECTION("name")` macro. Please see the [Catch2 documentation](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md#test-cases-and-sections) for more details. Note: if any exception is thrown inside a section, or if a `REQUIRE()` check fails (or any other check which aborts execution), the whole test case is stopped. No other section will be executed.
+
+Here is a brief example to demonstrate the flow of the test:
 
 ```c++
 TEST_CASE( "test with sections", "[section]" ) {
@@ -564,7 +623,13 @@ By default _snatch_ defines `main()` for you. To prevent this and provide your o
 set(SNATCH_DEFINE_MAIN OFF)
 ```
 
-just before calling `FetchContent_Declare()`.
+just before calling `FetchContent_Declare()`. If using the header-only mode, this can also be done in the file that defines the _snatch_ implementation:
+
+```c++
+#define SNATCH_IMPLEMENTATION
+#define SNATCH_DEFINE_MAIN 0
+#include <snatch_all.hpp>
+```
 
 Here is a recommended `main()` function that replicates the default behavior of snatch:
 

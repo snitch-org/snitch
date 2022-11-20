@@ -1,4 +1,5 @@
 #include "testing.hpp"
+#include "testing_event.hpp"
 
 #include <algorithm>
 
@@ -64,21 +65,6 @@ bool append(snatch::small_string_span ss, const unary_long_string& u) noexcept {
     return append(ss, u.value);
 }
 
-struct event_deep_copy {
-    enum class type { unknown, assertion_failed };
-
-    type event_type = type::unknown;
-
-    snatch::small_string<snatch::max_test_name_length> test_id_name;
-    snatch::small_string<snatch::max_test_name_length> test_id_tags;
-    snatch::small_string<snatch::max_test_name_length> test_id_type;
-
-    snatch::small_string<snatch::max_message_length> location_file;
-    std::size_t                                      location_line = 0u;
-
-    snatch::small_string<snatch::max_message_length> message;
-};
-
 namespace snatch::matchers {
 struct long_matcher_always_fails {
     bool match(std::string_view) const noexcept {
@@ -94,33 +80,6 @@ struct long_matcher_always_fails {
     }
 };
 } // namespace snatch::matchers
-
-event_deep_copy deep_copy(const snatch::event::data& e) {
-    return std::visit(
-        snatch::overload{
-            [](const snatch::event::assertion_failed& a) {
-                event_deep_copy c;
-                c.event_type = event_deep_copy::type::assertion_failed;
-                append_or_truncate(c.test_id_name, a.id.name);
-                append_or_truncate(c.test_id_tags, a.id.tags);
-                append_or_truncate(c.test_id_type, a.id.type);
-                append_or_truncate(c.location_file, a.location.file);
-                c.location_line = a.location.line;
-                append_or_truncate(c.message, a.message);
-                return c;
-            },
-            [](const auto&) -> event_deep_copy { snatch::terminate_with("event not handled"); }},
-        e);
-}
-
-#define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
-    CHECK(ACTUAL.test_id_name == EXPECTED.name);                                                   \
-    CHECK(ACTUAL.test_id_tags == EXPECTED.tags);                                                   \
-    CHECK(ACTUAL.test_id_type == EXPECTED.type)
-
-#define CHECK_EVENT_LOCATION(ACTUAL, FILE, LINE)                                                   \
-    CHECK(ACTUAL.location_file == std::string_view(FILE));                                         \
-    CHECK(ACTUAL.location_line == LINE)
 
 TEST_CASE("check unary", "[test macros]") {
     snatch::registry mock_registry;
