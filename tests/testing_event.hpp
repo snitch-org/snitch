@@ -52,6 +52,7 @@ struct mock_framework {
 
     std::optional<event_deep_copy> get_skip_event() const;
 
+    std::size_t get_num_registered_tests() const;
     std::size_t get_num_runs() const;
     std::size_t get_num_failures() const;
     std::size_t get_num_skips() const;

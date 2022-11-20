@@ -122,6 +122,10 @@ std::optional<event_deep_copy> mock_framework::get_skip_event() const {
     return get_event(events, event_deep_copy::type::test_case_skipped, 0u);
 }
 
+std::size_t mock_framework::get_num_registered_tests() const {
+    return registry.end() - registry.begin();
+}
+
 std::size_t mock_framework::get_num_runs() const {
     return count_events(events, event_deep_copy::type::test_case_ended);
 }
