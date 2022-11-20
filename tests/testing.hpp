@@ -32,7 +32,7 @@ concept function = std::is_function_v<T>;
 
 template<function T>
 struct filldata<T*> {
-    static void fill(std::ostream* stream, const T* in) {
+    static void fill(std::ostream* stream, T* in) {
         filldata<const void*>::fill(stream, in != nullptr ? "funcptr" : "nullptr");
     }
 };
