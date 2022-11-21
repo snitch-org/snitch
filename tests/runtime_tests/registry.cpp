@@ -86,7 +86,7 @@ TEST_CASE("report failure", "[registry]") {
     framework.registry.with_color = false;
     framework.setup_print();
 
-    SECTION("FAIL") {
+    SECTION("FAIL regular") {
 #define SNATCH_CURRENT_TEST mock_test
         framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
             SNATCH_FAIL("there are four lights");
@@ -97,6 +97,63 @@ TEST_CASE("report failure", "[registry]") {
         framework.registry.run(test);
 
         CHECK(framework.messages == snatch::matchers::contains_substring("how many lights"));
+        CHECK(framework.messages == snatch::matchers::contains_substring("registry.cpp"));
+        CHECK(framework.messages == snatch::matchers::contains_substring("there are four lights"));
+    }
+
+    SECTION("FAIL template") {
+#define SNATCH_CURRENT_TEST mock_test
+        framework.registry.add_with_types<std::tuple<int>>("how many lights", "[tag]") =
+            []<typename TestType>(snatch::impl::test_run& mock_test) {
+                SNATCH_FAIL("there are four lights");
+            };
+#undef SNATCH_CURRENT_TEST
+
+        auto& test = *framework.registry.begin();
+        framework.registry.run(test);
+
+        CHECK(framework.messages == snatch::matchers::contains_substring("how many lights"));
+        CHECK(framework.messages == snatch::matchers::contains_substring("for type int"));
+        CHECK(framework.messages == snatch::matchers::contains_substring("registry.cpp"));
+        CHECK(framework.messages == snatch::matchers::contains_substring("there are four lights"));
+    }
+
+    SECTION("FAIL section") {
+#define SNATCH_CURRENT_TEST mock_test
+        framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+            SNATCH_SECTION("ask nicely") {
+                SNATCH_FAIL("there are four lights");
+            }
+        };
+#undef SNATCH_CURRENT_TEST
+
+        auto& test = *framework.registry.begin();
+        framework.registry.run(test);
+
+        CHECK(framework.messages == snatch::matchers::contains_substring("how many lights"));
+        CHECK(
+            framework.messages ==
+            snatch::matchers::contains_substring("in section \"ask nicely\""));
+        CHECK(framework.messages == snatch::matchers::contains_substring("registry.cpp"));
+        CHECK(framework.messages == snatch::matchers::contains_substring("there are four lights"));
+    }
+
+    SECTION("FAIL capture") {
+#define SNATCH_CURRENT_TEST mock_test
+        framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+            int number_of_lights = 3;
+            SNATCH_CAPTURE(number_of_lights);
+            SNATCH_FAIL("there are four lights");
+        };
+#undef SNATCH_CURRENT_TEST
+
+        auto& test = *framework.registry.begin();
+        framework.registry.run(test);
+
+        CHECK(framework.messages == snatch::matchers::contains_substring("how many lights"));
+        CHECK(
+            framework.messages ==
+            snatch::matchers::contains_substring("with number_of_lights := 3"));
         CHECK(framework.messages == snatch::matchers::contains_substring("registry.cpp"));
         CHECK(framework.messages == snatch::matchers::contains_substring("there are four lights"));
     }
