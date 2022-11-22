@@ -106,6 +106,9 @@ void mock_framework::setup_reporter() {
 }
 
 void mock_framework::setup_print() {
+    registry.with_color = false;
+    registry.verbose    = snatch::registry::verbosity::high;
+
     registry.report_callback = {};
     registry.print_callback  = {*this, snatch::constant<&mock_framework::print>{}};
 }
