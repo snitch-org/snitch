@@ -7,6 +7,11 @@
 
 namespace {
 template<typename T>
+void copy_test_run_id(event_deep_copy& c, const T& e) {
+    append_or_truncate(c.test_run_name, e.name);
+}
+
+template<typename T>
 void copy_test_case_id(event_deep_copy& c, const T& e) {
     append_or_truncate(c.test_id_name, e.id.name);
     append_or_truncate(c.test_id_tags, e.id.tags);
@@ -80,6 +85,23 @@ event_deep_copy deep_copy(const snatch::event::data& e) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_ended;
                 copy_test_case_id(c, s);
+                return c;
+            },
+            [](const snatch::event::test_run_started& s) {
+                event_deep_copy c;
+                c.event_type = event_deep_copy::type::test_run_started;
+                copy_test_run_id(c, s);
+                return c;
+            },
+            [](const snatch::event::test_run_ended& s) {
+                event_deep_copy c;
+                c.event_type = event_deep_copy::type::test_run_ended;
+                copy_test_run_id(c, s);
+                c.test_run_success         = s.success;
+                c.test_run_run_count       = s.run_count;
+                c.test_run_fail_count      = s.fail_count;
+                c.test_run_skip_count      = s.skip_count;
+                c.test_run_assertion_count = s.assertion_count;
                 return c;
             },
             [](const snatch::event::test_case_skipped& s) {

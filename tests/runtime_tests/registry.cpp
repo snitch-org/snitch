@@ -6,10 +6,14 @@
 using namespace std::literals;
 using snatch::matchers::contains_substring;
 
-bool        test_called       = false;
-bool        test_called_int   = false;
-bool        test_called_float = false;
-std::size_t failure_line      = 0u;
+bool        test_called           = false;
+bool        test_called_other_tag = false;
+bool        test_called_skipped   = false;
+bool        test_called_int       = false;
+bool        test_called_float     = false;
+std::size_t failure_line          = 0u;
+
+enum class reporter { print, custom };
 
 TEST_CASE("add regular test", "[registry]") {
     mock_framework framework;
@@ -385,48 +389,136 @@ TEST_CASE("report SKIP", "[registry]") {
 
 SNATCH_WARNING_POP
 
-TEST_CASE("add regular test", "[registry]") {
+TEST_CASE("run tests", "[registry]") {
     mock_framework framework;
 
-    test_called = false;
+    test_called           = false;
+    test_called_other_tag = false;
+    test_called_skipped   = false;
+    test_called_int       = false;
+    test_called_float     = false;
 
+#define SNATCH_CURRENT_TEST mock_test
     framework.registry.add("how are you", "[tag]") = [](snatch::impl::test_run&) {
         test_called = true;
     };
 
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run&) {
-        test_called = true;
-        SNATCH_FAIL_CHECK("there are four lights");
-    };
+    framework.registry.add("how many lights", "[tag][other_tag]") =
+        [](snatch::impl::test_run& mock_test) {
+            test_called_other_tag = true;
+            SNATCH_FAIL_CHECK("there are four lights");
+        };
+
+    framework.registry.add("drink from the cup", "[tag][skipped]") =
+        [](snatch::impl::test_run& mock_test) {
+            test_called_skipped = true;
+            SNATCH_SKIP("not thirsty");
+        };
 
     framework.registry.add_with_types<std::tuple<int, float>>(
-        "how many lights templated", "[tag]") = []<typename T>(snatch::impl::test_run&) {
+        "how many lights templated", "[tag]") = []<typename T>(snatch::impl::test_run& mock_test) {
         if constexpr (std::is_same_v<T, int>) {
             test_called_int = true;
             SNATCH_FAIL_CHECK("there are four lights (int)");
         } else if constexpr (std::is_same_v<T, float>) {
             test_called_float = true;
             SNATCH_FAIL_CHECK("there are four lights (float)");
-        } else {
-            test_called = true;
-            SNATCH_FAIL_CHECK("there are four lights (unreachable)");
         }
     };
+#undef SNATCH_CURRENT_TEST
 
-    SECTION("run all tests") {
-        framework.registry.run_tests();
+    for (auto r : {reporter::print, reporter::custom}) {
+        if (r == reporter::print) {
+            framework.setup_print();
+        } else {
+            framework.setup_reporter();
+        }
 
-        // TODO:
+        INFO((r == reporter::print ? "default reporter" : "custom reporter"));
+
+        SECTION("run all tests") {
+            framework.registry.run_all_tests("test_app");
+
+            CHECK(test_called);
+            CHECK(test_called_other_tag);
+            CHECK(test_called_skipped);
+            CHECK(test_called_int);
+            CHECK(test_called_float);
+
+            if (r == reporter::print) {
+                // TODO:
+            } else {
+                CHECK(framework.get_num_runs() == 5u);
+                // TODO:
+            }
+        }
+
+        SECTION("run tests filtered all pass") {
+            framework.registry.run_tests_matching_name("test_app", "are you");
+
+            CHECK(test_called);
+            CHECK(!test_called_other_tag);
+            CHECK(!test_called_skipped);
+            CHECK(!test_called_int);
+            CHECK(!test_called_float);
+
+            if (r == reporter::print) {
+                // TODO:
+            } else {
+                CHECK(framework.get_num_runs() == 1u);
+                // TODO:
+            }
+        }
+
+        SECTION("run tests filtered all failed") {
+            framework.registry.run_tests_matching_name("test_app", "lights");
+
+            CHECK(!test_called);
+            CHECK(test_called_other_tag);
+            CHECK(!test_called_skipped);
+            CHECK(test_called_int);
+            CHECK(test_called_float);
+
+            if (r == reporter::print) {
+                // TODO:
+            } else {
+                CHECK(framework.get_num_runs() == 3u);
+                // TODO:
+            }
+        }
+
+        SECTION("run tests filtered all skipped") {
+            framework.registry.run_tests_matching_name("test_app", "cup");
+
+            CHECK(!test_called);
+            CHECK(!test_called_other_tag);
+            CHECK(test_called_skipped);
+            CHECK(!test_called_int);
+            CHECK(!test_called_float);
+
+            if (r == reporter::print) {
+                // TODO:
+            } else {
+                CHECK(framework.get_num_runs() == 1u);
+                // TODO:
+            }
+        }
+
+        SECTION("run tests filtered tags") {
+            framework.registry.run_tests_with_tag("test_app", "[other_tag]");
+
+            CHECK(!test_called);
+            CHECK(test_called_other_tag);
+            CHECK(!test_called_skipped);
+            CHECK(!test_called_int);
+            CHECK(!test_called_float);
+
+            if (r == reporter::print) {
+                // TODO:
+            } else {
+                CHECK(framework.get_num_runs() == 1u);
+                // TODO:
+            }
+        }
     }
-
-    SECTION("run tests filtered") {
-        framework.registry.run_tests();
-
-        // TODO:
-    };
-
-    SECTION("run tests filtered all pass") {
-        framework.registry.run_tests();
-
-        // TODO:
-    };
+};

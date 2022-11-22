@@ -4,6 +4,8 @@
 struct event_deep_copy {
     enum class type {
         unknown,
+        test_run_started,
+        test_run_ended,
         test_case_started,
         test_case_ended,
         test_case_skipped,
@@ -11,6 +13,13 @@ struct event_deep_copy {
     };
 
     type event_type = type::unknown;
+
+    snatch::small_string<snatch::max_test_name_length> test_run_name;
+    bool                                               test_run_success         = false;
+    std::size_t                                        test_run_run_count       = 0;
+    std::size_t                                        test_run_fail_count      = 0;
+    std::size_t                                        test_run_skip_count      = 0;
+    std::size_t                                        test_run_assertion_count = 0;
 
     snatch::small_string<snatch::max_test_name_length> test_id_name;
     snatch::small_string<snatch::max_test_name_length> test_id_tags;
