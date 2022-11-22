@@ -384,3 +384,49 @@ TEST_CASE("report SKIP", "[registry]") {
 };
 
 SNATCH_WARNING_POP
+
+TEST_CASE("add regular test", "[registry]") {
+    mock_framework framework;
+
+    test_called = false;
+
+    framework.registry.add("how are you", "[tag]") = [](snatch::impl::test_run&) {
+        test_called = true;
+    };
+
+    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run&) {
+        test_called = true;
+        SNATCH_FAIL_CHECK("there are four lights");
+    };
+
+    framework.registry.add_with_types<std::tuple<int, float>>(
+        "how many lights templated", "[tag]") = []<typename T>(snatch::impl::test_run&) {
+        if constexpr (std::is_same_v<T, int>) {
+            test_called_int = true;
+            SNATCH_FAIL_CHECK("there are four lights (int)");
+        } else if constexpr (std::is_same_v<T, float>) {
+            test_called_float = true;
+            SNATCH_FAIL_CHECK("there are four lights (float)");
+        } else {
+            test_called = true;
+            SNATCH_FAIL_CHECK("there are four lights (unreachable)");
+        }
+    };
+
+    SECTION("run all tests") {
+        framework.registry.run_tests();
+
+        // TODO:
+    }
+
+    SECTION("run tests filtered") {
+        framework.registry.run_tests();
+
+        // TODO:
+    };
+
+    SECTION("run tests filtered all pass") {
+        framework.registry.run_tests();
+
+        // TODO:
+    };
