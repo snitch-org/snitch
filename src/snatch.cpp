@@ -455,7 +455,9 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     }
 
     if (!r.report_callback.empty()) {
-        r.report_callback(r, event::test_run_ended{run_name});
+        r.report_callback(
+            r, event::test_run_ended{
+                   run_name, success, run_count, fail_count, skip_count, assertion_count});
     } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print("==========================================\n");
 
