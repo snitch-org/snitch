@@ -449,7 +449,7 @@ TEST_CASE("run tests", "[registry]") {
                 // TODO:
             } else {
                 CHECK(framework.get_num_runs() == 5u);
-                // TODO:
+                CHECK_RUN(false, 5u, 3u, 1u, 3u);
             }
         }
 
@@ -466,7 +466,7 @@ TEST_CASE("run tests", "[registry]") {
                 // TODO:
             } else {
                 CHECK(framework.get_num_runs() == 1u);
-                // TODO:
+                CHECK_RUN(true, 1u, 0u, 0u, 0u);
             }
         }
 
@@ -483,7 +483,7 @@ TEST_CASE("run tests", "[registry]") {
                 // TODO:
             } else {
                 CHECK(framework.get_num_runs() == 3u);
-                // TODO:
+                CHECK_RUN(false, 3u, 3u, 0u, 3u);
             }
         }
 
@@ -500,7 +500,7 @@ TEST_CASE("run tests", "[registry]") {
                 // TODO:
             } else {
                 CHECK(framework.get_num_runs() == 1u);
-                // TODO:
+                CHECK_RUN(true, 1u, 0u, 1u, 0u);
             }
         }
 
@@ -517,7 +517,7 @@ TEST_CASE("run tests", "[registry]") {
                 // TODO:
             } else {
                 CHECK(framework.get_num_runs() == 1u);
-                // TODO:
+                CHECK_RUN(false, 1u, 1u, 0u, 1u);
             }
         }
     }

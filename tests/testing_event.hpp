@@ -125,3 +125,15 @@ struct mock_framework {
     } while (0)
 
 #define CHECK_NO_SECTION CHECK_NO_SECTION_FOR_FAILURE(0u)
+
+#define CHECK_RUN(SUCCESS, RUN_COUNT, FAIL_COUNT, SKIP_COUNT, ASSERT_COUNT)                        \
+    do {                                                                                           \
+        REQUIRE(framework.events.size() >= 2u);                                                    \
+        auto end = framework.events.back();                                                        \
+        REQUIRE(end.event_type == event_deep_copy::type::test_run_ended);                          \
+        CHECK(end.test_run_success == SUCCESS);                                                    \
+        CHECK(end.test_run_run_count == RUN_COUNT);                                                \
+        CHECK(end.test_run_fail_count == FAIL_COUNT);                                              \
+        CHECK(end.test_run_skip_count == SKIP_COUNT);                                              \
+        CHECK(end.test_run_assertion_count == ASSERT_COUNT);                                       \
+    } while (0)
