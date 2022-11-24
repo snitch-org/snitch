@@ -446,7 +446,10 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(test_called_float);
 
             if (r == reporter::print) {
-                // TODO:
+                CHECK(
+                    framework.messages ==
+                    contains_substring("some tests failed (3 out of 5 test cases, 3 assertions, 1 "
+                                       "test cases skipped)"));
             } else {
                 CHECK(framework.get_num_runs() == 5u);
                 CHECK_RUN(false, 5u, 3u, 1u, 3u);
@@ -463,7 +466,9 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_float);
 
             if (r == reporter::print) {
-                // TODO:
+                CHECK(
+                    framework.messages ==
+                    contains_substring("all tests passed (1 test cases, 0 assertions)"));
             } else {
                 CHECK(framework.get_num_runs() == 1u);
                 CHECK_RUN(true, 1u, 0u, 0u, 0u);
@@ -480,7 +485,9 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(test_called_float);
 
             if (r == reporter::print) {
-                // TODO:
+                CHECK(
+                    framework.messages ==
+                    contains_substring("some tests failed (3 out of 3 test cases, 3 assertions)"));
             } else {
                 CHECK(framework.get_num_runs() == 3u);
                 CHECK_RUN(false, 3u, 3u, 0u, 3u);
@@ -497,7 +504,10 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_float);
 
             if (r == reporter::print) {
-                // TODO:
+                CHECK(
+                    framework.messages ==
+                    contains_substring("all tests passed (1 test cases, 0 assertions, 1 "
+                                       "test cases skipped)"));
             } else {
                 CHECK(framework.get_num_runs() == 1u);
                 CHECK_RUN(true, 1u, 0u, 1u, 0u);
@@ -514,7 +524,9 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_float);
 
             if (r == reporter::print) {
-                // TODO:
+                CHECK(
+                    framework.messages ==
+                    contains_substring("some tests failed (1 out of 1 test cases, 1 assertions)"));
             } else {
                 CHECK(framework.get_num_runs() == 1u);
                 CHECK_RUN(false, 1u, 1u, 0u, 1u);
