@@ -119,7 +119,9 @@ void mock_framework::report(const snatch::registry&, const snatch::event::data& 
 }
 
 void mock_framework::print(std::string_view msg) noexcept {
-    append_or_truncate(messages, msg);
+    if (!append(messages, msg)) {
+        snatch::terminate_with("not enough space in message buffer");
+    }
 }
 
 void mock_framework::setup_reporter() {
