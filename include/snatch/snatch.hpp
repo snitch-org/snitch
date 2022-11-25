@@ -1071,7 +1071,7 @@ struct input {
     small_vector<argument, max_command_line_args> arguments;
 };
 
-std::optional<input> parse_arguments(int argc, char* argv[]) noexcept;
+std::optional<input> parse_arguments(int argc, const char* const argv[]) noexcept;
 } // namespace snatch::cli
 
 // Test registry.

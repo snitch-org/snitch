@@ -928,7 +928,7 @@ std::string_view extract_executable(std::string_view path) {
 
 std::optional<cli::input> parse_arguments(
     int                       argc,
-    char*                     argv[],
+    const char* const         argv[],
     const expected_arguments& expected,
     const parser_settings&    settings = parser_settings{}) noexcept {
 
@@ -1173,7 +1173,7 @@ constexpr const char* program_description = "Test runner (snatch v" SNATCH_FULL_
 } // namespace
 
 namespace snatch::cli {
-std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
+std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
     std::optional<cli::input> ret_args =
         parse_arguments(argc, argv, expected_args, {.with_color = with_color_default});
 
