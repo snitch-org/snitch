@@ -389,9 +389,8 @@ TEST_CASE("report SKIP", "[registry]") {
 
 SNATCH_WARNING_POP
 
-TEST_CASE("run tests", "[registry]") {
-    mock_framework framework;
-
+namespace {
+void register_tests(mock_framework& framework) {
     test_called           = false;
     test_called_other_tag = false;
     test_called_skipped   = false;
@@ -426,6 +425,12 @@ TEST_CASE("run tests", "[registry]") {
         }
     };
 #undef SNATCH_CURRENT_TEST
+}
+} // namespace
+
+TEST_CASE("run tests", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
 
     for (auto r : {reporter::print, reporter::custom}) {
         if (r == reporter::print) {
@@ -533,4 +538,12 @@ TEST_CASE("run tests", "[registry]") {
             }
         }
     }
+};
+
+TEST_CASE("command line interface", "[registry]") {
+    mock_framework framework;
+    framework.setup_print();
+    register_tests(framework);
+
+    // TODO
 };
