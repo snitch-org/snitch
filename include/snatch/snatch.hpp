@@ -301,7 +301,7 @@ public:
         }
     }
     constexpr small_vector& operator=(const small_vector& other) noexcept = default;
-    constexpr small_vector& operator=(small_vector&& other) noexcept = default;
+    constexpr small_vector& operator=(small_vector&& other) noexcept      = default;
     constexpr std::size_t   capacity() const noexcept {
         return MaxLength;
     }
@@ -404,7 +404,7 @@ public:
         }
     }
     constexpr small_string&    operator=(const small_string& other) noexcept = default;
-    constexpr small_string&    operator=(small_string&& other) noexcept = default;
+    constexpr small_string&    operator=(small_string&& other) noexcept      = default;
     constexpr std::string_view str() const noexcept {
         return std::string_view(data(), length());
     }
@@ -552,9 +552,7 @@ template<convertible_to<std::string_view> T>
 }
 
 template<typename T>
-concept string_appendable = requires(small_string_span ss, T value) {
-    append(ss, value);
-};
+concept string_appendable = requires(small_string_span ss, T value) { append(ss, value); };
 
 template<string_appendable T, string_appendable U, string_appendable... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
@@ -579,11 +577,11 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {
-    { m.match(value) }
-    ->convertible_to<bool>;
-    { m.describe_match(value, matchers::match_status{}) }
-    ->convertible_to<std::string_view>;
-};
+                          { m.match(value) } -> convertible_to<bool>;
+                          {
+                              m.describe_match(value, matchers::match_status{})
+                              } -> convertible_to<std::string_view>;
+                      };
 } // namespace snatch
 
 // Public utilities: small_function.
@@ -983,9 +981,8 @@ struct abort_exception {};
 
 template<typename T>
 concept exception_with_what = requires(const T& e) {
-    { e.what() }
-    ->convertible_to<std::string_view>;
-};
+                                  { e.what() } -> convertible_to<std::string_view>;
+                              };
 } // namespace snatch::impl
 
 // Sections and captures.

@@ -24,6 +24,9 @@ BinPackParameters: 'false'
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: 'true'
+BreakBeforeConceptDeclarations: Always
+# Only in clang-format 16; but this is what we want
+#RequiresExpressionIndentation: OuterScope
 BreakConstructorInitializers: AfterColon
 BreakInheritanceList: AfterColon
 BreakStringLiterals: 'true'
