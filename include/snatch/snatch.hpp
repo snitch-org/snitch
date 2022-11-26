@@ -1072,6 +1072,11 @@ struct input {
 };
 
 std::optional<input> parse_arguments(int argc, const char* const argv[]) noexcept;
+
+std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) noexcept;
+
+std::optional<cli::argument>
+get_positional_argument(const cli::input& args, std::string_view name) noexcept;
 } // namespace snatch::cli
 
 // Test registry.

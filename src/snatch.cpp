@@ -1126,35 +1126,6 @@ void print_help(
     }
 }
 
-std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) {
-    std::optional<cli::argument> ret;
-
-    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
-        return arg.name == name;
-    });
-
-    if (iter != args.arguments.cend()) {
-        ret = *iter;
-    }
-
-    return ret;
-}
-
-std::optional<cli::argument>
-get_positional_argument(const cli::input& args, std::string_view name) {
-    std::optional<cli::argument> ret;
-
-    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
-        return arg.name.empty() && arg.value_name == name;
-    });
-
-    if (iter != args.arguments.cend()) {
-        ret = *iter;
-    }
-
-    return ret;
-}
-
 // clang-format off
 const expected_arguments expected_args = {
     {{"-l", "--list-tests"},    {},                    "List tests by name"},
@@ -1183,6 +1154,35 @@ std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) no
     }
 
     return ret_args;
+}
+
+std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) noexcept {
+    std::optional<cli::argument> ret;
+
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
+        return arg.name == name;
+    });
+
+    if (iter != args.arguments.cend()) {
+        ret = *iter;
+    }
+
+    return ret;
+}
+
+std::optional<cli::argument>
+get_positional_argument(const cli::input& args, std::string_view name) noexcept {
+    std::optional<cli::argument> ret;
+
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
+        return arg.name.empty() && arg.value_name == name;
+    });
+
+    if (iter != args.arguments.cend()) {
+        ret = *iter;
+    }
+
+    return ret;
 }
 } // namespace snatch::cli
 
