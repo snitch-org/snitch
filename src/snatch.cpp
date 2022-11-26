@@ -264,7 +264,10 @@ void trim(std::string_view& str, std::string_view patterns) noexcept {
 
 namespace snatch {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
-    console_print("terminate called with message: ", msg, "\n");
+    impl::stdout_print("terminate called with message: ");
+    impl::stdout_print(msg);
+    impl::stdout_print("\n");
+
     std::terminate();
 }
 } // namespace snatch
