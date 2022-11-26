@@ -5,6 +5,11 @@ using snatch::matchers::contains_substring;
 
 using arg_vector = snatch::small_vector<const char*, snatch::max_command_line_args>;
 
+struct cli_input {
+    std::string_view scenario;
+    arg_vector       args;
+};
+
 TEST_CASE("parse arguments empty", "[cli]") {
     const arg_vector args = {"test"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
@@ -126,4 +131,70 @@ TEST_CASE("parse arguments too many positional", "[cli]") {
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(!input.has_value());
+};
+
+TEST_CASE("get option", "[cli]") {
+    const arg_vector args = {"test", "--help", "--verbosity", "high"};
+    auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+    REQUIRE(input.has_value());
+
+    auto help_option = snatch::cli::get_option(*input, "--help");
+    CHECK(help_option.has_value());
+    CHECK(help_option->name == "--help"sv);
+    CHECK(!help_option->value.has_value());
+    CHECK(!help_option->value_name.has_value());
+
+    auto verbosity_option = snatch::cli::get_option(*input, "--verbosity");
+    CHECK(verbosity_option.has_value());
+    CHECK(verbosity_option->name == "--verbosity"sv);
+    REQUIRE(verbosity_option->value.has_value());
+    REQUIRE(verbosity_option->value_name.has_value());
+    CHECK(verbosity_option->value.value() == "high"sv);
+    CHECK(verbosity_option->value_name.value() == "quiet|normal|high"sv);
+
+    auto unknown_option = snatch::cli::get_option(*input, "--unknown");
+    CHECK(!unknown_option.has_value());
+
+    auto short_help_option = snatch::cli::get_option(*input, "-v");
+    CHECK(!short_help_option.has_value());
+};
+
+TEST_CASE("get positional argument", "[cli]") {
+    SECTION("good") {
+        for (auto [scenario, args] : {
+                 cli_input{"at end"sv, {"test", "--help", "--verbosity", "high", "arg1"}},
+                 cli_input{"at middle"sv, {"test", "--help", "arg1", "--verbosity", "high"}},
+                 cli_input{"at start"sv, {"test", "arg1", "--help", "--verbosity", "high"}},
+                 cli_input{"alone"sv, {"test", "arg1"}},
+             }) {
+
+            INFO("input scenario ", scenario);
+
+            auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+            REQUIRE(input.has_value());
+
+            auto arg = snatch::cli::get_positional_argument(*input, "test regex");
+            REQUIRE(arg.has_value());
+            CHECK(arg->name == ""sv);
+            CHECK(arg->value == "arg1"sv);
+            CHECK(arg->value_name == "test regex"sv);
+        }
+    }
+
+    SECTION("bad") {
+        for (auto [scenario, args] : {
+                 cli_input{"only options"sv, {"test", "--help", "--verbosity", "high"}},
+                 cli_input{"empty"sv, {"test"}},
+             }) {
+
+            INFO("input scenario ", scenario);
+
+            auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+            REQUIRE(input.has_value());
+
+            auto arg = snatch::cli::get_positional_argument(*input, "test regex");
+            CHECK(!arg.has_value());
+        }
+    }
 };
