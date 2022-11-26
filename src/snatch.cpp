@@ -95,6 +95,10 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 
 namespace snatch {
 bool append(small_string_span ss, std::string_view str) noexcept {
+    if (str.empty()) {
+        return true;
+    }
+
     const bool        could_fit  = str.size() <= ss.available();
     const std::size_t copy_count = std::min(str.size(), ss.available());
 
