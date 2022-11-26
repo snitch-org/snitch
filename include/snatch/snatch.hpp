@@ -1068,6 +1068,8 @@ struct input {
     small_vector<argument, max_command_line_args> arguments;
 };
 
+extern small_function<void(std::string_view) noexcept> console_print;
+
 std::optional<input> parse_arguments(int argc, const char* const argv[]) noexcept;
 
 std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) noexcept;

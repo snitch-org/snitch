@@ -220,10 +220,13 @@ void stdout_print(std::string_view message) noexcept {
 }
 } // namespace snatch::impl
 
+namespace snatch::cli {
+small_function<void(std::string_view) noexcept> console_print = &snatch::impl::stdout_print;
+} // namespace snatch::cli
+
 namespace {
 using snatch::max_message_length;
 using snatch::small_string;
-using snatch::impl::stdout_print;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
@@ -234,7 +237,7 @@ template<typename... Args>
 void console_print(Args&&... args) noexcept {
     small_string<max_message_length> message;
     append_or_truncate(message, std::forward<Args>(args)...);
-    stdout_print(message);
+    snatch::cli::console_print(message);
 }
 
 bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
