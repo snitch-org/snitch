@@ -561,6 +561,14 @@ TEST_CASE("configure", "[registry]") {
         CHECK(framework.registry.with_color == false);
     }
 
+    SECTION("color = bad") {
+        const arg_vector args = {"test", "--color", "bad"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.messages == contains_substring("unknown color directive"));
+    }
+
     SECTION("verbosity = quiet") {
         const arg_vector args = {"test", "--verbosity", "quiet"};
         auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
@@ -583,5 +591,13 @@ TEST_CASE("configure", "[registry]") {
         framework.registry.configure(*input);
 
         CHECK(framework.registry.verbose == snatch::registry::verbosity::high);
+    }
+
+    SECTION("verbosity = bad") {
+        const arg_vector args = {"test", "--verbosity", "bad"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.messages == contains_substring("unknown verbosity level"));
     }
 };

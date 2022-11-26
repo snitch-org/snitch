@@ -3,34 +3,63 @@
 using namespace std::literals;
 using snatch::matchers::contains_substring;
 
+struct console_output_catcher {
+    snatch::small_string<4086>                              messages;
+    snatch::small_function<void(std::string_view) noexcept> prev_print;
+
+    console_output_catcher() {
+        prev_print = snatch::cli::console_print;
+        prev_print = {*this, snatch::constant<&console_output_catcher::print>{}};
+    }
+
+    ~console_output_catcher() {
+        snatch::cli::console_print = prev_print;
+    }
+
+    void print(std::string_view msg) noexcept {
+        append_or_truncate(messages, msg);
+    }
+};
+
 TEST_CASE("parse arguments empty", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(input.has_value());
     CHECK(input->executable == "test"sv);
     CHECK(input->arguments.empty());
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments empty .exe", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test.exe"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(input.has_value());
     CHECK(input->executable == "test"sv);
     CHECK(input->arguments.empty());
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments empty .something.exe", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test.something.exe"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(input.has_value());
     CHECK(input->executable == "test.something"sv);
     CHECK(input->arguments.empty());
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments help (long form)", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "--help"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
@@ -40,9 +69,12 @@ TEST_CASE("parse arguments help (long form)", "[cli]") {
     CHECK(input->arguments[0].name == "--help"sv);
     CHECK(!input->arguments[0].value.has_value());
     CHECK(!input->arguments[0].value_name.has_value());
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments help (short form)", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "-h"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
@@ -52,16 +84,22 @@ TEST_CASE("parse arguments help (short form)", "[cli]") {
     CHECK(input->arguments[0].name == "--help"sv);
     CHECK(!input->arguments[0].value.has_value());
     CHECK(!input->arguments[0].value_name.has_value());
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments help (duplicate)", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "--help", "--help"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(!input.has_value());
+    CHECK(console.messages == contains_substring("duplicate command line argument '--help'"));
 };
 
 TEST_CASE("parse arguments verbosity (long form)", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "--verbosity", "high"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
@@ -73,9 +111,12 @@ TEST_CASE("parse arguments verbosity (long form)", "[cli]") {
     REQUIRE(input->arguments[0].value_name.has_value());
     CHECK(input->arguments[0].value.value() == "high"sv);
     CHECK(input->arguments[0].value_name.value() == "quiet|normal|high"sv);
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments verbosity (short form)", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "-v", "high"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
@@ -87,25 +128,37 @@ TEST_CASE("parse arguments verbosity (short form)", "[cli]") {
     REQUIRE(input->arguments[0].value_name.has_value());
     CHECK(input->arguments[0].value.value() == "high"sv);
     CHECK(input->arguments[0].value_name.value() == "quiet|normal|high"sv);
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments verbosity (no value)", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "--verbosity"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     CHECK(!input.has_value());
+    CHECK(
+        console.messages ==
+        contains_substring(
+            "missing value '<quiet|normal|high>' for command line argument '--verbosity'"));
 };
 
 TEST_CASE("parse arguments unknown", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "--make-coffee"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(input.has_value());
     CHECK(input->executable == "test"sv);
     CHECK(input->arguments.empty());
+    CHECK(console.messages == contains_substring("unknown command line argument '--make-coffee'"));
 };
 
 TEST_CASE("parse arguments positional", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "arg1"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
@@ -117,13 +170,17 @@ TEST_CASE("parse arguments positional", "[cli]") {
     REQUIRE(input->arguments[0].value_name.has_value());
     CHECK(input->arguments[0].value.value() == "arg1"sv);
     CHECK(input->arguments[0].value_name.value() == "test regex"sv);
+    CHECK(console.messages.empty());
 };
 
 TEST_CASE("parse arguments too many positional", "[cli]") {
+    console_output_catcher console;
+
     const arg_vector args = {"test", "arg1", "arg2"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
     REQUIRE(!input.has_value());
+    CHECK(console.messages == contains_substring("too many positional arguments"));
 };
 
 TEST_CASE("get option", "[cli]") {
