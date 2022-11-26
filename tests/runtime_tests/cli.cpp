@@ -169,7 +169,7 @@ TEST_CASE("get positional argument", "[cli]") {
                  cli_input{"alone"sv, {"test", "arg1"}},
              }) {
 
-            INFO("input scenario ", scenario);
+            CAPTURE(scenario);
 
             auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
             REQUIRE(input.has_value());
@@ -188,7 +188,7 @@ TEST_CASE("get positional argument", "[cli]") {
                  cli_input{"empty"sv, {"test"}},
              }) {
 
-            INFO("input scenario ", scenario);
+            CAPTURE(scenario);
 
             auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
             REQUIRE(input.has_value());
