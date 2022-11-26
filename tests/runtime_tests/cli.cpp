@@ -3,13 +3,6 @@
 using namespace std::literals;
 using snatch::matchers::contains_substring;
 
-using arg_vector = snatch::small_vector<const char*, snatch::max_command_line_args>;
-
-struct cli_input {
-    std::string_view scenario;
-    arg_vector       args;
-};
-
 TEST_CASE("parse arguments empty", "[cli]") {
     const arg_vector args = {"test"};
     auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());

@@ -540,10 +540,48 @@ TEST_CASE("run tests", "[registry]") {
     }
 };
 
-TEST_CASE("command line interface", "[registry]") {
+TEST_CASE("configure", "[registry]") {
     mock_framework framework;
     framework.setup_print();
     register_tests(framework);
 
-    // TODO
+    SECTION("color = always") {
+        const arg_vector args = {"test", "--color", "always"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.with_color == true);
+    }
+
+    SECTION("color = never") {
+        const arg_vector args = {"test", "--color", "never"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.with_color == false);
+    }
+
+    SECTION("verbosity = quiet") {
+        const arg_vector args = {"test", "--verbosity", "quiet"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.verbose == snatch::registry::verbosity::quiet);
+    }
+
+    SECTION("verbosity = normal") {
+        const arg_vector args = {"test", "--verbosity", "normal"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.verbose == snatch::registry::verbosity::normal);
+    }
+
+    SECTION("verbosity = high") {
+        const arg_vector args = {"test", "--verbosity", "high"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.verbose == snatch::registry::verbosity::high);
+    }
 };
