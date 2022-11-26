@@ -1190,26 +1190,26 @@ namespace snatch {
 void registry::configure(const cli::input& args) noexcept {
     if (auto opt = get_option(args, "--color")) {
         if (*opt->value == "always") {
-            snatch::tests.with_color = true;
+            with_color = true;
         } else if (*opt->value == "never") {
-            snatch::tests.with_color = false;
+            with_color = false;
         } else {
             console_print(
-                make_colored("warning:", snatch::tests.with_color, color::warning),
+                make_colored("warning:", with_color, color::warning),
                 "unknown color directive; please use one of always|never\n");
         }
     }
 
     if (auto opt = get_option(args, "--verbosity")) {
         if (*opt->value == "quiet") {
-            snatch::tests.verbose = snatch::registry::verbosity::quiet;
+            verbose = snatch::registry::verbosity::quiet;
         } else if (*opt->value == "normal") {
-            snatch::tests.verbose = snatch::registry::verbosity::normal;
+            verbose = snatch::registry::verbosity::normal;
         } else if (*opt->value == "high") {
-            snatch::tests.verbose = snatch::registry::verbosity::high;
+            verbose = snatch::registry::verbosity::high;
         } else {
             console_print(
-                make_colored("warning:", snatch::tests.with_color, color::warning),
+                make_colored("warning:", with_color, color::warning),
                 "unknown verbosity level; please use one of quiet|normal|high\n");
         }
     }
@@ -1225,28 +1225,28 @@ bool registry::run_tests(const cli::input& args) noexcept {
     }
 
     if (get_option(args, "--list-tests")) {
-        snatch::tests.list_all_tests();
+        list_all_tests();
         return true;
     }
 
     if (auto opt = get_option(args, "--list-tests-with-tag")) {
-        snatch::tests.list_tests_with_tag(*opt->value);
+        list_tests_with_tag(*opt->value);
         return true;
     }
 
     if (get_option(args, "--list-tags")) {
-        snatch::tests.list_all_tags();
+        list_all_tags();
         return true;
     }
 
     if (auto opt = get_positional_argument(args, "test regex")) {
         if (get_option(args, "--tags")) {
-            return snatch::tests.run_tests_with_tag(args.executable, *opt->value);
+            return run_tests_with_tag(args.executable, *opt->value);
         } else {
-            return snatch::tests.run_tests_matching_name(args.executable, *opt->value);
+            return run_tests_matching_name(args.executable, *opt->value);
         }
     } else {
-        return snatch::tests.run_all_tests(args.executable);
+        return run_all_tests(args.executable);
     }
 }
 } // namespace snatch
