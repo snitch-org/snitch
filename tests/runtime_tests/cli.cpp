@@ -4,12 +4,12 @@ using namespace std::literals;
 using snatch::matchers::contains_substring;
 
 struct console_output_catcher {
-    snatch::small_string<1024>                              messages;
-    snatch::small_function<void(std::string_view) noexcept> prev_print;
+    snatch::small_string<4086>                              messages   = {};
+    snatch::small_function<void(std::string_view) noexcept> prev_print = {};
 
     console_output_catcher() {
-        prev_print = snatch::cli::console_print;
-        prev_print = {*this, snatch::constant<&console_output_catcher::print>{}};
+        prev_print                 = snatch::cli::console_print;
+        snatch::cli::console_print = {*this, snatch::constant<&console_output_catcher::print>{}};
     }
 
     ~console_output_catcher() {
