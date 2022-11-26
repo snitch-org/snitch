@@ -4,7 +4,7 @@ using namespace std::literals;
 using snatch::matchers::contains_substring;
 
 struct console_output_catcher {
-    snatch::small_string<4086>                              messages;
+    snatch::small_string<1024>                              messages;
     snatch::small_function<void(std::string_view) noexcept> prev_print;
 
     console_output_catcher() {
