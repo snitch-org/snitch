@@ -1197,7 +1197,7 @@ void registry::configure(const cli::input& args) noexcept {
         } else if (*opt->value == "never") {
             with_color = false;
         } else {
-            console_print(
+            print(
                 make_colored("warning:", with_color, color::warning),
                 "unknown color directive; please use one of always|never\n");
         }
@@ -1211,7 +1211,7 @@ void registry::configure(const cli::input& args) noexcept {
         } else if (*opt->value == "high") {
             verbose = snatch::registry::verbosity::high;
         } else {
-            console_print(
+            print(
                 make_colored("warning:", with_color, color::warning),
                 "unknown verbosity level; please use one of quiet|normal|high\n");
         }
