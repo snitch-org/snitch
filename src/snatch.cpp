@@ -104,7 +104,7 @@ bool append(small_string_span ss, std::string_view str) noexcept {
 
     const std::size_t offset = ss.size();
     ss.grow(copy_count);
-    std::memcpy(ss.begin() + offset, str.data(), copy_count);
+    std::memmove(ss.begin() + offset, str.data(), copy_count);
 
     return could_fit;
 }
