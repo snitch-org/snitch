@@ -499,9 +499,9 @@ void list_tests(const registry& r, F&& predicate) noexcept {
         }
 
         if (!t.id.type.empty()) {
-            console_print(t.id.name, " [", t.id.type, "]\n");
+            r.print(t.id.name, " [", t.id.type, "]\n");
         } else {
-            console_print(t.id.name);
+            r.print(t.id.name, "\n");
         }
     }
 }
