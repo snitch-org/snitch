@@ -1,25 +1,8 @@
 #include "testing.hpp"
+#include "testing_event.hpp"
 
 using namespace std::literals;
 using snatch::matchers::contains_substring;
-
-struct console_output_catcher {
-    snatch::small_string<4086>                              messages   = {};
-    snatch::small_function<void(std::string_view) noexcept> prev_print = {};
-
-    console_output_catcher() {
-        prev_print                 = snatch::cli::console_print;
-        snatch::cli::console_print = {*this, snatch::constant<&console_output_catcher::print>{}};
-    }
-
-    ~console_output_catcher() {
-        snatch::cli::console_print = prev_print;
-    }
-
-    void print(std::string_view msg) noexcept {
-        append_or_truncate(messages, msg);
-    }
-};
 
 TEST_CASE("parse arguments empty", "[cli]") {
     console_output_catcher console;

@@ -669,3 +669,81 @@ TEST_CASE("configure", "[registry]") {
         CHECK(framework.messages == contains_substring("unknown verbosity level"));
     }
 };
+
+TEST_CASE("run tests cli", "[registry]") {
+    mock_framework framework;
+    framework.setup_reporter_and_print();
+    register_tests(framework);
+    console_output_catcher console;
+
+    SECTION("no argument") {
+        const arg_vector args = {"test"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK_RUN(false, 5u, 3u, 1u, 3u);
+    }
+
+    SECTION("--help") {
+        const arg_vector args = {"test", "--help"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK(framework.events.empty());
+        CHECK(console.messages == contains_substring("test [options...]"));
+    }
+
+    SECTION("--list-tests") {
+        const arg_vector args = {"test", "--list-tests"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK(framework.events.empty());
+        CHECK(framework.messages == contains_substring("how are you"));
+        CHECK(framework.messages == contains_substring("how many lights"));
+        CHECK(framework.messages == contains_substring("drink from the cup"));
+        CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+        CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+    }
+
+    SECTION("--list-tags") {
+        const arg_vector args = {"test", "--list-tags"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK(framework.events.empty());
+        CHECK(framework.messages == contains_substring("[tag]"));
+        CHECK(framework.messages == contains_substring("[skipped]"));
+        CHECK(framework.messages == contains_substring("[other_tag]"));
+        CHECK(framework.messages == contains_substring("[tag with spaces]"));
+    }
+
+    SECTION("--list-tests-with-tag") {
+        const arg_vector args = {"test", "--list-tests-with-tag", "[other_tag]"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK(framework.events.empty());
+        CHECK(framework.messages != contains_substring("how are you"));
+        CHECK(framework.messages == contains_substring("how many lights"));
+        CHECK(framework.messages != contains_substring("drink from the cup"));
+        CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+        CHECK(framework.messages != contains_substring("how many templated lights [float]"));
+    }
+
+    SECTION("test filter") {
+        const arg_vector args = {"test", "how many"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK_RUN(false, 3u, 3u, 0u, 3u);
+    }
+
+    SECTION("test tag filter") {
+        const arg_vector args = {"test", "--tags", "[skipped]"};
+        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK_RUN(true, 1u, 0u, 1u, 0u);
+    }
+};

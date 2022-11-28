@@ -48,10 +48,3 @@ struct filldata<T*> {
 #else
 #    define SNATCH_WARNING_DISABLE_UNREACHABLE
 #endif
-
-using arg_vector = snatch::small_vector<const char*, snatch::max_command_line_args>;
-
-struct cli_input {
-    std::string_view scenario;
-    arg_vector       args;
-};

@@ -54,6 +54,7 @@ struct mock_framework {
 
     void setup_reporter();
     void setup_print();
+    void setup_reporter_and_print();
 
     void run_test();
 
@@ -65,6 +66,31 @@ struct mock_framework {
     std::size_t get_num_runs() const;
     std::size_t get_num_failures() const;
     std::size_t get_num_skips() const;
+};
+
+struct console_output_catcher {
+    snatch::small_string<4086>                              messages   = {};
+    snatch::small_function<void(std::string_view) noexcept> prev_print = {};
+
+    console_output_catcher() {
+        prev_print                 = snatch::cli::console_print;
+        snatch::cli::console_print = {*this, snatch::constant<&console_output_catcher::print>{}};
+    }
+
+    ~console_output_catcher() {
+        snatch::cli::console_print = prev_print;
+    }
+
+    void print(std::string_view msg) noexcept {
+        append_or_truncate(messages, msg);
+    }
+};
+
+using arg_vector = snatch::small_vector<const char*, snatch::max_command_line_args>;
+
+struct cli_input {
+    std::string_view scenario;
+    arg_vector       args;
 };
 
 #define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
