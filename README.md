@@ -26,6 +26,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
     - [Header-only build](#header-only-build)
+    - [`clang-format` support](#clang-format-support)
 
 <!-- /MarkdownTOC -->
 
@@ -680,4 +681,15 @@ To use _snatch_ as header-only in your code, simply include `snatch_all.hpp` ins
 ```c++
 #define SNATCH_IMPLEMENTATION
 #include <snatch_all.hpp>
+```
+
+
+### `clang-format` support
+
+With its default configuration, `clang-format` will incorrectly format code using `SECTION()` if the section is the first statement inside a test case. This is because it does not know the semantic of this macro, and by default interprets it as a declaration rather than a control statement.
+
+Fixing this requires `clang-format` version 13 at least, and requires adding the following to your `.clang-format` file:
+```yaml
+IfMacros: ['SECTION', 'SNATCH_SECTION']
+SpaceBeforeParens: ControlStatementsExceptControlMacros
 ```

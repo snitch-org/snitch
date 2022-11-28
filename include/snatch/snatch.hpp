@@ -301,7 +301,7 @@ public:
         }
     }
     constexpr small_vector& operator=(const small_vector& other) noexcept = default;
-    constexpr small_vector& operator=(small_vector&& other) noexcept = default;
+    constexpr small_vector& operator=(small_vector&& other) noexcept      = default;
     constexpr std::size_t   capacity() const noexcept {
         return MaxLength;
     }
@@ -404,7 +404,7 @@ public:
         }
     }
     constexpr small_string&    operator=(const small_string& other) noexcept = default;
-    constexpr small_string&    operator=(small_string&& other) noexcept = default;
+    constexpr small_string&    operator=(small_string&& other) noexcept      = default;
     constexpr std::string_view str() const noexcept {
         return std::string_view(data(), length());
     }
@@ -504,6 +504,12 @@ template<typename T>
 [[nodiscard]] bool append(small_string_span ss, T* ptr) noexcept {
     if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
         return append(ss, std::string_view(ptr));
+    } else if constexpr (std::is_function_v<T>) {
+        if (ptr != nullptr) {
+            return append(ss, std::string_view("0x????????"));
+        } else {
+            return append(ss, std::string_view("nullptr"));
+        }
     } else {
         return append(ss, static_cast<const void*>(ptr));
     }
@@ -546,9 +552,7 @@ template<convertible_to<std::string_view> T>
 }
 
 template<typename T>
-concept string_appendable = requires(small_string_span ss, T value) {
-    append(ss, value);
-};
+concept string_appendable = requires(small_string_span ss, T value) { append(ss, value); };
 
 template<string_appendable T, string_appendable U, string_appendable... Args>
 [[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
@@ -573,11 +577,11 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {
-    { m.match(value) }
-    ->convertible_to<bool>;
-    { m.describe_match(value, matchers::match_status{}) }
-    ->convertible_to<std::string_view>;
-};
+                          { m.match(value) } -> convertible_to<bool>;
+                          {
+                              m.describe_match(value, matchers::match_status{})
+                              } -> convertible_to<std::string_view>;
+                      };
 } // namespace snatch
 
 // Public utilities: small_function.
@@ -977,9 +981,8 @@ struct abort_exception {};
 
 template<typename T>
 concept exception_with_what = requires(const T& e) {
-    { e.what() }
-    ->convertible_to<std::string_view>;
-};
+                                  { e.what() } -> convertible_to<std::string_view>;
+                              };
 } // namespace snatch::impl
 
 // Sections and captures.
@@ -1006,6 +1009,11 @@ struct test_run_started {
 
 struct test_run_ended {
     std::string_view name;
+    bool             success         = true;
+    std::size_t      run_count       = 0;
+    std::size_t      fail_count      = 0;
+    std::size_t      skip_count      = 0;
+    std::size_t      assertion_count = 0;
 };
 
 struct test_case_started {
@@ -1060,7 +1068,14 @@ struct input {
     small_vector<argument, max_command_line_args> arguments;
 };
 
-std::optional<input> parse_arguments(int argc, char* argv[]) noexcept;
+extern small_function<void(std::string_view) noexcept> console_print;
+
+std::optional<input> parse_arguments(int argc, const char* const argv[]) noexcept;
+
+std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) noexcept;
+
+std::optional<cli::argument>
+get_positional_argument(const cli::input& args, std::string_view name) noexcept;
 } // namespace snatch::cli
 
 // Test registry.
@@ -1371,6 +1386,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
             SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
         SNATCH_TESTING_ABORT;                                                                      \
@@ -1378,6 +1394,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
             SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
     } while (0)
@@ -1391,19 +1408,26 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
     do {                                                                                           \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
         const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
         const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
         if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
-            FAIL(SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                            \
+            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                             \
+            SNATCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
     } while (0)
 
 #define SNATCH_CHECK_THAT(EXPR, MATCHER)                                                           \
     do {                                                                                           \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
         const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
         const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
         if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
-            FAIL_CHECK(SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                      \
+            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                             \
         }                                                                                          \
     } while (0)
 
@@ -1430,8 +1454,12 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define SNATCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)                                        \
         do {                                                                                       \
             try {                                                                                  \
+                ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_FAIL(#EXCEPTION " expected but no exception thrown");                       \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    #EXCEPTION " expected but no exception thrown");                               \
+                SNATCH_TESTING_ABORT;                                                              \
             } catch (const EXCEPTION&) {                                                           \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
@@ -1454,8 +1482,11 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define SNATCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                                          \
         do {                                                                                       \
             try {                                                                                  \
+                ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_FAIL_CHECK(#EXCEPTION " expected but no exception thrown");                 \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    #EXCEPTION " expected but no exception thrown");                               \
             } catch (const EXCEPTION&) {                                                           \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
@@ -1477,8 +1508,12 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define SNATCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                          \
         do {                                                                                       \
             try {                                                                                  \
+                ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_FAIL(#EXCEPTION " expected but no exception thrown");                       \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    #EXCEPTION " expected but no exception thrown");                               \
+                SNATCH_TESTING_ABORT;                                                              \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
                     SNATCH_CURRENT_TEST.reg.report_failure(                                        \
@@ -1507,8 +1542,11 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define SNATCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                            \
         do {                                                                                       \
             try {                                                                                  \
+                ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_FAIL_CHECK(#EXCEPTION " expected but no exception thrown");                 \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    #EXCEPTION " expected but no exception thrown");                               \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
                     SNATCH_CURRENT_TEST.reg.report_failure(                                        \

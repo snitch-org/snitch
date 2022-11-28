@@ -5,7 +5,9 @@
 #    else
 #        include "snatch/snatch.hpp"
 #    endif
+
 #else
+
 // The library being tested.
 #    if defined(SNATCH_TEST_HEADER_ONLY)
 #        include "snatch/snatch_all.hpp"
@@ -23,6 +25,18 @@
 #    define SKIP(message) return
 
 #    include <ostream>
+
+namespace doctest::detail {
+template<typename T>
+concept function = std::is_function_v<T>;
+
+template<function T>
+struct filldata<T*> {
+    static void fill(std::ostream* stream, T* in) {
+        filldata<const void*>::fill(stream, in != nullptr ? "funcptr" : "nullptr");
+    }
+};
+} // namespace doctest::detail
 #endif
 
 #if defined(__clang__)

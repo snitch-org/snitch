@@ -4,6 +4,8 @@
 struct event_deep_copy {
     enum class type {
         unknown,
+        test_run_started,
+        test_run_ended,
         test_case_started,
         test_case_ended,
         test_case_skipped,
@@ -11,6 +13,13 @@ struct event_deep_copy {
     };
 
     type event_type = type::unknown;
+
+    snatch::small_string<snatch::max_test_name_length> test_run_name;
+    bool                                               test_run_success         = false;
+    std::size_t                                        test_run_run_count       = 0;
+    std::size_t                                        test_run_fail_count      = 0;
+    std::size_t                                        test_run_skip_count      = 0;
+    std::size_t                                        test_run_assertion_count = 0;
 
     snatch::small_string<snatch::max_test_name_length> test_id_name;
     snatch::small_string<snatch::max_test_name_length> test_id_tags;
@@ -37,11 +46,15 @@ struct mock_framework {
         .func  = nullptr,
         .state = snatch::impl::test_state::not_run};
 
-    std::vector<event_deep_copy> events;
-
-    mock_framework();
+    snatch::small_vector<event_deep_copy, 16> events;
+    snatch::small_string<4086>                messages;
 
     void report(const snatch::registry&, const snatch::event::data& e) noexcept;
+    void print(std::string_view msg) noexcept;
+
+    void setup_reporter();
+    void setup_print();
+    void setup_reporter_and_print();
 
     void run_test();
 
@@ -49,9 +62,35 @@ struct mock_framework {
 
     std::optional<event_deep_copy> get_skip_event() const;
 
+    std::size_t get_num_registered_tests() const;
     std::size_t get_num_runs() const;
     std::size_t get_num_failures() const;
     std::size_t get_num_skips() const;
+};
+
+struct console_output_catcher {
+    snatch::small_string<4086>                              messages   = {};
+    snatch::small_function<void(std::string_view) noexcept> prev_print = {};
+
+    console_output_catcher() {
+        prev_print                 = snatch::cli::console_print;
+        snatch::cli::console_print = {*this, snatch::constant<&console_output_catcher::print>{}};
+    }
+
+    ~console_output_catcher() {
+        snatch::cli::console_print = prev_print;
+    }
+
+    void print(std::string_view msg) noexcept {
+        append_or_truncate(messages, msg);
+    }
+};
+
+using arg_vector = snatch::small_vector<const char*, snatch::max_command_line_args>;
+
+struct cli_input {
+    std::string_view scenario;
+    arg_vector       args;
 };
 
 #define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
@@ -112,3 +151,15 @@ struct mock_framework {
     } while (0)
 
 #define CHECK_NO_SECTION CHECK_NO_SECTION_FOR_FAILURE(0u)
+
+#define CHECK_RUN(SUCCESS, RUN_COUNT, FAIL_COUNT, SKIP_COUNT, ASSERT_COUNT)                        \
+    do {                                                                                           \
+        REQUIRE(framework.events.size() >= 2u);                                                    \
+        auto end = framework.events.back();                                                        \
+        REQUIRE(end.event_type == event_deep_copy::type::test_run_ended);                          \
+        CHECK(end.test_run_success == SUCCESS);                                                    \
+        CHECK(end.test_run_run_count == RUN_COUNT);                                                \
+        CHECK(end.test_run_fail_count == FAIL_COUNT);                                              \
+        CHECK(end.test_run_skip_count == SKIP_COUNT);                                              \
+        CHECK(end.test_run_assertion_count == ASSERT_COUNT);                                       \
+    } while (0)

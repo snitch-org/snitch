@@ -8,6 +8,11 @@ using string_type = snatch::small_string<max_length>;
 
 enum class enum_type { value1 = 0, value2 = 12 };
 
+using function_ptr_type1 = void (*)();
+using function_ptr_type2 = void (*)(int);
+
+void foo() {}
+
 TEMPLATE_TEST_CASE(
     "append",
     "[utility]",
@@ -22,7 +27,9 @@ TEMPLATE_TEST_CASE(
     const void*,
     std::nullptr_t,
     std::string_view,
-    enum_type) {
+    enum_type,
+    function_ptr_type1,
+    function_ptr_type2) {
 
     auto create_value = []() -> std::pair<TestType, std::string_view> {
         if constexpr (std::is_same_v<TestType, int>) {
@@ -51,6 +58,10 @@ TEMPLATE_TEST_CASE(
             return {"hello"sv, "hello"sv};
         } else if constexpr (std::is_same_v<TestType, enum_type>) {
             return {enum_type::value2, "12"sv};
+        } else if constexpr (std::is_same_v<TestType, function_ptr_type1>) {
+            return {&foo, "0x????????"sv};
+        } else if constexpr (std::is_same_v<TestType, function_ptr_type2>) {
+            return {nullptr, "nullptr"sv};
         }
     };
 
@@ -60,7 +71,8 @@ TEMPLATE_TEST_CASE(
         auto [value, expected] = create_value();
         CHECK(append(s, value));
 
-        if constexpr (!std::is_pointer_v<TestType>) {
+        if constexpr (
+            !std::is_pointer_v<TestType> || std::is_function_v<std::remove_pointer_t<TestType>>) {
             CHECK(std::string_view(s) == expected);
         } else {
 #if defined(SNATCH_COMPILER_MSVC)
@@ -80,7 +92,8 @@ TEMPLATE_TEST_CASE(
         CHECK(std::string_view(s).starts_with(initial));
         if constexpr (
             (std::is_arithmetic_v<TestType> && !std::is_same_v<TestType, bool>) ||
-            std::is_pointer_v<TestType> || std::is_enum_v<TestType>) {
+            (std::is_pointer_v<TestType> && !std::is_function_v<std::remove_pointer_t<TestType>>) ||
+            std::is_enum_v<TestType>) {
             // We are stuck with snprintf, which insists on writing a null-terminator character,
             // therefore we loose one character at the end.
             CHECK(s.size() == max_length - 1u);

@@ -1,9 +1,6 @@
 #include "testing.hpp"
 #include "testing_event.hpp"
 
-#include <stdexcept>
-#include <string>
-
 using namespace std::literals;
 
 SNATCH_WARNING_PUSH
@@ -11,6 +8,7 @@ SNATCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("skip", "[test macros]") {
     mock_framework framework;
+    framework.setup_reporter();
 
     SECTION("no skip") {
         framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {

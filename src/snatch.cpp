@@ -95,12 +95,16 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 
 namespace snatch {
 bool append(small_string_span ss, std::string_view str) noexcept {
+    if (str.empty()) {
+        return true;
+    }
+
     const bool        could_fit  = str.size() <= ss.available();
     const std::size_t copy_count = std::min(str.size(), ss.available());
 
     const std::size_t offset = ss.size();
     ss.grow(copy_count);
-    std::memcpy(ss.begin() + offset, str.data(), copy_count);
+    std::memmove(ss.begin() + offset, str.data(), copy_count);
 
     return could_fit;
 }
@@ -220,10 +224,13 @@ void stdout_print(std::string_view message) noexcept {
 }
 } // namespace snatch::impl
 
+namespace snatch::cli {
+small_function<void(std::string_view) noexcept> console_print = &snatch::impl::stdout_print;
+} // namespace snatch::cli
+
 namespace {
 using snatch::max_message_length;
 using snatch::small_string;
-using snatch::impl::stdout_print;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
@@ -234,7 +241,7 @@ template<typename... Args>
 void console_print(Args&&... args) noexcept {
     small_string<max_message_length> message;
     append_or_truncate(message, std::forward<Args>(args)...);
-    stdout_print(message);
+    snatch::cli::console_print(message);
 }
 
 bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
@@ -257,7 +264,10 @@ void trim(std::string_view& str, std::string_view patterns) noexcept {
 
 namespace snatch {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
-    console_print("terminate called with message: ", msg, "\n");
+    impl::stdout_print("terminate called with message: ");
+    impl::stdout_print(msg);
+    impl::stdout_print("\n");
+
     std::terminate();
 }
 } // namespace snatch
@@ -455,7 +465,9 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     }
 
     if (!r.report_callback.empty()) {
-        r.report_callback(r, event::test_run_ended{run_name});
+        r.report_callback(
+            r, event::test_run_ended{
+                   run_name, success, run_count, fail_count, skip_count, assertion_count});
     } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print("==========================================\n");
 
@@ -487,9 +499,9 @@ void list_tests(const registry& r, F&& predicate) noexcept {
         }
 
         if (!t.id.type.empty()) {
-            console_print(t.id.name, " [", t.id.type, "]\n");
+            r.print(t.id.name, " [", t.id.type, "]\n");
         } else {
-            console_print(t.id.name);
+            r.print(t.id.name, "\n");
         }
     }
 }
@@ -926,7 +938,7 @@ std::string_view extract_executable(std::string_view path) {
 
 std::optional<cli::input> parse_arguments(
     int                       argc,
-    char*                     argv[],
+    const char* const         argv[],
     const expected_arguments& expected,
     const parser_settings&    settings = parser_settings{}) noexcept {
 
@@ -1124,35 +1136,6 @@ void print_help(
     }
 }
 
-std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) {
-    std::optional<cli::argument> ret;
-
-    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
-        return arg.name == name;
-    });
-
-    if (iter != args.arguments.cend()) {
-        ret = *iter;
-    }
-
-    return ret;
-}
-
-std::optional<cli::argument>
-get_positional_argument(const cli::input& args, std::string_view name) {
-    std::optional<cli::argument> ret;
-
-    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
-        return arg.name.empty() && arg.value_name == name;
-    });
-
-    if (iter != args.arguments.cend()) {
-        ret = *iter;
-    }
-
-    return ret;
-}
-
 // clang-format off
 const expected_arguments expected_args = {
     {{"-l", "--list-tests"},    {},                    "List tests by name"},
@@ -1171,7 +1154,7 @@ constexpr const char* program_description = "Test runner (snatch v" SNATCH_FULL_
 } // namespace
 
 namespace snatch::cli {
-std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
+std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
     std::optional<cli::input> ret_args =
         parse_arguments(argc, argv, expected_args, {.with_color = with_color_default});
 
@@ -1182,32 +1165,61 @@ std::optional<cli::input> parse_arguments(int argc, char* argv[]) noexcept {
 
     return ret_args;
 }
+
+std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) noexcept {
+    std::optional<cli::argument> ret;
+
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
+        return arg.name == name;
+    });
+
+    if (iter != args.arguments.cend()) {
+        ret = *iter;
+    }
+
+    return ret;
+}
+
+std::optional<cli::argument>
+get_positional_argument(const cli::input& args, std::string_view name) noexcept {
+    std::optional<cli::argument> ret;
+
+    auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
+        return arg.name.empty() && arg.value_name == name;
+    });
+
+    if (iter != args.arguments.cend()) {
+        ret = *iter;
+    }
+
+    return ret;
+}
 } // namespace snatch::cli
 
 namespace snatch {
 void registry::configure(const cli::input& args) noexcept {
     if (auto opt = get_option(args, "--color")) {
         if (*opt->value == "always") {
-            snatch::tests.with_color = true;
+            with_color = true;
         } else if (*opt->value == "never") {
-            snatch::tests.with_color = false;
+            with_color = false;
         } else {
-            console_print(
-                make_colored("warning:", snatch::tests.with_color, color::warning),
+            print(
+                make_colored("warning:", with_color, color::warning),
                 "unknown color directive; please use one of always|never\n");
         }
     }
 
     if (auto opt = get_option(args, "--verbosity")) {
         if (*opt->value == "quiet") {
-            snatch::tests.verbose = snatch::registry::verbosity::quiet;
+            verbose = snatch::registry::verbosity::quiet;
         } else if (*opt->value == "normal") {
-            snatch::tests.verbose = snatch::registry::verbosity::normal;
+            verbose = snatch::registry::verbosity::normal;
         } else if (*opt->value == "high") {
-            snatch::tests.verbose = snatch::registry::verbosity::high;
+            verbose = snatch::registry::verbosity::high;
         } else {
-            console_print(
-                make_colored("warning:", snatch::tests.with_color, color::warning),
+            print(
+                make_colored("warning:", with_color, color::warning),
                 "unknown verbosity level; please use one of quiet|normal|high\n");
         }
     }
@@ -1223,28 +1235,28 @@ bool registry::run_tests(const cli::input& args) noexcept {
     }
 
     if (get_option(args, "--list-tests")) {
-        snatch::tests.list_all_tests();
+        list_all_tests();
         return true;
     }
 
     if (auto opt = get_option(args, "--list-tests-with-tag")) {
-        snatch::tests.list_tests_with_tag(*opt->value);
+        list_tests_with_tag(*opt->value);
         return true;
     }
 
     if (get_option(args, "--list-tags")) {
-        snatch::tests.list_all_tags();
+        list_all_tags();
         return true;
     }
 
     if (auto opt = get_positional_argument(args, "test regex")) {
         if (get_option(args, "--tags")) {
-            return snatch::tests.run_tests_with_tag(args.executable, *opt->value);
+            return run_tests_with_tag(args.executable, *opt->value);
         } else {
-            return snatch::tests.run_tests_matching_name(args.executable, *opt->value);
+            return run_tests_matching_name(args.executable, *opt->value);
         }
     } else {
-        return snatch::tests.run_all_tests(args.executable);
+        return run_all_tests(args.executable);
     }
 }
 } // namespace snatch

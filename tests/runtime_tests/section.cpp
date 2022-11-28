@@ -11,6 +11,7 @@ SNATCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("section", "[test macros]") {
     mock_framework framework;
+    framework.setup_reporter();
 
     SECTION("no section") {
         framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
@@ -158,6 +159,47 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 2", "section 2.1");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 3");
+    }
+
+    SECTION("one section in a loop") {
+        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            for (std::size_t i = 0u; i < 5u; ++i) {
+                SNATCH_SECTION("section 1") {
+                    SNATCH_FAIL_CHECK("trigger");
+                }
+            }
+        };
+
+        framework.run_test();
+
+        REQUIRE(framework.get_num_failures() == 5u);
+        CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
+        CHECK_SECTIONS_FOR_FAILURE(1u, "section 1");
+        CHECK_SECTIONS_FOR_FAILURE(2u, "section 1");
+        CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
+        CHECK_SECTIONS_FOR_FAILURE(4u, "section 1");
+    }
+
+    SECTION("two sections in a loop") {
+        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+            for (std::size_t i = 0u; i < 5u; ++i) {
+                SNATCH_SECTION("section 1") {
+                    SNATCH_CHECK(i % 2u == 0u);
+                }
+                SNATCH_SECTION("section 2") {
+                    SNATCH_CHECK(i % 2u == 1u);
+                }
+            }
+        };
+
+        framework.run_test();
+
+        REQUIRE(framework.get_num_failures() == 5u);
+        CHECK_SECTIONS_FOR_FAILURE(0u, "section 2");
+        CHECK_SECTIONS_FOR_FAILURE(1u, "section 1");
+        CHECK_SECTIONS_FOR_FAILURE(2u, "section 2");
+        CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
+        CHECK_SECTIONS_FOR_FAILURE(4u, "section 2");
     }
 };
 
