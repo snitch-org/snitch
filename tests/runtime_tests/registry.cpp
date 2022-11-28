@@ -415,7 +415,8 @@ void register_tests(mock_framework& framework) {
         };
 
     framework.registry.add_with_types<std::tuple<int, float>>(
-        "how many lights templated", "[tag]") = []<typename T>(snatch::impl::test_run& mock_test) {
+        "how many templated lights",
+        "[tag][tag with spaces]") = []<typename T>(snatch::impl::test_run& mock_test) {
         if constexpr (std::is_same_v<T, int>) {
             test_called_int = true;
             SNATCH_FAIL_CHECK("there are four lights (int)");
@@ -535,6 +536,73 @@ TEST_CASE("run tests", "[registry]") {
             } else {
                 CHECK(framework.get_num_runs() == 1u);
                 CHECK_RUN(false, 1u, 1u, 0u, 1u);
+            }
+        }
+    }
+};
+
+TEST_CASE("list tests", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
+    framework.setup_print();
+
+    SECTION("list_all_tests") {
+        framework.registry.list_all_tests();
+
+        CHECK(framework.messages == contains_substring("how are you"));
+        CHECK(framework.messages == contains_substring("how many lights"));
+        CHECK(framework.messages == contains_substring("drink from the cup"));
+        CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+        CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+    }
+
+    SECTION("list_all_tags") {
+        framework.registry.list_all_tags();
+
+        CHECK(framework.messages == contains_substring("[tag]"));
+        CHECK(framework.messages == contains_substring("[skipped]"));
+        CHECK(framework.messages == contains_substring("[other_tag]"));
+        CHECK(framework.messages == contains_substring("[tag with spaces]"));
+    }
+
+    SECTION("list_tests_with_tag") {
+        for (auto tag :
+             {"[tag]"sv, "[other_tag]"sv, "[skipped]"sv, "[tag with spaces]"sv, "[wrong_tag]"sv}) {
+
+            CAPTURE(tag);
+            framework.messages.clear();
+
+            framework.registry.list_tests_with_tag(tag);
+            if (tag == "[tag]"sv) {
+                CHECK(framework.messages == contains_substring("how are you"));
+                CHECK(framework.messages == contains_substring("how many lights"));
+                CHECK(framework.messages == contains_substring("drink from the cup"));
+                CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+                CHECK(
+                    framework.messages == contains_substring("how many templated lights [float]"));
+            } else if (tag == "[other_tag]"sv) {
+                CHECK(framework.messages != contains_substring("how are you"));
+                CHECK(framework.messages == contains_substring("how many lights"));
+                CHECK(framework.messages != contains_substring("drink from the cup"));
+                CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+                CHECK(
+                    framework.messages != contains_substring("how many templated lights [float]"));
+            } else if (tag == "[skipped]"sv) {
+                CHECK(framework.messages != contains_substring("how are you"));
+                CHECK(framework.messages != contains_substring("how many lights"));
+                CHECK(framework.messages == contains_substring("drink from the cup"));
+                CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+                CHECK(
+                    framework.messages != contains_substring("how many templated lights [float]"));
+            } else if (tag == "[tag with spaces]"sv) {
+                CHECK(framework.messages != contains_substring("how are you"));
+                CHECK(framework.messages != contains_substring("how many lights"));
+                CHECK(framework.messages != contains_substring("drink from the cup"));
+                CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+                CHECK(
+                    framework.messages == contains_substring("how many templated lights [float]"));
+            } else if (tag == "[wrong_tag]"sv) {
+                CHECK(framework.messages.empty());
             }
         }
     }
