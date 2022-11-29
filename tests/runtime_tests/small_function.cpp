@@ -1,5 +1,7 @@
 #include "testing.hpp"
 
+#include <tuple>
+
 std::size_t test_object_instances = 0u;
 bool        function_called       = false;
 int         return_value          = 0u;
@@ -165,6 +167,5 @@ TEMPLATE_TEST_CASE(
             }
             CHECK(test_object_instances <= expected_instances);
         }
-    }
-    (type_holder<TestType>{});
+    }(type_holder<TestType>{});
 };

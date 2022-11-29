@@ -11,7 +11,6 @@
 #include <initializer_list> // for std::initializer_list
 #include <optional> // for cli
 #include <string_view> // for all strings
-#include <tuple> // for typed tests
 #include <type_traits> // for std::is_nothrow_*
 #include <variant> // for events
 
@@ -101,6 +100,9 @@ constexpr std::string_view get_type_name() noexcept {
 namespace snatch {
 template<typename T>
 constexpr std::string_view type_name = impl::get_type_name<T>();
+
+template<typename... Args>
+struct type_list {};
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
 } // namespace snatch
@@ -715,11 +717,8 @@ public:
 // -----------------------
 
 namespace snatch::impl {
-template<typename T>
-struct proxy;
-
 template<typename... Args>
-struct proxy<std::tuple<Args...>> {
+struct proxy {
     registry*        tests = nullptr;
     std::string_view name;
     std::string_view tags;
@@ -727,6 +726,17 @@ struct proxy<std::tuple<Args...>> {
     template<typename F>
     const char* operator=(const F& func) noexcept;
 };
+
+template<typename T>
+struct proxy_from_list_t;
+
+template<template<typename...> typename T, typename... Args>
+struct proxy_from_list_t<T<Args...>> {
+    using type = proxy<Args...>;
+};
+
+template<typename T>
+using proxy_from_list = typename proxy_from_list_t<T>::type;
 
 struct test_run;
 
@@ -1113,12 +1123,18 @@ public:
         this->print_callback(message);
     }
 
-    impl::proxy<std::tuple<>> add(std::string_view name, std::string_view tags) noexcept {
+    impl::proxy<> add(std::string_view name, std::string_view tags) noexcept {
+        return {this, name, tags};
+    }
+
+    template<typename... Args>
+    impl::proxy<Args...> add_with_types(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};
     }
 
     template<typename T>
-    impl::proxy<T> add_with_types(std::string_view name, std::string_view tags) noexcept {
+    impl::proxy_from_list<T>
+    add_with_type_list(std::string_view name, std::string_view tags) noexcept {
         return {this, name, tags};
     }
 
@@ -1182,7 +1198,7 @@ extern constinit registry tests;
 namespace snatch::impl {
 template<typename... Args>
 template<typename F>
-const char* proxy<std::tuple<Args...>>::operator=(const F& func) noexcept {
+const char* proxy<Args...>::operator=(const F& func) noexcept {
     if constexpr (sizeof...(Args) > 0) {
         tests->template register_typed_tests<Args...>(name, tags, func);
     } else {
@@ -1330,12 +1346,12 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_types<TYPES>(NAME, TAGS) = []<typename TestType>(                   \
+        snatch::tests.add_with_type_list<TYPES>(NAME, TAGS) = []<typename TestType>(               \
             snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_types<std::tuple<__VA_ARGS__>>(NAME, TAGS) = []<typename TestType>( \
+        snatch::tests.add_with_types<__VA_ARGS__>(NAME, TAGS) = []<typename TestType>(             \
             snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
 
 #define SNATCH_SECTION1(NAME)                                                                      \

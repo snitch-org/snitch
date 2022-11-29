@@ -54,85 +54,102 @@ TEST_CASE("add regular test", "[registry]") {
 };
 
 TEST_CASE("add template test", "[registry]") {
-    mock_framework framework;
+    for (bool with_type_list : {false, true}) {
+        mock_framework framework;
 
-    test_called       = false;
-    test_called_int   = false;
-    test_called_float = false;
+        test_called       = false;
+        test_called_int   = false;
+        test_called_float = false;
 
-    framework.registry.add_with_types<std::tuple<int, float>>("how many lights", "[tag]") =
-        []<typename T>(snatch::impl::test_run&) {
-            if constexpr (std::is_same_v<T, int>) {
-                test_called_int = true;
-            } else if constexpr (std::is_same_v<T, float>) {
-                test_called_float = true;
-            } else {
-                test_called = true;
-            }
-        };
+        CAPTURE(with_type_list);
 
-    REQUIRE(framework.get_num_registered_tests() == 2u);
+        if (with_type_list) {
+            framework.registry.add_with_type_list<snatch::type_list<int, float>>(
+                "how many lights", "[tag]") = []<typename T>(snatch::impl::test_run&) {
+                if constexpr (std::is_same_v<T, int>) {
+                    test_called_int = true;
+                } else if constexpr (std::is_same_v<T, float>) {
+                    test_called_float = true;
+                } else {
+                    test_called = true;
+                }
+            };
+        } else {
+            framework.registry.add_with_types<int, float>("how many lights", "[tag]") =
+                []<typename T>(snatch::impl::test_run&) {
+                    if constexpr (std::is_same_v<T, int>) {
+                        test_called_int = true;
+                    } else if constexpr (std::is_same_v<T, float>) {
+                        test_called_float = true;
+                    } else {
+                        test_called = true;
+                    }
+                };
+        }
 
-    auto& test1 = *framework.registry.begin();
-    CHECK(test1.id.name == "how many lights"sv);
-    CHECK(test1.id.tags == "[tag]"sv);
-    CHECK(test1.id.type == "int"sv);
-    REQUIRE(test1.func != nullptr);
+        REQUIRE(framework.get_num_registered_tests() == 2u);
 
-    auto& test2 = *(framework.registry.begin() + 1);
-    CHECK(test2.id.name == "how many lights"sv);
-    CHECK(test2.id.tags == "[tag]"sv);
-    CHECK(test2.id.type == "float"sv);
-    REQUIRE(test2.func != nullptr);
+        auto& test1 = *framework.registry.begin();
+        CHECK(test1.id.name == "how many lights"sv);
+        CHECK(test1.id.tags == "[tag]"sv);
+        CHECK(test1.id.type == "int"sv);
+        REQUIRE(test1.func != nullptr);
 
-    SECTION("run int default reporter") {
-        framework.setup_print();
-        framework.registry.run(test1);
+        auto& test2 = *(framework.registry.begin() + 1);
+        CHECK(test2.id.name == "how many lights"sv);
+        CHECK(test2.id.tags == "[tag]"sv);
+        CHECK(test2.id.type == "float"sv);
+        REQUIRE(test2.func != nullptr);
 
-        CHECK(test_called == false);
-        CHECK(test_called_int == true);
-        CHECK(test_called_float == false);
-        CHECK(framework.messages == contains_substring("starting: how many lights [int]"));
-        CHECK(framework.messages == contains_substring("finished: how many lights [int]"));
-    }
+        SECTION("run int default reporter") {
+            framework.setup_print();
+            framework.registry.run(test1);
 
-    SECTION("run float default reporter") {
-        framework.setup_print();
-        framework.registry.run(test2);
+            CHECK(test_called == false);
+            CHECK(test_called_int == true);
+            CHECK(test_called_float == false);
+            CHECK(framework.messages == contains_substring("starting: how many lights [int]"));
+            CHECK(framework.messages == contains_substring("finished: how many lights [int]"));
+        }
 
-        CHECK(test_called == false);
-        CHECK(test_called_int == false);
-        CHECK(test_called_float == true);
-        CHECK(framework.messages == contains_substring("starting: how many lights [float]"));
-        CHECK(framework.messages == contains_substring("finished: how many lights [float]"));
-    }
+        SECTION("run float default reporter") {
+            framework.setup_print();
+            framework.registry.run(test2);
 
-    SECTION("run int custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test1);
+            CHECK(test_called == false);
+            CHECK(test_called_int == false);
+            CHECK(test_called_float == true);
+            CHECK(framework.messages == contains_substring("starting: how many lights [float]"));
+            CHECK(framework.messages == contains_substring("finished: how many lights [float]"));
+        }
 
-        CHECK(test_called == false);
-        CHECK(test_called_int == true);
-        CHECK(test_called_float == false);
-        REQUIRE(framework.events.size() == 2u);
-        CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
-        CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
-        CHECK_EVENT_TEST_ID(framework.events[0], test1.id);
-        CHECK_EVENT_TEST_ID(framework.events[1], test1.id);
-    }
+        SECTION("run int custom reporter") {
+            framework.setup_reporter();
+            framework.registry.run(test1);
 
-    SECTION("run float custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test2);
+            CHECK(test_called == false);
+            CHECK(test_called_int == true);
+            CHECK(test_called_float == false);
+            REQUIRE(framework.events.size() == 2u);
+            CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
+            CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
+            CHECK_EVENT_TEST_ID(framework.events[0], test1.id);
+            CHECK_EVENT_TEST_ID(framework.events[1], test1.id);
+        }
 
-        CHECK(test_called == false);
-        CHECK(test_called_int == false);
-        CHECK(test_called_float == true);
-        REQUIRE(framework.events.size() == 2u);
-        CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
-        CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
-        CHECK_EVENT_TEST_ID(framework.events[0], test2.id);
-        CHECK_EVENT_TEST_ID(framework.events[1], test2.id);
+        SECTION("run float custom reporter") {
+            framework.setup_reporter();
+            framework.registry.run(test2);
+
+            CHECK(test_called == false);
+            CHECK(test_called_int == false);
+            CHECK(test_called_float == true);
+            REQUIRE(framework.events.size() == 2u);
+            CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
+            CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
+            CHECK_EVENT_TEST_ID(framework.events[0], test2.id);
+            CHECK_EVENT_TEST_ID(framework.events[1], test2.id);
+        }
     }
 };
 
@@ -179,7 +196,7 @@ TEST_CASE("report FAIL template", "[registry]") {
     mock_framework framework;
 
 #define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add_with_types<std::tuple<int>>("how many lights", "[tag]") =
+    framework.registry.add_with_types<int>("how many lights", "[tag]") =
         []<typename TestType>(snatch::impl::test_run& mock_test) {
             // clang-format off
             failure_line = __LINE__; SNATCH_FAIL("there are four lights");
@@ -414,7 +431,7 @@ void register_tests(mock_framework& framework) {
             SNATCH_SKIP("not thirsty");
         };
 
-    framework.registry.add_with_types<std::tuple<int, float>>(
+    framework.registry.add_with_types<int, float>(
         "how many templated lights",
         "[tag][tag with spaces]") = []<typename T>(snatch::impl::test_run& mock_test) {
         if constexpr (std::is_same_v<T, int>) {
