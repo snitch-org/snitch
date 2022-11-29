@@ -179,22 +179,22 @@ Results for Debug builds:
 
 |                 | _snatch_ (Debug)   | _Catch2_ (Debug)   | _doctest_ (Debug)   | _Boost UT_ (Debug)  |
 |-----------------|--------------------|--------------------|---------------------|---------------------|
-| Build framework | 1.6s               | 41s                | 2.4s                | 0s                  |
+| Build framework | 1.7s               | 41s                | 2.4s                | 0s                  |
 | Build tests     | 68s                | 86s                | 76s                 | 113s                |
 | Build all       | 70s                | 127s               | 78s                 | 113s                |
 | Run tests       | 16ms               | 74ms               | 59ms                | 20ms                |
-| Library size    | 2.70MB             | 34.6MB             | 2.8MB               | 0MB                 |
-| Executable size | 31.4MB             | 51.5MB             | 38.6MB              | 51.7MB              |
+| Library size    | 2.80MB             | 34.6MB             | 2.8MB               | 0MB                 |
+| Executable size | 31.7MB             | 51.5MB             | 38.6MB              | 51.7MB              |
 
 Results for Release builds:
 
 |                 | _snatch_ (Release) | _Catch2_ (Release) | _doctest_ (Release)| _Boost UT_ (Release) |
 |-----------------|--------------------|--------------------|--------------------|----------------------|
-| Build framework | 2.4s               | 48s                | 4.1s               | 0s                   |
-| Build tests     | 137s               | 310s               | 208s               | 279s                 |
-| Build all       | 140s               | 358s               | 212s               | 279s                 |
-| Run tests       | 11ms               | 36ms               | 35ms               | 10ms                 |
-| Library size    | 0.60MB             | 2.5MB              | 0.39MB             | 0MB                  |
+| Build framework | 2.5s               | 48s                | 4.1s               | 0s                   |
+| Build tests     | 140s               | 310s               | 208s               | 279s                 |
+| Build all       | 143s               | 358s               | 212s               | 279s                 |
+| Run tests       | 9ms                | 36ms               | 35ms               | 10ms                 |
+| Library size    | 0.62MB             | 2.5MB              | 0.39MB             | 0MB                  |
 | Executable size | 9.3MB              | 19.1MB             | 15.2MB             | 11.3MB               |
 
 Notes:
@@ -208,6 +208,7 @@ Notes:
 `TEST_CASE(NAME, TAGS) { /* test body */ };`
 
 This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNATCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. Within this string, individual tags must be surrounded by square brackets, with no white-space between tags (although white space within a tag is allowed). Tags can be used to filter the tests (e.g., run all tests with a given tag). Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
+
 
 `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ };`
 
