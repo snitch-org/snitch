@@ -178,25 +178,25 @@ Description of results below:
 
 Results for Debug builds:
 
-|                 | _snatch_ (Debug)   | _Catch2_ (Debug)   | _doctest_ (Debug)   | _Boost UT_ (Debug)  |
-|-----------------|--------------------|--------------------|---------------------|---------------------|
-| Build framework | 1.7s               | 64s                | 2.0s                | 0s                  |
-| Build tests     | 61s                | 86s                | 78s                 | 109s                |
-| Build all       | 63s                | 150s               | 80s                 | 109s                |
-| Run tests       | 16ms               | 83ms               | 60ms                | 20ms                |
-| Library size    | 2.80MB             | 38.6MB             | 2.8MB               | 0MB                 |
-| Executable size | 31.7MB             | 49.3MB             | 38.6MB              | 51.9MB              |
+| **Debug**       | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
+|-----------------|----------|----------|-----------|------------|
+| Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
+| Build tests     | 61s      | 86s      | 78s       | 109s       |
+| Build all       | 63s      | 150s     | 80s       | 109s       |
+| Run tests       | 16ms     | 83ms     | 60ms      | 20ms       |
+| Library size    | 2.80MB   | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 31.7MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
-|                 | _snatch_ (Release) | _Catch2_ (Release) | _doctest_ (Release)| _Boost UT_ (Release) |
-|-----------------|--------------------|--------------------|--------------------|----------------------|
-| Build framework | 2.5s               | 68s                | 3.6s               | 0s                   |
-| Build tests     | 132s               | 264s               | 216s               | 281s                 |
-| Build all       | 135s               | 332s               | 220s               | 281s                 |
-| Run tests       | 9ms                | 31ms               | 36ms               | 10ms                 |
-| Library size    | 0.62MB             | 2.6MB              | 0.39MB             | 0MB                  |
-| Executable size | 9.3MB              | 17.4MB             | 15.2MB             | 11.3MB               |
+| **Release**     | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
+|-----------------|----------|----------|-----------|------------|
+| Build framework | 2.5s     | 68s      | 3.6s      | 0s         |
+| Build tests     | 132s     | 264s     | 216s      | 281s       |
+| Build all       | 135s     | 332s     | 220s      | 281s       |
+| Run tests       | 9ms      | 31ms     | 36ms      | 10ms       |
+| Library size    | 0.62MB   | 2.6MB    | 0.39MB    | 0MB        |
+| Executable size | 9.3MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
