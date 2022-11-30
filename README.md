@@ -178,8 +178,6 @@ Description of results below:
 
 Results for Debug builds:
 
-TODO: update doctest since we removed `<algorithm>` from oup.
-
 |                 | _snatch_ (Debug)   | _Catch2_ (Debug)   | _doctest_ (Debug)   | _Boost UT_ (Debug)  |
 |-----------------|--------------------|--------------------|---------------------|---------------------|
 | Build framework | 1.7s               | 64s                | 2.0s                | 0s                  |
