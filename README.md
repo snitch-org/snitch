@@ -87,8 +87,8 @@ And here is an example code for a typed test, also borrowed (and adapted) from t
 ```c++
 #include <snatch/snatch.hpp>
 
-using MyTypes = std::tuple<int, char, float>;
-TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside std::tuple", "[template][list]", MyTypes)
+using MyTypes = snatch::type_list<int, char, float>; // could also be std::tuple; any template type list will do
+TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside snatch::type_list", "[template][list]", MyTypes)
 {
     REQUIRE(sizeof(TestType) > 1); // will fail for 'char'
 };
@@ -211,14 +211,14 @@ Notes:
 This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNATCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. Within this string, individual tags must be surrounded by square brackets, with no white-space between tags (although white space within a tag is allowed). Tags can be used to filter the tests (e.g., run all tests with a given tag). Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
 
 
-`TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ };`
-
-This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES`. `TYPES` must be a `std::tuple`. Within the test body, the current type can be accessed as `TestType`.
-
-
 `TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ };`
 
-This is equivalent to `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, std::tuple<TYPES...>)`, and is provided for compatibility with _Catch2_. It saves you having to type `std::tuple<>` if the list of types is used only once. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
+This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
+
+
+`TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ };`
+
+This is equivalent to `TEMPLATE_TEST_CASE`, except that `TYPES` must be a template type list of the form `T<Types...>`, for example `snatch::type_list<Types...>` or `std::tuple<Types...>`. This type list can be declared once and reused for multiple test cases.
 
 
 ### Test check macros
