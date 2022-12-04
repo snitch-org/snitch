@@ -33,19 +33,12 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
 ## Features and limitations
 
- - No heap allocation from the testing framework, so memory leaks from your code can be detected precisely.
+ - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Compiles tests at least 40% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - Compiles tests up to 40% faster than other testing frameworks (see [Benchmark](#benchmark)).
  - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
- - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, including:
-   - Simple test cases with `TEST_CASE(name, tags)`.
-   - Typed test cases with `TEMPLATE_LIST_TEST_CASE(name, tags, types)` and  `TEMPLATE_TEST_CASE(name, tags, types...)`.
-   - Pretty-printing check macros: `REQUIRE(expr)`, `CHECK(expr)`, `REQUIRE_THAT(expr, matcher)`, `CHECK_THAT(expr, matcher)`, `FAIL(msg)`, `FAIL_CHECK(msg)`.
-   - Exception checking macros: `REQUIRE_THROWS_AS(expr, except)`, `CHECK_THROWS_AS(expr, except)`, `REQUIRE_THROWS_MATCHES(expr, exception, matcher)`, `CHECK_THROWS_MATCHES(expr, except, matcher)`.
-   - Nesting multiple tests in a single test case with `SECTION(name, description)`.
-   - Capturing context information to display on failure with `CAPTURE(vars...)` and `INFO(message)`.
-   - Optional `main()` with simple command-line API similar to _Catch2_.
+ - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
    - Matchers use a different API (see [Matchers](#matchers) below).
@@ -54,7 +47,6 @@ If you need features that are not in the list above, please use _Catch2_ or _doc
 
 Notable current limitations:
 
- - Test macros (`REQUIRE(...)`, etc.) may only be used inside the test body (or in lambdas defined in the test body), and cannot be used in other functions.
  - No fixtures, or set-up/tear-down helpers (`SECTION()` can be used to share set-up/tear-down logic).
  - No multi-threaded test execution.
 
@@ -184,20 +176,20 @@ Results for Debug builds:
 | Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
 | Build tests     | 61s      | 86s      | 78s       | 109s       |
 | Build all       | 63s      | 150s     | 80s       | 109s       |
-| Run tests       | 16ms     | 83ms     | 60ms      | 20ms       |
+| Run tests       | 17ms     | 83ms     | 60ms      | 20ms       |
 | Library size    | 2.80MB   | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 31.7MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Executable size | 32.3MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.5s     | 68s      | 3.6s      | 0s         |
-| Build tests     | 132s     | 264s     | 216s      | 281s       |
-| Build all       | 135s     | 332s     | 220s      | 281s       |
-| Run tests       | 9ms      | 31ms     | 36ms      | 10ms       |
+| Build tests     | 135s     | 264s     | 216s      | 281s       |
+| Build all       | 137s     | 332s     | 220s      | 281s       |
+| Run tests       | 10ms     | 31ms     | 36ms      | 10ms       |
 | Library size    | 0.62MB   | 2.6MB    | 0.39MB    | 0MB        |
-| Executable size | 9.3MB    | 17.4MB   | 15.2MB    | 11.3MB     |
+| Executable size | 9.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
@@ -677,7 +669,7 @@ By default, _snatch_ assumes exceptions are enabled, and uses them in two cases:
 If _snatch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNATCH_WITH_EXCEPTIONS` to `0`), then
 
  1. Test macros that check exceptions being thrown will not be defined.
- 2. `REQUIRE_*()` and `FAIL()` macros will simply use `return` to abort execution. As a consequence, if these macros are used inside lambda functions, they will only abort execution of the lambda and not of the actual test case. Therefore, these macros should only be used in the immediate body of the test case, or simply not at all.
+ 2. `REQUIRE_*()` and `FAIL()` macros will simply use `return` to abort execution. As a consequence, if these macros are used inside functions other than the test case function, they will only abort execution of the current function, and not of the actual test case. Therefore, these macros should only be used in the immediate body of the test case, or simply not at all.
 
 
 ### Header-only build

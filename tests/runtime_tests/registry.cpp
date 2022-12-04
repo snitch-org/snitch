@@ -19,9 +19,7 @@ TEST_CASE("add regular test", "[registry]") {
     mock_framework framework;
 
     test_called                                        = false;
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run&) {
-        test_called = true;
-    };
+    framework.registry.add("how many lights", "[tag]") = []() { test_called = true; };
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
@@ -65,7 +63,7 @@ TEST_CASE("add template test", "[registry]") {
 
         if (with_type_list) {
             framework.registry.add_with_type_list<snatch::type_list<int, float>>(
-                "how many lights", "[tag]") = []<typename T>(snatch::impl::test_run&) {
+                "how many lights", "[tag]") = []<typename T>() {
                 if constexpr (std::is_same_v<T, int>) {
                     test_called_int = true;
                 } else if constexpr (std::is_same_v<T, float>) {
@@ -76,7 +74,7 @@ TEST_CASE("add template test", "[registry]") {
             };
         } else {
             framework.registry.add_with_types<int, float>("how many lights", "[tag]") =
-                []<typename T>(snatch::impl::test_run&) {
+                []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -159,13 +157,11 @@ SNATCH_WARNING_DISABLE_UNREACHABLE
 TEST_CASE("report FAIL regular", "[registry]") {
     mock_framework framework;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+    framework.registry.add("how many lights", "[tag]") = []() {
         // clang-format off
         failure_line = __LINE__; SNATCH_FAIL("there are four lights");
         // clang-format on
     };
-#undef SNATCH_CURRENT_TEST
 
     auto& test = *framework.registry.begin();
 
@@ -195,14 +191,11 @@ TEST_CASE("report FAIL regular", "[registry]") {
 TEST_CASE("report FAIL template", "[registry]") {
     mock_framework framework;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add_with_types<int>("how many lights", "[tag]") =
-        []<typename TestType>(snatch::impl::test_run& mock_test) {
-            // clang-format off
+    framework.registry.add_with_types<int>("how many lights", "[tag]") = []<typename TestType>() {
+        // clang-format off
             failure_line = __LINE__; SNATCH_FAIL("there are four lights");
-            // clang-format on
-        };
-#undef SNATCH_CURRENT_TEST
+        // clang-format on
+    };
 
     auto& test = *framework.registry.begin();
 
@@ -233,15 +226,13 @@ TEST_CASE("report FAIL template", "[registry]") {
 TEST_CASE("report FAIL section", "[registry]") {
     mock_framework framework;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+    framework.registry.add("how many lights", "[tag]") = []() {
         SNATCH_SECTION("ask nicely") {
             // clang-format off
             failure_line = __LINE__; SNATCH_FAIL("there are four lights");
             // clang-format on
         }
     };
-#undef SNATCH_CURRENT_TEST
 
     auto& test = *framework.registry.begin();
 
@@ -274,15 +265,13 @@ TEST_CASE("report FAIL section", "[registry]") {
 TEST_CASE("report FAIL capture", "[registry]") {
     mock_framework framework;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+    framework.registry.add("how many lights", "[tag]") = []() {
         int number_of_lights = 3;
         SNATCH_CAPTURE(number_of_lights);
         // clang-format off
         failure_line = __LINE__; SNATCH_FAIL("there are four lights");
         // clang-format on
     };
-#undef SNATCH_CURRENT_TEST
 
     auto& test = *framework.registry.begin();
 
@@ -315,14 +304,12 @@ TEST_CASE("report FAIL capture", "[registry]") {
 TEST_CASE("report REQUIRE", "[registry]") {
     mock_framework framework;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+    framework.registry.add("how many lights", "[tag]") = []() {
         int number_of_lights = 4;
         // clang-format off
         failure_line = __LINE__; SNATCH_REQUIRE(number_of_lights == 3);
         // clang-format on
     };
-#undef SNATCH_CURRENT_TEST
 
     auto& test = *framework.registry.begin();
 
@@ -346,14 +333,12 @@ TEST_CASE("report REQUIRE", "[registry]") {
 TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     mock_framework framework;
 
-#    define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+    framework.registry.add("how many lights", "[tag]") = []() {
         auto ask_how_many_lights = [] { throw std::runtime_error{"there are four lights"}; };
         // clang-format off
         failure_line = __LINE__; SNATCH_REQUIRE_THROWS_AS(ask_how_many_lights(), std::logic_error);
         // clang-format on
     };
-#    undef SNATCH_CURRENT_TEST
 
     auto& test = *framework.registry.begin();
 
@@ -379,13 +364,11 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
 TEST_CASE("report SKIP", "[registry]") {
     mock_framework framework;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how many lights", "[tag]") = [](snatch::impl::test_run& mock_test) {
+    framework.registry.add("how many lights", "[tag]") = []() {
         // clang-format off
         failure_line = __LINE__; SNATCH_SKIP("there are four lights");
         // clang-format on
     };
-#undef SNATCH_CURRENT_TEST
 
     auto& test = *framework.registry.begin();
 
@@ -414,26 +397,20 @@ void register_tests(mock_framework& framework) {
     test_called_int       = false;
     test_called_float     = false;
 
-#define SNATCH_CURRENT_TEST mock_test
-    framework.registry.add("how are you", "[tag]") = [](snatch::impl::test_run&) {
-        test_called = true;
+    framework.registry.add("how are you", "[tag]") = []() { test_called = true; };
+
+    framework.registry.add("how many lights", "[tag][other_tag]") = []() {
+        test_called_other_tag = true;
+        SNATCH_FAIL_CHECK("there are four lights");
     };
 
-    framework.registry.add("how many lights", "[tag][other_tag]") =
-        [](snatch::impl::test_run& mock_test) {
-            test_called_other_tag = true;
-            SNATCH_FAIL_CHECK("there are four lights");
-        };
-
-    framework.registry.add("drink from the cup", "[tag][skipped]") =
-        [](snatch::impl::test_run& mock_test) {
-            test_called_skipped = true;
-            SNATCH_SKIP("not thirsty");
-        };
+    framework.registry.add("drink from the cup", "[tag][skipped]") = []() {
+        test_called_skipped = true;
+        SNATCH_SKIP("not thirsty");
+    };
 
     framework.registry.add_with_types<int, float>(
-        "how many templated lights",
-        "[tag][tag with spaces]") = []<typename T>(snatch::impl::test_run& mock_test) {
+        "how many templated lights", "[tag][tag with spaces]") = []<typename T>() {
         if constexpr (std::is_same_v<T, int>) {
             test_called_int = true;
             SNATCH_FAIL_CHECK("there are four lights (int)");
@@ -442,7 +419,6 @@ void register_tests(mock_framework& framework) {
             SNATCH_FAIL_CHECK("there are four lights (float)");
         }
     };
-#undef SNATCH_CURRENT_TEST
 }
 } // namespace
 

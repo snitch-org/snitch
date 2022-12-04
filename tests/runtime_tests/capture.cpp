@@ -13,7 +13,7 @@ TEST_CASE("capture", "[test macros]") {
     framework.setup_reporter();
 
     SECTION("literal int") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_CAPTURE(1);
             SNATCH_FAIL("trigger");
         };
@@ -23,7 +23,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("literal string") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_CAPTURE("hello");
             SNATCH_FAIL("trigger");
         };
@@ -33,7 +33,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("variable int") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_CAPTURE(i);
             SNATCH_FAIL("trigger");
@@ -44,7 +44,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("variable string") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             std::string s = "hello";
             SNATCH_CAPTURE(s);
             SNATCH_FAIL("trigger");
@@ -55,7 +55,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("expression int") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_CAPTURE(2 * i + 1);
             SNATCH_FAIL("trigger");
@@ -66,7 +66,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("expression string") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             std::string s = "hello";
             SNATCH_CAPTURE(s + ", 'world' (string),)(");
             SNATCH_FAIL("trigger");
@@ -77,7 +77,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("expression function call & char") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             std::string s = "hel\"lo";
             SNATCH_CAPTURE(s.find_first_of('e'));
             SNATCH_CAPTURE(s.find_first_of('"'));
@@ -89,7 +89,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("two variables") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             int j = 2;
             SNATCH_CAPTURE(i, j);
@@ -101,7 +101,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("three variables different types") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int         i = 1;
             int         j = 2;
             std::string s = "hello";
@@ -114,7 +114,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("scoped out") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             {
                 int i = 1;
                 SNATCH_CAPTURE(i);
@@ -127,7 +127,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("scoped out multiple capture") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_CAPTURE(i);
 
@@ -144,7 +144,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("multiple failures") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_CAPTURE(i);
             SNATCH_FAIL_CHECK("trigger1");
@@ -158,7 +158,7 @@ TEST_CASE("capture", "[test macros]") {
     }
 
     SECTION("multiple failures interleaved") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_CAPTURE(i);
             SNATCH_FAIL_CHECK("trigger1");
@@ -178,7 +178,7 @@ TEST_CASE("info", "[test macros]") {
     framework.setup_reporter();
 
     SECTION("literal int") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_INFO(1);
             SNATCH_FAIL("trigger");
         };
@@ -188,7 +188,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("literal string") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_INFO("hello");
             SNATCH_FAIL("trigger");
         };
@@ -198,7 +198,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("variable int") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_INFO(i);
             SNATCH_FAIL("trigger");
@@ -209,7 +209,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("variable string") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             std::string s = "hello";
             SNATCH_INFO(s);
             SNATCH_FAIL("trigger");
@@ -220,7 +220,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("expression int") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_INFO(2 * i + 1);
             SNATCH_FAIL("trigger");
@@ -231,7 +231,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("expression string") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             std::string s = "hello";
             SNATCH_INFO(s + ", 'world'");
             SNATCH_FAIL("trigger");
@@ -242,7 +242,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("multiple") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int         i = 1;
             int         j = 2;
             std::string s = "hello";
@@ -255,7 +255,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("scoped out") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             {
                 int i = 1;
                 SNATCH_INFO(i);
@@ -268,7 +268,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("scoped out multiple") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_INFO(i);
 
@@ -285,7 +285,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("multiple failures") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_INFO(i);
             SNATCH_FAIL_CHECK("trigger1");
@@ -299,7 +299,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("multiple failures interleaved") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_INFO(i);
             SNATCH_FAIL_CHECK("trigger1");
@@ -314,7 +314,7 @@ TEST_CASE("info", "[test macros]") {
     }
 
     SECTION("mixed with capture") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             int i = 1;
             SNATCH_INFO(i);
             SNATCH_CAPTURE(i);

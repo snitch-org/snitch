@@ -38,6 +38,8 @@ template<typename T>
 colored<T> make_colored(const T& t, bool with_color, color_t start) {
     return {t, with_color ? start : "", with_color ? color::reset : ""};
 }
+
+thread_local snatch::impl::test_run* thread_current_test = nullptr;
 } // namespace
 
 namespace {
@@ -222,6 +224,24 @@ void stdout_print(std::string_view message) noexcept {
     // TODO: replace this with std::print?
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
 }
+
+test_run& get_current_test() noexcept {
+    test_run* current = thread_current_test;
+    if (current == nullptr) {
+        terminate_with("no test case is currently running on this thread");
+    }
+
+    return *current;
+}
+
+test_run* try_get_current_test() noexcept {
+    return thread_current_test;
+}
+
+void set_current_test(test_run* current) noexcept {
+    thread_current_test = current;
+}
+
 } // namespace snatch::impl
 
 namespace snatch::cli {
@@ -748,6 +768,11 @@ test_run registry::run(test_case& test) noexcept {
 #endif
     };
 
+    // Store previously running test, to restore it later.
+    // This should always be a null pointer, except when testing snatch itself.
+    test_run* previous_run = thread_current_test;
+    thread_current_test    = &state;
+
 #if SNATCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;
     auto time_start = clock::now();
@@ -762,7 +787,7 @@ test_run registry::run(test_case& test) noexcept {
 
 #if SNATCH_WITH_EXCEPTIONS
         try {
-            test.func(state);
+            test.func();
         } catch (const impl::abort_exception&) {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
@@ -772,7 +797,7 @@ test_run registry::run(test_case& test) noexcept {
             report_failure(state, {__FILE__, __LINE__}, "unhandled unknown exception caught");
         }
 #else
-        test.func(state);
+        test.func();
 #endif
 
         if (state.sections.levels.size() == 1) {
@@ -806,6 +831,8 @@ test_run registry::run(test_case& test) noexcept {
             make_colored(full_name, with_color, color::highlight1), "\n");
 #endif
     }
+
+    thread_current_test = previous_run;
 
     return state;
 }
