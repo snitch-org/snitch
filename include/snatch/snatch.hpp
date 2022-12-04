@@ -740,11 +740,11 @@ using proxy_from_list = typename proxy_from_list_t<T>::type;
 
 struct test_run;
 
-using test_ptr = void (*)(test_run&);
+using test_ptr = void (*)();
 
 template<typename T, typename F>
 constexpr test_ptr to_test_case_ptr(const F&) noexcept {
-    return [](test_run& t) { F{}.template operator()<T>(t); };
+    return []() { F{}.template operator()<T>(); };
 }
 
 enum class test_state { not_run, success, skipped, failed };
@@ -780,6 +780,10 @@ struct test_run {
     float duration = 0.0f;
 #endif
 };
+
+test_run& get_current_test() noexcept;
+test_run* try_get_current_test() noexcept;
+void      set_current_test(test_run* current) noexcept;
 
 struct section_entry_checker {
     section_id section;
@@ -1341,40 +1345,38 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add(NAME, TAGS) =                                                            \
-            [](snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
+        snatch::tests.add(NAME, TAGS) = []() -> void
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_type_list<TYPES>(NAME, TAGS) = []<typename TestType>(               \
-            snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
+        snatch::tests.add_with_type_list<TYPES>(NAME, TAGS) = []<typename TestType>() -> void
 
 #define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_types<__VA_ARGS__>(NAME, TAGS) = []<typename TestType>(             \
-            snatch::impl::test_run & SNATCH_CURRENT_TEST [[maybe_unused]]) -> void
+        snatch::tests.add_with_types<__VA_ARGS__>(NAME, TAGS) = []<typename TestType>() -> void
 
 #define SNATCH_SECTION1(NAME)                                                                      \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            {(NAME), {}}, SNATCH_CURRENT_TEST})
+            {(NAME), {}}, snatch::impl::get_current_test()})
 
 #define SNATCH_SECTION2(NAME, DESCRIPTION)                                                         \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            {(NAME), (DESCRIPTION)}, SNATCH_CURRENT_TEST})
+            {(NAME), (DESCRIPTION)}, snatch::impl::get_current_test()})
 
 #define SNATCH_SECTION(...)                                                                        \
     SNATCH_MACRO_DISPATCH2(__VA_ARGS__, SNATCH_SECTION2, SNATCH_SECTION1)(__VA_ARGS__)
 
 #define SNATCH_CAPTURE(...)                                                                        \
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
-        snatch::impl::add_captures(SNATCH_CURRENT_TEST, #__VA_ARGS__, __VA_ARGS__)
+        snatch::impl::add_captures(snatch::impl::get_current_test(), #__VA_ARGS__, __VA_ARGS__)
 
 #define SNATCH_INFO(...)                                                                           \
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
-        snatch::impl::add_info(SNATCH_CURRENT_TEST, __VA_ARGS__)
+        snatch::impl::add_info(snatch::impl::get_current_test(), __VA_ARGS__)
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
@@ -1389,6 +1391,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
@@ -1402,6 +1405,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
             SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
@@ -1410,6 +1414,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
         SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
             SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
@@ -1417,6 +1422,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         SNATCH_CURRENT_TEST.reg.report_skipped(                                                    \
             SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
         SNATCH_TESTING_ABORT;                                                                      \
@@ -1424,6 +1430,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
         const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
         const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
@@ -1437,6 +1444,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_CHECK_THAT(EXPR, MATCHER)                                                           \
     do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
         ++SNATCH_CURRENT_TEST.asserts;                                                             \
         const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
         const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
@@ -1469,6 +1477,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #    define SNATCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)                                        \
         do {                                                                                       \
+            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
             try {                                                                                  \
                 ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
@@ -1497,6 +1506,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #    define SNATCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                                          \
         do {                                                                                       \
+            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
             try {                                                                                  \
                 ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
@@ -1523,6 +1533,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #    define SNATCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                          \
         do {                                                                                       \
+            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
             try {                                                                                  \
                 ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
@@ -1557,6 +1568,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #    define SNATCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                            \
         do {                                                                                       \
+            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
             try {                                                                                  \
                 ++SNATCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \

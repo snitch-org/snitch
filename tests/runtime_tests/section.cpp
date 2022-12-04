@@ -14,9 +14,7 @@ TEST_CASE("section", "[test macros]") {
     framework.setup_reporter();
 
     SECTION("no section") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
-            SNATCH_FAIL_CHECK("trigger");
-        };
+        framework.test_case.func = []() { SNATCH_FAIL_CHECK("trigger"); };
 
         framework.run_test();
         CHECK(framework.get_num_failures() == 1u);
@@ -24,7 +22,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("single section") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 SNATCH_FAIL_CHECK("trigger");
             }
@@ -36,7 +34,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("two sections") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 SNATCH_FAIL_CHECK("trigger1");
             }
@@ -53,7 +51,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("nested sections") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 SNATCH_FAIL_CHECK("trigger1");
                 SNATCH_SECTION("section 1.1") {
@@ -70,7 +68,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("nested sections abort early") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 SNATCH_FAIL("trigger1");
                 SNATCH_SECTION("section 1.1") {
@@ -89,7 +87,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("nested sections std::exception throw") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 throw std::runtime_error("no can do");
                 SNATCH_SECTION("section 1.1") {
@@ -108,7 +106,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("nested sections unknown exception throw") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 throw 1;
                 SNATCH_SECTION("section 1.1") {
@@ -127,9 +125,10 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("nested sections varying depth") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
-                SNATCH_SECTION("section 1.1") {}
+                SNATCH_SECTION("section 1.1") {
+                }
                 SNATCH_SECTION("section 1.2") {
                     SNATCH_FAIL_CHECK("trigger");
                 }
@@ -138,7 +137,8 @@ TEST_CASE("section", "[test macros]") {
                         SNATCH_FAIL_CHECK("trigger");
                     }
                 }
-                SNATCH_SECTION("section 1.3") {}
+                SNATCH_SECTION("section 1.3") {
+                }
             }
             SNATCH_SECTION("section 2") {
                 SNATCH_SECTION("section 2.1") {
@@ -162,7 +162,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("one section in a loop") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
                 SNATCH_SECTION("section 1") {
                     SNATCH_FAIL_CHECK("trigger");
@@ -181,7 +181,7 @@ TEST_CASE("section", "[test macros]") {
     }
 
     SECTION("two sections in a loop") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
                 SNATCH_SECTION("section 1") {
                     SNATCH_CHECK(i % 2u == 0u);
@@ -221,26 +221,28 @@ TEST_CASE("section readme example", "[test macros]") {
     framework.registry.print_callback  = print;
     framework.registry.report_callback = {};
 
-    framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
-        SNATCH_CURRENT_TEST.reg.print("S");
+    framework.test_case.func = []() {
+        auto& reg = snatch::impl::get_current_test().reg;
+
+        reg.print("S");
 
         SNATCH_SECTION("first section") {
-            SNATCH_CURRENT_TEST.reg.print("1");
+            reg.print("1");
         }
         SNATCH_SECTION("second section") {
-            SNATCH_CURRENT_TEST.reg.print("2");
+            reg.print("2");
         }
         SNATCH_SECTION("third section") {
-            SNATCH_CURRENT_TEST.reg.print("3");
+            reg.print("3");
             SNATCH_SECTION("nested section 1") {
-                SNATCH_CURRENT_TEST.reg.print("3.1");
+                reg.print("3.1");
             }
             SNATCH_SECTION("nested section 2") {
-                SNATCH_CURRENT_TEST.reg.print("3.2");
+                reg.print("3.2");
             }
         }
 
-        SNATCH_CURRENT_TEST.reg.print("E");
+        reg.print("E");
     };
 
     framework.run_test();

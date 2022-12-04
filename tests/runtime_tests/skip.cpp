@@ -11,25 +11,21 @@ TEST_CASE("skip", "[test macros]") {
     framework.setup_reporter();
 
     SECTION("no skip") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
-            SNATCH_FAIL_CHECK("trigger");
-        };
+        framework.test_case.func = []() { SNATCH_FAIL_CHECK("trigger"); };
 
         framework.run_test();
         CHECK(framework.get_num_skips() == 0u);
     }
 
     SECTION("only skip") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
-            SNATCH_SKIP("hello");
-        };
+        framework.test_case.func = []() { SNATCH_SKIP("hello"); };
 
         framework.run_test();
         CHECK(framework.get_num_skips() == 1u);
     }
 
     SECTION("skip failure") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SKIP("hello");
             SNATCH_FAIL_CHECK("trigger");
         };
@@ -40,7 +36,7 @@ TEST_CASE("skip", "[test macros]") {
     }
 
     SECTION("skip section") {
-        framework.test_case.func = [](snatch::impl::test_run& SNATCH_CURRENT_TEST) {
+        framework.test_case.func = []() {
             SNATCH_SECTION("section 1") {
                 SNATCH_SKIP("hello");
             }
