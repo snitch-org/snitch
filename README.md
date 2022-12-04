@@ -15,6 +15,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Using _snatch_ as a header-only library](#using-snatch-as-a-header-only-library)
 - [Benchmark](#benchmark)
 - [Documentation](#documentation)
+    - [Detailed comparison with _Catch2_](#detailed-comparison-with-catch2)
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
     - [Matchers](#matchers)
@@ -204,6 +205,11 @@ Notes:
 
 ## Documentation
 
+### Detailed comparison with _Catch2_
+
+See [the dedicated page in the docs folder](doc/comparison_catch2.md).
+
+
 ### Test case macros
 
 `TEST_CASE(NAME, TAGS) { /* test body */ };`
@@ -283,7 +289,7 @@ This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test cas
 
 ### Matchers
 
-Matchers in _snatch_ work differently than in _Catch2_. The required interface is:
+Matchers in _snatch_ work differently than in _Catch2_. Matchers do not need to inherit from a common base class. The only required interface is:
 
  - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise.
  - `matcher.describe_match(obj, status)` must return a value convertible to `std::string_view`, describing why `obj` is or is not a match, depending on the value of `snatch::matchers::match_status`.
@@ -326,6 +332,8 @@ struct has_prefix {
 };
 } // namespace snatch::matchers
 ```
+
+_snatch_ will always call `match()` before calling `describe_match()`. Therefore, you can save any intermediate calculation performed during `match()` as a member variable, to be reused later in `describe_match()`. This can prevent duplicating effort, and can be important if calculating the match is an expensive operation.
 
 
 ### Sections
