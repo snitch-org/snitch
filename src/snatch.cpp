@@ -797,7 +797,7 @@ test_run registry::run(test_case& test) noexcept {
             report_failure(state, {__FILE__, __LINE__}, "unhandled unknown exception caught");
         }
 #else
-        test.func(state);
+        test.func();
 #endif
 
         if (state.sections.levels.size() == 1) {
