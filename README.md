@@ -234,6 +234,16 @@ This evaluates the expression `EXPR`, as in `if (EXPR)`, and reports a failure i
 This is similar to `REQUIRE`, except that on failure the test case continues. Further failures may be reported in the same test case.
 
 
+`REQUIRE_FALSE(EXPR);`
+
+This is equivalent to `REQUIRE(!(EXPR))`, except that it is able to decompose `EXPR` (otherwise, the `!(...)` forces evaluation of the expression, which then cannot be decomposed).
+
+
+`CHECK_FALSE(EXPR);`
+
+This is equivalent to `CHECK(!(EXPR))`, except that it is able to decompose `EXPR` (otherwise, the `!(...)` forces evaluation of the expression, which then cannot be decomposed).
+
+
 `REQUIRE_THAT(EXPR, MATCHER);`
 
 This is equivalent to `REQUIRE(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.

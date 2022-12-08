@@ -25,7 +25,7 @@
 | - `CHECKED_ELSE`                                    | No            | Maybe        |
 | **Assertion macros**                                |               |              |
 | - `REQUIRE` / `CHECK`                               | Yes           | Done         |
-| - `REQUIRE_FALSE` / `CHECK_FALSE`                   | No            | Yes          |
+| - `REQUIRE_FALSE` / `CHECK_FALSE`                   | Yes           | Done         |
 | - `REQUIRE_THAT` / `CHECK_THAT`                     | Yes           | Done         |
 | - `REQUIRE_THROWS` / `CHECK_THROWS`                 | No            | Maybe        |
 | - `REQUIRE_THROWS_AS` / `CHECK_THROWS_AS`           | Yes           | Done         |
