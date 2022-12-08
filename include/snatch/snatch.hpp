@@ -796,6 +796,7 @@ struct section_entry_checker {
 };
 
 struct operator_less {
+    static constexpr std::string_view actual  = " < ";
     static constexpr std::string_view inverse = " >= ";
     template<typename T, typename U>
     constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
@@ -804,6 +805,7 @@ struct operator_less {
 };
 
 struct operator_greater {
+    static constexpr std::string_view actual  = " > ";
     static constexpr std::string_view inverse = " <= ";
     template<typename T, typename U>
     constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
@@ -812,6 +814,7 @@ struct operator_greater {
 };
 
 struct operator_less_equal {
+    static constexpr std::string_view actual  = " <= ";
     static constexpr std::string_view inverse = " > ";
     template<typename T, typename U>
     constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
@@ -820,6 +823,7 @@ struct operator_less_equal {
 };
 
 struct operator_greater_equal {
+    static constexpr std::string_view actual  = " >= ";
     static constexpr std::string_view inverse = " < ";
     template<typename T, typename U>
     constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
@@ -828,6 +832,7 @@ struct operator_greater_equal {
 };
 
 struct operator_equal {
+    static constexpr std::string_view actual  = " == ";
     static constexpr std::string_view inverse = " != ";
     template<typename T, typename U>
     constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
@@ -836,6 +841,7 @@ struct operator_equal {
 };
 
 struct operator_not_equal {
+    static constexpr std::string_view actual  = " != ";
     static constexpr std::string_view inverse = " == ";
     template<typename T, typename U>
     constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
@@ -858,7 +864,7 @@ struct expression {
     }
 };
 
-template<typename T, typename O, typename U>
+template<bool Expected, typename T, typename O, typename U>
 struct extracted_binary_expression {
     expression& expr;
     const T&    lhs;
@@ -885,23 +891,26 @@ struct extracted_binary_expression {
 #undef EXPR_OPERATOR
 
     explicit operator bool() const noexcept {
-        if (!O{}(lhs, rhs)) {
+        if (O{}(lhs, rhs) != Expected) {
             if constexpr (matcher_for<T, U>) {
                 using namespace snatch::matchers;
-                constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
-                                                                          : match_status::matched;
+                constexpr auto status = std::is_same_v<O, operator_equal> == Expected
+                                            ? match_status::failed
+                                            : match_status::matched;
                 if (!expr.append_value(lhs.describe_match(rhs, status))) {
                     expr.actual.clear();
                 }
             } else if constexpr (matcher_for<U, T>) {
                 using namespace snatch::matchers;
-                constexpr auto status = std::is_same_v<O, operator_equal> ? match_status::failed
-                                                                          : match_status::matched;
+                constexpr auto status = std::is_same_v<O, operator_equal> == Expected
+                                            ? match_status::failed
+                                            : match_status::matched;
                 if (!expr.append_value(rhs.describe_match(lhs, status))) {
                     expr.actual.clear();
                 }
             } else {
-                if (!expr.append_value(lhs) || !expr.append_value(O::inverse) ||
+                if (!expr.append_value(lhs) ||
+                    !(Expected ? expr.append_value(O::inverse) : expr.append_value(O::actual)) ||
                     !expr.append_value(rhs)) {
                     expr.actual.clear();
                 }
@@ -914,14 +923,14 @@ struct extracted_binary_expression {
     }
 };
 
-template<typename T>
+template<bool Expected, typename T>
 struct extracted_unary_expression {
     expression& expr;
     const T&    lhs;
 
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
-    constexpr extracted_binary_expression<T, OP_TYPE, U> operator OP(const U& rhs)                 \
+    constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U& rhs)       \
         const noexcept {                                                                           \
         return {expr, lhs, rhs};                                                                   \
     }
@@ -936,7 +945,7 @@ struct extracted_unary_expression {
 #undef EXPR_OPERATOR
 
     explicit operator bool() const noexcept {
-        if (!static_cast<bool>(lhs)) {
+        if (static_cast<bool>(lhs) != Expected) {
             if (!expr.append_value(lhs)) {
                 expr.actual.clear();
             }
@@ -948,11 +957,12 @@ struct extracted_unary_expression {
     }
 };
 
+template<bool Expected>
 struct expression_extractor {
     expression& expr;
 
     template<typename T>
-    constexpr extracted_unary_expression<T> operator<=(const T& lhs) const noexcept {
+    constexpr extracted_unary_expression<Expected, T> operator<=(const T& lhs) const noexcept {
         return {expr, lhs};
     }
 };
@@ -1336,9 +1346,13 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
 #define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
 
-#define SNATCH_EXPR(TYPE, EXP)                                                                     \
+#define SNATCH_EXPR_TRUE(TYPE, EXP)                                                                \
     auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
-    snatch::impl::expression_extractor{SNATCH_CURRENT_EXPRESSION} <= EXP
+    snatch::impl::expression_extractor<true>{SNATCH_CURRENT_EXPRESSION} <= EXP
+
+#define SNATCH_EXPR_FALSE(TYPE, EXP)                                                               \
+    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
+    snatch::impl::expression_extractor<false>{SNATCH_CURRENT_EXPRESSION} <= EXP
 
 // Public test macros.
 // -------------------
@@ -1381,7 +1395,7 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (SNATCH_EXPR("REQUIRE", EXP)) {                                                         \
+        if (SNATCH_EXPR_TRUE("REQUIRE", EXP)) {                                                    \
             SNATCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
             SNATCH_TESTING_ABORT;                                                                  \
@@ -1396,7 +1410,36 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (SNATCH_EXPR("CHECK", EXP)) {                                                           \
+        if (SNATCH_EXPR_TRUE("CHECK", EXP)) {                                                      \
+            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
+        }                                                                                          \
+        SNATCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNATCH_REQUIRE_FALSE(EXP)                                                                  \
+    do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
+        SNATCH_WARNING_PUSH                                                                        \
+        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if (SNATCH_EXPR_FALSE("REQUIRE_FALSE", EXP)) {                                             \
+            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
+            SNATCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+        SNATCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNATCH_CHECK_FALSE(EXP)                                                                    \
+    do {                                                                                           \
+        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
+        ++SNATCH_CURRENT_TEST.asserts;                                                             \
+        SNATCH_WARNING_PUSH                                                                        \
+        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if (SNATCH_EXPR_FALSE("CHECK_FALSE", EXP)) {                                               \
             SNATCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
         }                                                                                          \
@@ -1465,6 +1508,8 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define INFO(...)                                  SNATCH_INFO(__VA_ARGS__)
 #    define REQUIRE(EXP)                               SNATCH_REQUIRE(EXP)
 #    define CHECK(EXP)                                 SNATCH_CHECK(EXP)
+#    define REQUIRE_FALSE(EXP)                         SNATCH_REQUIRE_FALSE(EXP)
+#    define CHECK_FALSE(EXP)                           SNATCH_CHECK_FALSE(EXP)
 #    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
 #    define FAIL_CHECK(MESSAGE)                        SNATCH_FAIL_CHECK(MESSAGE)
 #    define SKIP(MESSAGE)                              SNATCH_SKIP(MESSAGE)
