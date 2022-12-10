@@ -16,11 +16,11 @@
 | - `TEMPLATE_PRODUCT_TEST_CASE_METHOD_SIG`           | No            | Unlikely     |
 | - `TEMPLATE_LIST_TEST_CASE_METHOD`                  | No            | Unlikely     |
 | **Tags**                                            |               |              |
-| - Special tags                                      | No            | Yes          |
+| - Special tags                                      | Yes (2)       | Done         |
 | - `REGISTER_TAG_ALIAS`                              | No            | Maybe        |
 | **Control statements**                              |               |              |
 | - `SECTION`                                         | Yes           | Done         |
-| - `DYNAMIC_SECTION`                                 | No            | Maybe (7)    |
+| - `DYNAMIC_SECTION`                                 | No            | Maybe (8)    |
 | - `CHECKED_IF`                                      | No            | Maybe        |
 | - `CHECKED_ELSE`                                    | No            | Maybe        |
 | **Assertion macros**                                |               |              |
@@ -35,19 +35,19 @@
 | - `STATIC_REQUIRE` / `STATIC_CHECK`                 | No            | Maybe        |
 | - `CHECK_NOFAIL`                                    | No            | Maybe        |
 | - `SUCCEED`                                         | No            | Maybe        |
-| - `FAIL` / `FAIL_CHECK`                             | Yes (2)       | Done         |
+| - `FAIL` / `FAIL_CHECK`                             | Yes (3)       | Done         |
 | - `WARN`                                            | No            | Maybe        |
 | **Logging and context**                             |               |              |
 | - `CAPTURE`                                         | Yes           | Done         |
-| - `INFO`                                            | Yes (2)       | Done         |
+| - `INFO`                                            | Yes (3)       | Done         |
 | - `UNSCOPED_INFO`                                   | No            | Unlikely     |
-| ** BDD-style macros**                               |               |              |
+| **BDD-style macros**                                |               |              |
 | - `SCENARIO`                                        | No            | No           |
 | - `GIVEN` / `AND_GIVEN`                             | No            | No           |
 | - `WHEN` / `AND_WHEN`                               | No            | No           |
 | - `THEN` / `AND_THEN`                               | No            | No           |
 | **Matchers**                                        |               |              |
-| - Custom matchers                                   | Yes (3)       | Done         |
+| - Custom matchers                                   | Yes (4)       | Done         |
 | - Combining matchers                                | No            | Yes          |
 | **Float matchers**                                  |               |              |
 | - `WithinAbs`                                       | No            | Maybe        |
@@ -57,7 +57,7 @@
 | **String matchers**                                 |               |              |
 | - `StartsWith`                                      | No            | Maybe        |
 | - `EndsWith`                                        | No            | Maybe        |
-| - `ContainsSubstring`                               | Yes (4)       | Done         |
+| - `ContainsSubstring`                               | Yes (5)       | Done         |
 | - `Equals`                                          | No            | Maybe        |
 | - `Matches`                                         | No            | Unlikely     |
 | **Vector matchers**                                 |               |              |
@@ -78,21 +78,22 @@
 | - `AnyTrue`                                         | No            | Maybe        |
 | **Other matchers**                                  |               |              |
 | - `Predicate`                                       | No            | Unlikely     |
-| - `Message`                                         | Yes (5)       | Done         |
+| - `Message`                                         | Yes (6)       | Done         |
 | **Miscelaneous**                                    |               |              |
 | - `BENCHMARK`                                       | No            | No           |
 | - `BENCHMARK_ADVANCED`                              | No            | No           |
 | - `GENERATE`                                        | No            | No           |
-| - `REGISTER_LISTENER`                               | Yes (6)       | Done         |
+| - `REGISTER_LISTENER`                               | Yes (7)       | Done         |
 
 **Notes:**
  1. Tags are not optional in _snatch_. This may be fixed later, if requested.
- 2. No streaming in _snatch_. For example, `INFO("the number is " << i)` is not supported. Supporting this is not on the roadmap.
- 3. See [the README](README.md#matchers) for differences between _Catch2_ and _snatch_ matchers.
- 4. Spelled `snatch::matchers::contains_substring`.
- 5. Spelled `snatch::matchers::with_what_contains`, and does substring matching (not exact matching). It does not require the exception type to inherit from `std::exception`, just to have a member function `what()` that returns an object convertible to `std::string_view`.
- 6. Supported only in a limited form; use `registry::report_callback` and set it up to call all your event listeners, as needed. Improving this is not on the roadmap.
- 7. If supported, it will not use the streaming syntax.
+ 2. Support for hidden tests (`[.]` or `[.tag]`), `[!mayfail]`, and `[!shouldfail]` only.
+ 3. No streaming in _snatch_. For example, `INFO("the number is " << i)` is not supported. Supporting this is not on the roadmap.
+ 4. See [the README](README.md#matchers) for differences between _Catch2_ and _snatch_ matchers.
+ 5. Spelled `snatch::matchers::contains_substring`.
+ 6. Spelled `snatch::matchers::with_what_contains`, and does substring matching (not exact matching). It does not require the exception type to inherit from `std::exception`, just to have a member function `what()` that returns an object convertible to `std::string_view`.
+ 7. Supported only in a limited form; use `registry::report_callback` and set it up to call all your event listeners, as needed. Improving this is not on the roadmap.
+ 8. If supported, it will not use the streaming syntax.
 
 **Roadmap:**
  - "Yes" is something that we want to eventually support in _snatch_, even if it comes at a cost (at run time or compile time). Contributions are welcome.

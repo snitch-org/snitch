@@ -13,6 +13,7 @@
 // -------------------------------------------
 
 namespace {
+using namespace std::literals;
 using color_t = const char*;
 
 namespace color {
@@ -451,6 +452,74 @@ using namespace snatch;
 using namespace snatch::impl;
 
 template<typename F>
+void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
+    std::string_view delim    = "][";
+    std::size_t      pos      = s.find(delim);
+    std::size_t      last_pos = 0u;
+
+    while (pos != std::string_view::npos) {
+        std::size_t cur_size = pos - last_pos;
+        if (cur_size != 0) {
+            callback(s.substr(last_pos, cur_size + 1));
+        }
+        last_pos = pos + 1;
+        pos      = s.find(delim, last_pos);
+    }
+
+    callback(s.substr(last_pos));
+}
+
+std::string_view get_tag_name(std::string_view tag) {
+    if (tag.size() < 2u || tag[0] != '[' || tag[tag.size() - 1u] != ']') {
+        return {};
+    }
+
+    return tag.substr(1u, tag.size() - 2u);
+}
+
+namespace tags {
+struct ignored {};
+struct may_fail {};
+struct should_fail {};
+
+using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail>;
+} // namespace tags
+
+template<typename F>
+void for_each_tag(std::string_view s, F&& callback) noexcept {
+    for_each_raw_tag(s, [&](std::string_view t) {
+        // Look for "ignore" tags, which is either "[.]"
+        // or a a tag starting with ".", like "[.integration]".
+        if (t == "[.]"sv) {
+            // This is a pure "ignore" tag, add this to the list of special tags.
+            callback(tags::parsed_tag{tags::ignored{}});
+            return;
+        }
+
+        if (t == "[!mayfail]") {
+            callback(tags::parsed_tag{tags::may_fail{}});
+            return;
+        }
+
+        if (t == "[!shouldfail]") {
+            callback(tags::parsed_tag{tags::should_fail{}});
+            return;
+        }
+
+        if (t.starts_with("[."sv)) {
+            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
+            // tags, and continue with the normal tag.
+            callback(tags::parsed_tag{tags::ignored{}});
+            t = t.substr(2u, t.size() - 3u);
+        } else {
+            t = t.substr(1u, t.size() - 2u);
+        }
+
+        callback(tags::parsed_tag(t));
+    });
+}
+
+template<typename F>
 bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     if (!r.report_callback.empty()) {
         r.report_callback(r, event::test_run_started{run_name});
@@ -476,11 +545,25 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
 
         ++run_count;
         assertion_count += state.asserts;
-        if (t.state == test_state::failed) {
+
+        switch (t.state) {
+        case test_state::success: {
+            // Nothing to do
+            break;
+        }
+        case test_state::failed: {
             ++fail_count;
             success = false;
-        } else if (t.state == test_state::skipped) {
+            break;
+        }
+        case test_state::skipped: {
             ++skip_count;
+            break;
+        }
+        case test_state::not_run: {
+            // Unreachable
+            break;
+        }
         }
     }
 
@@ -524,24 +607,6 @@ void list_tests(const registry& r, F&& predicate) noexcept {
             r.print(t.id.name, "\n");
         }
     }
-}
-
-template<typename F>
-void for_each_tag(std::string_view s, F&& callback) noexcept {
-    std::string_view delim    = "][";
-    std::size_t      pos      = s.find(delim);
-    std::size_t      last_pos = 0u;
-
-    while (pos != std::string_view::npos) {
-        std::size_t cur_size = pos - last_pos;
-        if (cur_size != 0) {
-            callback(s.substr(last_pos, cur_size + 1));
-        }
-        last_pos = pos + 1;
-        pos      = s.find(delim, last_pos);
-    }
-
-    callback(s.substr(last_pos));
 }
 
 std::string_view
@@ -633,6 +698,11 @@ void registry::print_location(
 void registry::print_failure() const noexcept {
     print(make_colored("failed: ", with_color, color::fail));
 }
+
+void registry::print_expected_failure() const noexcept {
+    print(make_colored("expected failure: ", with_color, color::pass));
+}
+
 void registry::print_skip() const noexcept {
     print(make_colored("skipped: ", with_color, color::skipped));
 }
@@ -656,16 +726,22 @@ void registry::report_failure(
     const assertion_location& location,
     std::string_view          message) const noexcept {
 
-    set_state(state.test, test_state::failed);
+    if (!state.may_fail) {
+        set_state(state.test, test_state::failed);
+    }
 
     if (!report_callback.empty()) {
         const auto captures_buffer = make_capture_buffer(state.captures);
         report_callback(
             *this, event::assertion_failed{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message});
+                       location, message, state.should_fail, state.may_fail});
     } else {
-        print_failure();
+        if (state.should_fail) {
+            print_expected_failure();
+        } else {
+            print_failure();
+        }
         print_location(state.test, state.sections, state.captures, location);
         print_details(message);
     }
@@ -677,7 +753,9 @@ void registry::report_failure(
     std::string_view          message1,
     std::string_view          message2) const noexcept {
 
-    set_state(state.test, test_state::failed);
+    if (!state.may_fail) {
+        set_state(state.test, test_state::failed);
+    }
 
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
@@ -687,9 +765,13 @@ void registry::report_failure(
         report_callback(
             *this, event::assertion_failed{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message});
+                       location, message, state.should_fail, state.may_fail});
     } else {
-        print_failure();
+        if (state.should_fail) {
+            print_expected_failure();
+        } else {
+            print_failure();
+        }
         print_location(state.test, state.sections, state.captures, location);
         print_details(message);
     }
@@ -700,7 +782,9 @@ void registry::report_failure(
     const assertion_location& location,
     const impl::expression&   exp) const noexcept {
 
-    set_state(state.test, test_state::failed);
+    if (!state.may_fail) {
+        set_state(state.test, test_state::failed);
+    }
 
     if (!report_callback.empty()) {
         const auto captures_buffer = make_capture_buffer(state.captures);
@@ -710,18 +794,19 @@ void registry::report_failure(
             report_callback(
                 *this, event::assertion_failed{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
+                           location, message, state.should_fail, state.may_fail});
         } else {
             report_callback(
                 *this, event::assertion_failed{
-                           state.test.id,
-                           state.sections.current_section,
-                           captures_buffer.span(),
-                           location,
-                           {exp.expected}});
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, exp.expected, state.should_fail, state.may_fail});
         }
     } else {
-        print_failure();
+        if (state.should_fail) {
+            print_expected_failure();
+        } else {
+            print_failure();
+        }
         print_location(state.test, state.sections, state.captures, location);
         print_details_expr(exp);
     }
@@ -761,8 +846,19 @@ test_run registry::run(test_case& test) noexcept {
 
     test.state = test_state::success;
 
+    bool may_fail    = false;
+    bool should_fail = false;
+    for_each_tag(test.id.tags, [&](const tags::parsed_tag& v) {
+        if (std::holds_alternative<tags::may_fail>(v)) {
+            may_fail = true;
+        } else if (std::holds_alternative<tags::should_fail>(v)) {
+            should_fail = true;
+        }
+    });
+
     test_run state {
         .reg = *this, .test = test, .sections = {}, .captures = {}, .asserts = 0,
+        .may_fail = may_fail, .should_fail = should_fail,
 #if SNATCH_WITH_TIMINGS
         .duration = 0.0f
 #endif
@@ -809,6 +905,16 @@ test_run registry::run(test_case& test) noexcept {
         }
     } while (!state.sections.levels.empty());
 
+    if (state.should_fail) {
+        if (state.test.state == test_state::success) {
+            state.should_fail = false;
+            report_failure(state, {__FILE__, __LINE__}, "expected test to fail, but it passed");
+            state.should_fail = true;
+        } else if (state.test.state == test_state::failed) {
+            state.test.state = test_state::success;
+        }
+    }
+
 #if SNATCH_WITH_TIMINGS
     auto time_end  = clock::now();
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
@@ -838,7 +944,16 @@ test_run registry::run(test_case& test) noexcept {
 }
 
 bool registry::run_all_tests(std::string_view run_name) noexcept {
-    return ::run_tests(*this, run_name, [](const test_case&) { return true; });
+    return ::run_tests(*this, run_name, [](const test_case& t) {
+        bool selected = true;
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& s) {
+            if (std::holds_alternative<tags::ignored>(s)) {
+                selected = false;
+            }
+        });
+
+        return selected;
+    });
 }
 
 bool registry::run_tests_matching_name(
@@ -853,13 +968,22 @@ bool registry::run_tests_matching_name(
 }
 
 bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
+    tag_filter = get_tag_name(tag_filter);
+    if (tag_filter.empty()) {
+        print(
+            make_colored("error:", with_color, color::fail),
+            " tag must be of the form '[tag_name]'.");
+        std::terminate();
+    }
+
     return ::run_tests(*this, run_name, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (v == tag_filter) {
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
+            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag_filter) {
                 selected = true;
             }
         });
+
         return selected;
     });
 }
@@ -867,18 +991,20 @@ bool registry::run_tests_with_tag(std::string_view run_name, std::string_view ta
 void registry::list_all_tags() const noexcept {
     small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
-        for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (std::find(tags.begin(), tags.end(), v) == tags.end()) {
-                if (tags.size() == tags.capacity()) {
-                    print(
-                        make_colored("error:", with_color, color::fail),
-                        " max number of tags reached; "
-                        "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
-                        max_unique_tags, ")\n.");
-                    std::terminate();
-                }
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
+            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr) {
+                if (std::find(tags.begin(), tags.end(), *vs) == tags.end()) {
+                    if (tags.size() == tags.capacity()) {
+                        print(
+                            make_colored("error:", with_color, color::fail),
+                            " max number of tags reached; "
+                            "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
+                            max_unique_tags, ")\n.");
+                        std::terminate();
+                    }
 
-                tags.push_back(v);
+                    tags.push_back(*vs);
+                }
             }
         });
     }
@@ -886,7 +1012,7 @@ void registry::list_all_tags() const noexcept {
     std::sort(tags.begin(), tags.end());
 
     for (const auto& t : tags) {
-        print(t, "\n");
+        print("[", t, "]\n");
     }
 }
 
@@ -895,13 +1021,22 @@ void registry::list_all_tests() const noexcept {
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
+    tag = get_tag_name(tag);
+    if (tag.empty()) {
+        print(
+            make_colored("error:", with_color, color::fail),
+            " tag must be of the form '[tag_name]'.");
+        std::terminate();
+    }
+
     list_tests(*this, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (v == tag) {
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
+            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag) {
                 selected = true;
             }
         });
+
         return selected;
     });
 }

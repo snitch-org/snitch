@@ -68,5 +68,4 @@ Standard: Cpp11
 TabWidth: '4'
 UseTab: Never
 IfMacros: ['SECTION', 'SNATCH_SECTION']
-
 ...
