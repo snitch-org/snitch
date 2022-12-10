@@ -775,7 +775,9 @@ struct test_run {
     test_case&    test;
     section_state sections;
     capture_state captures;
-    std::size_t   asserts = 0;
+    std::size_t   asserts     = 0;
+    bool          may_fail    = false;
+    bool          should_fail = false;
 #if SNATCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
@@ -1057,6 +1059,8 @@ struct assertion_failed {
     capture_info              captures;
     const assertion_location& location;
     std::string_view          message;
+    bool                      expected = false;
+    bool                      allowed  = false;
 };
 
 struct test_case_skipped {
@@ -1116,6 +1120,7 @@ class registry {
         const assertion_location&  location) const noexcept;
 
     void print_failure() const noexcept;
+    void print_expected_failure() const noexcept;
     void print_skip() const noexcept;
     void print_details(std::string_view message) const noexcept;
     void print_details_expr(const impl::expression& exp) const noexcept;

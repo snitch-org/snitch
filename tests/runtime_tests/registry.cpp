@@ -11,8 +11,8 @@ bool        test_called_other_tag = false;
 bool        test_called_skipped   = false;
 bool        test_called_int       = false;
 bool        test_called_float     = false;
-bool        test_called_ignored1  = false;
-bool        test_called_ignored2  = false;
+bool        test_called_hidden1   = false;
+bool        test_called_hidden2   = false;
 std::size_t failure_line          = 0u;
 
 enum class reporter { print, custom };
@@ -398,8 +398,8 @@ void register_tests(mock_framework& framework) {
     test_called_skipped   = false;
     test_called_int       = false;
     test_called_float     = false;
-    test_called_ignored1  = false;
-    test_called_ignored2  = false;
+    test_called_hidden1   = false;
+    test_called_hidden2   = false;
 
     framework.registry.add("how are you", "[tag]") = []() { test_called = true; };
 
@@ -424,11 +424,33 @@ void register_tests(mock_framework& framework) {
         }
     };
 
-    framework.registry.add("ignored test 1", "[.][ignored][other_tag]") = []() {
-        test_called_ignored1 = true;
+    framework.registry.add("hidden test 1", "[.][hidden][other_tag]") = []() {
+        test_called_hidden1 = true;
     };
 
-    framework.registry.add("ignored test 2", "[.ignored]") = []() { test_called_ignored2 = true; };
+    framework.registry.add("hidden test 2", "[.hidden]") = []() { test_called_hidden2 = true; };
+
+    framework.registry.add("may fail that does not fail", "[.][may fail][!mayfail]") = []() {};
+
+    framework.registry.add("may fail that does fail", "[.][may fail][!mayfail]") = []() {
+        SNATCH_FAIL("it did fail");
+    };
+
+    framework.registry.add("should fail that does not fail", "[.][should fail][!shouldfail]") =
+        []() {};
+
+    framework.registry.add("should fail that does fail", "[.][should fail][!shouldfail]") = []() {
+        SNATCH_FAIL("it did fail");
+    };
+
+    framework.registry.add(
+        "may+should fail that does not fail",
+        "[.][may+should fail][!mayfail][!shouldfail]") = []() {};
+
+    framework.registry.add(
+        "may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]") = []() {
+        SNATCH_FAIL("it did fail");
+    };
 }
 } // namespace
 
@@ -453,8 +475,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(test_called_skipped);
             CHECK(test_called_int);
             CHECK(test_called_float);
-            CHECK(!test_called_ignored1);
-            CHECK(!test_called_ignored2);
+            CHECK(!test_called_hidden1);
+            CHECK(!test_called_hidden2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -475,8 +497,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
-            CHECK(!test_called_ignored1);
-            CHECK(!test_called_ignored2);
+            CHECK(!test_called_hidden1);
+            CHECK(!test_called_hidden2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -496,8 +518,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_skipped);
             CHECK(test_called_int);
             CHECK(test_called_float);
-            CHECK(!test_called_ignored1);
-            CHECK(!test_called_ignored2);
+            CHECK(!test_called_hidden1);
+            CHECK(!test_called_hidden2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -517,8 +539,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
-            CHECK(!test_called_ignored1);
-            CHECK(!test_called_ignored2);
+            CHECK(!test_called_hidden1);
+            CHECK(!test_called_hidden2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -539,8 +561,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
-            CHECK(test_called_ignored1);
-            CHECK(!test_called_ignored2);
+            CHECK(test_called_hidden1);
+            CHECK(!test_called_hidden2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -552,16 +574,16 @@ TEST_CASE("run tests", "[registry]") {
             }
         }
 
-        SECTION("run tests filtered tags ignored") {
-            framework.registry.run_tests_with_tag("test_app", "[ignored]");
+        SECTION("run tests special tag [.]") {
+            framework.registry.run_tests_with_tag("test_app", "[hidden]");
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
             CHECK(!test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
-            CHECK(test_called_ignored1);
-            CHECK(test_called_ignored2);
+            CHECK(test_called_hidden1);
+            CHECK(test_called_hidden2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -570,6 +592,45 @@ TEST_CASE("run tests", "[registry]") {
             } else {
                 CHECK(framework.get_num_runs() == 2u);
                 CHECK_RUN(true, 2u, 0u, 0u, 0u);
+            }
+        }
+
+        SECTION("run tests special tag [!mayfail]") {
+            framework.registry.run_tests_with_tag("test_app", "[may fail]");
+
+            if (r == reporter::print) {
+                CHECK(
+                    framework.messages ==
+                    contains_substring("all tests passed (2 test cases, 1 assertions)"));
+            } else {
+                CHECK(framework.get_num_runs() == 2u);
+                CHECK_RUN(true, 2u, 0u, 0u, 1u);
+            }
+        }
+
+        SECTION("run tests special tag [!shouldfail]") {
+            framework.registry.run_tests_with_tag("test_app", "[should fail]");
+
+            if (r == reporter::print) {
+                CHECK(
+                    framework.messages ==
+                    contains_substring("some tests failed (1 out of 2 test cases, 1 assertions)"));
+            } else {
+                CHECK(framework.get_num_runs() == 2u);
+                CHECK_RUN(false, 2u, 1u, 0u, 1u);
+            }
+        }
+
+        SECTION("run tests special tag [!shouldfail][!mayfail]") {
+            framework.registry.run_tests_with_tag("test_app", "[may+should fail]");
+
+            if (r == reporter::print) {
+                CHECK(
+                    framework.messages ==
+                    contains_substring("all tests passed (2 test cases, 1 assertions)"));
+            } else {
+                CHECK(framework.get_num_runs() == 2u);
+                CHECK_RUN(true, 2u, 0u, 0u, 1u);
             }
         }
     }
@@ -588,8 +649,8 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("drink from the cup"));
         CHECK(framework.messages == contains_substring("how many templated lights [int]"));
         CHECK(framework.messages == contains_substring("how many templated lights [float]"));
-        CHECK(framework.messages == contains_substring("ignored test 1"));
-        CHECK(framework.messages == contains_substring("ignored test 2"));
+        CHECK(framework.messages == contains_substring("hidden test 1"));
+        CHECK(framework.messages == contains_substring("hidden test 2"));
     }
 
     SECTION("list_all_tags") {
@@ -599,15 +660,15 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("[skipped]"));
         CHECK(framework.messages == contains_substring("[other_tag]"));
         CHECK(framework.messages == contains_substring("[tag with spaces]"));
-        CHECK(framework.messages == contains_substring("[ignored]"));
+        CHECK(framework.messages == contains_substring("[hidden]"));
         CHECK(framework.messages != contains_substring("[.]"));
-        CHECK(framework.messages != contains_substring("[.ignored]"));
+        CHECK(framework.messages != contains_substring("[.hidden]"));
     }
 
     SECTION("list_tests_with_tag") {
         for (auto tag :
              {"[tag]"sv, "[other_tag]"sv, "[skipped]"sv, "[tag with spaces]"sv, "[wrong_tag]"sv,
-              "[ignored]"sv, "[.]"sv, "[.ignored]"sv}) {
+              "[hidden]"sv, "[.]"sv, "[.hidden]"sv}) {
 
             CAPTURE(tag);
             framework.messages.clear();
@@ -641,10 +702,10 @@ TEST_CASE("list tests", "[registry]") {
                 CHECK(framework.messages == contains_substring("how many templated lights [int]"));
                 CHECK(
                     framework.messages == contains_substring("how many templated lights [float]"));
-            } else if (tag == "[ignored]"sv) {
-                CHECK(framework.messages == contains_substring("ignored test 1"));
-                CHECK(framework.messages == contains_substring("ignored test 2"));
-            } else if (tag == "[wrong_tag]"sv || tag == "[.]"sv || tag == "[.ignored]"sv) {
+            } else if (tag == "[hidden]"sv) {
+                CHECK(framework.messages == contains_substring("hidden test 1"));
+                CHECK(framework.messages == contains_substring("hidden test 2"));
+            } else if (tag == "[wrong_tag]"sv || tag == "[.]"sv || tag == "[.hidden]"sv) {
                 CHECK(framework.messages.empty());
             }
         }

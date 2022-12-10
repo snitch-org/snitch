@@ -301,8 +301,10 @@ TEST_CASE("test", "[tag1][tag 2][some other tag]") {
 ```
 
 Tags can be used to filter the tests, for example, by running all tests with a given tag. There are also a few "special" tags recognized by _snatch_, which change the behavior of the test:
- - `[.]` is the "ignore" tag; any test with this tag will be excluded from the default list of tests. The test will only be run if selected explicitly, either when filtering by name, or by tag.
+ - `[.]` is the "hidden" tag; any test with this tag will be excluded from the default list of tests. The test will only be run if selected explicitly, either when filtering by name, or by tag.
  - `[.<some tag>]` is a shortcut for `[.][<some_tag>]`.
+ - `[!mayfail]` indicates that the test may fail; if so, any failure will be recorded, but the test case will still be marked as passed.
+ - `[!shouldfail]` indicates that the test must fail; any failure will be recorded, but the test case will still be marked as passed. If no failure is recorded, the test is marked as failed.
 
 
 ### Matchers

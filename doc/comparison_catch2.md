@@ -87,7 +87,7 @@
 
 **Notes:**
  1. Tags are not optional in _snatch_. This may be fixed later, if requested.
- 2. Support for ignored (`[.]` or `[.tag]`) only.
+ 2. Support for hidden tests (`[.]` or `[.tag]`), `[!mayfail]`, and `[!shouldfail]` only.
  3. No streaming in _snatch_. For example, `INFO("the number is " << i)` is not supported. Supporting this is not on the roadmap.
  4. See [the README](README.md#matchers) for differences between _Catch2_ and _snatch_ matchers.
  5. Spelled `snatch::matchers::contains_substring`.
