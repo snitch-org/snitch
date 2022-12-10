@@ -18,6 +18,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Detailed comparison with _Catch2_](#detailed-comparison-with-catch2)
     - [Test case macros](#test-case-macros)
     - [Test check macros](#test-check-macros)
+    - [Tags](#tags)
     - [Matchers](#matchers)
     - [Sections](#sections)
     - [Captures](#captures)
@@ -206,7 +207,7 @@ See [the dedicated page in the docs folder](doc/comparison_catch2.md).
 
 `TEST_CASE(NAME, TAGS) { /* test body */ };`
 
-This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNATCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. Within this string, individual tags must be surrounded by square brackets, with no white-space between tags (although white space within a tag is allowed). Tags can be used to filter the tests (e.g., run all tests with a given tag). Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
+This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNATCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. See the [Tags](#tags) section for more information on tags. Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
 
 
 `TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ };`
@@ -287,6 +288,21 @@ This is similar to `REQUIRE_THROWS_AS`, but further checks the content of the ex
 `CHECK_THROWS_MATCHES(EXPR, EXCEPT, MATCHER);`
 
 This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test case continues. Further failures may be reported in the same test case.
+
+
+### Tags
+
+Tags are assigned to each test case using the [Test case macros](#test-case-macros), as a single string. Within this string, individual tags must be surrounded by square brackets, with no white-space between tags (although white space within a tag is allowed). For example:
+
+```c++
+TEST_CASE("test", "[tag1][tag 2][some other tag]") {
+    //             ^---- these are the tags ---^
+}
+```
+
+Tags can be used to filter the tests, for example, by running all tests with a given tag. There are also a few "special" tags recognized by _snatch_, which change the behavior of the test:
+ - `[.]` is the "ignore" tag; any test with this tag will be excluded from the default list of tests. The test will only be run if selected explicitly, either when filtering by name, or by tag.
+ - `[.<some tag>]` is a shortcut for `[.][<some_tag>]`.
 
 
 ### Matchers

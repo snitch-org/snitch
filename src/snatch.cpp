@@ -13,6 +13,7 @@
 // -------------------------------------------
 
 namespace {
+using namespace std::literals;
 using color_t = const char*;
 
 namespace color {
@@ -527,7 +528,7 @@ void list_tests(const registry& r, F&& predicate) noexcept {
 }
 
 template<typename F>
-void for_each_tag(std::string_view s, F&& callback) noexcept {
+void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
     std::string_view delim    = "][";
     std::size_t      pos      = s.find(delim);
     std::size_t      last_pos = 0u;
@@ -542,6 +543,36 @@ void for_each_tag(std::string_view s, F&& callback) noexcept {
     }
 
     callback(s.substr(last_pos));
+}
+
+namespace tags {
+struct ignored {};
+
+using parsed_tag = std::variant<std::string_view, ignored>;
+} // namespace tags
+
+template<typename F>
+void for_each_tag(std::string_view s, F&& callback) noexcept {
+    for_each_raw_tag(s, [&](std::string_view t) {
+        // Look for "ignore" tags, which is either "[.]"
+        // or a a tag starting with ".", like "[.integration]".
+        if (t == "[.]"sv) {
+            // This is a pure "ignore" tag, add this to the list of special tags.
+            callback(tags::parsed_tag{tags::ignored{}});
+            return;
+        }
+
+        if (t.starts_with("[."sv)) {
+            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
+            // tags, and continue with the normal tag.
+            callback(tags::parsed_tag{tags::ignored{}});
+            t = t.substr(2u, t.size() - 3u);
+        } else {
+            t = t.substr(1u, t.size() - 2u);
+        }
+
+        callback(tags::parsed_tag(t));
+    });
 }
 
 std::string_view
@@ -838,7 +869,16 @@ test_run registry::run(test_case& test) noexcept {
 }
 
 bool registry::run_all_tests(std::string_view run_name) noexcept {
-    return ::run_tests(*this, run_name, [](const test_case&) { return true; });
+    return ::run_tests(*this, run_name, [](const test_case& t) {
+        bool selected = true;
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& s) {
+            if (std::holds_alternative<tags::ignored>(s)) {
+                selected = false;
+            }
+        });
+
+        return selected;
+    });
 }
 
 bool registry::run_tests_matching_name(
@@ -852,14 +892,31 @@ bool registry::run_tests_matching_name(
     });
 }
 
+std::string_view get_tag_name(std::string_view tag) {
+    if (tag.size() < 2 || tag[0] != '[' || tag[tag.size() - 1u] != ']') {
+        return {};
+    }
+
+    return tag.substr(1, tag.size() - 2u);
+}
+
 bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
+    tag_filter = get_tag_name(tag_filter);
+    if (tag_filter.empty()) {
+        print(
+            make_colored("error:", with_color, color::fail),
+            " tag must be of the form '[tag_name]'.");
+        std::terminate();
+    }
+
     return ::run_tests(*this, run_name, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (v == tag_filter) {
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
+            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag_filter) {
                 selected = true;
             }
         });
+
         return selected;
     });
 }
@@ -867,18 +924,20 @@ bool registry::run_tests_with_tag(std::string_view run_name, std::string_view ta
 void registry::list_all_tags() const noexcept {
     small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
-        for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (std::find(tags.begin(), tags.end(), v) == tags.end()) {
-                if (tags.size() == tags.capacity()) {
-                    print(
-                        make_colored("error:", with_color, color::fail),
-                        " max number of tags reached; "
-                        "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
-                        max_unique_tags, ")\n.");
-                    std::terminate();
-                }
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
+            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr) {
+                if (std::find(tags.begin(), tags.end(), *vs) == tags.end()) {
+                    if (tags.size() == tags.capacity()) {
+                        print(
+                            make_colored("error:", with_color, color::fail),
+                            " max number of tags reached; "
+                            "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
+                            max_unique_tags, ")\n.");
+                        std::terminate();
+                    }
 
-                tags.push_back(v);
+                    tags.push_back(*vs);
+                }
             }
         });
     }
@@ -886,7 +945,7 @@ void registry::list_all_tags() const noexcept {
     std::sort(tags.begin(), tags.end());
 
     for (const auto& t : tags) {
-        print(t, "\n");
+        print("[", t, "]\n");
     }
 }
 
@@ -895,13 +954,22 @@ void registry::list_all_tests() const noexcept {
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
+    tag = get_tag_name(tag);
+    if (tag.empty()) {
+        print(
+            make_colored("error:", with_color, color::fail),
+            " tag must be of the form '[tag_name]'.");
+        std::terminate();
+    }
+
     list_tests(*this, [&](const test_case& t) {
         bool selected = false;
-        for_each_tag(t.id.tags, [&](std::string_view v) {
-            if (v == tag) {
+        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
+            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag) {
                 selected = true;
             }
         });
+
         return selected;
     });
 }

@@ -11,6 +11,8 @@ bool        test_called_other_tag = false;
 bool        test_called_skipped   = false;
 bool        test_called_int       = false;
 bool        test_called_float     = false;
+bool        test_called_ignored1  = false;
+bool        test_called_ignored2  = false;
 std::size_t failure_line          = 0u;
 
 enum class reporter { print, custom };
@@ -396,6 +398,8 @@ void register_tests(mock_framework& framework) {
     test_called_skipped   = false;
     test_called_int       = false;
     test_called_float     = false;
+    test_called_ignored1  = false;
+    test_called_ignored2  = false;
 
     framework.registry.add("how are you", "[tag]") = []() { test_called = true; };
 
@@ -419,6 +423,12 @@ void register_tests(mock_framework& framework) {
             SNATCH_FAIL_CHECK("there are four lights (float)");
         }
     };
+
+    framework.registry.add("ignored test 1", "[.][ignored][other_tag]") = []() {
+        test_called_ignored1 = true;
+    };
+
+    framework.registry.add("ignored test 2", "[.ignored]") = []() { test_called_ignored2 = true; };
 }
 } // namespace
 
@@ -443,6 +453,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(test_called_skipped);
             CHECK(test_called_int);
             CHECK(test_called_float);
+            CHECK(!test_called_ignored1);
+            CHECK(!test_called_ignored2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -463,6 +475,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
+            CHECK(!test_called_ignored1);
+            CHECK(!test_called_ignored2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -482,6 +496,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_skipped);
             CHECK(test_called_int);
             CHECK(test_called_float);
+            CHECK(!test_called_ignored1);
+            CHECK(!test_called_ignored2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -501,6 +517,8 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
+            CHECK(!test_called_ignored1);
+            CHECK(!test_called_ignored2);
 
             if (r == reporter::print) {
                 CHECK(
@@ -521,14 +539,37 @@ TEST_CASE("run tests", "[registry]") {
             CHECK(!test_called_skipped);
             CHECK(!test_called_int);
             CHECK(!test_called_float);
+            CHECK(test_called_ignored1);
+            CHECK(!test_called_ignored2);
 
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (1 out of 1 test cases, 1 assertions)"));
+                    contains_substring("some tests failed (1 out of 2 test cases, 1 assertions)"));
             } else {
-                CHECK(framework.get_num_runs() == 1u);
-                CHECK_RUN(false, 1u, 1u, 0u, 1u);
+                CHECK(framework.get_num_runs() == 2u);
+                CHECK_RUN(false, 2u, 1u, 0u, 1u);
+            }
+        }
+
+        SECTION("run tests filtered tags ignored") {
+            framework.registry.run_tests_with_tag("test_app", "[ignored]");
+
+            CHECK(!test_called);
+            CHECK(!test_called_other_tag);
+            CHECK(!test_called_skipped);
+            CHECK(!test_called_int);
+            CHECK(!test_called_float);
+            CHECK(test_called_ignored1);
+            CHECK(test_called_ignored2);
+
+            if (r == reporter::print) {
+                CHECK(
+                    framework.messages ==
+                    contains_substring("all tests passed (2 test cases, 0 assertions)"));
+            } else {
+                CHECK(framework.get_num_runs() == 2u);
+                CHECK_RUN(true, 2u, 0u, 0u, 0u);
             }
         }
     }
@@ -547,6 +588,8 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("drink from the cup"));
         CHECK(framework.messages == contains_substring("how many templated lights [int]"));
         CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages == contains_substring("ignored test 1"));
+        CHECK(framework.messages == contains_substring("ignored test 2"));
     }
 
     SECTION("list_all_tags") {
@@ -556,11 +599,15 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("[skipped]"));
         CHECK(framework.messages == contains_substring("[other_tag]"));
         CHECK(framework.messages == contains_substring("[tag with spaces]"));
+        CHECK(framework.messages == contains_substring("[ignored]"));
+        CHECK(framework.messages != contains_substring("[.]"));
+        CHECK(framework.messages != contains_substring("[.ignored]"));
     }
 
     SECTION("list_tests_with_tag") {
         for (auto tag :
-             {"[tag]"sv, "[other_tag]"sv, "[skipped]"sv, "[tag with spaces]"sv, "[wrong_tag]"sv}) {
+             {"[tag]"sv, "[other_tag]"sv, "[skipped]"sv, "[tag with spaces]"sv, "[wrong_tag]"sv,
+              "[ignored]"sv, "[.]"sv, "[.ignored]"sv}) {
 
             CAPTURE(tag);
             framework.messages.clear();
@@ -594,7 +641,10 @@ TEST_CASE("list tests", "[registry]") {
                 CHECK(framework.messages == contains_substring("how many templated lights [int]"));
                 CHECK(
                     framework.messages == contains_substring("how many templated lights [float]"));
-            } else if (tag == "[wrong_tag]"sv) {
+            } else if (tag == "[ignored]"sv) {
+                CHECK(framework.messages == contains_substring("ignored test 1"));
+                CHECK(framework.messages == contains_substring("ignored test 2"));
+            } else if (tag == "[wrong_tag]"sv || tag == "[.]"sv || tag == "[.ignored]"sv) {
                 CHECK(framework.messages.empty());
             }
         }
