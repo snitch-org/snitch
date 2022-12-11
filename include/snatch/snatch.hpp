@@ -289,8 +289,8 @@ public:
 
 template<typename ElemType, std::size_t MaxLength>
 class small_vector {
-    std::array<ElemType, MaxLength> data_buffer;
-    std::size_t                     data_size = 0;
+    std::array<ElemType, MaxLength> data_buffer = {};
+    std::size_t                     data_size   = 0;
 
 public:
     constexpr small_vector() noexcept                          = default;
@@ -392,8 +392,8 @@ using small_string_view = small_vector_span<const char>;
 
 template<std::size_t MaxLength>
 class small_string {
-    std::array<char, MaxLength> data_buffer;
-    std::size_t                 data_size = 0u;
+    std::array<char, MaxLength> data_buffer = {};
+    std::size_t                 data_size   = 0u;
 
 public:
     constexpr small_string() noexcept                          = default;
@@ -1344,7 +1344,7 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define SNATCH_TESTING_ABORT                                                                   \
         throw snatch::impl::abort_exception {}
 #else
-#    define SNATCH_TESTING_ABORT return
+#    define SNATCH_TESTING_ABORT std::terminate()
 #endif
 
 #define SNATCH_CONCAT_IMPL(x, y) x##y

@@ -1299,7 +1299,7 @@ void print_help(
 }
 
 // clang-format off
-const expected_arguments expected_args = {
+constexpr expected_arguments expected_args = {
     {{"-l", "--list-tests"},    {},                    "List tests by name"},
     {{"--list-tags"},           {},                    "List tags by name"},
     {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
