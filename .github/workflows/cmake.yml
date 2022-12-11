@@ -22,6 +22,10 @@ jobs:
         build-type:
         - Release
         - Debug
+        config:
+        - { name: Default, run-tests: true, flags: ""}
+        - { name: No timings, run-tests: false, flags: "-DSNATCH_WITH_TIMINGS=0"}
+        - { name: No exceptions, run-tests: false, flags: "-DSNATCH_WITH_EXCEPTIONS=0"}
 
     name: ${{matrix.platform.name}} ${{matrix.build-type}}
     runs-on: ${{matrix.platform.os}}
@@ -65,7 +69,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNATCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} ${{matrix.config.flags}} -DSNATCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install
 
     - name: Build
       shell: bash
@@ -76,39 +80,39 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/build
       # Run even if previous tests failed
-      if: always()
+      if: always() && matrix.config.run-tests
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_run
 
     - name: Test (with snatch)
       shell: bash
       working-directory: ${{github.workspace}}/build
       # Run even if previous tests failed
-      if: always()
+      if: always() && matrix.config.run-tests
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_run
 
     - name: Test header-only (with snatch)
       shell: bash
       working-directory: ${{github.workspace}}/build
       # Run even if previous tests failed
-      if: always()
+      if: always() && matrix.config.run-tests
       run: cmake --build . --config ${{matrix.build-type}} --target snatch_runtime_tests_self_header_only_run
 
     - name: Compute code coverage
-      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug'
+      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug' && matrix.config.name == 'Default'
       run: |
         gcov ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests.dir/runtime_tests/*.gcda ${{github.workspace}}/build/tests/CMakeFiles/snatch_runtime_tests_self.dir/runtime_tests/*.gcda
         ls | grep '.gcov' | grep -v snatch | xargs -d"\n" rm
         bash <(curl -s https://codecov.io/bash)
 
     - name: Install
-      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
+      if: matrix.build-type == 'Release' && matrix.config.name == 'Default' && github.ref == 'refs/heads/main'
       working-directory: ${{github.workspace}}/build
       shell: bash
       run: cmake --build . --config ${{matrix.build-type}} --target install
 
     # In action-zip, all paths are relative to ${{github.workspace}}
     - name: Zip full build
-      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
+      if: matrix.build-type == 'Release' && matrix.config.name == 'Default' && github.ref == 'refs/heads/main'
       uses: vimtor/action-zip@v1
       with:
         files: install/ LICENSE
@@ -116,14 +120,14 @@ jobs:
 
     # In action-zip, all paths are relative to ${{github.workspace}}
     - name: Zip header-only
-      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
+      if: matrix.build-type == 'Release' && matrix.config.name == 'Default' && github.ref == 'refs/heads/main'
       uses: vimtor/action-zip@v1
       with:
         files: install/include/snatch/snatch_all.hpp LICENSE
         dest: snatch-header-only.zip
 
     - name: Upload build as an artifact
-      if: matrix.build-type == 'Release' && github.ref == 'refs/heads/main'
+      if: matrix.build-type == 'Release' && matrix.config.name == 'Default' && github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v2
       with:
         name: snatch-build

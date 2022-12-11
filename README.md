@@ -692,12 +692,12 @@ int main(int argc, char* argv[]) {
 By default, _snatch_ assumes exceptions are enabled, and uses them in two cases:
 
  1. Obviously, in test macros that check exceptions being thrown (e.g., `REQUIRE_THROWS_AS(...)`).
- 2. In `REQUIRE_*()` or `FAIL()` macros, to abort execution of the current test case.
+ 2. In `REQUIRE_*()` or `FAIL()` macros, to abort execution of the current test case and continue to the next one.
 
 If _snatch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNATCH_WITH_EXCEPTIONS` to `0`), then
 
  1. Test macros that check exceptions being thrown will not be defined.
- 2. `REQUIRE_*()` and `FAIL()` macros will simply use `return` to abort execution. As a consequence, if these macros are used inside functions other than the test case function, they will only abort execution of the current function, and not of the actual test case. Therefore, these macros should only be used in the immediate body of the test case, or simply not at all.
+ 2. `REQUIRE_*()` and `FAIL()` macros will simply use `std::terminate()` to abort execution. As a consequence, if a `REQUIRE*()` or `FAIL()` check fails, the whole test application stops and the following test cases are not executed.
 
 
 ### Header-only build

@@ -1344,7 +1344,7 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define SNATCH_TESTING_ABORT                                                                   \
         throw snatch::impl::abort_exception {}
 #else
-#    define SNATCH_TESTING_ABORT return
+#    define SNATCH_TESTING_ABORT std::terminate()
 #endif
 
 #define SNATCH_CONCAT_IMPL(x, y) x##y
