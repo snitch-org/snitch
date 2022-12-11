@@ -360,8 +360,8 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
         framework.setup_reporter();
         framework.registry.run(test);
     }
-#endif
 };
+#endif
 
 TEST_CASE("report SKIP", "[registry]") {
     mock_framework framework;
