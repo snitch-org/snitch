@@ -27,7 +27,7 @@ jobs:
         - { name: No timings, run-tests: false, flags: "-DSNATCH_WITH_TIMINGS=0"}
         - { name: No exceptions, run-tests: false, flags: "-DSNATCH_WITH_EXCEPTIONS=0"}
 
-    name: ${{matrix.platform.name}} ${{matrix.build-type}}
+    name: ${{matrix.platform.name}} ${{matrix.build-type}} ${{matrix.config.name}}
     runs-on: ${{matrix.platform.os}}
 
     steps:
