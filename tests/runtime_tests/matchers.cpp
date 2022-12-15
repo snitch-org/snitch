@@ -48,7 +48,7 @@ TEST_CASE("example matcher has_prefix", "[utility]") {
         snatch::matchers::has_prefix{"warning"}.describe_match(
             "info: hello"sv, snatch::matchers::match_status::failed) ==
         "could not find prefix 'warning:' in 'info: hello'; found prefix 'info:'"sv);
-};
+}
 
 TEST_CASE("matcher contains_substring", "[utility]") {
     CHECK("info: hello"sv == snatch::matchers::contains_substring{"hello"});
@@ -64,7 +64,7 @@ TEST_CASE("matcher contains_substring", "[utility]") {
         snatch::matchers::contains_substring{"warning"}.describe_match(
             "info: hello"sv, snatch::matchers::match_status::failed) ==
         "could not find 'warning' in 'info: hello'"sv);
-};
+}
 
 TEST_CASE("matcher with_what_contains", "[utility]") {
     CHECK(std::runtime_error{"not good"} == snatch::matchers::with_what_contains{"good"});
@@ -84,7 +84,7 @@ TEST_CASE("matcher with_what_contains", "[utility]") {
         snatch::matchers::with_what_contains{"bad"}.describe_match(
             std::runtime_error{"not good"}, snatch::matchers::match_status::failed) ==
         "could not find 'bad' in 'not good'"sv);
-};
+}
 
 TEST_CASE("matcher is_any_of", "[utility]") {
     const auto m = snatch::matchers::is_any_of{1u, 2u, 3u};
@@ -108,4 +108,4 @@ TEST_CASE("matcher is_any_of", "[utility]") {
     CHECK(
         m.describe_match(5u, snatch::matchers::match_status::failed) ==
         "'5' was not found in {'1', '2', '3'}"sv);
-};
+}

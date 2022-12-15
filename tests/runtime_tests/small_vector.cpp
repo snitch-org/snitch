@@ -387,7 +387,7 @@ TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_sp
         CHECK(v[1].b == false);
         CHECK(v[2].b == false);
     }
-};
+}
 
 TEST_CASE("constexpr small vector test_struct", "[utility]") {
     using TestType = vector_type;
@@ -438,7 +438,7 @@ TEST_CASE("constexpr small vector test_struct", "[utility]") {
         CHECK(v[1].b == false);
         CHECK(v[2].b == false);
     }
-};
+}
 
 // This requires fixing https://github.com/cschreib/snatch/issues/17
 // TEST_CASE("constexpr small vector int", "[utility]") {

@@ -643,7 +643,11 @@ small_vector<std::string_view, max_captures> make_capture_buffer(const capture_s
 } // namespace
 
 namespace snatch {
-void registry::register_test(const test_id& id, test_ptr func) noexcept {
+const char* registry::add(std::string_view name, std::string_view tags, test_ptr func) noexcept {
+    return add({name, tags, {}}, func);
+}
+
+const char* registry::add(const test_id& id, test_ptr func) noexcept {
     if (test_list.size() == test_list.capacity()) {
         print(
             make_colored("error:", with_color, color::fail),
@@ -664,6 +668,8 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
             max_test_name_length, ")\n.");
         std::terminate();
     }
+
+    return id.name.data();
 }
 
 void registry::print_location(

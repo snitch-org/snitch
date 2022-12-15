@@ -14,7 +14,7 @@ TEST_CASE("parse arguments empty", "[cli]") {
     CHECK(input->executable == "test"sv);
     CHECK(input->arguments.empty());
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments empty .exe", "[cli]") {
     console_output_catcher console;
@@ -26,7 +26,7 @@ TEST_CASE("parse arguments empty .exe", "[cli]") {
     CHECK(input->executable == "test"sv);
     CHECK(input->arguments.empty());
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments empty .something.exe", "[cli]") {
     console_output_catcher console;
@@ -38,7 +38,7 @@ TEST_CASE("parse arguments empty .something.exe", "[cli]") {
     CHECK(input->executable == "test.something"sv);
     CHECK(input->arguments.empty());
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments help (long form)", "[cli]") {
     console_output_catcher console;
@@ -53,7 +53,7 @@ TEST_CASE("parse arguments help (long form)", "[cli]") {
     CHECK(!input->arguments[0].value.has_value());
     CHECK(!input->arguments[0].value_name.has_value());
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments help (short form)", "[cli]") {
     console_output_catcher console;
@@ -68,7 +68,7 @@ TEST_CASE("parse arguments help (short form)", "[cli]") {
     CHECK(!input->arguments[0].value.has_value());
     CHECK(!input->arguments[0].value_name.has_value());
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments help (duplicate)", "[cli]") {
     console_output_catcher console;
@@ -78,7 +78,7 @@ TEST_CASE("parse arguments help (duplicate)", "[cli]") {
 
     REQUIRE(!input.has_value());
     CHECK(console.messages == contains_substring("duplicate command line argument '--help'"));
-};
+}
 
 TEST_CASE("parse arguments verbosity (long form)", "[cli]") {
     console_output_catcher console;
@@ -95,7 +95,7 @@ TEST_CASE("parse arguments verbosity (long form)", "[cli]") {
     CHECK(input->arguments[0].value.value() == "high"sv);
     CHECK(input->arguments[0].value_name.value() == "quiet|normal|high"sv);
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments verbosity (short form)", "[cli]") {
     console_output_catcher console;
@@ -112,7 +112,7 @@ TEST_CASE("parse arguments verbosity (short form)", "[cli]") {
     CHECK(input->arguments[0].value.value() == "high"sv);
     CHECK(input->arguments[0].value_name.value() == "quiet|normal|high"sv);
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments verbosity (no value)", "[cli]") {
     console_output_catcher console;
@@ -125,7 +125,7 @@ TEST_CASE("parse arguments verbosity (no value)", "[cli]") {
         console.messages ==
         contains_substring(
             "missing value '<quiet|normal|high>' for command line argument '--verbosity'"));
-};
+}
 
 TEST_CASE("parse arguments unknown", "[cli]") {
     console_output_catcher console;
@@ -137,7 +137,7 @@ TEST_CASE("parse arguments unknown", "[cli]") {
     CHECK(input->executable == "test"sv);
     CHECK(input->arguments.empty());
     CHECK(console.messages == contains_substring("unknown command line argument '--make-coffee'"));
-};
+}
 
 TEST_CASE("parse arguments positional", "[cli]") {
     console_output_catcher console;
@@ -154,7 +154,7 @@ TEST_CASE("parse arguments positional", "[cli]") {
     CHECK(input->arguments[0].value.value() == "arg1"sv);
     CHECK(input->arguments[0].value_name.value() == "test regex"sv);
     CHECK(console.messages.empty());
-};
+}
 
 TEST_CASE("parse arguments too many positional", "[cli]") {
     console_output_catcher console;
@@ -164,7 +164,7 @@ TEST_CASE("parse arguments too many positional", "[cli]") {
 
     REQUIRE(!input.has_value());
     CHECK(console.messages == contains_substring("too many positional arguments"));
-};
+}
 
 TEST_CASE("get option", "[cli]") {
     const arg_vector args = {"test", "--help", "--verbosity", "high"};
@@ -191,7 +191,7 @@ TEST_CASE("get option", "[cli]") {
 
     auto short_help_option = snatch::cli::get_option(*input, "-v");
     CHECK(!short_help_option.has_value());
-};
+}
 
 TEST_CASE("get positional argument", "[cli]") {
     SECTION("good") {
@@ -234,4 +234,4 @@ TEST_CASE("get positional argument", "[cli]") {
             CHECK(!arg.has_value());
         }
     }
-};
+}

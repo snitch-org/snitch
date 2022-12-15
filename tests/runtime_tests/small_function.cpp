@@ -168,4 +168,4 @@ TEMPLATE_TEST_CASE(
             CHECK(test_object_instances <= expected_instances);
         }
     }(type_holder<TestType>{});
-};
+}

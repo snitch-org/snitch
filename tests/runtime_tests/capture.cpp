@@ -171,7 +171,7 @@ TEST_CASE("capture", "[test macros]") {
         CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
         CHECK_CAPTURES_FOR_FAILURE(1u, "i := 1", "2 * i := 2");
     }
-};
+}
 
 TEST_CASE("info", "[test macros]") {
     mock_framework framework;
@@ -324,6 +324,6 @@ TEST_CASE("info", "[test macros]") {
         framework.run_test();
         CHECK_CAPTURES("1", "i := 1");
     }
-};
+}
 
 SNATCH_WARNING_POP

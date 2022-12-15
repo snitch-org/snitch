@@ -36,4 +36,4 @@ TEST_CASE("type name", "[utility]") {
         snatch::matchers::is_any_of("global_test_struct"sv, "struct global_test_struct"sv));
 
     CHECK(snatch::type_name<test_struct>.ends_with("test_struct"));
-};
+}

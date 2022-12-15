@@ -49,6 +49,6 @@ TEST_CASE("skip", "[test macros]") {
         CHECK(framework.get_num_skips() == 1u);
         CHECK(framework.get_num_failures() == 0u);
     }
-};
+}
 
 SNATCH_WARNING_POP

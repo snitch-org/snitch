@@ -363,7 +363,7 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
             CHECK(sv[2] == 'c');
         }
     }
-};
+}
 
 // This requires fixing https://github.com/cschreib/snatch/issues/17
 // TEST_CASE("constexpr small string", "[utility]") {

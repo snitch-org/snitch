@@ -717,27 +717,6 @@ public:
 // -----------------------
 
 namespace snatch::impl {
-template<typename... Args>
-struct proxy {
-    registry*        tests = nullptr;
-    std::string_view name;
-    std::string_view tags;
-
-    template<typename F>
-    const char* operator=(const F& func) noexcept;
-};
-
-template<typename T>
-struct proxy_from_list_t;
-
-template<template<typename...> typename T, typename... Args>
-struct proxy_from_list_t<T<Args...>> {
-    using type = proxy<Args...>;
-};
-
-template<typename T>
-using proxy_from_list = typename proxy_from_list_t<T>::type;
-
 struct test_run;
 
 using test_ptr = void (*)();
@@ -1125,6 +1104,8 @@ class registry {
     void print_details(std::string_view message) const noexcept;
     void print_details_expr(const impl::expression& exp) const noexcept;
 
+    const char* add(const test_id& id, impl::test_ptr func) noexcept;
+
 public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
     bool with_color                                      = true;
@@ -1142,29 +1123,22 @@ public:
         this->print_callback(message);
     }
 
-    impl::proxy<> add(std::string_view name, std::string_view tags) noexcept {
-        return {this, name, tags};
-    }
-
-    template<typename... Args>
-    impl::proxy<Args...> add_with_types(std::string_view name, std::string_view tags) noexcept {
-        return {this, name, tags};
-    }
-
-    template<typename T>
-    impl::proxy_from_list<T>
-    add_with_type_list(std::string_view name, std::string_view tags) noexcept {
-        return {this, name, tags};
-    }
-
-    void register_test(const test_id& id, impl::test_ptr func) noexcept;
+    const char* add(std::string_view name, std::string_view tags, impl::test_ptr func) noexcept;
 
     template<typename... Args, typename F>
-    void
-    register_typed_tests(std::string_view name, std::string_view tags, const F& func) noexcept {
-        (register_test(
-             {name, tags, impl::get_type_name<Args>()}, impl::to_test_case_ptr<Args>(func)),
-         ...);
+    const char*
+    add_with_types(std::string_view name, std::string_view tags, const F& func) noexcept {
+        return (
+            add({name, tags, impl::get_type_name<Args>()}, impl::to_test_case_ptr<Args>(func)),
+            ...);
+    }
+
+    template<typename T, typename F>
+    const char*
+    add_with_type_list(std::string_view name, std::string_view tags, const F& func) noexcept {
+        return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
+            return this->add_with_types<Args...>(name, tags, func);
+        }(type_list<T>{});
     }
 
     void report_failure(
@@ -1210,22 +1184,6 @@ public:
 
 extern constinit registry tests;
 } // namespace snatch
-
-// Implementation details.
-// -----------------------
-
-namespace snatch::impl {
-template<typename... Args>
-template<typename F>
-const char* proxy<Args...>::operator=(const F& func) noexcept {
-    if constexpr (sizeof...(Args) > 0) {
-        tests->template register_typed_tests<Args...>(name, tags, func);
-    } else {
-        tests->register_test({name, tags, {}}, func);
-    }
-    return name.data();
-}
-} // namespace snatch::impl
 
 // Matchers.
 // ---------
@@ -1362,17 +1320,40 @@ bool operator==(const M& m, const T& value) noexcept {
 // Public test macros.
 // -------------------
 
-#define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
+#define SNATCH_TEST_CASE_IMPL(ID, NAME, TAGS)                                                      \
+    static void        ID();                                                                       \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add(NAME, TAGS) = []() -> void
+        snatch::tests.add(NAME, TAGS, &ID);                                                        \
+    void ID()
+
+#define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
+    SNATCH_TEST_CASE_IMPL(SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS)
+
+#define SNATCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                                 \
+    template<typename TestType>                                                                    \
+    static void        ID();                                                                       \
+    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snatch::tests.add_with_type_list<TYPES>(                                                   \
+            NAME, TAGS, []<typename TestType>() { ID<TestType>(); });                              \
+    template<typename TestType>                                                                    \
+    void ID()
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
+    SNATCH_TEMPLATE_LIST_TEST_CASE_IMPL(                                                           \
+        SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, TYPES)
+
+#define SNATCH_TEMPLATE_TEST_CASE_IMPL(ID, NAME, TAGS, ...)                                        \
+    template<typename TestType>                                                                    \
+    static void        ID();                                                                       \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_type_list<TYPES>(NAME, TAGS) = []<typename TestType>() -> void
+        snatch::tests.add_with_types<__VA_ARGS__>(                                                 \
+            NAME, TAGS, []<typename TestType>() { ID<TestType>(); });                              \
+    template<typename TestType>                                                                    \
+    void ID()
 
 #define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_types<__VA_ARGS__>(NAME, TAGS) = []<typename TestType>() -> void
+    SNATCH_TEMPLATE_TEST_CASE_IMPL(                                                                \
+        SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
 
 #define SNATCH_SECTION1(NAME)                                                                      \
     if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
