@@ -8,11 +8,12 @@
 #if SNATCH_WITH_EXCEPTIONS
 #    include <exception> // for std::exception
 #endif
+#include <compare> // for std::partial_ordering
 #include <initializer_list> // for std::initializer_list
 #include <optional> // for cli
 #include <string_view> // for all strings
 #include <type_traits> // for std::is_nothrow_*
-#include <variant> // for events
+#include <variant> // for events and small_function
 
 // Testing framework configuration.
 // --------------------------------
@@ -776,59 +777,42 @@ struct section_entry_checker {
     explicit operator bool() noexcept;
 };
 
-struct operator_less {
-    static constexpr std::string_view actual  = " < ";
-    static constexpr std::string_view inverse = " >= ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs < rhs;
-    }
-};
+template<typename T>
+constexpr bool is_ordering = convertible_to<T, std::partial_ordering>;
 
-struct operator_greater {
-    static constexpr std::string_view actual  = " > ";
-    static constexpr std::string_view inverse = " <= ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs > rhs;
+#define DEFINE_OPERATOR(OP, NAME, DISP, DISP_INV)                                                  \
+    struct operator_##NAME {                                                                       \
+        static constexpr std::string_view actual  = DISP;                                          \
+        static constexpr std::string_view inverse = DISP_INV;                                      \
+                                                                                                   \
+        template<typename T, typename U>                                                           \
+        constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {                     \
+            if constexpr (is_ordering<T> && std::is_same_v<U, int>) {                              \
+                if (rhs != 0) {                                                                    \
+                    terminate_with("this type can only be compared against 0");                    \
+                }                                                                                  \
+                                                                                                   \
+                return lhs OP 0;                                                                   \
+            } else if constexpr (is_ordering<U> && std::is_same_v<T, int>) {                       \
+                if (lhs != 0) {                                                                    \
+                    terminate_with("this type can only be compared against 0");                    \
+                }                                                                                  \
+                                                                                                   \
+                return 0 OP rhs;                                                                   \
+            } else {                                                                               \
+                return lhs OP rhs;                                                                 \
+            }                                                                                      \
+        }                                                                                          \
     }
-};
 
-struct operator_less_equal {
-    static constexpr std::string_view actual  = " <= ";
-    static constexpr std::string_view inverse = " > ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs <= rhs;
-    }
-};
+DEFINE_OPERATOR(<, less, " < ", " >= ");
+DEFINE_OPERATOR(>, greater, " > ", " <= ");
+DEFINE_OPERATOR(<=, less_equal, " <= ", " > ");
+DEFINE_OPERATOR(>=, greater_equal, " >= ", " < ");
+DEFINE_OPERATOR(==, equal, " == ", " != ");
+DEFINE_OPERATOR(!=, not_equal, " != ", " == ");
 
-struct operator_greater_equal {
-    static constexpr std::string_view actual  = " >= ";
-    static constexpr std::string_view inverse = " < ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs >= rhs;
-    }
-};
-
-struct operator_equal {
-    static constexpr std::string_view actual  = " == ";
-    static constexpr std::string_view inverse = " != ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs == rhs;
-    }
-};
-
-struct operator_not_equal {
-    static constexpr std::string_view actual  = " != ";
-    static constexpr std::string_view inverse = " == ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs != rhs;
-    }
-};
+#undef DEFINE_OPERATOR
 
 struct expression {
     std::string_view              expected;
