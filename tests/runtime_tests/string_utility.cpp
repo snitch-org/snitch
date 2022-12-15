@@ -112,7 +112,7 @@ TEMPLATE_TEST_CASE(
         CHECK(!append(s, value));
         CHECK(std::string_view(s) == initial);
     }
-};
+}
 
 TEST_CASE("append multiple", "[utility]") {
     string_type s;
@@ -141,7 +141,7 @@ TEST_CASE("append multiple", "[utility]") {
         CHECK(!append(s, "int=", 123456, ", bool=", true));
         CHECK(std::string_view(s) == "int=123456, bool=tru"sv);
     }
-};
+}
 
 TEMPLATE_TEST_CASE(
     "truncate_end",
@@ -186,7 +186,7 @@ TEMPLATE_TEST_CASE(
             CHECK(std::string_view(s) == "..."sv.substr(0, s.size()));
         }
     }
-};
+}
 
 TEMPLATE_TEST_CASE(
     "append_or_truncate",
@@ -210,7 +210,7 @@ TEMPLATE_TEST_CASE(
     } else {
         CHECK(std::string_view(s) == "..."sv.substr(0, s.capacity()));
     }
-};
+}
 
 TEMPLATE_TEST_CASE(
     "replace_all",
@@ -352,4 +352,4 @@ TEMPLATE_TEST_CASE(
         CHECK(replace_all(s, "abacaabcdefghijklmqrst", "abcdefghijklmnopqrstabcdefghijklmnopqrst"));
         CHECK(std::string_view(s) == "abaca");
     }
-};
+}

@@ -69,7 +69,7 @@ TEST_CASE("Factorials are computed", "[factorial]" ) {
     REQUIRE( Factorial(2) == 2 );
     REQUIRE( Factorial(3) == 6 );
     REQUIRE( Factorial(10) == 3628800 );
-}; // note the required semicolon here: snatch test cases are expressions, not functions
+}
 ```
 
 Output:
@@ -85,7 +85,7 @@ using MyTypes = snatch::type_list<int, char, float>; // could also be std::tuple
 TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside snatch::type_list", "[template][list]", MyTypes)
 {
     REQUIRE(sizeof(TestType) > 1); // will fail for 'char'
-};
+}
 ```
 
 Output:
@@ -174,20 +174,20 @@ Results for Debug builds:
 
 | **Debug**       | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 1.8s     | 64s      | 2.0s      | 0s         |
+| Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
 | Build tests     | 60s      | 86s      | 78s       | 109s       |
 | Build all       | 62s      | 150s     | 80s       | 109s       |
 | Run tests       | 21ms     | 83ms     | 60ms      | 20ms       |
 | Library size    | 2.90MB   | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 31.9MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 2.5s     | 68s      | 3.6s      | 0s         |
-| Build tests     | 138s     | 264s     | 216s      | 281s       |
-| Build all       | 140s     | 332s     | 220s      | 281s       |
+| Build framework | 2.4s     | 68s      | 3.6s      | 0s         |
+| Build tests     | 134s     | 264s     | 216s      | 281s       |
+| Build all       | 137s     | 332s     | 220s      | 281s       |
 | Run tests       | 11ms     | 31ms     | 36ms      | 10ms       |
 | Library size    | 0.63MB   | 2.6MB    | 0.39MB    | 0MB        |
 | Executable size | 9.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
@@ -205,17 +205,17 @@ See [the dedicated page in the docs folder](doc/comparison_catch2.md).
 
 ### Test case macros
 
-`TEST_CASE(NAME, TAGS) { /* test body */ };`
+`TEST_CASE(NAME, TAGS) { /* test body */ }`
 
 This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNATCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. See the [Tags](#tags) section for more information on tags. Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
 
 
-`TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ };`
+`TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ }`
 
 This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
 
 
-`TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ };`
+`TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ }`
 
 This is equivalent to `TEMPLATE_TEST_CASE`, except that `TYPES` must be a template type list of the form `T<Types...>`, for example `snatch::type_list<Types...>` or `std::tuple<Types...>`. This type list can be declared once and reused for multiple test cases.
 
@@ -385,7 +385,7 @@ TEST_CASE( "test with sections", "[section]" ) {
 
     std::cout << "tear-down" << std::endl;
     // shared tear-down logic here...
-};
+}
 ```
 
 The output of this test will be:
@@ -423,8 +423,7 @@ TEST_CASE("test without captures", "[captures]") {
     for (std::size_t i = 0; i < 10; ++i) {
         CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4);
     }
-};
-
+}
 ```
 
 The output of this test is:
@@ -451,8 +450,7 @@ TEST_CASE("test with captures", "[captures]") {
         CAPTURE(i);
         CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4);
     }
-};
-
+}
 ```
 
 This new test now outputs:
@@ -482,8 +480,7 @@ TEST_CASE("test with many captures", "[captures]") {
         CAPTURE(i, 2 * i, std::pow(i, 3.0f));
         CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
     }
-};
-
+}
 ```
 
 This outputs:
@@ -515,8 +512,7 @@ TEST_CASE("test with info", "[captures]") {
         CAPTURE(i);
         CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.2);
     }
-};
-
+}
 ```
 
 This outputs:
@@ -684,6 +680,7 @@ int main(int argc, char* argv[]) {
     // Actually run the tests.
     // This will apply any filtering specified on the command line.
     return snatch::tests.run_tests(*args) ? 0 : 1;
+}
 ```
 
 

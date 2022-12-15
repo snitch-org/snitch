@@ -439,7 +439,7 @@ TEST_CASE("check unary", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(event.message == "CHECK(2 % value), got 0"sv);
     }
-};
+}
 
 TEST_CASE("check binary", "[test macros]") {
     snatch::registry mock_registry;
@@ -702,7 +702,7 @@ TEST_CASE("check binary", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(event.message == "CHECK(value1 >= value2), got 0 < 1"sv);
     }
-};
+}
 
 TEST_CASE("check false", "[test macros]") {
     snatch::registry mock_registry;
@@ -800,7 +800,7 @@ TEST_CASE("check false", "[test macros]") {
             event.message ==
             "CHECK_FALSE(\"hello\"sv == snatch::matchers::contains_substring{\"lo\"}), got found 'lo' in 'hello'"sv);
     }
-};
+}
 
 TEST_CASE("check misc", "[test macros]") {
     snatch::registry mock_registry;
@@ -1080,4 +1080,4 @@ TEST_CASE("check misc", "[test macros]") {
             event.message ==
             "CHECK(\"hello\"sv == snatch::matchers::contains_substring{\"foo\"}), got could not find 'foo' in 'hello'"sv);
     }
-};
+}
