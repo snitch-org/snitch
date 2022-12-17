@@ -41,10 +41,15 @@ struct filldata<T*> {
 
 #if defined(__clang__)
 #    define SNATCH_WARNING_DISABLE_UNREACHABLE
+#    define SNATCH_WARNING_DISABLE_INT_BOOLEAN
 #elif defined(__GNUC__)
 #    define SNATCH_WARNING_DISABLE_UNREACHABLE
+#    define SNATCH_WARNING_DISABLE_INT_BOOLEAN                                                     \
+        _Pragma("GCC diagnostic ignored \"-Wint-in-bool-context\"")
 #elif defined(_MSC_VER)
 #    define SNATCH_WARNING_DISABLE_UNREACHABLE _Pragma("warning(disable: 4702)")
+#    define SNATCH_WARNING_DISABLE_INT_BOOLEAN
 #else
 #    define SNATCH_WARNING_DISABLE_UNREACHABLE
+#    define SNATCH_WARNING_DISABLE_INT_BOOLEAN
 #endif
