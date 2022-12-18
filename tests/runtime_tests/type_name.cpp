@@ -2,12 +2,10 @@
 
 using namespace std::literals;
 
-namespace {
 struct global_test_struct {
     int  i = 0;
     bool b = true;
 };
-} // namespace
 
 TEST_CASE("type name", "[utility]") {
     struct test_struct {
