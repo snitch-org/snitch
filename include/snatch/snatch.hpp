@@ -8,11 +8,12 @@
 #if SNATCH_WITH_EXCEPTIONS
 #    include <exception> // for std::exception
 #endif
+#include <compare> // for std::partial_ordering
 #include <initializer_list> // for std::initializer_list
 #include <optional> // for cli
 #include <string_view> // for all strings
 #include <type_traits> // for std::is_nothrow_*
-#include <variant> // for events
+#include <variant> // for events and small_function
 
 // Testing framework configuration.
 // --------------------------------
@@ -776,59 +777,27 @@ struct section_entry_checker {
     explicit operator bool() noexcept;
 };
 
-struct operator_less {
-    static constexpr std::string_view actual  = " < ";
-    static constexpr std::string_view inverse = " >= ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs < rhs;
+#define DEFINE_OPERATOR(OP, NAME, DISP, DISP_INV)                                                  \
+    struct operator_##NAME {                                                                       \
+        static constexpr std::string_view actual  = DISP;                                          \
+        static constexpr std::string_view inverse = DISP_INV;                                      \
+                                                                                                   \
+        template<typename T, typename U>                                                           \
+        constexpr bool operator()(const T& lhs, const U& rhs) const noexcept                       \
+            requires requires(const T& lhs, const U& rhs) { lhs OP rhs; }                          \
+        {                                                                                          \
+            return lhs OP rhs;                                                                     \
+        }                                                                                          \
     }
-};
 
-struct operator_greater {
-    static constexpr std::string_view actual  = " > ";
-    static constexpr std::string_view inverse = " <= ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs > rhs;
-    }
-};
+DEFINE_OPERATOR(<, less, " < ", " >= ");
+DEFINE_OPERATOR(>, greater, " > ", " <= ");
+DEFINE_OPERATOR(<=, less_equal, " <= ", " > ");
+DEFINE_OPERATOR(>=, greater_equal, " >= ", " < ");
+DEFINE_OPERATOR(==, equal, " == ", " != ");
+DEFINE_OPERATOR(!=, not_equal, " != ", " == ");
 
-struct operator_less_equal {
-    static constexpr std::string_view actual  = " <= ";
-    static constexpr std::string_view inverse = " > ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs <= rhs;
-    }
-};
-
-struct operator_greater_equal {
-    static constexpr std::string_view actual  = " >= ";
-    static constexpr std::string_view inverse = " < ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs >= rhs;
-    }
-};
-
-struct operator_equal {
-    static constexpr std::string_view actual  = " == ";
-    static constexpr std::string_view inverse = " != ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs == rhs;
-    }
-};
-
-struct operator_not_equal {
-    static constexpr std::string_view actual  = " != ";
-    static constexpr std::string_view inverse = " == ";
-    template<typename T, typename U>
-    constexpr bool operator()(const T& lhs, const U& rhs) const noexcept {
-        return lhs != rhs;
-    }
-};
+#undef DEFINE_OPERATOR
 
 struct expression {
     std::string_view              expected;
@@ -845,19 +814,12 @@ struct expression {
     }
 };
 
-template<bool Expected, typename T, typename O, typename U>
-struct extracted_binary_expression {
-    expression& expr;
-    const T&    lhs;
-    const U&    rhs;
-
+template<bool CheckMode>
+struct invalid_expression {
 #define EXPR_OPERATOR(OP)                                                                          \
     template<typename V>                                                                           \
-    bool operator OP(const V&) noexcept {                                                          \
-        static_assert(                                                                             \
-            !std::is_same_v<V, V>,                                                                 \
-            "cannot chain expression in this way; please decompose it into multiple checks");      \
-        return false;                                                                              \
+    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+        return {};                                                                                 \
     }
 
     EXPR_OPERATOR(<=)
@@ -871,7 +833,42 @@ struct extracted_binary_expression {
 
 #undef EXPR_OPERATOR
 
-    explicit operator bool() const noexcept {
+    explicit operator bool() const noexcept
+        requires(!CheckMode)
+    {
+        // This should be unreachable, because we check if an expression is decomposable
+        // before calling the decomposed expression, but just in case:
+        static_assert(CheckMode != CheckMode, "snatch bug: cannot decompose chained expression");
+        return false;
+    }
+};
+
+template<bool CheckMode, bool Expected, typename T, typename O, typename U>
+struct extracted_binary_expression {
+    expression& expr;
+    const T&    lhs;
+    const U&    rhs;
+
+#define EXPR_OPERATOR(OP)                                                                          \
+    template<typename V>                                                                           \
+    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+        return {};                                                                                 \
+    }
+
+    EXPR_OPERATOR(<=)
+    EXPR_OPERATOR(<)
+    EXPR_OPERATOR(>=)
+    EXPR_OPERATOR(>)
+    EXPR_OPERATOR(==)
+    EXPR_OPERATOR(!=)
+    EXPR_OPERATOR(&&)
+    EXPR_OPERATOR(||)
+
+#undef EXPR_OPERATOR
+
+    explicit operator bool() const noexcept
+        requires(!CheckMode || requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
+    {
         if (O{}(lhs, rhs) != Expected) {
             if constexpr (matcher_for<T, U>) {
                 using namespace snatch::matchers;
@@ -904,15 +901,15 @@ struct extracted_binary_expression {
     }
 };
 
-template<bool Expected, typename T>
+template<bool CheckMode, bool Expected, typename T>
 struct extracted_unary_expression {
     expression& expr;
     const T&    lhs;
 
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
-    constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U& rhs)       \
-        const noexcept {                                                                           \
+    constexpr extracted_binary_expression<CheckMode, Expected, T, OP_TYPE, U> operator OP(         \
+        const U& rhs) const noexcept {                                                             \
         return {expr, lhs, rhs};                                                                   \
     }
 
@@ -925,7 +922,9 @@ struct extracted_unary_expression {
 
 #undef EXPR_OPERATOR
 
-    explicit operator bool() const noexcept {
+    explicit operator bool() const noexcept
+        requires(!CheckMode || requires(const T& lhs) { static_cast<bool>(lhs); })
+    {
         if (static_cast<bool>(lhs) != Expected) {
             if (!expr.append_value(lhs)) {
                 expr.actual.clear();
@@ -938,12 +937,13 @@ struct extracted_unary_expression {
     }
 };
 
-template<bool Expected>
+template<bool CheckMode, bool Expected>
 struct expression_extractor {
     expression& expr;
 
     template<typename T>
-    constexpr extracted_unary_expression<Expected, T> operator<=(const T& lhs) const noexcept {
+    constexpr extracted_unary_expression<CheckMode, Expected, T>
+    operator<=(const T& lhs) const noexcept {
         return {expr, lhs};
     }
 };
@@ -1311,11 +1311,11 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_EXPR_TRUE(TYPE, EXP)                                                                \
     auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
-    snatch::impl::expression_extractor<true>{SNATCH_CURRENT_EXPRESSION} <= EXP
+    snatch::impl::expression_extractor<false, true>{SNATCH_CURRENT_EXPRESSION} <= EXP
 
 #define SNATCH_EXPR_FALSE(TYPE, EXP)                                                               \
     auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
-    snatch::impl::expression_extractor<false>{SNATCH_CURRENT_EXPRESSION} <= EXP
+    snatch::impl::expression_extractor<false, false>{SNATCH_CURRENT_EXPRESSION} <= EXP
 
 // Public test macros.
 // -------------------
@@ -1374,6 +1374,15 @@ bool operator==(const M& m, const T& value) noexcept {
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
         snatch::impl::add_info(snatch::impl::get_current_test(), __VA_ARGS__)
 
+namespace snatch::impl {
+template<typename T>
+constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
+}
+
+#define SNATCH_DECOMPOSABLE(EXP)                                                                   \
+    snatch::impl::is_decomposable<                                                                 \
+        decltype(snatch::impl::expression_extractor<true, true>{std::declval<snatch::impl::expression&>()} <= EXP)>
+
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
         auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
@@ -1381,10 +1390,18 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (SNATCH_EXPR_TRUE("REQUIRE", EXP)) {                                                    \
-            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
-            SNATCH_TESTING_ABORT;                                                                  \
+        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNATCH_EXPR_TRUE("REQUIRE", EXP)) {                                                \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
+                SNATCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        } else {                                                                                   \
+            if (!(EXP)) {                                                                          \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #EXP ")");               \
+                SNATCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
     } while (0)
@@ -1396,9 +1413,16 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (SNATCH_EXPR_TRUE("CHECK", EXP)) {                                                      \
-            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
+        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNATCH_EXPR_TRUE("CHECK", EXP)) {                                                  \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if (!(EXP)) {                                                                          \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #EXP ")");                 \
+            }                                                                                      \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
     } while (0)
@@ -1410,10 +1434,18 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (SNATCH_EXPR_FALSE("REQUIRE_FALSE", EXP)) {                                             \
-            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
-            SNATCH_TESTING_ABORT;                                                                  \
+        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNATCH_EXPR_FALSE("REQUIRE_FALSE", EXP)) {                                         \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
+                SNATCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        } else {                                                                                   \
+            if (!(EXP)) {                                                                          \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #EXP ")");         \
+                SNATCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
     } while (0)
@@ -1425,9 +1457,16 @@ bool operator==(const M& m, const T& value) noexcept {
         SNATCH_WARNING_PUSH                                                                        \
         SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if (SNATCH_EXPR_FALSE("CHECK_FALSE", EXP)) {                                               \
-            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);             \
+        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNATCH_EXPR_FALSE("CHECK_FALSE", EXP)) {                                           \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if (!(EXP)) {                                                                          \
+                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #EXP ")");           \
+            }                                                                                      \
         }                                                                                          \
         SNATCH_WARNING_POP                                                                         \
     } while (0)

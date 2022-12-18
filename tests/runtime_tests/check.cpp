@@ -94,6 +94,9 @@ struct long_matcher_always_fails {
 };
 } // namespace snatch::matchers
 
+SNATCH_WARNING_PUSH
+SNATCH_WARNING_DISABLE_INT_BOOLEAN
+
 TEST_CASE("check unary", "[test macros]") {
     snatch::registry mock_registry;
 
@@ -441,6 +444,8 @@ TEST_CASE("check unary", "[test macros]") {
     }
 }
 
+SNATCH_WARNING_POP
+
 TEST_CASE("check binary", "[test macros]") {
     snatch::registry mock_registry;
 
@@ -701,6 +706,56 @@ TEST_CASE("check binary", "[test macros]") {
         CHECK_EVENT_TEST_ID(event, mock_case.id);
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(event.message == "CHECK(value1 >= value2), got 0 < 1"sv);
+    }
+
+    SECTION("spaceship") {
+        int         value1       = 1;
+        int         value2       = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(mock_run);
+            // clang-format off
+            SNATCH_CHECK(value1 <=> value2 != 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 1);
+        CHECK(value2 == 1);
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(value1 <=> value2 != 0)"sv);
+    }
+
+    SECTION("complex expression") {
+        int         value1       = 1;
+        int         value2       = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(mock_run);
+            // clang-format off
+            SNATCH_CHECK(value1 == 1 && value2 == 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 1);
+        CHECK(value2 == 1);
+        CHECK(mock_run.asserts == 1u);
+
+        REQUIRE(last_event.has_value());
+        const auto& event = last_event.value();
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
+
+        CHECK_EVENT_TEST_ID(event, mock_case.id);
+        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
+        CHECK(event.message == "CHECK(value1 == 1 && value2 == 0)"sv);
     }
 }
 
