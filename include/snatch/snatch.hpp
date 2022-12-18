@@ -948,6 +948,9 @@ struct expression_extractor {
     }
 };
 
+template<typename T>
+constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
+
 struct scoped_capture {
     capture_state& captures;
     std::size_t    count = 0;
@@ -1317,6 +1320,10 @@ bool operator==(const M& m, const T& value) noexcept {
     auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
     snatch::impl::expression_extractor<false, false>{SNATCH_CURRENT_EXPRESSION} <= EXP
 
+#define SNATCH_DECOMPOSABLE(EXP)                                                                   \
+    snatch::impl::is_decomposable<                                                                 \
+        decltype(snatch::impl::expression_extractor<true, true>{std::declval<snatch::impl::expression&>()} <= EXP)>
+
 // Public test macros.
 // -------------------
 
@@ -1373,15 +1380,6 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNATCH_INFO(...)                                                                           \
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
         snatch::impl::add_info(snatch::impl::get_current_test(), __VA_ARGS__)
-
-namespace snatch::impl {
-template<typename T>
-constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
-}
-
-#define SNATCH_DECOMPOSABLE(EXP)                                                                   \
-    snatch::impl::is_decomposable<                                                                 \
-        decltype(snatch::impl::expression_extractor<true, true>{std::declval<snatch::impl::expression&>()} <= EXP)>
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
