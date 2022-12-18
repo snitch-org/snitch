@@ -652,10 +652,6 @@ small_vector<std::string_view, max_captures> make_capture_buffer(const capture_s
 } // namespace
 
 namespace snatch {
-const char* registry::add(std::string_view name, std::string_view tags, test_ptr func) noexcept {
-    return add({name, tags, {}}, func);
-}
-
 const char* registry::add(const test_id& id, test_ptr func) noexcept {
     if (test_list.size() == test_list.capacity()) {
         print(
@@ -871,13 +867,7 @@ test_run registry::run(test_case& test) noexcept {
         }
     });
 
-    test_run state {
-        .reg = *this, .test = test, .sections = {}, .captures = {}, .asserts = 0,
-        .may_fail = may_fail, .should_fail = should_fail,
-#if SNATCH_WITH_TIMINGS
-        .duration = 0.0f
-#endif
-    };
+    test_run state{.reg = *this, .test = test, .may_fail = may_fail, .should_fail = should_fail};
 
     // Store previously running test, to restore it later.
     // This should always be a null pointer, except when testing snatch itself.
@@ -1188,7 +1178,7 @@ std::optional<cli::input> parse_arguments(
                     args.push_back(cli::argument{
                         e.names.back(), e.value_name, {std::string_view(argv[argi])}});
                 } else {
-                    args.push_back(cli::argument{e.names.back(), {}, {}});
+                    args.push_back(cli::argument{e.names.back()});
                 }
 
                 break;
