@@ -5,6 +5,7 @@
 
 using namespace std::literals;
 
+namespace {
 struct non_relocatable {
     int value = 0;
 
@@ -77,6 +78,7 @@ struct test_override {
         snatch::impl::set_current_test(previous);
     }
 };
+} // namespace
 
 namespace snatch::matchers {
 struct long_matcher_always_fails {

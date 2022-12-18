@@ -2,11 +2,13 @@
 
 using namespace std::literals;
 
+namespace {
 constexpr std::size_t max_length = 5u;
 
 using string_type = snatch::small_string<max_length>;
 using span_type   = snatch::small_string_span;
 using view_type   = snatch::small_string_view;
+} // namespace
 
 TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_type) {
     constexpr bool is_string = std::is_same_v<TestType, string_type>;

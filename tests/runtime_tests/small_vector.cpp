@@ -1,5 +1,6 @@
 #include "testing.hpp"
 
+namespace {
 constexpr std::size_t max_test_elements = 5u;
 
 struct test_struct {
@@ -10,6 +11,7 @@ struct test_struct {
 using vector_type     = snatch::small_vector<test_struct, max_test_elements>;
 using span_type       = snatch::small_vector_span<test_struct>;
 using const_span_type = snatch::small_vector_span<const test_struct>;
+} // namespace
 
 TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_span_type) {
     constexpr bool is_const = std::is_same_v<TestType, const_span_type>;

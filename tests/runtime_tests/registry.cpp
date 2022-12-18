@@ -6,6 +6,7 @@
 using namespace std::literals;
 using snatch::matchers::contains_substring;
 
+namespace {
 bool        test_called           = false;
 bool        test_called_other_tag = false;
 bool        test_called_skipped   = false;
@@ -16,6 +17,7 @@ bool        test_called_hidden2   = false;
 std::size_t failure_line          = 0u;
 
 enum class reporter { print, custom };
+} // namespace
 
 TEST_CASE("add regular test", "[registry]") {
     mock_framework framework;
