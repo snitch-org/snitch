@@ -453,6 +453,15 @@ using namespace snatch::impl;
 
 template<typename F>
 void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
+    if (s.empty()) {
+        return;
+    }
+
+    if (s.find_first_of("[") == std::string_view::npos ||
+        s.find_first_of("]") == std::string_view::npos) {
+        terminate_with("incorrectly formatted tag; please use \"[tag1][tag2][...]\"");
+    }
+
     std::string_view delim    = "][";
     std::size_t      pos      = s.find(delim);
     std::size_t      last_pos = 0u;
