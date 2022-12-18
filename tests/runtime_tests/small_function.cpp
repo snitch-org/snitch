@@ -2,6 +2,7 @@
 
 #include <tuple>
 
+namespace {
 std::size_t test_object_instances = 0u;
 bool        function_called       = false;
 int         return_value          = 0u;
@@ -69,6 +70,7 @@ void call_function(snatch::small_function<R(Args...) noexcept>& f) {
         return_value = std::apply(f, std::tuple<Args...>{});
     }
 }
+} // namespace
 
 TEMPLATE_TEST_CASE(
     "small function",

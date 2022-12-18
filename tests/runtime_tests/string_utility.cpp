@@ -2,6 +2,7 @@
 
 using namespace std::literals;
 
+namespace {
 constexpr std::size_t max_length = 20u;
 
 using string_type = snatch::small_string<max_length>;
@@ -12,6 +13,7 @@ using function_ptr_type1 = void (*)();
 using function_ptr_type2 = void (*)(int);
 
 void foo() {}
+} // namespace
 
 TEMPLATE_TEST_CASE(
     "append",

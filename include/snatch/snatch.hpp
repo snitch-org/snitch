@@ -50,14 +50,14 @@ namespace snatch {
 class registry;
 
 struct test_id {
-    std::string_view name;
-    std::string_view tags;
-    std::string_view type;
+    std::string_view name = {};
+    std::string_view tags = {};
+    std::string_view type = {};
 };
 
 struct section_id {
-    std::string_view name;
-    std::string_view description;
+    std::string_view name        = {};
+    std::string_view description = {};
 };
 } // namespace snatch
 
@@ -242,6 +242,8 @@ class small_vector_span<const ElemType> {
     const std::size_t* data_size   = nullptr;
 
 public:
+    constexpr small_vector_span() noexcept = default;
+
     constexpr explicit small_vector_span(
         const ElemType* b, std::size_t bl, const std::size_t* s) noexcept :
         buffer_ptr(b), buffer_size(bl), data_size(s) {}
@@ -730,7 +732,7 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 enum class test_state { not_run, success, skipped, failed };
 
 struct test_case {
-    test_id    id;
+    test_id    id    = {};
     test_ptr   func  = nullptr;
     test_state state = test_state::not_run;
 };
@@ -742,10 +744,10 @@ struct section_nesting_level {
 };
 
 struct section_state {
-    small_vector<section_id, max_nested_sections>            current_section;
-    small_vector<section_nesting_level, max_nested_sections> levels;
-    std::size_t                                              depth         = 0;
-    bool                                                     leaf_executed = false;
+    small_vector<section_id, max_nested_sections>            current_section = {};
+    small_vector<section_nesting_level, max_nested_sections> levels          = {};
+    std::size_t                                              depth           = 0;
+    bool                                                     leaf_executed   = false;
 };
 
 using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
@@ -753,8 +755,8 @@ using capture_state = small_vector<small_string<max_capture_length>, max_capture
 struct test_run {
     registry&     reg;
     test_case&    test;
-    section_state sections;
-    capture_state captures;
+    section_state sections    = {};
+    capture_state captures    = {};
     std::size_t   asserts     = 0;
     bool          may_fail    = false;
     bool          should_fail = false;
@@ -768,7 +770,7 @@ test_run* try_get_current_test() noexcept;
 void      set_current_test(test_run* current) noexcept;
 
 struct section_entry_checker {
-    section_id section;
+    section_id section = {};
     test_run&  state;
     bool       entered = false;
 
@@ -800,8 +802,8 @@ DEFINE_OPERATOR(!=, not_equal, " != ", " == ");
 #undef DEFINE_OPERATOR
 
 struct expression {
-    std::string_view              expected;
-    small_string<max_expr_length> actual;
+    std::string_view              expected = {};
+    small_string<max_expr_length> actual   = {};
 
     template<string_appendable T>
     [[nodiscard]] bool append_value(T&& value) noexcept {
@@ -948,6 +950,9 @@ struct expression_extractor {
     }
 };
 
+template<typename T>
+constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
+
 struct scoped_capture {
     capture_state& captures;
     std::size_t    count = 0;
@@ -1003,17 +1008,17 @@ using capture_info = small_vector_span<const std::string_view>;
 
 namespace snatch {
 struct assertion_location {
-    std::string_view file;
+    std::string_view file = {};
     std::size_t      line = 0u;
 };
 
 namespace event {
 struct test_run_started {
-    std::string_view name;
+    std::string_view name = {};
 };
 
 struct test_run_ended {
-    std::string_view name;
+    std::string_view name            = {};
     bool             success         = true;
     std::size_t      run_count       = 0;
     std::size_t      fail_count      = 0;
@@ -1034,20 +1039,20 @@ struct test_case_ended {
 
 struct assertion_failed {
     const test_id&            id;
-    section_info              sections;
-    capture_info              captures;
+    section_info              sections = {};
+    capture_info              captures = {};
     const assertion_location& location;
-    std::string_view          message;
+    std::string_view          message  = {};
     bool                      expected = false;
     bool                      allowed  = false;
 };
 
 struct test_case_skipped {
     const test_id&            id;
-    section_info              sections;
-    capture_info              captures;
+    section_info              sections = {};
+    capture_info              captures = {};
     const assertion_location& location;
-    std::string_view          message;
+    std::string_view          message = {};
 };
 
 using data = std::variant<
@@ -1065,14 +1070,14 @@ using data = std::variant<
 
 namespace snatch::cli {
 struct argument {
-    std::string_view                name;
-    std::optional<std::string_view> value_name;
-    std::optional<std::string_view> value;
+    std::string_view                name       = {};
+    std::optional<std::string_view> value_name = {};
+    std::optional<std::string_view> value      = {};
 };
 
 struct input {
-    std::string_view                              executable;
-    small_vector<argument, max_command_line_args> arguments;
+    std::string_view                              executable = {};
+    small_vector<argument, max_command_line_args> arguments  = {};
 };
 
 extern small_function<void(std::string_view) noexcept> console_print;
@@ -1104,8 +1109,6 @@ class registry {
     void print_details(std::string_view message) const noexcept;
     void print_details_expr(const impl::expression& exp) const noexcept;
 
-    const char* add(const test_id& id, impl::test_ptr func) noexcept;
-
 public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
     bool with_color                                      = true;
@@ -1123,7 +1126,7 @@ public:
         this->print_callback(message);
     }
 
-    const char* add(std::string_view name, std::string_view tags, impl::test_ptr func) noexcept;
+    const char* add(const test_id& id, impl::test_ptr func) noexcept;
 
     template<typename... Args, typename F>
     const char*
@@ -1307,27 +1310,30 @@ bool operator==(const M& m, const T& value) noexcept {
 
 #define SNATCH_CONCAT_IMPL(x, y) x##y
 #define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
-#define SNATCH_MACRO_DISPATCH2(_1, _2, NAME, ...) NAME
 
 #define SNATCH_EXPR_TRUE(TYPE, EXP)                                                                \
-    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
+    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")"};                  \
     snatch::impl::expression_extractor<false, true>{SNATCH_CURRENT_EXPRESSION} <= EXP
 
 #define SNATCH_EXPR_FALSE(TYPE, EXP)                                                               \
-    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")", {}};              \
+    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")"};                  \
     snatch::impl::expression_extractor<false, false>{SNATCH_CURRENT_EXPRESSION} <= EXP
+
+#define SNATCH_DECOMPOSABLE(EXP)                                                                   \
+    snatch::impl::is_decomposable<                                                                 \
+        decltype(snatch::impl::expression_extractor<true, true>{std::declval<snatch::impl::expression&>()} <= EXP)>
 
 // Public test macros.
 // -------------------
 
-#define SNATCH_TEST_CASE_IMPL(ID, NAME, TAGS)                                                      \
+#define SNATCH_TEST_CASE_IMPL(ID, ...)                                                             \
     static void        ID();                                                                       \
     static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add(NAME, TAGS, &ID);                                                        \
+        snatch::tests.add({__VA_ARGS__}, &ID);                                                     \
     void ID()
 
-#define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
-    SNATCH_TEST_CASE_IMPL(SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS)
+#define SNATCH_TEST_CASE(...)                                                                      \
+    SNATCH_TEST_CASE_IMPL(SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), __VA_ARGS__)
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                                 \
     template<typename TestType>                                                                    \
@@ -1355,16 +1361,9 @@ bool operator==(const M& m, const T& value) noexcept {
     SNATCH_TEMPLATE_TEST_CASE_IMPL(                                                                \
         SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
 
-#define SNATCH_SECTION1(NAME)                                                                      \
-    if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            {(NAME), {}}, snatch::impl::get_current_test()})
-
-#define SNATCH_SECTION2(NAME, DESCRIPTION)                                                         \
-    if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            {(NAME), (DESCRIPTION)}, snatch::impl::get_current_test()})
-
 #define SNATCH_SECTION(...)                                                                        \
-    SNATCH_MACRO_DISPATCH2(__VA_ARGS__, SNATCH_SECTION2, SNATCH_SECTION1)(__VA_ARGS__)
+    if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
+            {__VA_ARGS__}, snatch::impl::get_current_test()})
 
 #define SNATCH_CAPTURE(...)                                                                        \
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
@@ -1373,15 +1372,6 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNATCH_INFO(...)                                                                           \
     auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
         snatch::impl::add_info(snatch::impl::get_current_test(), __VA_ARGS__)
-
-namespace snatch::impl {
-template<typename T>
-constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
-}
-
-#define SNATCH_DECOMPOSABLE(EXP)                                                                   \
-    snatch::impl::is_decomposable<                                                                 \
-        decltype(snatch::impl::expression_extractor<true, true>{std::declval<snatch::impl::expression&>()} <= EXP)>
 
 #define SNATCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
@@ -1525,7 +1515,7 @@ constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
 
 // clang-format off
 #if SNATCH_WITH_SHORTHAND_MACROS
-#    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
+#    define TEST_CASE(...)                             SNATCH_TEST_CASE(__VA_ARGS__)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
 #    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)

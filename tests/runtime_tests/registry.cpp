@@ -6,6 +6,7 @@
 using namespace std::literals;
 using snatch::matchers::contains_substring;
 
+namespace {
 bool        test_called           = false;
 bool        test_called_other_tag = false;
 bool        test_called_skipped   = false;
@@ -16,18 +17,55 @@ bool        test_called_hidden2   = false;
 std::size_t failure_line          = 0u;
 
 enum class reporter { print, custom };
+} // namespace
 
 TEST_CASE("add regular test", "[registry]") {
     mock_framework framework;
 
     test_called = false;
-    framework.registry.add("how many lights", "[tag]", []() { test_called = true; });
+    framework.registry.add({"how many lights", "[tag]"}, []() { test_called = true; });
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
     auto& test = *framework.registry.begin();
     CHECK(test.id.name == "how many lights"sv);
     CHECK(test.id.tags == "[tag]"sv);
+    CHECK(test.id.type == ""sv);
+    REQUIRE(test.func != nullptr);
+
+    SECTION("run default reporter") {
+        framework.setup_print();
+        framework.registry.run(test);
+
+        CHECK(test_called == true);
+        CHECK(framework.messages == contains_substring("starting: how many lights"));
+        CHECK(framework.messages == contains_substring("finished: how many lights"));
+    }
+
+    SECTION("run custom reporter") {
+        framework.setup_reporter();
+        framework.registry.run(test);
+
+        CHECK(test_called == true);
+        REQUIRE(framework.events.size() == 2u);
+        CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
+        CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
+        CHECK_EVENT_TEST_ID(framework.events[0], test.id);
+        CHECK_EVENT_TEST_ID(framework.events[1], test.id);
+    }
+}
+
+TEST_CASE("add regular test no tags", "[registry]") {
+    mock_framework framework;
+
+    test_called = false;
+    framework.registry.add({"how many lights"}, []() { test_called = true; });
+
+    REQUIRE(framework.get_num_registered_tests() == 1u);
+
+    auto& test = *framework.registry.begin();
+    CHECK(test.id.name == "how many lights"sv);
+    CHECK(test.id.tags == ""sv);
     CHECK(test.id.type == ""sv);
     REQUIRE(test.func != nullptr);
 
@@ -159,7 +197,7 @@ SNATCH_WARNING_DISABLE_UNREACHABLE
 TEST_CASE("report FAIL regular", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add("how many lights", "[tag]", []() {
+    framework.registry.add({"how many lights", "[tag]"}, []() {
         // clang-format off
         failure_line = __LINE__; SNATCH_FAIL("there are four lights");
         // clang-format on
@@ -228,7 +266,7 @@ TEST_CASE("report FAIL template", "[registry]") {
 TEST_CASE("report FAIL section", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add("how many lights", "[tag]", []() {
+    framework.registry.add({"how many lights", "[tag]"}, []() {
         SNATCH_SECTION("ask nicely") {
             // clang-format off
             failure_line = __LINE__; SNATCH_FAIL("there are four lights");
@@ -267,7 +305,7 @@ TEST_CASE("report FAIL section", "[registry]") {
 TEST_CASE("report FAIL capture", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add("how many lights", "[tag]", []() {
+    framework.registry.add({"how many lights", "[tag]"}, []() {
         int number_of_lights = 3;
         SNATCH_CAPTURE(number_of_lights);
         // clang-format off
@@ -306,7 +344,7 @@ TEST_CASE("report FAIL capture", "[registry]") {
 TEST_CASE("report REQUIRE", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add("how many lights", "[tag]", []() {
+    framework.registry.add({"how many lights", "[tag]"}, []() {
         int number_of_lights = 4;
         // clang-format off
         failure_line = __LINE__; SNATCH_REQUIRE(number_of_lights == 3);
@@ -335,7 +373,7 @@ TEST_CASE("report REQUIRE", "[registry]") {
 TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add("how many lights", "[tag]", []() {
+    framework.registry.add({"how many lights", "[tag]"}, []() {
         auto ask_how_many_lights = [] { throw std::runtime_error{"there are four lights"}; };
         // clang-format off
         failure_line = __LINE__; SNATCH_REQUIRE_THROWS_AS(ask_how_many_lights(), std::logic_error);
@@ -366,7 +404,7 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
 TEST_CASE("report SKIP", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add("how many lights", "[tag]", []() {
+    framework.registry.add({"how many lights", "[tag]"}, []() {
         // clang-format off
         failure_line = __LINE__; SNATCH_SKIP("there are four lights");
         // clang-format on
@@ -401,14 +439,14 @@ void register_tests(mock_framework& framework) {
     test_called_hidden1   = false;
     test_called_hidden2   = false;
 
-    framework.registry.add("how are you", "[tag]", []() { test_called = true; });
+    framework.registry.add({"how are you", "[tag]"}, []() { test_called = true; });
 
-    framework.registry.add("how many lights", "[tag][other_tag]", []() {
+    framework.registry.add({"how many lights", "[tag][other_tag]"}, []() {
         test_called_other_tag = true;
         SNATCH_FAIL_CHECK("there are four lights");
     });
 
-    framework.registry.add("drink from the cup", "[tag][skipped]", []() {
+    framework.registry.add({"drink from the cup", "[tag][skipped]"}, []() {
         test_called_skipped = true;
         SNATCH_SKIP("not thirsty");
     });
@@ -425,28 +463,29 @@ void register_tests(mock_framework& framework) {
         });
 
     framework.registry.add(
-        "hidden test 1", "[.][hidden][other_tag]", []() { test_called_hidden1 = true; });
+        {"hidden test 1", "[.][hidden][other_tag]"}, []() { test_called_hidden1 = true; });
 
-    framework.registry.add("hidden test 2", "[.hidden]", []() { test_called_hidden2 = true; });
+    framework.registry.add({"hidden test 2", "[.hidden]"}, []() { test_called_hidden2 = true; });
 
-    framework.registry.add("may fail that does not fail", "[.][may fail][!mayfail]", []() {});
+    framework.registry.add({"may fail that does not fail", "[.][may fail][!mayfail]"}, []() {});
 
-    framework.registry.add(
-        "may fail that does fail", "[.][may fail][!mayfail]", []() { SNATCH_FAIL("it did fail"); });
-
-    framework.registry.add(
-        "should fail that does not fail", "[.][should fail][!shouldfail]", []() {});
-
-    framework.registry.add("should fail that does fail", "[.][should fail][!shouldfail]", []() {
+    framework.registry.add({"may fail that does fail", "[.][may fail][!mayfail]"}, []() {
         SNATCH_FAIL("it did fail");
     });
 
     framework.registry.add(
-        "may+should fail that does not fail", "[.][may+should fail][!mayfail][!shouldfail]",
+        {"should fail that does not fail", "[.][should fail][!shouldfail]"}, []() {});
+
+    framework.registry.add({"should fail that does fail", "[.][should fail][!shouldfail]"}, []() {
+        SNATCH_FAIL("it did fail");
+    });
+
+    framework.registry.add(
+        {"may+should fail that does not fail", "[.][may+should fail][!mayfail][!shouldfail]"},
         []() {});
 
     framework.registry.add(
-        "may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]",
+        {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
         []() { SNATCH_FAIL("it did fail"); });
 }
 } // namespace

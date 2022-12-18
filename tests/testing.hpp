@@ -19,7 +19,7 @@
 // Adjust doctest macros to match the snatch API
 #    define SECTION(name) DOCTEST_SUBCASE(name)
 #    undef TEST_CASE
-#    define TEST_CASE(name, tags) DOCTEST_TEST_CASE(tags " " name)
+#    define TEST_CASE(name, ...) DOCTEST_TEST_CASE(name " " __VA_ARGS__)
 #    define TEMPLATE_TEST_CASE(name, tags, ...)                                                    \
         DOCTEST_TEST_CASE_TEMPLATE(tags " " name, TestType, __VA_ARGS__)
 #    define SKIP(message) return
