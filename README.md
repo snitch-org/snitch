@@ -175,11 +175,11 @@ Results for Debug builds:
 | **Debug**       | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
-| Build tests     | 60s      | 86s      | 78s       | 109s       |
-| Build all       | 62s      | 150s     | 80s       | 109s       |
+| Build tests     | 62s      | 86s      | 78s       | 109s       |
+| Build all       | 64s      | 150s     | 80s       | 109s       |
 | Run tests       | 21ms     | 83ms     | 60ms      | 20ms       |
 | Library size    | 2.90MB   | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Executable size | 32.7MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
