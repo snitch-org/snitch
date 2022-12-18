@@ -55,6 +55,42 @@ TEST_CASE("add regular test", "[registry]") {
     }
 }
 
+TEST_CASE("add regular test no tags", "[registry]") {
+    mock_framework framework;
+
+    test_called = false;
+    framework.registry.add("how many lights", "", []() { test_called = true; });
+
+    REQUIRE(framework.get_num_registered_tests() == 1u);
+
+    auto& test = *framework.registry.begin();
+    CHECK(test.id.name == "how many lights"sv);
+    CHECK(test.id.tags == ""sv);
+    CHECK(test.id.type == ""sv);
+    REQUIRE(test.func != nullptr);
+
+    SECTION("run default reporter") {
+        framework.setup_print();
+        framework.registry.run(test);
+
+        CHECK(test_called == true);
+        CHECK(framework.messages == contains_substring("starting: how many lights"));
+        CHECK(framework.messages == contains_substring("finished: how many lights"));
+    }
+
+    SECTION("run custom reporter") {
+        framework.setup_reporter();
+        framework.registry.run(test);
+
+        CHECK(test_called == true);
+        REQUIRE(framework.events.size() == 2u);
+        CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
+        CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
+        CHECK_EVENT_TEST_ID(framework.events[0], test.id);
+        CHECK_EVENT_TEST_ID(framework.events[1], test.id);
+    }
+}
+
 TEST_CASE("add template test", "[registry]") {
     for (bool with_type_list : {false, true}) {
         mock_framework framework;
