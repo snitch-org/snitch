@@ -63,7 +63,8 @@ set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/capture.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/section.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/cli.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/registry.cpp)
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/registry.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/macros.cpp)
 
 # Test snatch with doctest
 add_executable(snatch_runtime_tests ${PROJECT_SOURCE_DIR}/src/snatch.cpp ${RUNTIME_TEST_FILES})

@@ -1333,8 +1333,14 @@ bool operator==(const M& m, const T& value) noexcept {
         snatch::tests.add(NAME, TAGS, &ID);                                                        \
     void ID()
 
-#define SNATCH_TEST_CASE(NAME, TAGS)                                                               \
+#define SNATCH_TEST_CASE1(NAME)                                                                    \
+    SNATCH_TEST_CASE_IMPL(SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, "")
+
+#define SNATCH_TEST_CASE2(NAME, TAGS)                                                              \
     SNATCH_TEST_CASE_IMPL(SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS)
+
+#define SNATCH_TEST_CASE(...)                                                                      \
+    SNATCH_MACRO_DISPATCH2(__VA_ARGS__, SNATCH_TEST_CASE2, SNATCH_TEST_CASE1)(__VA_ARGS__)
 
 #define SNATCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                                 \
     template<typename TestType>                                                                    \
@@ -1523,7 +1529,7 @@ bool operator==(const M& m, const T& value) noexcept {
 
 // clang-format off
 #if SNATCH_WITH_SHORTHAND_MACROS
-#    define TEST_CASE(NAME, TAGS)                      SNATCH_TEST_CASE(NAME, TAGS)
+#    define TEST_CASE(...)                             SNATCH_TEST_CASE(__VA_ARGS__)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
 #    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
 #    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
