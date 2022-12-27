@@ -29,6 +29,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Exceptions](#exceptions)
     - [Header-only build](#header-only-build)
     - [`clang-format` support](#clang-format-support)
+    - [Why _snitch_?](#why-_snitch_)
 
 <!-- /MarkdownTOC -->
 
@@ -720,3 +721,8 @@ Fixing this requires `clang-format` version 13 at least, and requires adding the
 IfMacros: ['SECTION', 'SNITCH_SECTION']
 SpaceBeforeParens: ControlStatementsExceptControlMacros
 ```
+
+
+### Why _snitch_?
+
+Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
