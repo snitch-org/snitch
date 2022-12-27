@@ -5,9 +5,9 @@ using namespace std::literals;
 namespace {
 constexpr std::size_t max_length = 5u;
 
-using string_type = snatch::small_string<max_length>;
-using span_type   = snatch::small_string_span;
-using view_type   = snatch::small_string_view;
+using string_type = snitch::small_string<max_length>;
+using span_type   = snitch::small_string_span;
+using view_type   = snitch::small_string_view;
 } // namespace
 
 TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_type) {
@@ -367,11 +367,11 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
     }
 }
 
-// This requires fixing https://github.com/cschreib/snatch/issues/17
+// This requires fixing https://github.com/cschreib/snitch/issues/17
 // TEST_CASE("constexpr small string", "[utility]") {
 //     constexpr std::size_t max_length = 5u;
 
-//     using TestType = snatch::small_string<max_length>;
+//     using TestType = snitch::small_string<max_length>;
 
 //     SECTION("from string view") {
 //         constexpr TestType v = "abc"sv;

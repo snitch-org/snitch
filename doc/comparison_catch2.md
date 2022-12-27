@@ -1,6 +1,6 @@
 # Feature comparison with _Catch2_
 
-| Feature in _Catch2_                                 | In _snatch_   | On roadmap   |
+| Feature in _Catch2_                                 | In _snitch_   | On roadmap   |
 | ----------------------------------------------------| ------------- | ------------ |
 | **Test cases**                                      |               |              |
 | - `TEST_CASE`                                       | Yes (1)       | Done         |
@@ -86,17 +86,17 @@
 | - `REGISTER_LISTENER`                               | Yes (7)       | Done         |
 
 **Notes:**
- 1. Tags are not optional in _snatch_. This may be fixed later, if requested.
+ 1. Tags are not optional in _snitch_. This may be fixed later, if requested.
  2. Support for hidden tests (`[.]` or `[.tag]`), `[!mayfail]`, and `[!shouldfail]` only.
- 3. No streaming in _snatch_. For example, `INFO("the number is " << i)` is not supported. Supporting this is not on the roadmap.
- 4. See [the README](README.md#matchers) for differences between _Catch2_ and _snatch_ matchers.
- 5. Spelled `snatch::matchers::contains_substring`.
- 6. Spelled `snatch::matchers::with_what_contains`, and does substring matching (not exact matching). It does not require the exception type to inherit from `std::exception`, just to have a member function `what()` that returns an object convertible to `std::string_view`.
+ 3. No streaming in _snitch_. For example, `INFO("the number is " << i)` is not supported. Supporting this is not on the roadmap.
+ 4. See [the README](README.md#matchers) for differences between _Catch2_ and _snitch_ matchers.
+ 5. Spelled `snitch::matchers::contains_substring`.
+ 6. Spelled `snitch::matchers::with_what_contains`, and does substring matching (not exact matching). It does not require the exception type to inherit from `std::exception`, just to have a member function `what()` that returns an object convertible to `std::string_view`.
  7. Supported only in a limited form; use `registry::report_callback` and set it up to call all your event listeners, as needed. Improving this is not on the roadmap.
  8. If supported, it will not use the streaming syntax.
 
 **Roadmap:**
- - "Yes" is something that we want to eventually support in _snatch_, even if it comes at a cost (at run time or compile time). Contributions are welcome.
+ - "Yes" is something that we want to eventually support in _snitch_, even if it comes at a cost (at run time or compile time). Contributions are welcome.
  - "Maybe" is something that we have no objection against supporting, but for which we have no immediate need. It may be refused if the cost is significant. Contributions are welcome, but expect some extra scrutiny, and perhaps push back.
- - "Unlikely" is something we would want to support, but is expected to have too high cost, or seems impossible without violating other requirements of _snatch_ (e.g., no heap allocation). This can be included in _snatch_ if the cost ends up beeing negligible. We recommend discussing with the maintainers before contributing.
- - "No" is something we explicitly do not want to support. This can still be included in _snatch_ if well motivated, but please argue your case with the maintainers before contributing.
+ - "Unlikely" is something we would want to support, but is expected to have too high cost, or seems impossible without violating other requirements of _snitch_ (e.g., no heap allocation). This can be included in _snitch_ if the cost ends up beeing negligible. We recommend discussing with the maintainers before contributing.
+ - "No" is something we explicitly do not want to support. This can still be included in _snitch_ if well motivated, but please argue your case with the maintainers before contributing.

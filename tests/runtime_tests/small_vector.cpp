@@ -8,9 +8,9 @@ struct test_struct {
     bool b = true;
 };
 
-using vector_type     = snatch::small_vector<test_struct, max_test_elements>;
-using span_type       = snatch::small_vector_span<test_struct>;
-using const_span_type = snatch::small_vector_span<const test_struct>;
+using vector_type     = snitch::small_vector<test_struct, max_test_elements>;
+using span_type       = snitch::small_vector_span<test_struct>;
+using const_span_type = snitch::small_vector_span<const test_struct>;
 } // namespace
 
 TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_span_type) {
@@ -442,9 +442,9 @@ TEST_CASE("constexpr small vector test_struct", "[utility]") {
     }
 }
 
-// This requires fixing https://github.com/cschreib/snatch/issues/17
+// This requires fixing https://github.com/cschreib/snitch/issues/17
 // TEST_CASE("constexpr small vector int", "[utility]") {
-//     using TestType = snatch::small_vector<int, max_test_elements>;
+//     using TestType = snitch::small_vector<int, max_test_elements>;
 
 //     SECTION("from initializer list") {
 //         constexpr TestType v = {1, 2, 5};

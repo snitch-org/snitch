@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/snitch-targets.cmake")
+
+if (NOT TARGET snitch::snitch)
+    add_library(snitch::snitch ALIAS snitch)
+endif ()

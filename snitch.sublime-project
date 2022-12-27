@@ -20,7 +20,7 @@
 	[
 		{
 			"file_regex": "(.+[^:]):(\\d+):(\\d+): (?:fatal )?((?:error|warning): .+)$",
-			"name": "snatch (Linux)",
+			"name": "snitch (Linux)",
 			"shell_cmd": "make -j12",
 			"syntax": "Packages/CMakeBuilder/Syntax/Make.sublime-syntax",
 			"variants":
@@ -54,48 +54,48 @@
 					"shell_cmd": "make -j12 test",
 				},
 				{
-					"name": "snatch_runtime_tests_run",
-					"shell_cmd": "make -j12 snatch_runtime_tests_run",
+					"name": "snitch_runtime_tests_run",
+					"shell_cmd": "make -j12 snitch_runtime_tests_run",
 				},
 				{
-					"name": "snatch_runtime_tests_self_header_only_run",
-					"shell_cmd": "make -j12 snatch_runtime_tests_self_header_only_run",
+					"name": "snitch_runtime_tests_self_header_only_run",
+					"shell_cmd": "make -j12 snitch_runtime_tests_self_header_only_run",
 				},
 				{
-					"name": "snatch_runtime_tests_self_run",
-					"shell_cmd": "make -j12 snatch_runtime_tests_self_run",
+					"name": "snitch_runtime_tests_self_run",
+					"shell_cmd": "make -j12 snitch_runtime_tests_self_run",
 				},
 				{
 					"name": "doctest_with_main",
 					"shell_cmd": "make -j12 doctest_with_main",
 				},
 				{
-					"name": "snatch",
-					"shell_cmd": "make -j12 snatch",
+					"name": "snitch",
+					"shell_cmd": "make -j12 snitch",
 				},
 				{
-					"name": "snatch_runtime_tests",
-					"shell_cmd": "make -j12 snatch_runtime_tests",
+					"name": "snitch_runtime_tests",
+					"shell_cmd": "make -j12 snitch_runtime_tests",
 				},
 				{
-					"name": "snatch_runtime_tests_self",
-					"shell_cmd": "make -j12 snatch_runtime_tests_self",
+					"name": "snitch_runtime_tests_self",
+					"shell_cmd": "make -j12 snitch_runtime_tests_self",
 				},
 				{
-					"name": "snatch_runtime_tests_self_header_only",
-					"shell_cmd": "make -j12 snatch_runtime_tests_self_header_only",
+					"name": "snitch_runtime_tests_self_header_only",
+					"shell_cmd": "make -j12 snitch_runtime_tests_self_header_only",
 				},
 				{
-					"name": "src/snatch.o",
-					"shell_cmd": "make -j12 src/snatch.o",
+					"name": "src/snitch.o",
+					"shell_cmd": "make -j12 src/snitch.o",
 				},
 				{
-					"name": "src/snatch.i",
-					"shell_cmd": "make -j12 src/snatch.i",
+					"name": "src/snitch.i",
+					"shell_cmd": "make -j12 src/snitch.i",
 				},
 				{
-					"name": "src/snatch.s",
-					"shell_cmd": "make -j12 src/snatch.s",
+					"name": "src/snitch.s",
+					"shell_cmd": "make -j12 src/snitch.s",
 				},
 			],
 			"working_dir": "$folder/build",

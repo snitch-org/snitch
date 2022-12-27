@@ -67,5 +67,5 @@ SpacesInSquareBrackets: 'false'
 Standard: Cpp11
 TabWidth: '4'
 UseTab: Never
-IfMacros: ['SECTION', 'SNATCH_SECTION']
+IfMacros: ['SECTION', 'SNITCH_SECTION']
 ...

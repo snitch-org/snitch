@@ -4,7 +4,7 @@
 #include <stdexcept>
 
 using namespace std::literals;
-using snatch::matchers::contains_substring;
+using snitch::matchers::contains_substring;
 
 namespace {
 bool        test_called           = false;
@@ -102,7 +102,7 @@ TEST_CASE("add template test", "[registry]") {
         CAPTURE(with_type_list);
 
         if (with_type_list) {
-            framework.registry.add_with_type_list<snatch::type_list<int, float>>(
+            framework.registry.add_with_type_list<snitch::type_list<int, float>>(
                 "how many lights", "[tag]", []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
@@ -191,15 +191,15 @@ TEST_CASE("add template test", "[registry]") {
     }
 }
 
-SNATCH_WARNING_PUSH
-SNATCH_WARNING_DISABLE_UNREACHABLE
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("report FAIL regular", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         // clang-format off
-        failure_line = __LINE__; SNATCH_FAIL("there are four lights");
+        failure_line = __LINE__; SNITCH_FAIL("there are four lights");
         // clang-format on
     });
 
@@ -233,7 +233,7 @@ TEST_CASE("report FAIL template", "[registry]") {
 
     framework.registry.add_with_types<int>("how many lights", "[tag]", []<typename TestType>() {
         // clang-format off
-        failure_line = __LINE__; SNATCH_FAIL("there are four lights");
+        failure_line = __LINE__; SNITCH_FAIL("there are four lights");
         // clang-format on
     });
 
@@ -267,9 +267,9 @@ TEST_CASE("report FAIL section", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
-        SNATCH_SECTION("ask nicely") {
+        SNITCH_SECTION("ask nicely") {
             // clang-format off
-            failure_line = __LINE__; SNATCH_FAIL("there are four lights");
+            failure_line = __LINE__; SNITCH_FAIL("there are four lights");
             // clang-format on
         }
     });
@@ -307,9 +307,9 @@ TEST_CASE("report FAIL capture", "[registry]") {
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         int number_of_lights = 3;
-        SNATCH_CAPTURE(number_of_lights);
+        SNITCH_CAPTURE(number_of_lights);
         // clang-format off
-        failure_line = __LINE__; SNATCH_FAIL("there are four lights");
+        failure_line = __LINE__; SNITCH_FAIL("there are four lights");
         // clang-format on
     });
 
@@ -347,7 +347,7 @@ TEST_CASE("report REQUIRE", "[registry]") {
     framework.registry.add({"how many lights", "[tag]"}, []() {
         int number_of_lights = 4;
         // clang-format off
-        failure_line = __LINE__; SNATCH_REQUIRE(number_of_lights == 3);
+        failure_line = __LINE__; SNITCH_REQUIRE(number_of_lights == 3);
         // clang-format on
     });
 
@@ -369,14 +369,14 @@ TEST_CASE("report REQUIRE", "[registry]") {
     }
 }
 
-#if SNATCH_WITH_EXCEPTIONS
+#if SNITCH_WITH_EXCEPTIONS
 TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         auto ask_how_many_lights = [] { throw std::runtime_error{"there are four lights"}; };
         // clang-format off
-        failure_line = __LINE__; SNATCH_REQUIRE_THROWS_AS(ask_how_many_lights(), std::logic_error);
+        failure_line = __LINE__; SNITCH_REQUIRE_THROWS_AS(ask_how_many_lights(), std::logic_error);
         // clang-format on
     });
 
@@ -406,7 +406,7 @@ TEST_CASE("report SKIP", "[registry]") {
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         // clang-format off
-        failure_line = __LINE__; SNATCH_SKIP("there are four lights");
+        failure_line = __LINE__; SNITCH_SKIP("there are four lights");
         // clang-format on
     });
 
@@ -427,7 +427,7 @@ TEST_CASE("report SKIP", "[registry]") {
     }
 }
 
-SNATCH_WARNING_POP
+SNITCH_WARNING_POP
 
 namespace {
 void register_tests(mock_framework& framework) {
@@ -443,22 +443,22 @@ void register_tests(mock_framework& framework) {
 
     framework.registry.add({"how many lights", "[tag][other_tag]"}, []() {
         test_called_other_tag = true;
-        SNATCH_FAIL_CHECK("there are four lights");
+        SNITCH_FAIL_CHECK("there are four lights");
     });
 
     framework.registry.add({"drink from the cup", "[tag][skipped]"}, []() {
         test_called_skipped = true;
-        SNATCH_SKIP("not thirsty");
+        SNITCH_SKIP("not thirsty");
     });
 
     framework.registry.add_with_types<int, float>(
         "how many templated lights", "[tag][tag with spaces]", []<typename T>() {
             if constexpr (std::is_same_v<T, int>) {
                 test_called_int = true;
-                SNATCH_FAIL_CHECK("there are four lights (int)");
+                SNITCH_FAIL_CHECK("there are four lights (int)");
             } else if constexpr (std::is_same_v<T, float>) {
                 test_called_float = true;
-                SNATCH_FAIL_CHECK("there are four lights (float)");
+                SNITCH_FAIL_CHECK("there are four lights (float)");
             }
         });
 
@@ -470,14 +470,14 @@ void register_tests(mock_framework& framework) {
     framework.registry.add({"may fail that does not fail", "[.][may fail][!mayfail]"}, []() {});
 
     framework.registry.add({"may fail that does fail", "[.][may fail][!mayfail]"}, []() {
-        SNATCH_FAIL("it did fail");
+        SNITCH_FAIL("it did fail");
     });
 
     framework.registry.add(
         {"should fail that does not fail", "[.][should fail][!shouldfail]"}, []() {});
 
     framework.registry.add({"should fail that does fail", "[.][should fail][!shouldfail]"}, []() {
-        SNATCH_FAIL("it did fail");
+        SNITCH_FAIL("it did fail");
     });
 
     framework.registry.add(
@@ -486,7 +486,7 @@ void register_tests(mock_framework& framework) {
 
     framework.registry.add(
         {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
-        []() { SNATCH_FAIL("it did fail"); });
+        []() { SNITCH_FAIL("it did fail"); });
 }
 } // namespace
 
@@ -755,7 +755,7 @@ TEST_CASE("configure", "[registry]") {
 
     SECTION("color = always") {
         const arg_vector args = {"test", "--color", "always"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
         CHECK(framework.registry.with_color == true);
@@ -763,7 +763,7 @@ TEST_CASE("configure", "[registry]") {
 
     SECTION("color = never") {
         const arg_vector args = {"test", "--color", "never"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
         CHECK(framework.registry.with_color == false);
@@ -771,7 +771,7 @@ TEST_CASE("configure", "[registry]") {
 
     SECTION("color = bad") {
         const arg_vector args = {"test", "--color", "bad"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
         CHECK(framework.messages == contains_substring("unknown color directive"));
@@ -779,31 +779,31 @@ TEST_CASE("configure", "[registry]") {
 
     SECTION("verbosity = quiet") {
         const arg_vector args = {"test", "--verbosity", "quiet"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
-        CHECK(framework.registry.verbose == snatch::registry::verbosity::quiet);
+        CHECK(framework.registry.verbose == snitch::registry::verbosity::quiet);
     }
 
     SECTION("verbosity = normal") {
         const arg_vector args = {"test", "--verbosity", "normal"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
-        CHECK(framework.registry.verbose == snatch::registry::verbosity::normal);
+        CHECK(framework.registry.verbose == snitch::registry::verbosity::normal);
     }
 
     SECTION("verbosity = high") {
         const arg_vector args = {"test", "--verbosity", "high"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
-        CHECK(framework.registry.verbose == snatch::registry::verbosity::high);
+        CHECK(framework.registry.verbose == snitch::registry::verbosity::high);
     }
 
     SECTION("verbosity = bad") {
         const arg_vector args = {"test", "--verbosity", "bad"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.configure(*input);
 
         CHECK(framework.messages == contains_substring("unknown verbosity level"));
@@ -818,7 +818,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("no argument") {
         const arg_vector args = {"test"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(false, 5u, 3u, 1u, 3u);
@@ -826,7 +826,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("--help") {
         const arg_vector args = {"test", "--help"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
@@ -835,7 +835,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("--list-tests") {
         const arg_vector args = {"test", "--list-tests"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
@@ -848,7 +848,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("--list-tags") {
         const arg_vector args = {"test", "--list-tags"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
@@ -860,7 +860,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("--list-tests-with-tag") {
         const arg_vector args = {"test", "--list-tests-with-tag", "[other_tag]"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
@@ -873,7 +873,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("test filter") {
         const arg_vector args = {"test", "how many"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(false, 3u, 3u, 0u, 3u);
@@ -881,7 +881,7 @@ TEST_CASE("run tests cli", "[registry]") {
 
     SECTION("test tag filter") {
         const arg_vector args = {"test", "--tags", "[skipped]"};
-        auto input = snatch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(true, 1u, 0u, 1u, 0u);

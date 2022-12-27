@@ -5,8 +5,8 @@
 
 using namespace std::literals;
 
-SNATCH_WARNING_PUSH
-SNATCH_WARNING_DISABLE_UNREACHABLE
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("capture", "[test macros]") {
     mock_framework framework;
@@ -14,8 +14,8 @@ TEST_CASE("capture", "[test macros]") {
 
     SECTION("literal int") {
         framework.test_case.func = []() {
-            SNATCH_CAPTURE(1);
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(1);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -24,8 +24,8 @@ TEST_CASE("capture", "[test macros]") {
 
     SECTION("literal string") {
         framework.test_case.func = []() {
-            SNATCH_CAPTURE("hello");
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE("hello");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -35,8 +35,8 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("variable int") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_CAPTURE(i);
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(i);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -46,8 +46,8 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("variable string") {
         framework.test_case.func = []() {
             std::string s = "hello";
-            SNATCH_CAPTURE(s);
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(s);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -57,8 +57,8 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("expression int") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_CAPTURE(2 * i + 1);
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(2 * i + 1);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -68,8 +68,8 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("expression string") {
         framework.test_case.func = []() {
             std::string s = "hello";
-            SNATCH_CAPTURE(s + ", 'world' (string),)(");
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(s + ", 'world' (string),)(");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -79,9 +79,9 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("expression function call & char") {
         framework.test_case.func = []() {
             std::string s = "hel\"lo";
-            SNATCH_CAPTURE(s.find_first_of('e'));
-            SNATCH_CAPTURE(s.find_first_of('"'));
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(s.find_first_of('e'));
+            SNITCH_CAPTURE(s.find_first_of('"'));
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -92,8 +92,8 @@ TEST_CASE("capture", "[test macros]") {
         framework.test_case.func = []() {
             int i = 1;
             int j = 2;
-            SNATCH_CAPTURE(i, j);
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(i, j);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -105,8 +105,8 @@ TEST_CASE("capture", "[test macros]") {
             int         i = 1;
             int         j = 2;
             std::string s = "hello";
-            SNATCH_CAPTURE(i, j, s);
-            SNATCH_FAIL("trigger");
+            SNITCH_CAPTURE(i, j, s);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -117,9 +117,9 @@ TEST_CASE("capture", "[test macros]") {
         framework.test_case.func = []() {
             {
                 int i = 1;
-                SNATCH_CAPTURE(i);
+                SNITCH_CAPTURE(i);
             }
-            SNATCH_FAIL("trigger");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -129,14 +129,14 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("scoped out multiple capture") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_CAPTURE(i);
+            SNITCH_CAPTURE(i);
 
             {
                 int j = 2;
-                SNATCH_CAPTURE(j);
+                SNITCH_CAPTURE(j);
             }
 
-            SNATCH_FAIL("trigger");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -146,9 +146,9 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("multiple failures") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_CAPTURE(i);
-            SNATCH_FAIL_CHECK("trigger1");
-            SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_CAPTURE(i);
+            SNITCH_FAIL_CHECK("trigger1");
+            SNITCH_FAIL_CHECK("trigger2");
         };
 
         framework.run_test();
@@ -160,10 +160,10 @@ TEST_CASE("capture", "[test macros]") {
     SECTION("multiple failures interleaved") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_CAPTURE(i);
-            SNATCH_FAIL_CHECK("trigger1");
-            SNATCH_CAPTURE(2 * i);
-            SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_CAPTURE(i);
+            SNITCH_FAIL_CHECK("trigger1");
+            SNITCH_CAPTURE(2 * i);
+            SNITCH_FAIL_CHECK("trigger2");
         };
 
         framework.run_test();
@@ -179,8 +179,8 @@ TEST_CASE("info", "[test macros]") {
 
     SECTION("literal int") {
         framework.test_case.func = []() {
-            SNATCH_INFO(1);
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(1);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -189,8 +189,8 @@ TEST_CASE("info", "[test macros]") {
 
     SECTION("literal string") {
         framework.test_case.func = []() {
-            SNATCH_INFO("hello");
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO("hello");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -200,8 +200,8 @@ TEST_CASE("info", "[test macros]") {
     SECTION("variable int") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_INFO(i);
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(i);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -211,8 +211,8 @@ TEST_CASE("info", "[test macros]") {
     SECTION("variable string") {
         framework.test_case.func = []() {
             std::string s = "hello";
-            SNATCH_INFO(s);
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(s);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -222,8 +222,8 @@ TEST_CASE("info", "[test macros]") {
     SECTION("expression int") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_INFO(2 * i + 1);
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(2 * i + 1);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -233,8 +233,8 @@ TEST_CASE("info", "[test macros]") {
     SECTION("expression string") {
         framework.test_case.func = []() {
             std::string s = "hello";
-            SNATCH_INFO(s + ", 'world'");
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(s + ", 'world'");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -246,8 +246,8 @@ TEST_CASE("info", "[test macros]") {
             int         i = 1;
             int         j = 2;
             std::string s = "hello";
-            SNATCH_INFO(i, " and ", j);
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(i, " and ", j);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -258,9 +258,9 @@ TEST_CASE("info", "[test macros]") {
         framework.test_case.func = []() {
             {
                 int i = 1;
-                SNATCH_INFO(i);
+                SNITCH_INFO(i);
             }
-            SNATCH_FAIL("trigger");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -270,14 +270,14 @@ TEST_CASE("info", "[test macros]") {
     SECTION("scoped out multiple") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_INFO(i);
+            SNITCH_INFO(i);
 
             {
                 int j = 2;
-                SNATCH_INFO(j);
+                SNITCH_INFO(j);
             }
 
-            SNATCH_FAIL("trigger");
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -287,9 +287,9 @@ TEST_CASE("info", "[test macros]") {
     SECTION("multiple failures") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_INFO(i);
-            SNATCH_FAIL_CHECK("trigger1");
-            SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_INFO(i);
+            SNITCH_FAIL_CHECK("trigger1");
+            SNITCH_FAIL_CHECK("trigger2");
         };
 
         framework.run_test();
@@ -301,10 +301,10 @@ TEST_CASE("info", "[test macros]") {
     SECTION("multiple failures interleaved") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_INFO(i);
-            SNATCH_FAIL_CHECK("trigger1");
-            SNATCH_INFO(2 * i);
-            SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_INFO(i);
+            SNITCH_FAIL_CHECK("trigger1");
+            SNITCH_INFO(2 * i);
+            SNITCH_FAIL_CHECK("trigger2");
         };
 
         framework.run_test();
@@ -316,9 +316,9 @@ TEST_CASE("info", "[test macros]") {
     SECTION("mixed with capture") {
         framework.test_case.func = []() {
             int i = 1;
-            SNATCH_INFO(i);
-            SNATCH_CAPTURE(i);
-            SNATCH_FAIL("trigger");
+            SNITCH_INFO(i);
+            SNITCH_CAPTURE(i);
+            SNITCH_FAIL("trigger");
         };
 
         framework.run_test();
@@ -326,4 +326,4 @@ TEST_CASE("info", "[test macros]") {
     }
 }
 
-SNATCH_WARNING_POP
+SNITCH_WARNING_POP

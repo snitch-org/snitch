@@ -27,7 +27,7 @@ struct non_relocatable {
     }
 };
 
-bool append(snatch::small_string_span ss, const non_relocatable& o) noexcept {
+bool append(snitch::small_string_span ss, const non_relocatable& o) noexcept {
     return append(ss, "non_relocatable{", o.value, "}");
 }
 
@@ -46,7 +46,7 @@ struct non_appendable {
 };
 
 struct unary_long_string {
-    snatch::small_string<2048> value;
+    snitch::small_string<2048> value;
 
     unary_long_string() {
         value.resize(2048);
@@ -62,25 +62,25 @@ struct unary_long_string {
     }
 };
 
-bool append(snatch::small_string_span ss, const unary_long_string& u) noexcept {
+bool append(snitch::small_string_span ss, const unary_long_string& u) noexcept {
     return append(ss, u.value);
 }
 
 struct test_override {
-    snatch::impl::test_run* previous;
+    snitch::impl::test_run* previous;
 
-    explicit test_override(snatch::impl::test_run& run) :
-        previous(snatch::impl::try_get_current_test()) {
-        snatch::impl::set_current_test(&run);
+    explicit test_override(snitch::impl::test_run& run) :
+        previous(snitch::impl::try_get_current_test()) {
+        snitch::impl::set_current_test(&run);
     }
 
     ~test_override() {
-        snatch::impl::set_current_test(previous);
+        snitch::impl::set_current_test(previous);
     }
 };
 } // namespace
 
-namespace snatch::matchers {
+namespace snitch::matchers {
 struct long_matcher_always_fails {
     bool match(std::string_view) const noexcept {
         return false;
@@ -94,28 +94,28 @@ struct long_matcher_always_fails {
         return message;
     }
 };
-} // namespace snatch::matchers
+} // namespace snitch::matchers
 
-SNATCH_WARNING_PUSH
-SNATCH_WARNING_DISABLE_INT_BOOLEAN
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_INT_BOOLEAN
 
 TEST_CASE("check unary", "[test macros]") {
-    snatch::registry mock_registry;
+    snitch::registry mock_registry;
 
-    snatch::impl::test_case mock_case{
+    snitch::impl::test_case mock_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snatch::impl::test_state::not_run};
+        .state = snitch::impl::test_state::not_run};
 
-    snatch::impl::test_run mock_run {
+    snitch::impl::test_run mock_run {
         .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         .duration = 0.0f
 #endif
     };
 
     std::optional<event_deep_copy> last_event;
-    auto report = [&](const snatch::registry&, const snatch::event::data& e) noexcept {
+    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
         last_event.emplace(deep_copy(e));
     };
 
@@ -126,7 +126,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value);
+            SNITCH_CHECK(value);
         }
 
         CHECK(value == true);
@@ -141,7 +141,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value); failure_line = __LINE__;
+            SNITCH_CHECK(value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -164,7 +164,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(!value); failure_line = __LINE__;
+            SNITCH_CHECK(!value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -185,7 +185,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(!value);
+            SNITCH_CHECK(!value);
         }
 
         CHECK(value == false);
@@ -198,7 +198,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value);
+            SNITCH_CHECK(value);
         }
 
         CHECK(value == 5);
@@ -213,7 +213,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value); failure_line = __LINE__;
+            SNITCH_CHECK(value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -234,7 +234,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(++value);
+            SNITCH_CHECK(++value);
         }
 
         CHECK(value == 1);
@@ -249,7 +249,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value++); failure_line = __LINE__;
+            SNITCH_CHECK(value++); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -270,7 +270,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(2 * value);
+            SNITCH_CHECK(2 * value);
         }
 
         CHECK(value == 1);
@@ -283,7 +283,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(2 / value);
+            SNITCH_CHECK(2 / value);
         }
 
         CHECK(value == 1);
@@ -296,7 +296,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(2 + value);
+            SNITCH_CHECK(2 + value);
         }
 
         CHECK(value == 1);
@@ -309,7 +309,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(2 - value);
+            SNITCH_CHECK(2 - value);
         }
 
         CHECK(value == 3);
@@ -322,7 +322,7 @@ TEST_CASE("check unary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(2 % value);
+            SNITCH_CHECK(2 % value);
         }
 
         CHECK(value == 3);
@@ -337,7 +337,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(2 * value); failure_line = __LINE__;
+            SNITCH_CHECK(2 * value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -360,7 +360,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(2 / value); failure_line = __LINE__;
+            SNITCH_CHECK(2 / value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -383,7 +383,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(2 + value); failure_line = __LINE__;
+            SNITCH_CHECK(2 + value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -406,7 +406,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(2 - value); failure_line = __LINE__;
+            SNITCH_CHECK(2 - value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -429,7 +429,7 @@ TEST_CASE("check unary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(2 % value); failure_line = __LINE__;
+            SNITCH_CHECK(2 % value); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -446,25 +446,25 @@ TEST_CASE("check unary", "[test macros]") {
     }
 }
 
-SNATCH_WARNING_POP
+SNITCH_WARNING_POP
 
 TEST_CASE("check binary", "[test macros]") {
-    snatch::registry mock_registry;
+    snitch::registry mock_registry;
 
-    snatch::impl::test_case mock_case{
+    snitch::impl::test_case mock_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snatch::impl::test_state::not_run};
+        .state = snitch::impl::test_state::not_run};
 
-    snatch::impl::test_run mock_run {
+    snitch::impl::test_run mock_run {
         .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         .duration = 0.0f
 #endif
     };
 
     std::optional<event_deep_copy> last_event;
-    auto report = [&](const snatch::registry&, const snatch::event::data& e) noexcept {
+    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
         last_event.emplace(deep_copy(e));
     };
 
@@ -476,7 +476,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value1 == value2);
+            SNITCH_CHECK(value1 == value2);
         }
 
         CHECK(value1 == 0);
@@ -491,7 +491,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value1 != value2);
+            SNITCH_CHECK(value1 != value2);
         }
 
         CHECK(value1 == 0);
@@ -506,7 +506,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value1 < value2);
+            SNITCH_CHECK(value1 < value2);
         }
 
         CHECK(value1 == 0);
@@ -521,7 +521,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value1 > value2);
+            SNITCH_CHECK(value1 > value2);
         }
 
         CHECK(value1 == 1);
@@ -536,7 +536,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value1 <= value2);
+            SNITCH_CHECK(value1 <= value2);
         }
 
         CHECK(value1 == 0);
@@ -551,7 +551,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK(value1 >= value2);
+            SNITCH_CHECK(value1 >= value2);
         }
 
         CHECK(value1 == 1);
@@ -568,7 +568,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 == value2); failure_line = __LINE__;
+            SNITCH_CHECK(value1 == value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -593,7 +593,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 != value2); failure_line = __LINE__;
+            SNITCH_CHECK(value1 != value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -618,7 +618,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 < value2); failure_line = __LINE__;
+            SNITCH_CHECK(value1 < value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -643,7 +643,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 > value2); failure_line = __LINE__;
+            SNITCH_CHECK(value1 > value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -668,7 +668,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 <= value2); failure_line = __LINE__;
+            SNITCH_CHECK(value1 <= value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -693,7 +693,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 >= value2); failure_line = __LINE__;
+            SNITCH_CHECK(value1 >= value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -718,7 +718,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 <=> value2 != 0); failure_line = __LINE__;
+            SNITCH_CHECK(value1 <=> value2 != 0); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -743,7 +743,7 @@ TEST_CASE("check binary", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(value1 == 1 && value2 == 0); failure_line = __LINE__;
+            SNITCH_CHECK(value1 == 1 && value2 == 0); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -762,22 +762,22 @@ TEST_CASE("check binary", "[test macros]") {
 }
 
 TEST_CASE("check false", "[test macros]") {
-    snatch::registry mock_registry;
+    snitch::registry mock_registry;
 
-    snatch::impl::test_case mock_case{
+    snitch::impl::test_case mock_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snatch::impl::test_state::not_run};
+        .state = snitch::impl::test_state::not_run};
 
-    snatch::impl::test_run mock_run {
+    snitch::impl::test_run mock_run {
         .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         .duration = 0.0f
 #endif
     };
 
     std::optional<event_deep_copy> last_event;
-    auto report = [&](const snatch::registry&, const snatch::event::data& e) noexcept {
+    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
         last_event.emplace(deep_copy(e));
     };
 
@@ -789,7 +789,7 @@ TEST_CASE("check false", "[test macros]") {
 
         {
             test_override override(mock_run);
-            SNATCH_CHECK_FALSE(value1 < value2);
+            SNITCH_CHECK_FALSE(value1 < value2);
         }
 
         CHECK(value1 == 1);
@@ -806,7 +806,7 @@ TEST_CASE("check false", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK_FALSE(value1 >= value2); failure_line = __LINE__;
+            SNITCH_CHECK_FALSE(value1 >= value2); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -827,7 +827,7 @@ TEST_CASE("check false", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK_FALSE("hello"sv != snatch::matchers::contains_substring{"lo"});
+            SNITCH_CHECK_FALSE("hello"sv != snitch::matchers::contains_substring{"lo"});
             // clang-format on
         }
 
@@ -841,7 +841,7 @@ TEST_CASE("check false", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK_FALSE("hello"sv == snatch::matchers::contains_substring{"lo"}); failure_line = __LINE__;
+            SNITCH_CHECK_FALSE("hello"sv == snitch::matchers::contains_substring{"lo"}); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -855,27 +855,27 @@ TEST_CASE("check false", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(
             event.message ==
-            "CHECK_FALSE(\"hello\"sv == snatch::matchers::contains_substring{\"lo\"}), got found 'lo' in 'hello'"sv);
+            "CHECK_FALSE(\"hello\"sv == snitch::matchers::contains_substring{\"lo\"}), got found 'lo' in 'hello'"sv);
     }
 }
 
 TEST_CASE("check misc", "[test macros]") {
-    snatch::registry mock_registry;
+    snitch::registry mock_registry;
 
-    snatch::impl::test_case mock_case{
+    snitch::impl::test_case mock_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snatch::impl::test_state::not_run};
+        .state = snitch::impl::test_state::not_run};
 
-    snatch::impl::test_run mock_run {
+    snitch::impl::test_run mock_run {
         .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         .duration = 0.0f
 #endif
     };
 
     std::optional<event_deep_copy> last_event;
-    auto report = [&](const snatch::registry&, const snatch::event::data& e) noexcept {
+    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
         last_event.emplace(deep_copy(e));
     };
 
@@ -887,7 +887,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(unary_long_string{}); failure_line = __LINE__;
+            SNITCH_CHECK(unary_long_string{}); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -903,9 +903,9 @@ TEST_CASE("check misc", "[test macros]") {
     }
 
     SECTION("out of space binary lhs") {
-        constexpr std::size_t                     large_string_length = snatch::max_expr_length * 2;
-        snatch::small_string<large_string_length> string1;
-        snatch::small_string<large_string_length> string2;
+        constexpr std::size_t                     large_string_length = snitch::max_expr_length * 2;
+        snitch::small_string<large_string_length> string1;
+        snitch::small_string<large_string_length> string2;
 
         string1.resize(large_string_length);
         string2.resize(large_string_length);
@@ -917,7 +917,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
+            SNITCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -933,9 +933,9 @@ TEST_CASE("check misc", "[test macros]") {
     }
 
     SECTION("out of space binary rhs") {
-        constexpr std::size_t large_string_length = snatch::max_expr_length * 3 / 2;
-        snatch::small_string<large_string_length> string1;
-        snatch::small_string<large_string_length> string2;
+        constexpr std::size_t large_string_length = snitch::max_expr_length * 3 / 2;
+        snitch::small_string<large_string_length> string1;
+        snitch::small_string<large_string_length> string2;
 
         string1.resize(large_string_length);
         string2.resize(large_string_length);
@@ -947,7 +947,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
+            SNITCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -963,9 +963,9 @@ TEST_CASE("check misc", "[test macros]") {
     }
 
     SECTION("out of space binary op") {
-        constexpr std::size_t                     large_string_length = snatch::max_expr_length - 2;
-        snatch::small_string<large_string_length> string1;
-        snatch::small_string<large_string_length> string2;
+        constexpr std::size_t                     large_string_length = snitch::max_expr_length - 2;
+        snitch::small_string<large_string_length> string1;
+        snitch::small_string<large_string_length> string2;
 
         string1.resize(large_string_length);
         string2.resize(large_string_length);
@@ -977,7 +977,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
+            SNITCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -995,7 +995,7 @@ TEST_CASE("check misc", "[test macros]") {
     SECTION("non copiable non movable pass") {
         {
             test_override override(mock_run);
-            SNATCH_CHECK(non_relocatable(1) != non_relocatable(2));
+            SNITCH_CHECK(non_relocatable(1) != non_relocatable(2));
         }
 
         CHECK(mock_run.asserts == 1u);
@@ -1008,7 +1008,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(non_relocatable(1) == non_relocatable(2)); failure_line = __LINE__;
+            SNITCH_CHECK(non_relocatable(1) == non_relocatable(2)); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -1031,7 +1031,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(non_appendable(1) == non_appendable(2)); failure_line = __LINE__;
+            SNITCH_CHECK(non_appendable(1) == non_appendable(2)); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -1052,7 +1052,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(snatch::matchers::long_matcher_always_fails{} == "hello"sv); failure_line = __LINE__;
+            SNITCH_CHECK(snitch::matchers::long_matcher_always_fails{} == "hello"sv); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -1066,7 +1066,7 @@ TEST_CASE("check misc", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(
             event.message ==
-            "CHECK(snatch::matchers::long_matcher_always_fails{} == \"hello\"sv)"sv);
+            "CHECK(snitch::matchers::long_matcher_always_fails{} == \"hello\"sv)"sv);
     }
 
     SECTION("matcher fail rhs") {
@@ -1075,7 +1075,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK("hello"sv == snatch::matchers::long_matcher_always_fails{}); failure_line = __LINE__;
+            SNITCH_CHECK("hello"sv == snitch::matchers::long_matcher_always_fails{}); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -1089,7 +1089,7 @@ TEST_CASE("check misc", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(
             event.message ==
-            "CHECK(\"hello\"sv == snatch::matchers::long_matcher_always_fails{})"sv);
+            "CHECK(\"hello\"sv == snitch::matchers::long_matcher_always_fails{})"sv);
     }
 
     SECTION("out of space matcher lhs") {
@@ -1098,7 +1098,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK(snatch::matchers::contains_substring{"foo"} == "hello"sv); failure_line = __LINE__;
+            SNITCH_CHECK(snitch::matchers::contains_substring{"foo"} == "hello"sv); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -1112,7 +1112,7 @@ TEST_CASE("check misc", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(
             event.message ==
-            "CHECK(snatch::matchers::contains_substring{\"foo\"} == \"hello\"sv), got could not find 'foo' in 'hello'"sv);
+            "CHECK(snitch::matchers::contains_substring{\"foo\"} == \"hello\"sv), got could not find 'foo' in 'hello'"sv);
     }
 
     SECTION("out of space matcher rhs") {
@@ -1121,7 +1121,7 @@ TEST_CASE("check misc", "[test macros]") {
         {
             test_override override(mock_run);
             // clang-format off
-            SNATCH_CHECK("hello"sv == snatch::matchers::contains_substring{"foo"}); failure_line = __LINE__;
+            SNITCH_CHECK("hello"sv == snitch::matchers::contains_substring{"foo"}); failure_line = __LINE__;
             // clang-format on
         }
 
@@ -1135,6 +1135,6 @@ TEST_CASE("check misc", "[test macros]") {
         CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
         CHECK(
             event.message ==
-            "CHECK(\"hello\"sv == snatch::matchers::contains_substring{\"foo\"}), got could not find 'foo' in 'hello'"sv);
+            "CHECK(\"hello\"sv == snitch::matchers::contains_substring{\"foo\"}), got could not find 'foo' in 'hello'"sv);
     }
 }

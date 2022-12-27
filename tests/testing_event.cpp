@@ -32,7 +32,7 @@ void copy_full_location(event_deep_copy& c, const T& e) {
 }
 
 std::optional<event_deep_copy> get_event(
-    snatch::small_vector_span<const event_deep_copy> events,
+    snitch::small_vector_span<const event_deep_copy> events,
     event_deep_copy::type                            type,
     std::size_t                                      id) {
     auto iter  = events.cbegin();
@@ -58,42 +58,42 @@ std::optional<event_deep_copy> get_event(
 }
 
 std::size_t
-count_events(snatch::small_vector_span<const event_deep_copy> events, event_deep_copy::type type) {
+count_events(snitch::small_vector_span<const event_deep_copy> events, event_deep_copy::type type) {
     return std::count_if(events.cbegin(), events.cend(), [&](const event_deep_copy& e) {
         return e.event_type == type;
     });
 }
 } // namespace
 
-event_deep_copy deep_copy(const snatch::event::data& e) {
+event_deep_copy deep_copy(const snitch::event::data& e) {
     return std::visit(
-        snatch::overload{
-            [](const snatch::event::assertion_failed& a) {
+        snitch::overload{
+            [](const snitch::event::assertion_failed& a) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::assertion_failed;
                 copy_test_case_id(c, a);
                 copy_full_location(c, a);
                 return c;
             },
-            [](const snatch::event::test_case_started& s) {
+            [](const snitch::event::test_case_started& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_started;
                 copy_test_case_id(c, s);
                 return c;
             },
-            [](const snatch::event::test_case_ended& s) {
+            [](const snitch::event::test_case_ended& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_ended;
                 copy_test_case_id(c, s);
                 return c;
             },
-            [](const snatch::event::test_run_started& s) {
+            [](const snitch::event::test_run_started& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_run_started;
                 copy_test_run_id(c, s);
                 return c;
             },
-            [](const snatch::event::test_run_ended& s) {
+            [](const snitch::event::test_run_ended& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_run_ended;
                 copy_test_run_id(c, s);
@@ -104,45 +104,45 @@ event_deep_copy deep_copy(const snatch::event::data& e) {
                 c.test_run_assertion_count = s.assertion_count;
                 return c;
             },
-            [](const snatch::event::test_case_skipped& s) {
+            [](const snitch::event::test_case_skipped& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_skipped;
                 copy_full_location(c, s);
                 return c;
             },
-            [](const auto&) -> event_deep_copy { snatch::terminate_with("event not handled"); }},
+            [](const auto&) -> event_deep_copy { snitch::terminate_with("event not handled"); }},
         e);
 }
 
-void mock_framework::report(const snatch::registry&, const snatch::event::data& e) noexcept {
+void mock_framework::report(const snitch::registry&, const snitch::event::data& e) noexcept {
     events.push_back(deep_copy(e));
 }
 
 void mock_framework::print(std::string_view msg) noexcept {
     if (!append(messages, msg)) {
-        snatch::terminate_with("not enough space in message buffer");
+        snitch::terminate_with("not enough space in message buffer");
     }
 }
 
 void mock_framework::setup_reporter() {
-    registry.report_callback = {*this, snatch::constant<&mock_framework::report>{}};
+    registry.report_callback = {*this, snitch::constant<&mock_framework::report>{}};
     registry.print_callback  = {};
 }
 
 void mock_framework::setup_print() {
     registry.with_color = false;
-    registry.verbose    = snatch::registry::verbosity::high;
+    registry.verbose    = snitch::registry::verbosity::high;
 
     registry.report_callback = {};
-    registry.print_callback  = {*this, snatch::constant<&mock_framework::print>{}};
+    registry.print_callback  = {*this, snitch::constant<&mock_framework::print>{}};
 }
 
 void mock_framework::setup_reporter_and_print() {
     registry.with_color = false;
-    registry.verbose    = snatch::registry::verbosity::high;
+    registry.verbose    = snitch::registry::verbosity::high;
 
-    registry.report_callback = {*this, snatch::constant<&mock_framework::report>{}};
-    registry.print_callback  = {*this, snatch::constant<&mock_framework::print>{}};
+    registry.report_callback = {*this, snitch::constant<&mock_framework::report>{}};
+    registry.print_callback  = {*this, snitch::constant<&mock_framework::print>{}};
 }
 
 void mock_framework::run_test() {
