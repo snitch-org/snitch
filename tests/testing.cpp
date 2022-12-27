@@ -1,2 +1,2 @@
-#define SNATCH_IMPLEMENTATION
+#define SNITCH_IMPLEMENTATION
 #include "testing.hpp"

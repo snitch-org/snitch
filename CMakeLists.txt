@@ -1,23 +1,23 @@
 cmake_minimum_required(VERSION 3.8)
 
-project(snatch LANGUAGES CXX VERSION 1.0.0)
+project(snitch LANGUAGES CXX VERSION 1.0.0)
 
-set(SNATCH_MAX_TEST_CASES         5000 CACHE STRING "Maximum number of test cases in a test application.")
-set(SNATCH_MAX_NESTED_SECTIONS    8    CACHE STRING "Maximum depth of nested sections in a test case.")
-set(SNATCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
-set(SNATCH_MAX_MESSAGE_LENGTH     1024 CACHE STRING "Maximum length of error or status messages.")
-set(SNATCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
-set(SNATCH_MAX_CAPTURES           8    CACHE STRING "Maximum number of captured expressions in a test case.")
-set(SNATCH_MAX_CAPTURE_LENGTH     256  CACHE STRING "Maximum length of a captured expression.")
-set(SNATCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
-set(SNATCH_MAX_COMMAND_LINE_ARGS  1024 CACHE STRING "Maximum number of command line arguments to a test application.")
-set(SNATCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snatch -- disable to provide your own main() function.")
-set(SNATCH_WITH_EXCEPTIONS        ON   CACHE BOOL   "Use exceptions in snatch implementation -- will be forced OFF if exceptions are not available.")
-set(SNATCH_WITH_TIMINGS           ON   CACHE BOOL   "Measure the time taken by each test case -- disable to speed up tests.")
-set(SNATCH_WITH_SHORTHAND_MACROS  ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
-set(SNATCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
-set(SNATCH_CREATE_HEADER_ONLY     ON   CACHE BOOL   "Create a single-header header-only version of snatch.")
-set(SNATCH_CREATE_LIBRARY         ON   CACHE BOOL   "Build a compiled library version of snatch.")
+set(SNITCH_MAX_TEST_CASES         5000 CACHE STRING "Maximum number of test cases in a test application.")
+set(SNITCH_MAX_NESTED_SECTIONS    8    CACHE STRING "Maximum depth of nested sections in a test case.")
+set(SNITCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
+set(SNITCH_MAX_MESSAGE_LENGTH     1024 CACHE STRING "Maximum length of error or status messages.")
+set(SNITCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
+set(SNITCH_MAX_CAPTURES           8    CACHE STRING "Maximum number of captured expressions in a test case.")
+set(SNITCH_MAX_CAPTURE_LENGTH     256  CACHE STRING "Maximum length of a captured expression.")
+set(SNITCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
+set(SNITCH_MAX_COMMAND_LINE_ARGS  1024 CACHE STRING "Maximum number of command line arguments to a test application.")
+set(SNITCH_DEFINE_MAIN            ON   CACHE BOOL   "Define main() in snitch -- disable to provide your own main() function.")
+set(SNITCH_WITH_EXCEPTIONS        ON   CACHE BOOL   "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
+set(SNITCH_WITH_TIMINGS           ON   CACHE BOOL   "Measure the time taken by each test case -- disable to speed up tests.")
+set(SNITCH_WITH_SHORTHAND_MACROS  ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
+set(SNITCH_DEFAULT_WITH_COLOR     ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
+set(SNITCH_CREATE_HEADER_ONLY     ON   CACHE BOOL   "Create a single-header header-only version of snitch.")
+set(SNITCH_CREATE_LIBRARY         ON   CACHE BOOL   "Build a compiled library version of snitch.")
 
 # Figure out git hash, if any
 execute_process(
@@ -29,110 +29,110 @@ execute_process(
 )
 
 if (GIT_COMMAND_SUCCESS EQUAL 0)
-    set(SNATCH_FULL_VERSION "${CMAKE_PROJECT_VERSION}.${GIT_COMMIT_HASH}")
+    set(SNITCH_FULL_VERSION "${CMAKE_PROJECT_VERSION}.${GIT_COMMIT_HASH}")
 endif()
 
 # Create configure file to store CMake build parameter
-configure_file("${PROJECT_SOURCE_DIR}/include/snatch/snatch_config.hpp.config"
-               "${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp")
+configure_file("${PROJECT_SOURCE_DIR}/include/snitch/snitch_config.hpp.config"
+               "${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp")
 
-if (SNATCH_CREATE_LIBRARY)
+if (SNITCH_CREATE_LIBRARY)
   # Build as a standard library (static or dynamic) with header.
-  add_library(snatch
-    ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
-    ${PROJECT_SOURCE_DIR}/include/snatch/snatch_teamcity.hpp
-    ${PROJECT_SOURCE_DIR}/src/snatch.cpp)
+  add_library(snitch
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
+    ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 
-  add_library(snatch::snatch ALIAS snatch)
-  set_target_properties(snatch PROPERTIES EXPORT_NAME snatch::snatch)
+  add_library(snitch::snitch ALIAS snitch)
+  set_target_properties(snitch PROPERTIES EXPORT_NAME snitch::snitch)
 
-  target_compile_features(snatch PUBLIC cxx_std_20)
-  target_include_directories(snatch PUBLIC
+  target_compile_features(snitch PUBLIC cxx_std_20)
+  target_include_directories(snitch PUBLIC
       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-  target_compile_definitions(snatch PUBLIC
-    SNATCH_MAX_TEST_CASES=${SNATCH_MAX_TEST_CASES}
-    SNATCH_MAX_NESTED_SECTIONS=${SNATCH_MAX_NESTED_SECTIONS}
-    SNATCH_MAX_EXPR_LENGTH=${SNATCH_MAX_EXPR_LENGTH}
-    SNATCH_MAX_MESSAGE_LENGTH=${SNATCH_MAX_MESSAGE_LENGTH}
-    SNATCH_MAX_TEST_NAME_LENGTH=${SNATCH_MAX_TEST_NAME_LENGTH}
-    SNATCH_MAX_UNIQUE_TAGS=${SNATCH_MAX_UNIQUE_TAGS}
-    SNATCH_MAX_COMMAND_LINE_ARGS=${SNATCH_MAX_COMMAND_LINE_ARGS}
-    SNATCH_DEFINE_MAIN=$<BOOL:${SNATCH_DEFINE_MAIN}>
-    SNATCH_WITH_EXCEPTIONS=$<BOOL:${SNATCH_WITH_EXCEPTIONS}>
-    SNATCH_WITH_TIMINGS=$<BOOL:${SNATCH_WITH_TIMINGS}>
-    SNATCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNATCH_WITH_SHORTHAND_MACROS}>
-    SNATCH_DEFAULT_WITH_COLOR=$<BOOL:${SNATCH_DEFAULT_WITH_COLOR}>)
+  target_compile_definitions(snitch PUBLIC
+    SNITCH_MAX_TEST_CASES=${SNITCH_MAX_TEST_CASES}
+    SNITCH_MAX_NESTED_SECTIONS=${SNITCH_MAX_NESTED_SECTIONS}
+    SNITCH_MAX_EXPR_LENGTH=${SNITCH_MAX_EXPR_LENGTH}
+    SNITCH_MAX_MESSAGE_LENGTH=${SNITCH_MAX_MESSAGE_LENGTH}
+    SNITCH_MAX_TEST_NAME_LENGTH=${SNITCH_MAX_TEST_NAME_LENGTH}
+    SNITCH_MAX_UNIQUE_TAGS=${SNITCH_MAX_UNIQUE_TAGS}
+    SNITCH_MAX_COMMAND_LINE_ARGS=${SNITCH_MAX_COMMAND_LINE_ARGS}
+    SNITCH_DEFINE_MAIN=$<BOOL:${SNITCH_DEFINE_MAIN}>
+    SNITCH_WITH_EXCEPTIONS=$<BOOL:${SNITCH_WITH_EXCEPTIONS}>
+    SNITCH_WITH_TIMINGS=$<BOOL:${SNITCH_WITH_TIMINGS}>
+    SNITCH_WITH_SHORTHAND_MACROS=$<BOOL:${SNITCH_WITH_SHORTHAND_MACROS}>
+    SNITCH_DEFAULT_WITH_COLOR=$<BOOL:${SNITCH_DEFAULT_WITH_COLOR}>)
 
   install(FILES
-    ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp
-    ${PROJECT_SOURCE_DIR}/include/snatch/snatch_teamcity.hpp
-    ${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
+    ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 endif()
 
-if(SNATCH_CREATE_HEADER_ONLY)
+if(SNITCH_CREATE_HEADER_ONLY)
   # Build as a header-only library.
-  file(READ ${PROJECT_BINARY_DIR}/snatch/snatch_config.hpp SNATCH_FILE_CONFIG)
-  file(READ ${PROJECT_SOURCE_DIR}/include/snatch/snatch.hpp SNATCH_FILE_HEADER)
-  file(READ ${PROJECT_SOURCE_DIR}/src/snatch.cpp SNATCH_FILE_SOURCE)
+  file(READ ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp SNITCH_FILE_CONFIG)
+  file(READ ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp SNITCH_FILE_HEADER)
+  file(READ ${PROJECT_SOURCE_DIR}/src/snitch.cpp SNITCH_FILE_SOURCE)
 
-  set(SNATCH_ALL_CONTENT "${SNATCH_FILE_CONFIG}\n${SNATCH_FILE_HEADER}\n#if defined(SNATCH_IMPLEMENTATION)\n${SNATCH_FILE_SOURCE}\n#endif")
+  set(SNITCH_ALL_CONTENT "${SNITCH_FILE_CONFIG}\n${SNITCH_FILE_HEADER}\n#if defined(SNITCH_IMPLEMENTATION)\n${SNITCH_FILE_SOURCE}\n#endif")
 
-  # Remove includes to snatch.hpp; it's all one header now
-  string(REPLACE "#include \"snatch/snatch.hpp\"\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
-  string(REPLACE "#include \"snatch/snatch_config.hpp\"\n" "" SNATCH_ALL_CONTENT "${SNATCH_ALL_CONTENT}")
+  # Remove includes to snitch.hpp; it's all one header now
+  string(REPLACE "#include \"snitch/snitch.hpp\"\n" "" SNITCH_ALL_CONTENT "${SNITCH_ALL_CONTENT}")
+  string(REPLACE "#include \"snitch/snitch_config.hpp\"\n" "" SNITCH_ALL_CONTENT "${SNITCH_ALL_CONTENT}")
 
-  file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp CONTENT "${SNATCH_ALL_CONTENT}")
+  file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp CONTENT "${SNITCH_ALL_CONTENT}")
 
-  add_library(snatch-header-only INTERFACE)
-  add_library(snatch::snatch-header-only ALIAS snatch-header-only)
-  set_target_properties(snatch-header-only PROPERTIES EXPORT_NAME snatch::snatch-header-only)
+  add_library(snitch-header-only INTERFACE)
+  add_library(snitch::snitch-header-only ALIAS snitch-header-only)
+  set_target_properties(snitch-header-only PROPERTIES EXPORT_NAME snitch::snitch-header-only)
 
-  target_sources(snatch-header-only INTERFACE
-      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snatch/snatch_all.hpp>)
-  set_source_files_properties(${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp PROPERTIES GENERATED TRUE)
-  target_include_directories(snatch-header-only INTERFACE
+  target_sources(snitch-header-only INTERFACE
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
+  set_source_files_properties(${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp PROPERTIES GENERATED TRUE)
+  target_include_directories(snitch-header-only INTERFACE
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-  target_compile_features(snatch-header-only INTERFACE cxx_std_20)
+  target_compile_features(snitch-header-only INTERFACE cxx_std_20)
 
   install(FILES
-    ${PROJECT_BINARY_DIR}/snatch/snatch_all.hpp
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snatch)
+    ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 endif()
 
 # Setup CMake config file
-if (SNATCH_CREATE_LIBRARY AND SNATCH_CREATE_HEADER_ONLY)
-  install(TARGETS snatch snatch-header-only EXPORT snatch-targets)
-elseif (SNATCH_CREATE_LIBRARY)
-  install(TARGETS snatch EXPORT snatch-targets)
-elseif (SNATCH_CREATE_HEADER_ONLY)
-  install(TARGETS snatch-header-only EXPORT snatch-targets)
+if (SNITCH_CREATE_LIBRARY AND SNITCH_CREATE_HEADER_ONLY)
+  install(TARGETS snitch snitch-header-only EXPORT snitch-targets)
+elseif (SNITCH_CREATE_LIBRARY)
+  install(TARGETS snitch EXPORT snitch-targets)
+elseif (SNITCH_CREATE_HEADER_ONLY)
+  install(TARGETS snitch-header-only EXPORT snitch-targets)
 endif()
 
-install(EXPORT snatch-targets
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snatch COMPONENT Development)
+install(EXPORT snitch-targets
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
 
-export(EXPORT snatch-targets)
+export(EXPORT snitch-targets)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-  "${PROJECT_SOURCE_DIR}/cmake/snatch-config.cmake.in"
-  "${PROJECT_BINARY_DIR}/snatch-config.cmake"
+  "${PROJECT_SOURCE_DIR}/cmake/snitch-config.cmake.in"
+  "${PROJECT_BINARY_DIR}/snitch-config.cmake"
   INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
   NO_CHECK_REQUIRED_COMPONENTS_MACRO
   NO_SET_AND_CHECK_MACRO)
 
 install(FILES
-  "${PROJECT_BINARY_DIR}/snatch-config.cmake"
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snatch COMPONENT Development)
+  "${PROJECT_BINARY_DIR}/snitch-config.cmake"
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
 
 # Setup tests
-if (SNATCH_DO_TEST)
+if (SNITCH_DO_TEST)
     enable_testing()
     add_subdirectory(tests)
 endif()

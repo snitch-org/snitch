@@ -1,7 +1,0 @@
-@PACKAGE_INIT@
-
-include("${CMAKE_CURRENT_LIST_DIR}/snatch-targets.cmake")
-
-if (NOT TARGET snatch::snatch)
-    add_library(snatch::snatch ALIAS snatch)
-endif ()

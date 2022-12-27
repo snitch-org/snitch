@@ -6,15 +6,15 @@
 
 using namespace std::literals;
 
-SNATCH_WARNING_PUSH
-SNATCH_WARNING_DISABLE_UNREACHABLE
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("section", "[test macros]") {
     mock_framework framework;
     framework.setup_reporter();
 
     SECTION("no section") {
-        framework.test_case.func = []() { SNATCH_FAIL_CHECK("trigger"); };
+        framework.test_case.func = []() { SNITCH_FAIL_CHECK("trigger"); };
 
         framework.run_test();
         CHECK(framework.get_num_failures() == 1u);
@@ -23,8 +23,8 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("single section") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
-                SNATCH_FAIL_CHECK("trigger");
+            SNITCH_SECTION("section 1") {
+                SNITCH_FAIL_CHECK("trigger");
             }
         };
 
@@ -35,11 +35,11 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("two sections") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
-                SNATCH_FAIL_CHECK("trigger1");
+            SNITCH_SECTION("section 1") {
+                SNITCH_FAIL_CHECK("trigger1");
             }
-            SNATCH_SECTION("section 2") {
-                SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL_CHECK("trigger2");
             }
         };
 
@@ -52,10 +52,10 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("nested sections") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
-                SNATCH_FAIL_CHECK("trigger1");
-                SNATCH_SECTION("section 1.1") {
-                    SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_SECTION("section 1") {
+                SNITCH_FAIL_CHECK("trigger1");
+                SNITCH_SECTION("section 1.1") {
+                    SNITCH_FAIL_CHECK("trigger2");
                 }
             }
         };
@@ -69,14 +69,14 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("nested sections abort early") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
-                SNATCH_FAIL("trigger1");
-                SNATCH_SECTION("section 1.1") {
-                    SNATCH_FAIL_CHECK("trigger2");
+            SNITCH_SECTION("section 1") {
+                SNITCH_FAIL("trigger1");
+                SNITCH_SECTION("section 1.1") {
+                    SNITCH_FAIL_CHECK("trigger2");
                 }
             }
-            SNATCH_SECTION("section 2") {
-                SNATCH_FAIL("trigger2");
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL("trigger2");
             }
         };
 
@@ -88,14 +88,14 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("nested sections std::exception throw") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
+            SNITCH_SECTION("section 1") {
                 throw std::runtime_error("no can do");
-                SNATCH_SECTION("section 1.1") {
-                    SNATCH_FAIL_CHECK("trigger2");
+                SNITCH_SECTION("section 1.1") {
+                    SNITCH_FAIL_CHECK("trigger2");
                 }
             }
-            SNATCH_SECTION("section 2") {
-                SNATCH_FAIL("trigger2");
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL("trigger2");
             }
         };
 
@@ -107,14 +107,14 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("nested sections unknown exception throw") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
+            SNITCH_SECTION("section 1") {
                 throw 1;
-                SNATCH_SECTION("section 1.1") {
-                    SNATCH_FAIL_CHECK("trigger2");
+                SNITCH_SECTION("section 1.1") {
+                    SNITCH_FAIL_CHECK("trigger2");
                 }
             }
-            SNATCH_SECTION("section 2") {
-                SNATCH_FAIL("trigger2");
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL("trigger2");
             }
         };
 
@@ -126,28 +126,26 @@ TEST_CASE("section", "[test macros]") {
 
     SECTION("nested sections varying depth") {
         framework.test_case.func = []() {
-            SNATCH_SECTION("section 1") {
-                SNATCH_SECTION("section 1.1") {
+            SNITCH_SECTION("section 1") {
+                SNITCH_SECTION("section 1.1") {}
+                SNITCH_SECTION("section 1.2") {
+                    SNITCH_FAIL_CHECK("trigger");
                 }
-                SNATCH_SECTION("section 1.2") {
-                    SNATCH_FAIL_CHECK("trigger");
-                }
-                SNATCH_SECTION("section 1.3") {
-                    SNATCH_SECTION("section 1.3.1") {
-                        SNATCH_FAIL_CHECK("trigger");
+                SNITCH_SECTION("section 1.3") {
+                    SNITCH_SECTION("section 1.3.1") {
+                        SNITCH_FAIL_CHECK("trigger");
                     }
                 }
-                SNATCH_SECTION("section 1.3") {
-                }
+                SNITCH_SECTION("section 1.3") {}
             }
-            SNATCH_SECTION("section 2") {
-                SNATCH_SECTION("section 2.1") {
-                    SNATCH_FAIL_CHECK("trigger");
+            SNITCH_SECTION("section 2") {
+                SNITCH_SECTION("section 2.1") {
+                    SNITCH_FAIL_CHECK("trigger");
                 }
-                SNATCH_FAIL_CHECK("trigger");
+                SNITCH_FAIL_CHECK("trigger");
             }
-            SNATCH_SECTION("section 3") {
-                SNATCH_FAIL_CHECK("trigger");
+            SNITCH_SECTION("section 3") {
+                SNITCH_FAIL_CHECK("trigger");
             }
         };
 
@@ -164,8 +162,8 @@ TEST_CASE("section", "[test macros]") {
     SECTION("one section in a loop") {
         framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
-                SNATCH_SECTION("section 1") {
-                    SNATCH_FAIL_CHECK("trigger");
+                SNITCH_SECTION("section 1") {
+                    SNITCH_FAIL_CHECK("trigger");
                 }
             }
         };
@@ -183,11 +181,11 @@ TEST_CASE("section", "[test macros]") {
     SECTION("two sections in a loop") {
         framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
-                SNATCH_SECTION("section 1") {
-                    SNATCH_CHECK(i % 2u == 0u);
+                SNITCH_SECTION("section 1") {
+                    SNITCH_CHECK(i % 2u == 0u);
                 }
-                SNATCH_SECTION("section 2") {
-                    SNATCH_CHECK(i % 2u == 1u);
+                SNITCH_SECTION("section 2") {
+                    SNITCH_CHECK(i % 2u == 1u);
                 }
             }
         };
@@ -203,12 +201,12 @@ TEST_CASE("section", "[test macros]") {
     }
 };
 
-SNATCH_WARNING_POP
+SNITCH_WARNING_POP
 
 TEST_CASE("section readme example", "[test macros]") {
     mock_framework framework;
 
-    snatch::small_string<32> events;
+    snitch::small_string<32> events;
 
     auto print = [&](std::string_view s) noexcept {
         if (!events.empty()) {
@@ -222,22 +220,22 @@ TEST_CASE("section readme example", "[test macros]") {
     framework.registry.report_callback = {};
 
     framework.test_case.func = []() {
-        auto& reg = snatch::impl::get_current_test().reg;
+        auto& reg = snitch::impl::get_current_test().reg;
 
         reg.print("S");
 
-        SNATCH_SECTION("first section") {
+        SNITCH_SECTION("first section") {
             reg.print("1");
         }
-        SNATCH_SECTION("second section") {
+        SNITCH_SECTION("second section") {
             reg.print("2");
         }
-        SNATCH_SECTION("third section") {
+        SNITCH_SECTION("third section") {
             reg.print("3");
-            SNATCH_SECTION("nested section 1") {
+            SNITCH_SECTION("nested section 1") {
                 reg.print("3.1");
             }
-            SNATCH_SECTION("nested section 2") {
+            SNITCH_SECTION("nested section 2") {
                 reg.print("3.2");
             }
         }

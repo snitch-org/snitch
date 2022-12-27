@@ -1,9 +1,9 @@
-#ifndef SNATCH_TEAMCITY_HPP
-#define SNATCH_TEAMCITY_HPP
+#ifndef SNITCH_TEAMCITY_HPP
+#define SNITCH_TEAMCITY_HPP
 
-#include "snatch/snatch.hpp"
+#include "snitch/snitch.hpp"
 
-namespace snatch::teamcity {
+namespace snitch::teamcity {
 struct key_value {
     std::string_view key;
     std::string_view value;
@@ -42,9 +42,9 @@ small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
 }
 
 small_string<max_message_length> make_full_message(
-    const snatch::assertion_location& location,
-    const snatch::section_info&       sections,
-    const snatch::capture_info&       captures,
+    const snitch::assertion_location& location,
+    const snitch::section_info&       sections,
+    const snitch::capture_info&       captures,
     std::string_view                  message) noexcept {
 
     small_string<max_message_length> full_message;
@@ -76,20 +76,20 @@ small_string<max_duration_length> make_duration(float duration) noexcept {
     return string;
 }
 
-void report(const registry& r, const snatch::event::data& event) noexcept {
+void report(const registry& r, const snitch::event::data& event) noexcept {
     std::visit(
-        snatch::overload{
-            [&](const snatch::event::test_run_started& e) {
+        snitch::overload{
+            [&](const snitch::event::test_run_started& e) {
                 send_message(r, "testSuiteStarted", {{"name", make_escaped(e.name)}});
             },
-            [&](const snatch::event::test_run_ended& e) {
+            [&](const snitch::event::test_run_ended& e) {
                 send_message(r, "testSuiteFinished", {{"name", make_escaped(e.name)}});
             },
-            [&](const snatch::event::test_case_started& e) {
+            [&](const snitch::event::test_case_started& e) {
                 send_message(r, "testStarted", {{"name", make_full_name(e.id)}});
             },
-            [&](const snatch::event::test_case_ended& e) {
-#if SNATCH_WITH_TIMINGS
+            [&](const snitch::event::test_case_ended& e) {
+#if SNITCH_WITH_TIMINGS
                 send_message(
                     r, "testFinished",
                     {{"name", make_full_name(e.id)}, {"duration", make_duration(e.duration)}});
@@ -97,14 +97,14 @@ void report(const registry& r, const snatch::event::data& event) noexcept {
                 send_message(r, "testFinished", {{"name", make_full_name(e.id)}});
 #endif
             },
-            [&](const snatch::event::test_case_skipped& e) {
+            [&](const snitch::event::test_case_skipped& e) {
                 send_message(
                     r, "testIgnored",
                     {{"name", make_full_name(e.id)},
                      {"message",
                       make_full_message(e.location, e.sections, e.captures, e.message)}});
             },
-            [&](const snatch::event::assertion_failed& e) {
+            [&](const snitch::event::assertion_failed& e) {
                 send_message(
                     r, "testFailed",
                     {{"name", make_full_name(e.id)},
@@ -113,6 +113,6 @@ void report(const registry& r, const snatch::event::data& event) noexcept {
             }},
         event);
 }
-} // namespace snatch::teamcity
+} // namespace snitch::teamcity
 
 #endif

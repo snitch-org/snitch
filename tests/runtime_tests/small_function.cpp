@@ -62,7 +62,7 @@ struct type_holder {};
 // MSVC has a bug that prevents us from writing the test nicely. Work around it.
 // https://developercommunity.visualstudio.com/t/Parameter-pack-argument-is-not-recognize/10191888
 template<typename R, typename... Args>
-void call_function(snatch::small_function<R(Args...) noexcept>& f) {
+void call_function(snitch::small_function<R(Args...) noexcept>& f) {
     if constexpr (std::is_same_v<R, void>) {
         std::apply(f, std::tuple<Args...>{});
     } else {
@@ -79,7 +79,7 @@ TEMPLATE_TEST_CASE(
     function_2_int) {
 
     [&]<typename R, typename... Args>(type_holder<R(Args...) noexcept>) {
-        snatch::small_function<TestType> f;
+        snitch::small_function<TestType> f;
 
         test_object_instances                    = 0u;
         return_value                             = 0u;
@@ -103,7 +103,7 @@ TEMPLATE_TEST_CASE(
 
         SECTION("from non-const member function") {
             test_class<TestType> obj;
-            f = {obj, snatch::constant<&test_class<TestType>::method>{}};
+            f = {obj, snitch::constant<&test_class<TestType>::method>{}};
             CHECK(!f.empty());
 
             call_function(f);
@@ -117,7 +117,7 @@ TEMPLATE_TEST_CASE(
 
         SECTION("from const member function") {
             const test_class<TestType> obj;
-            f = {obj, snatch::constant<&test_class<TestType>::method_const>{}};
+            f = {obj, snitch::constant<&test_class<TestType>::method_const>{}};
             CHECK(!f.empty());
 
             call_function(f);
@@ -130,7 +130,7 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from stateless lambda") {
-            f = snatch::small_function<TestType>{[](Args...) noexcept -> R {
+            f = snitch::small_function<TestType>{[](Args...) noexcept -> R {
                 function_called = true;
                 if constexpr (!std::is_same_v<R, void>) {
                     return 45;
@@ -156,7 +156,7 @@ TEMPLATE_TEST_CASE(
                 }
             };
 
-            f = snatch::small_function<TestType>{lambda};
+            f = snitch::small_function<TestType>{lambda};
             CHECK(!f.empty());
 
             call_function(f);

@@ -1,11 +1,11 @@
-#include "snatch/snatch.hpp"
+#include "snitch/snitch.hpp"
 
 #include <algorithm> // for std::sort
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
 
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
 #    include <chrono> // for measuring test time
 #endif
 
@@ -40,11 +40,11 @@ colored<T> make_colored(const T& t, bool with_color, color_t start) {
     return {t, with_color ? start : "", with_color ? color::reset : ""};
 }
 
-thread_local snatch::impl::test_run* thread_current_test = nullptr;
+thread_local snitch::impl::test_run* thread_current_test = nullptr;
 } // namespace
 
 namespace {
-using snatch::small_string_span;
+using snitch::small_string_span;
 
 template<typename T>
 constexpr const char* get_format_code() noexcept {
@@ -96,7 +96,7 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 }
 } // namespace
 
-namespace snatch {
+namespace snitch {
 bool append(small_string_span ss, std::string_view str) noexcept {
     if (str.empty()) {
         return true;
@@ -218,9 +218,9 @@ bool replace_all(
         return !overflow;
     }
 }
-} // namespace snatch
+} // namespace snitch
 
-namespace snatch::impl {
+namespace snitch::impl {
 void stdout_print(std::string_view message) noexcept {
     // TODO: replace this with std::print?
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
@@ -243,15 +243,15 @@ void set_current_test(test_run* current) noexcept {
     thread_current_test = current;
 }
 
-} // namespace snatch::impl
+} // namespace snitch::impl
 
-namespace snatch::cli {
-small_function<void(std::string_view) noexcept> console_print = &snatch::impl::stdout_print;
-} // namespace snatch::cli
+namespace snitch::cli {
+small_function<void(std::string_view) noexcept> console_print = &snitch::impl::stdout_print;
+} // namespace snitch::cli
 
 namespace {
-using snatch::max_message_length;
-using snatch::small_string;
+using snitch::max_message_length;
+using snitch::small_string;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
@@ -262,11 +262,11 @@ template<typename... Args>
 void console_print(Args&&... args) noexcept {
     small_string<max_message_length> message;
     append_or_truncate(message, std::forward<Args>(args)...);
-    snatch::cli::console_print(message);
+    snitch::cli::console_print(message);
 }
 
-bool is_at_least(snatch::registry::verbosity verbose, snatch::registry::verbosity required) {
-    using underlying_type = std::underlying_type_t<snatch::registry::verbosity>;
+bool is_at_least(snitch::registry::verbosity verbose, snitch::registry::verbosity required) {
+    using underlying_type = std::underlying_type_t<snitch::registry::verbosity>;
     return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
 }
 
@@ -283,7 +283,7 @@ void trim(std::string_view& str, std::string_view patterns) noexcept {
 }
 } // namespace
 
-namespace snatch {
+namespace snitch {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
     impl::stdout_print("terminate called with message: ");
     impl::stdout_print(msg);
@@ -291,12 +291,12 @@ namespace snatch {
 
     std::terminate();
 }
-} // namespace snatch
+} // namespace snitch
 
 // Sections implementation.
 // ------------------------
 
-namespace snatch::impl {
+namespace snitch::impl {
 section_entry_checker::~section_entry_checker() noexcept {
     if (entered) {
         if (state.sections.levels.size() == state.sections.depth) {
@@ -322,7 +322,7 @@ section_entry_checker::operator bool() noexcept {
             state.reg.print(
                 make_colored("error:", state.reg.with_color, color::fail),
                 " max number of nested sections reached; "
-                "please increase 'SNATCH_MAX_NESTED_SECTIONS' (currently ",
+                "please increase 'SNITCH_MAX_NESTED_SECTIONS' (currently ",
                 max_nested_sections, ")\n.");
             std::terminate();
         }
@@ -350,12 +350,12 @@ section_entry_checker::operator bool() noexcept {
 
     return false;
 }
-} // namespace snatch::impl
+} // namespace snitch::impl
 
 // Captures implementation.
 // ------------------------
 
-namespace snatch::impl {
+namespace snitch::impl {
 std::string_view extract_next_name(std::string_view& names) noexcept {
     std::string_view result;
 
@@ -409,7 +409,7 @@ small_string<max_capture_length>& add_capture(test_run& state) noexcept {
         state.reg.print(
             make_colored("error:", state.reg.with_color, color::fail),
             " max number of captures reached; "
-            "please increase 'SNATCH_MAX_CAPTURES' (currently ",
+            "please increase 'SNITCH_MAX_CAPTURES' (currently ",
             max_captures, ")\n.");
         std::terminate();
     }
@@ -418,12 +418,12 @@ small_string<max_capture_length>& add_capture(test_run& state) noexcept {
     state.captures.back().clear();
     return state.captures.back();
 }
-} // namespace snatch::impl
+} // namespace snitch::impl
 
 // Matcher implementation.
 // -----------------------
 
-namespace snatch::matchers {
+namespace snitch::matchers {
 contains_substring::contains_substring(std::string_view pattern) noexcept :
     substring_pattern(pattern) {}
 
@@ -442,14 +442,14 @@ contains_substring::describe_match(std::string_view message, match_status status
 
 with_what_contains::with_what_contains(std::string_view pattern) noexcept :
     contains_substring(pattern) {}
-} // namespace snatch::matchers
+} // namespace snitch::matchers
 
 // Testing framework implementation.
 // ---------------------------------
 
 namespace {
-using namespace snatch;
-using namespace snatch::impl;
+using namespace snitch;
+using namespace snitch::impl;
 
 template<typename F>
 void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
@@ -526,7 +526,7 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print(
             make_colored("starting tests with ", r.with_color, color::highlight2),
-            make_colored("snatch v" SNATCH_FULL_VERSION "\n", r.with_color, color::highlight1));
+            make_colored("snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
         r.print("==========================================\n");
     }
 
@@ -642,13 +642,13 @@ small_vector<std::string_view, max_captures> make_capture_buffer(const capture_s
 }
 } // namespace
 
-namespace snatch {
+namespace snitch {
 void registry::register_test(const test_id& id, test_ptr func) noexcept {
     if (test_list.size() == test_list.capacity()) {
         print(
             make_colored("error:", with_color, color::fail),
             " max number of test cases reached; "
-            "please increase 'SNATCH_MAX_TEST_CASES' (currently ",
+            "please increase 'SNITCH_MAX_TEST_CASES' (currently ",
             max_test_cases, ")\n.");
         std::terminate();
     }
@@ -660,7 +660,7 @@ void registry::register_test(const test_id& id, test_ptr func) noexcept {
         print(
             make_colored("error:", with_color, color::fail),
             " max length of test name reached; "
-            "please increase 'SNATCH_MAX_TEST_NAME_LENGTH' (currently ",
+            "please increase 'SNITCH_MAX_TEST_NAME_LENGTH' (currently ",
             max_test_name_length, ")\n.");
         std::terminate();
     }
@@ -859,17 +859,17 @@ test_run registry::run(test_case& test) noexcept {
     test_run state {
         .reg = *this, .test = test, .sections = {}, .captures = {}, .asserts = 0,
         .may_fail = may_fail, .should_fail = should_fail,
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         .duration = 0.0f
 #endif
     };
 
     // Store previously running test, to restore it later.
-    // This should always be a null pointer, except when testing snatch itself.
+    // This should always be a null pointer, except when testing snitch itself.
     test_run* previous_run = thread_current_test;
     thread_current_test    = &state;
 
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;
     auto time_start = clock::now();
 #endif
@@ -881,7 +881,7 @@ test_run registry::run(test_case& test) noexcept {
 
         state.sections.leaf_executed = false;
 
-#if SNATCH_WITH_EXCEPTIONS
+#if SNITCH_WITH_EXCEPTIONS
         try {
             test.func();
         } catch (const impl::abort_exception&) {
@@ -915,19 +915,19 @@ test_run registry::run(test_case& test) noexcept {
         }
     }
 
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
     auto time_end  = clock::now();
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
     if (!report_callback.empty()) {
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         report_callback(*this, event::test_case_ended{test.id, state.duration});
 #else
         report_callback(*this, event::test_case_ended{test.id});
 #endif
     } else if (is_at_least(verbose, verbosity::high)) {
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
         print(
             make_colored("finished:", with_color, color::status), " ",
             make_colored(full_name, with_color, color::highlight1), " (", state.duration, "s)\n");
@@ -998,7 +998,7 @@ void registry::list_all_tags() const noexcept {
                         print(
                             make_colored("error:", with_color, color::fail),
                             " max number of tags reached; "
-                            "please increase 'SNATCH_MAX_UNIQUE_TAGS' (currently ",
+                            "please increase 'SNITCH_MAX_UNIQUE_TAGS' (currently ",
                             max_unique_tags, ")\n.");
                         std::terminate();
                     }
@@ -1059,10 +1059,10 @@ const test_case* registry::end() const noexcept {
 
 constinit registry tests = []() {
     registry r;
-    r.with_color = SNATCH_DEFAULT_WITH_COLOR == 1;
+    r.with_color = SNITCH_DEFAULT_WITH_COLOR == 1;
     return r;
 }();
-} // namespace snatch
+} // namespace snitch
 
 // Main entry point utilities.
 // ---------------------------
@@ -1310,12 +1310,12 @@ constexpr expected_arguments expected_args = {
     {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
 // clang-format on
 
-constexpr bool with_color_default = SNATCH_DEFAULT_WITH_COLOR == 1;
+constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
 
-constexpr const char* program_description = "Test runner (snatch v" SNATCH_FULL_VERSION ")";
+constexpr const char* program_description = "Test runner (snitch v" SNITCH_FULL_VERSION ")";
 } // namespace
 
-namespace snatch::cli {
+namespace snitch::cli {
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
     std::optional<cli::input> ret_args =
         parse_arguments(argc, argv, expected_args, {.with_color = with_color_default});
@@ -1356,9 +1356,9 @@ get_positional_argument(const cli::input& args, std::string_view name) noexcept 
 
     return ret;
 }
-} // namespace snatch::cli
+} // namespace snitch::cli
 
-namespace snatch {
+namespace snitch {
 void registry::configure(const cli::input& args) noexcept {
     if (auto opt = get_option(args, "--color")) {
         if (*opt->value == "always") {
@@ -1374,11 +1374,11 @@ void registry::configure(const cli::input& args) noexcept {
 
     if (auto opt = get_option(args, "--verbosity")) {
         if (*opt->value == "quiet") {
-            verbose = snatch::registry::verbosity::quiet;
+            verbose = snitch::registry::verbosity::quiet;
         } else if (*opt->value == "normal") {
-            verbose = snatch::registry::verbosity::normal;
+            verbose = snitch::registry::verbosity::normal;
         } else if (*opt->value == "high") {
-            verbose = snatch::registry::verbosity::high;
+            verbose = snitch::registry::verbosity::high;
         } else {
             print(
                 make_colored("warning:", with_color, color::warning),
@@ -1421,22 +1421,22 @@ bool registry::run_tests(const cli::input& args) noexcept {
         return run_all_tests(args.executable);
     }
 }
-} // namespace snatch
+} // namespace snitch
 
-#if SNATCH_DEFINE_MAIN
+#if SNITCH_DEFINE_MAIN
 
 // Main entry point.
 // -----------------
 
 int main(int argc, char* argv[]) {
-    std::optional<snatch::cli::input> args = snatch::cli::parse_arguments(argc, argv);
+    std::optional<snitch::cli::input> args = snitch::cli::parse_arguments(argc, argv);
     if (!args) {
         return 1;
     }
 
-    snatch::tests.configure(*args);
+    snitch::tests.configure(*args);
 
-    return snatch::tests.run_tests(*args) ? 0 : 1;
+    return snitch::tests.run_tests(*args) ? 0 : 1;
 }
 
 #endif

@@ -14,42 +14,42 @@ struct event_deep_copy {
 
     type event_type = type::unknown;
 
-    snatch::small_string<snatch::max_test_name_length> test_run_name;
+    snitch::small_string<snitch::max_test_name_length> test_run_name;
     bool                                               test_run_success         = false;
     std::size_t                                        test_run_run_count       = 0;
     std::size_t                                        test_run_fail_count      = 0;
     std::size_t                                        test_run_skip_count      = 0;
     std::size_t                                        test_run_assertion_count = 0;
 
-    snatch::small_string<snatch::max_test_name_length> test_id_name;
-    snatch::small_string<snatch::max_test_name_length> test_id_tags;
-    snatch::small_string<snatch::max_test_name_length> test_id_type;
+    snitch::small_string<snitch::max_test_name_length> test_id_name;
+    snitch::small_string<snitch::max_test_name_length> test_id_tags;
+    snitch::small_string<snitch::max_test_name_length> test_id_type;
 
-    snatch::small_string<snatch::max_message_length> location_file;
+    snitch::small_string<snitch::max_message_length> location_file;
     std::size_t                                      location_line = 0u;
 
-    snatch::small_string<snatch::max_message_length> message;
-    snatch::small_vector<snatch::small_string<snatch::max_message_length>, snatch::max_captures>
+    snitch::small_string<snitch::max_message_length> message;
+    snitch::small_vector<snitch::small_string<snitch::max_message_length>, snitch::max_captures>
         captures;
-    snatch::
-        small_vector<snatch::small_string<snatch::max_message_length>, snatch::max_nested_sections>
+    snitch::
+        small_vector<snitch::small_string<snitch::max_message_length>, snitch::max_nested_sections>
             sections;
 };
 
-event_deep_copy deep_copy(const snatch::event::data& e);
+event_deep_copy deep_copy(const snitch::event::data& e);
 
 struct mock_framework {
-    snatch::registry registry;
+    snitch::registry registry;
 
-    snatch::impl::test_case test_case{
+    snitch::impl::test_case test_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snatch::impl::test_state::not_run};
+        .state = snitch::impl::test_state::not_run};
 
-    snatch::small_vector<event_deep_copy, 16> events;
-    snatch::small_string<4086>                messages;
+    snitch::small_vector<event_deep_copy, 16> events;
+    snitch::small_string<4086>                messages;
 
-    void report(const snatch::registry&, const snatch::event::data& e) noexcept;
+    void report(const snitch::registry&, const snitch::event::data& e) noexcept;
     void print(std::string_view msg) noexcept;
 
     void setup_reporter();
@@ -69,16 +69,16 @@ struct mock_framework {
 };
 
 struct console_output_catcher {
-    snatch::small_string<4086>                              messages   = {};
-    snatch::small_function<void(std::string_view) noexcept> prev_print = {};
+    snitch::small_string<4086>                              messages   = {};
+    snitch::small_function<void(std::string_view) noexcept> prev_print = {};
 
     console_output_catcher() {
-        prev_print                 = snatch::cli::console_print;
-        snatch::cli::console_print = {*this, snatch::constant<&console_output_catcher::print>{}};
+        prev_print                 = snitch::cli::console_print;
+        snitch::cli::console_print = {*this, snitch::constant<&console_output_catcher::print>{}};
     }
 
     ~console_output_catcher() {
-        snatch::cli::console_print = prev_print;
+        snitch::cli::console_print = prev_print;
     }
 
     void print(std::string_view msg) noexcept {
@@ -86,7 +86,7 @@ struct console_output_catcher {
     }
 };
 
-using arg_vector = snatch::small_vector<const char*, snatch::max_command_line_args>;
+using arg_vector = snitch::small_vector<const char*, snitch::max_command_line_args>;
 
 struct cli_input {
     std::string_view scenario;

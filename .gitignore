@@ -2,4 +2,4 @@ compile_commands.json
 build/
 build_clang/
 doc/html/
-snatch.sublime-workspace
+snitch.sublime-workspace
