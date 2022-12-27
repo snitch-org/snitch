@@ -1,11 +1,11 @@
-#ifndef SNATCH_HPP
-#define SNATCH_HPP
+#ifndef SNITCH_HPP
+#define SNITCH_HPP
 
-#include "snatch/snatch_config.hpp"
+#include "snitch/snitch_config.hpp"
 
 #include <array> // for small_vector
 #include <cstddef> // for std::size_t
-#if SNATCH_WITH_EXCEPTIONS
+#if SNITCH_WITH_EXCEPTIONS
 #    include <exception> // for std::exception
 #endif
 #include <compare> // for std::partial_ordering
@@ -18,35 +18,35 @@
 // Testing framework configuration.
 // --------------------------------
 
-namespace snatch {
+namespace snitch {
 // Maximum number of test cases in the whole program.
 // A "test case" is created for each uses of the `*_TEST_CASE` macros,
 // and for each type for the `TEMPLATE_LIST_TEST_CASE` macro.
-constexpr std::size_t max_test_cases = SNATCH_MAX_TEST_CASES;
+constexpr std::size_t max_test_cases = SNITCH_MAX_TEST_CASES;
 // Maximum depth of nested sections in a test case (section in section in section ...).
-constexpr std::size_t max_nested_sections = SNATCH_MAX_NESTED_SECTIONS;
+constexpr std::size_t max_nested_sections = SNITCH_MAX_NESTED_SECTIONS;
 // Maximum length of a `CHECK(...)` or `REQUIRE(...)` expression,
 // beyond which automatic variable printing is disabled.
-constexpr std::size_t max_expr_length = SNATCH_MAX_EXPR_LENGTH;
+constexpr std::size_t max_expr_length = SNITCH_MAX_EXPR_LENGTH;
 // Maximum length of error messages.
-constexpr std::size_t max_message_length = SNATCH_MAX_MESSAGE_LENGTH;
+constexpr std::size_t max_message_length = SNITCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
-constexpr std::size_t max_test_name_length = SNATCH_MAX_TEST_NAME_LENGTH;
+constexpr std::size_t max_test_name_length = SNITCH_MAX_TEST_NAME_LENGTH;
 // Maximum number of captured expressions in a test case.
-constexpr std::size_t max_captures = SNATCH_MAX_CAPTURES;
+constexpr std::size_t max_captures = SNITCH_MAX_CAPTURES;
 // Maximum length of a captured expression.
-constexpr std::size_t max_capture_length = SNATCH_MAX_CAPTURE_LENGTH;
+constexpr std::size_t max_capture_length = SNITCH_MAX_CAPTURE_LENGTH;
 // Maximum number of unique tags in the whole program.
-constexpr std::size_t max_unique_tags = SNATCH_MAX_UNIQUE_TAGS;
+constexpr std::size_t max_unique_tags = SNITCH_MAX_UNIQUE_TAGS;
 // Maximum number of command line arguments.
-constexpr std::size_t max_command_line_args = SNATCH_MAX_COMMAND_LINE_ARGS;
-} // namespace snatch
+constexpr std::size_t max_command_line_args = SNITCH_MAX_COMMAND_LINE_ARGS;
+} // namespace snitch
 
 // Forward declarations and public utilities.
 // ------------------------------------------
 
-namespace snatch {
+namespace snitch {
 class registry;
 
 struct test_id {
@@ -59,16 +59,16 @@ struct section_id {
     std::string_view name        = {};
     std::string_view description = {};
 };
-} // namespace snatch
+} // namespace snitch
 
-namespace snatch::matchers {
+namespace snitch::matchers {
 enum class match_status { failed, matched };
-} // namespace snatch::matchers
+} // namespace snitch::matchers
 
 // Implementation details.
 // -----------------------
 
-namespace snatch::impl {
+namespace snitch::impl {
 template<typename T>
 constexpr std::string_view get_type_name() noexcept {
 #if defined(__clang__)
@@ -93,12 +93,12 @@ constexpr std::string_view get_type_name() noexcept {
 
     return function.substr(start, size);
 }
-} // namespace snatch::impl
+} // namespace snitch::impl
 
 // Public utilities.
 // ------------------------------------------------
 
-namespace snatch {
+namespace snitch {
 template<typename T>
 constexpr std::string_view type_name = impl::get_type_name<T>();
 
@@ -106,12 +106,12 @@ template<typename... Args>
 struct type_list {};
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
-} // namespace snatch
+} // namespace snitch
 
 // Public utilities: small_vector.
 // -------------------------------
 
-namespace snatch {
+namespace snitch {
 template<typename ElemType>
 class small_vector_span {
     ElemType*    buffer_ptr  = nullptr;
@@ -384,12 +384,12 @@ public:
         return const_cast<small_vector*>(this)->span()[i];
     }
 };
-} // namespace snatch
+} // namespace snitch
 
 // Public utilities: small_string.
 // -------------------------------
 
-namespace snatch {
+namespace snitch {
 using small_string_span = small_vector_span<char>;
 using small_string_view = small_vector_span<const char>;
 
@@ -538,12 +538,12 @@ concept enumeration = std::is_enum_v<T>;
 
 template<signed_integral T>
 [[nodiscard]] bool append(small_string_span ss, T value) noexcept {
-    return snatch::append(ss, static_cast<std::ptrdiff_t>(value));
+    return snitch::append(ss, static_cast<std::ptrdiff_t>(value));
 }
 
 template<unsigned_integral T>
 [[nodiscard]] bool append(small_string_span ss, T value) noexcept {
-    return snatch::append(ss, static_cast<std::size_t>(value));
+    return snitch::append(ss, static_cast<std::size_t>(value));
 }
 
 template<enumeration T>
@@ -553,7 +553,7 @@ template<enumeration T>
 
 template<convertible_to<std::string_view> T>
 [[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
-    return snatch::append(ss, std::string_view(value));
+    return snitch::append(ss, std::string_view(value));
 }
 
 template<typename T>
@@ -587,12 +587,12 @@ concept matcher_for = requires(const T& m, const U& value) {
                               m.describe_match(value, matchers::match_status{})
                               } -> convertible_to<std::string_view>;
                       };
-} // namespace snatch
+} // namespace snitch
 
 // Public utilities: small_function.
 // ---------------------------------
 
-namespace snatch {
+namespace snitch {
 template<typename... Args>
 struct overload : Args... {
     using Args::operator()...;
@@ -714,12 +714,12 @@ public:
         return std::holds_alternative<std::monostate>(data);
     }
 };
-} // namespace snatch
+} // namespace snitch
 
 // Implementation details.
 // -----------------------
 
-namespace snatch::impl {
+namespace snitch::impl {
 struct test_run;
 
 using test_ptr = void (*)();
@@ -760,7 +760,7 @@ struct test_run {
     std::size_t   asserts     = 0;
     bool          may_fail    = false;
     bool          should_fail = false;
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
 };
@@ -840,7 +840,7 @@ struct invalid_expression {
     {
         // This should be unreachable, because we check if an expression is decomposable
         // before calling the decomposed expression, but just in case:
-        static_assert(CheckMode != CheckMode, "snatch bug: cannot decompose chained expression");
+        static_assert(CheckMode != CheckMode, "snitch bug: cannot decompose chained expression");
         return false;
     }
 };
@@ -873,7 +873,7 @@ struct extracted_binary_expression {
     {
         if (O{}(lhs, rhs) != Expected) {
             if constexpr (matcher_for<T, U>) {
-                using namespace snatch::matchers;
+                using namespace snitch::matchers;
                 constexpr auto status = std::is_same_v<O, operator_equal> == Expected
                                             ? match_status::failed
                                             : match_status::matched;
@@ -881,7 +881,7 @@ struct extracted_binary_expression {
                     expr.actual.clear();
                 }
             } else if constexpr (matcher_for<U, T>) {
-                using namespace snatch::matchers;
+                using namespace snitch::matchers;
                 constexpr auto status = std::is_same_v<O, operator_equal> == Expected
                                             ? match_status::failed
                                             : match_status::matched;
@@ -993,20 +993,20 @@ template<typename T>
 concept exception_with_what = requires(const T& e) {
                                   { e.what() } -> convertible_to<std::string_view>;
                               };
-} // namespace snatch::impl
+} // namespace snitch::impl
 
 // Sections and captures.
 // ---------
 
-namespace snatch {
+namespace snitch {
 using section_info = small_vector_span<const section_id>;
 using capture_info = small_vector_span<const std::string_view>;
-} // namespace snatch
+} // namespace snitch
 
 // Events.
 // -------
 
-namespace snatch {
+namespace snitch {
 struct assertion_location {
     std::string_view file = {};
     std::size_t      line = 0u;
@@ -1032,7 +1032,7 @@ struct test_case_started {
 
 struct test_case_ended {
     const test_id& id;
-#if SNATCH_WITH_TIMINGS
+#if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
 };
@@ -1063,12 +1063,12 @@ using data = std::variant<
     assertion_failed,
     test_case_skipped>;
 }; // namespace event
-} // namespace snatch
+} // namespace snitch
 
 // Command line interface.
 // -----------------------
 
-namespace snatch::cli {
+namespace snitch::cli {
 struct argument {
     std::string_view                name       = {};
     std::optional<std::string_view> value_name = {};
@@ -1088,12 +1088,12 @@ std::optional<cli::argument> get_option(const cli::input& args, std::string_view
 
 std::optional<cli::argument>
 get_positional_argument(const cli::input& args, std::string_view name) noexcept;
-} // namespace snatch::cli
+} // namespace snitch::cli
 
 // Test registry.
 // --------------
 
-namespace snatch {
+namespace snitch {
 class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
 
@@ -1116,7 +1116,7 @@ public:
     using print_function  = small_function<void(std::string_view) noexcept>;
     using report_function = small_function<void(const registry&, const event::data&) noexcept>;
 
-    print_function  print_callback = &snatch::impl::stdout_print;
+    print_function  print_callback = &snitch::impl::stdout_print;
     report_function report_callback;
 
     template<typename... Args>
@@ -1186,12 +1186,12 @@ public:
 };
 
 extern constinit registry tests;
-} // namespace snatch
+} // namespace snitch
 
 // Matchers.
 // ---------
 
-namespace snatch::matchers {
+namespace snitch::matchers {
 struct contains_substring {
     std::string_view substring_pattern;
 
@@ -1248,12 +1248,12 @@ is_any_of(T, Args...) -> is_any_of<T, sizeof...(Args) + 1>;
 struct with_what_contains : private contains_substring {
     explicit with_what_contains(std::string_view pattern) noexcept;
 
-    template<snatch::impl::exception_with_what E>
+    template<snitch::impl::exception_with_what E>
     bool match(const E& e) const noexcept {
         return contains_substring::match(e.what());
     }
 
-    template<snatch::impl::exception_with_what E>
+    template<snitch::impl::exception_with_what E>
     small_string<max_message_length>
     describe_match(const E& e, match_status status) const noexcept {
         return contains_substring::describe_match(e.what(), status);
@@ -1269,309 +1269,309 @@ template<typename T, matcher_for<T> M>
 bool operator==(const M& m, const T& value) noexcept {
     return m.match(value);
 }
-} // namespace snatch::matchers
+} // namespace snitch::matchers
 
 // Compiler warning handling.
 // --------------------------
 
 // clang-format off
 #if defined(__clang__)
-#    define SNATCH_WARNING_PUSH _Pragma("clang diagnostic push")
-#    define SNATCH_WARNING_POP _Pragma("clang diagnostic pop")
-#    define SNATCH_WARNING_DISABLE_PARENTHESES _Pragma("clang diagnostic ignored \"-Wparentheses\"")
-#    define SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON
+#    define SNITCH_WARNING_PUSH _Pragma("clang diagnostic push")
+#    define SNITCH_WARNING_POP _Pragma("clang diagnostic pop")
+#    define SNITCH_WARNING_DISABLE_PARENTHESES _Pragma("clang diagnostic ignored \"-Wparentheses\"")
+#    define SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON
 #elif defined(__GNUC__)
-#    define SNATCH_WARNING_PUSH _Pragma("GCC diagnostic push")
-#    define SNATCH_WARNING_POP _Pragma("GCC diagnostic pop")
-#    define SNATCH_WARNING_DISABLE_PARENTHESES _Pragma("GCC diagnostic ignored \"-Wparentheses\"")
-#    define SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON
+#    define SNITCH_WARNING_PUSH _Pragma("GCC diagnostic push")
+#    define SNITCH_WARNING_POP _Pragma("GCC diagnostic pop")
+#    define SNITCH_WARNING_DISABLE_PARENTHESES _Pragma("GCC diagnostic ignored \"-Wparentheses\"")
+#    define SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON
 #elif defined(_MSC_VER)
-#    define SNATCH_WARNING_PUSH _Pragma("warning(push)")
-#    define SNATCH_WARNING_POP _Pragma("warning(pop)")
-#    define SNATCH_WARNING_DISABLE_PARENTHESES
-#    define SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON _Pragma("warning(disable: 4127)")
+#    define SNITCH_WARNING_PUSH _Pragma("warning(push)")
+#    define SNITCH_WARNING_POP _Pragma("warning(pop)")
+#    define SNITCH_WARNING_DISABLE_PARENTHESES
+#    define SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON _Pragma("warning(disable: 4127)")
 #else
-#    define SNATCH_WARNING_PUSH
-#    define SNATCH_WARNING_POP
-#    define SNATCH_WARNING_DISABLE_PARENTHESES
-#    define SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON
+#    define SNITCH_WARNING_PUSH
+#    define SNITCH_WARNING_POP
+#    define SNITCH_WARNING_DISABLE_PARENTHESES
+#    define SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON
 #endif
 // clang-format on
 
 // Internal test macros.
 // ---------------------
 
-#if SNATCH_WITH_EXCEPTIONS
-#    define SNATCH_TESTING_ABORT                                                                   \
-        throw snatch::impl::abort_exception {}
+#if SNITCH_WITH_EXCEPTIONS
+#    define SNITCH_TESTING_ABORT                                                                   \
+        throw snitch::impl::abort_exception {}
 #else
-#    define SNATCH_TESTING_ABORT std::terminate()
+#    define SNITCH_TESTING_ABORT std::terminate()
 #endif
 
-#define SNATCH_CONCAT_IMPL(x, y) x##y
-#define SNATCH_MACRO_CONCAT(x, y) SNATCH_CONCAT_IMPL(x, y)
+#define SNITCH_CONCAT_IMPL(x, y) x##y
+#define SNITCH_MACRO_CONCAT(x, y) SNITCH_CONCAT_IMPL(x, y)
 
-#define SNATCH_EXPR_TRUE(TYPE, EXP)                                                                \
-    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")"};                  \
-    snatch::impl::expression_extractor<false, true>{SNATCH_CURRENT_EXPRESSION} <= EXP
+#define SNITCH_EXPR_TRUE(TYPE, EXP)                                                                \
+    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #EXP ")"};                  \
+    snitch::impl::expression_extractor<false, true>{SNITCH_CURRENT_EXPRESSION} <= EXP
 
-#define SNATCH_EXPR_FALSE(TYPE, EXP)                                                               \
-    auto SNATCH_CURRENT_EXPRESSION = snatch::impl::expression{TYPE "(" #EXP ")"};                  \
-    snatch::impl::expression_extractor<false, false>{SNATCH_CURRENT_EXPRESSION} <= EXP
+#define SNITCH_EXPR_FALSE(TYPE, EXP)                                                               \
+    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #EXP ")"};                  \
+    snitch::impl::expression_extractor<false, false>{SNITCH_CURRENT_EXPRESSION} <= EXP
 
-#define SNATCH_DECOMPOSABLE(EXP)                                                                   \
-    snatch::impl::is_decomposable<                                                                 \
-        decltype(snatch::impl::expression_extractor<true, true>{std::declval<snatch::impl::expression&>()} <= EXP)>
+#define SNITCH_DECOMPOSABLE(EXP)                                                                   \
+    snitch::impl::is_decomposable<                                                                 \
+        decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= EXP)>
 
 // Public test macros.
 // -------------------
 
-#define SNATCH_TEST_CASE_IMPL(ID, ...)                                                             \
+#define SNITCH_TEST_CASE_IMPL(ID, ...)                                                             \
     static void        ID();                                                                       \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add({__VA_ARGS__}, &ID);                                                     \
+    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snitch::tests.add({__VA_ARGS__}, &ID);                                                     \
     void ID()
 
-#define SNATCH_TEST_CASE(...)                                                                      \
-    SNATCH_TEST_CASE_IMPL(SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), __VA_ARGS__)
+#define SNITCH_TEST_CASE(...)                                                                      \
+    SNITCH_TEST_CASE_IMPL(SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), __VA_ARGS__)
 
-#define SNATCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                                 \
+#define SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                                 \
     template<typename TestType>                                                                    \
     static void        ID();                                                                       \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_type_list<TYPES>(                                                   \
+    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snitch::tests.add_with_type_list<TYPES>(                                                   \
             NAME, TAGS, []<typename TestType>() { ID<TestType>(); });                              \
     template<typename TestType>                                                                    \
     void ID()
 
-#define SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
-    SNATCH_TEMPLATE_LIST_TEST_CASE_IMPL(                                                           \
-        SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, TYPES)
+#define SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
+    SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(                                                           \
+        SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, TYPES)
 
-#define SNATCH_TEMPLATE_TEST_CASE_IMPL(ID, NAME, TAGS, ...)                                        \
+#define SNITCH_TEMPLATE_TEST_CASE_IMPL(ID, NAME, TAGS, ...)                                        \
     template<typename TestType>                                                                    \
     static void        ID();                                                                       \
-    static const char* SNATCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snatch::tests.add_with_types<__VA_ARGS__>(                                                 \
+    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snitch::tests.add_with_types<__VA_ARGS__>(                                                 \
             NAME, TAGS, []<typename TestType>() { ID<TestType>(); });                              \
     template<typename TestType>                                                                    \
     void ID()
 
-#define SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
-    SNATCH_TEMPLATE_TEST_CASE_IMPL(                                                                \
-        SNATCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
+#define SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
+    SNITCH_TEMPLATE_TEST_CASE_IMPL(                                                                \
+        SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
 
-#define SNATCH_SECTION(...)                                                                        \
-    if (snatch::impl::section_entry_checker SNATCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            {__VA_ARGS__}, snatch::impl::get_current_test()})
+#define SNITCH_SECTION(...)                                                                        \
+    if (snitch::impl::section_entry_checker SNITCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
+            {__VA_ARGS__}, snitch::impl::get_current_test()})
 
-#define SNATCH_CAPTURE(...)                                                                        \
-    auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
-        snatch::impl::add_captures(snatch::impl::get_current_test(), #__VA_ARGS__, __VA_ARGS__)
+#define SNITCH_CAPTURE(...)                                                                        \
+    auto SNITCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
+        snitch::impl::add_captures(snitch::impl::get_current_test(), #__VA_ARGS__, __VA_ARGS__)
 
-#define SNATCH_INFO(...)                                                                           \
-    auto SNATCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
-        snatch::impl::add_info(snatch::impl::get_current_test(), __VA_ARGS__)
+#define SNITCH_INFO(...)                                                                           \
+    auto SNITCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
+        snitch::impl::add_info(snitch::impl::get_current_test(), __VA_ARGS__)
 
-#define SNATCH_REQUIRE(EXP)                                                                        \
+#define SNITCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        SNATCH_WARNING_PUSH                                                                        \
-        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNATCH_EXPR_TRUE("REQUIRE", EXP)) {                                                \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
-                SNATCH_TESTING_ABORT;                                                              \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNITCH_EXPR_TRUE("REQUIRE", EXP)) {                                                \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } else {                                                                                   \
             if (!(EXP)) {                                                                          \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #EXP ")");               \
-                SNATCH_TESTING_ABORT;                                                              \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #EXP ")");               \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         }                                                                                          \
-        SNATCH_WARNING_POP                                                                         \
+        SNITCH_WARNING_POP                                                                         \
     } while (0)
 
-#define SNATCH_CHECK(EXP)                                                                          \
+#define SNITCH_CHECK(EXP)                                                                          \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        SNATCH_WARNING_PUSH                                                                        \
-        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNATCH_EXPR_TRUE("CHECK", EXP)) {                                                  \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNITCH_EXPR_TRUE("CHECK", EXP)) {                                                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if (!(EXP)) {                                                                          \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #EXP ")");                 \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #EXP ")");                 \
             }                                                                                      \
         }                                                                                          \
-        SNATCH_WARNING_POP                                                                         \
+        SNITCH_WARNING_POP                                                                         \
     } while (0)
 
-#define SNATCH_REQUIRE_FALSE(EXP)                                                                  \
+#define SNITCH_REQUIRE_FALSE(EXP)                                                                  \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        SNATCH_WARNING_PUSH                                                                        \
-        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNATCH_EXPR_FALSE("REQUIRE_FALSE", EXP)) {                                         \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
-                SNATCH_TESTING_ABORT;                                                              \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNITCH_EXPR_FALSE("REQUIRE_FALSE", EXP)) {                                         \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } else {                                                                                   \
             if (!(EXP)) {                                                                          \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #EXP ")");         \
-                SNATCH_TESTING_ABORT;                                                              \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #EXP ")");         \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         }                                                                                          \
-        SNATCH_WARNING_POP                                                                         \
+        SNITCH_WARNING_POP                                                                         \
     } while (0)
 
-#define SNATCH_CHECK_FALSE(EXP)                                                                    \
+#define SNITCH_CHECK_FALSE(EXP)                                                                    \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        SNATCH_WARNING_PUSH                                                                        \
-        SNATCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNATCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNATCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNATCH_EXPR_FALSE("CHECK_FALSE", EXP)) {                                           \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, SNATCH_CURRENT_EXPRESSION);         \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
+            if (SNITCH_EXPR_FALSE("CHECK_FALSE", EXP)) {                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if (!(EXP)) {                                                                          \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #EXP ")");           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #EXP ")");           \
             }                                                                                      \
         }                                                                                          \
-        SNATCH_WARNING_POP                                                                         \
+        SNITCH_WARNING_POP                                                                         \
     } while (0)
 
-#define SNATCH_FAIL(MESSAGE)                                                                       \
+#define SNITCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
-            SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
-        SNATCH_TESTING_ABORT;                                                                      \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_CURRENT_TEST.reg.report_failure(                                                    \
+            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+        SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
-#define SNATCH_FAIL_CHECK(MESSAGE)                                                                 \
+#define SNITCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        SNATCH_CURRENT_TEST.reg.report_failure(                                                    \
-            SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_CURRENT_TEST.reg.report_failure(                                                    \
+            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
     } while (0)
 
-#define SNATCH_SKIP(MESSAGE)                                                                       \
+#define SNITCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        SNATCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNATCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
-        SNATCH_TESTING_ABORT;                                                                      \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
+            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+        SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
-#define SNATCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
+#define SNITCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
-        const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
-        if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
-            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                             \
-            SNATCH_TESTING_ABORT;                                                                  \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        const auto& SNITCH_TEMP_VALUE   = (EXPR);                                                  \
+        const auto& SNITCH_TEMP_MATCHER = (MATCHER);                                               \
+        if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                SNITCH_TEMP_MATCHER.describe_fail(SNITCH_TEMP_VALUE));                             \
+            SNITCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
     } while (0)
 
-#define SNATCH_CHECK_THAT(EXPR, MATCHER)                                                           \
+#define SNITCH_CHECK_THAT(EXPR, MATCHER)                                                           \
     do {                                                                                           \
-        auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                              \
-        ++SNATCH_CURRENT_TEST.asserts;                                                             \
-        const auto& SNATCH_TEMP_VALUE   = (EXPR);                                                  \
-        const auto& SNATCH_TEMP_MATCHER = (MATCHER);                                               \
-        if (!SNATCH_TEMP_MATCHER.match(SNATCH_TEMP_VALUE)) {                                       \
-            SNATCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                SNATCH_TEMP_MATCHER.describe_fail(SNATCH_TEMP_VALUE));                             \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        const auto& SNITCH_TEMP_VALUE   = (EXPR);                                                  \
+        const auto& SNITCH_TEMP_MATCHER = (MATCHER);                                               \
+        if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                SNITCH_TEMP_MATCHER.describe_fail(SNITCH_TEMP_VALUE));                             \
         }                                                                                          \
     } while (0)
 
 // clang-format off
-#if SNATCH_WITH_SHORTHAND_MACROS
-#    define TEST_CASE(...)                             SNATCH_TEST_CASE(__VA_ARGS__)
-#    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNATCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
-#    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNATCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
-#    define SECTION(...)                               SNATCH_SECTION(__VA_ARGS__)
-#    define CAPTURE(...)                               SNATCH_CAPTURE(__VA_ARGS__)
-#    define INFO(...)                                  SNATCH_INFO(__VA_ARGS__)
-#    define REQUIRE(EXP)                               SNATCH_REQUIRE(EXP)
-#    define CHECK(EXP)                                 SNATCH_CHECK(EXP)
-#    define REQUIRE_FALSE(EXP)                         SNATCH_REQUIRE_FALSE(EXP)
-#    define CHECK_FALSE(EXP)                           SNATCH_CHECK_FALSE(EXP)
-#    define FAIL(MESSAGE)                              SNATCH_FAIL(MESSAGE)
-#    define FAIL_CHECK(MESSAGE)                        SNATCH_FAIL_CHECK(MESSAGE)
-#    define SKIP(MESSAGE)                              SNATCH_SKIP(MESSAGE)
-#    define REQUIRE_THAT(EXP, MATCHER)                 SNATCH_REQUIRE(EXP, MATCHER)
-#    define CHECK_THAT(EXP, MATCHER)                   SNATCH_CHECK(EXP, MATCHER)
+#if SNITCH_WITH_SHORTHAND_MACROS
+#    define TEST_CASE(...)                             SNITCH_TEST_CASE(__VA_ARGS__)
+#    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
+#    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
+#    define SECTION(...)                               SNITCH_SECTION(__VA_ARGS__)
+#    define CAPTURE(...)                               SNITCH_CAPTURE(__VA_ARGS__)
+#    define INFO(...)                                  SNITCH_INFO(__VA_ARGS__)
+#    define REQUIRE(EXP)                               SNITCH_REQUIRE(EXP)
+#    define CHECK(EXP)                                 SNITCH_CHECK(EXP)
+#    define REQUIRE_FALSE(EXP)                         SNITCH_REQUIRE_FALSE(EXP)
+#    define CHECK_FALSE(EXP)                           SNITCH_CHECK_FALSE(EXP)
+#    define FAIL(MESSAGE)                              SNITCH_FAIL(MESSAGE)
+#    define FAIL_CHECK(MESSAGE)                        SNITCH_FAIL_CHECK(MESSAGE)
+#    define SKIP(MESSAGE)                              SNITCH_SKIP(MESSAGE)
+#    define REQUIRE_THAT(EXP, MATCHER)                 SNITCH_REQUIRE(EXP, MATCHER)
+#    define CHECK_THAT(EXP, MATCHER)                   SNITCH_CHECK(EXP, MATCHER)
 #endif
 // clang-format on
 
-#if SNATCH_WITH_EXCEPTIONS
+#if SNITCH_WITH_EXCEPTIONS
 
-#    define SNATCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)                                        \
+#    define SNITCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)                                        \
         do {                                                                                       \
-            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
+            auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
-                ++SNATCH_CURRENT_TEST.asserts;                                                     \
+                ++SNITCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     #EXCEPTION " expected but no exception thrown");                               \
-                SNATCH_TESTING_ABORT;                                                              \
+                SNITCH_TESTING_ABORT;                                                              \
             } catch (const EXCEPTION&) {                                                           \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
-                SNATCH_TESTING_ABORT;                                                              \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } while (0)
 
-#    define SNATCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                                          \
+#    define SNITCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                                          \
         do {                                                                                       \
-            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
+            auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
-                ++SNATCH_CURRENT_TEST.asserts;                                                     \
+                ++SNITCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     #EXCEPTION " expected but no exception thrown");                               \
             } catch (const EXCEPTION&) {                                                           \
                 /* success */                                                                      \
@@ -1579,91 +1579,91 @@ bool operator==(const M& m, const T& value) noexcept {
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
             }                                                                                      \
         } while (0)
 
-#    define SNATCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                          \
+#    define SNITCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                          \
         do {                                                                                       \
-            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
+            auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
-                ++SNATCH_CURRENT_TEST.asserts;                                                     \
+                ++SNITCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     #EXCEPTION " expected but no exception thrown");                               \
-                SNATCH_TESTING_ABORT;                                                              \
+                SNITCH_TESTING_ABORT;                                                              \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
-                    SNATCH_TESTING_ABORT;                                                          \
+                        (MATCHER).describe_match(e, snitch::matchers::match_status::failed));      \
+                    SNITCH_TESTING_ABORT;                                                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
-                SNATCH_TESTING_ABORT;                                                              \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } while (0)
 
-#    define SNATCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                            \
+#    define SNITCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                            \
         do {                                                                                       \
-            auto& SNATCH_CURRENT_TEST = snatch::impl::get_current_test();                          \
+            auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
-                ++SNATCH_CURRENT_TEST.asserts;                                                     \
+                ++SNITCH_CURRENT_TEST.asserts;                                                     \
                 EXPRESSION;                                                                        \
-                SNATCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     #EXCEPTION " expected but no exception thrown");                               \
             } catch (const EXCEPTION& e) {                                                         \
                 if (!(MATCHER).match(e)) {                                                         \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_match(e, snatch::matchers::match_status::failed));      \
+                        (MATCHER).describe_match(e, snitch::matchers::match_status::failed));      \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
-                    SNATCH_CURRENT_TEST.reg.report_failure(                                        \
-                        SNATCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                    SNITCH_CURRENT_TEST.reg.report_failure(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                 }                                                                                  \
             }                                                                                      \
         } while (0)
 
 // clang-format off
-#if SNATCH_WITH_SHORTHAND_MACROS
-#    define REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)               SNATCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)
-#    define CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                 SNATCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)
-#    define REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER) SNATCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)
-#    define CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)   SNATCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)
+#if SNITCH_WITH_SHORTHAND_MACROS
+#    define REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)               SNITCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)
+#    define CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                 SNITCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)
+#    define REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER) SNITCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)
+#    define CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)   SNITCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)
 #endif
 // clang-format on
 

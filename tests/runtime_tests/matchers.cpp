@@ -4,7 +4,7 @@
 
 using namespace std::literals;
 
-namespace snatch::matchers {
+namespace snitch::matchers {
 struct has_prefix {
     std::string_view prefix;
 
@@ -30,64 +30,64 @@ struct has_prefix {
         return message;
     }
 };
-} // namespace snatch::matchers
+} // namespace snitch::matchers
 
 TEST_CASE("example matcher has_prefix", "[utility]") {
-    CHECK("info: hello"sv == snatch::matchers::has_prefix{"info"});
-    CHECK("info: hello"sv != snatch::matchers::has_prefix{"warning"});
-    CHECK("hello"sv != snatch::matchers::has_prefix{"info"});
-    CHECK(snatch::matchers::has_prefix{"info"} == "info: hello"sv);
-    CHECK(snatch::matchers::has_prefix{"warning"} != "info: hello"sv);
-    CHECK(snatch::matchers::has_prefix{"info"} != "hello"sv);
+    CHECK("info: hello"sv == snitch::matchers::has_prefix{"info"});
+    CHECK("info: hello"sv != snitch::matchers::has_prefix{"warning"});
+    CHECK("hello"sv != snitch::matchers::has_prefix{"info"});
+    CHECK(snitch::matchers::has_prefix{"info"} == "info: hello"sv);
+    CHECK(snitch::matchers::has_prefix{"warning"} != "info: hello"sv);
+    CHECK(snitch::matchers::has_prefix{"info"} != "hello"sv);
 
     CHECK(
-        snatch::matchers::has_prefix{"info"}.describe_match(
-            "info: hello"sv, snatch::matchers::match_status::matched) ==
+        snitch::matchers::has_prefix{"info"}.describe_match(
+            "info: hello"sv, snitch::matchers::match_status::matched) ==
         "found prefix 'info:' in 'info: hello'"sv);
     CHECK(
-        snatch::matchers::has_prefix{"warning"}.describe_match(
-            "info: hello"sv, snatch::matchers::match_status::failed) ==
+        snitch::matchers::has_prefix{"warning"}.describe_match(
+            "info: hello"sv, snitch::matchers::match_status::failed) ==
         "could not find prefix 'warning:' in 'info: hello'; found prefix 'info:'"sv);
 }
 
 TEST_CASE("matcher contains_substring", "[utility]") {
-    CHECK("info: hello"sv == snatch::matchers::contains_substring{"hello"});
-    CHECK("info: hello"sv != snatch::matchers::contains_substring{"warning"});
-    CHECK(snatch::matchers::contains_substring{"hello"} == "info: hello"sv);
-    CHECK(snatch::matchers::contains_substring{"warning"} != "info: hello"sv);
+    CHECK("info: hello"sv == snitch::matchers::contains_substring{"hello"});
+    CHECK("info: hello"sv != snitch::matchers::contains_substring{"warning"});
+    CHECK(snitch::matchers::contains_substring{"hello"} == "info: hello"sv);
+    CHECK(snitch::matchers::contains_substring{"warning"} != "info: hello"sv);
 
     CHECK(
-        snatch::matchers::contains_substring{"hello"}.describe_match(
-            "info: hello"sv, snatch::matchers::match_status::matched) ==
+        snitch::matchers::contains_substring{"hello"}.describe_match(
+            "info: hello"sv, snitch::matchers::match_status::matched) ==
         "found 'hello' in 'info: hello'"sv);
     CHECK(
-        snatch::matchers::contains_substring{"warning"}.describe_match(
-            "info: hello"sv, snatch::matchers::match_status::failed) ==
+        snitch::matchers::contains_substring{"warning"}.describe_match(
+            "info: hello"sv, snitch::matchers::match_status::failed) ==
         "could not find 'warning' in 'info: hello'"sv);
 }
 
 TEST_CASE("matcher with_what_contains", "[utility]") {
-    CHECK(std::runtime_error{"not good"} == snatch::matchers::with_what_contains{"good"});
-    CHECK(std::runtime_error{"not good"} == snatch::matchers::with_what_contains{"not good"});
-    CHECK(std::runtime_error{"not good"} != snatch::matchers::with_what_contains{"bad"});
-    CHECK(std::runtime_error{"not good"} != snatch::matchers::with_what_contains{"is good"});
-    CHECK(snatch::matchers::with_what_contains{"good"} == std::runtime_error{"not good"});
-    CHECK(snatch::matchers::with_what_contains{"not good"} == std::runtime_error{"not good"});
-    CHECK(snatch::matchers::with_what_contains{"bad"} != std::runtime_error{"not good"});
-    CHECK(snatch::matchers::with_what_contains{"is good"} != std::runtime_error{"not good"});
+    CHECK(std::runtime_error{"not good"} == snitch::matchers::with_what_contains{"good"});
+    CHECK(std::runtime_error{"not good"} == snitch::matchers::with_what_contains{"not good"});
+    CHECK(std::runtime_error{"not good"} != snitch::matchers::with_what_contains{"bad"});
+    CHECK(std::runtime_error{"not good"} != snitch::matchers::with_what_contains{"is good"});
+    CHECK(snitch::matchers::with_what_contains{"good"} == std::runtime_error{"not good"});
+    CHECK(snitch::matchers::with_what_contains{"not good"} == std::runtime_error{"not good"});
+    CHECK(snitch::matchers::with_what_contains{"bad"} != std::runtime_error{"not good"});
+    CHECK(snitch::matchers::with_what_contains{"is good"} != std::runtime_error{"not good"});
 
     CHECK(
-        snatch::matchers::with_what_contains{"good"}.describe_match(
-            std::runtime_error{"not good"}, snatch::matchers::match_status::matched) ==
+        snitch::matchers::with_what_contains{"good"}.describe_match(
+            std::runtime_error{"not good"}, snitch::matchers::match_status::matched) ==
         "found 'good' in 'not good'"sv);
     CHECK(
-        snatch::matchers::with_what_contains{"bad"}.describe_match(
-            std::runtime_error{"not good"}, snatch::matchers::match_status::failed) ==
+        snitch::matchers::with_what_contains{"bad"}.describe_match(
+            std::runtime_error{"not good"}, snitch::matchers::match_status::failed) ==
         "could not find 'bad' in 'not good'"sv);
 }
 
 TEST_CASE("matcher is_any_of", "[utility]") {
-    const auto m = snatch::matchers::is_any_of{1u, 2u, 3u};
+    const auto m = snitch::matchers::is_any_of{1u, 2u, 3u};
 
     CHECK(1u == m);
     CHECK(2u == m);
@@ -103,9 +103,9 @@ TEST_CASE("matcher is_any_of", "[utility]") {
     CHECK(m != 5u);
 
     CHECK(
-        m.describe_match(2u, snatch::matchers::match_status::matched) ==
+        m.describe_match(2u, snitch::matchers::match_status::matched) ==
         "'2' was found in {'1', '2', '3'}"sv);
     CHECK(
-        m.describe_match(5u, snatch::matchers::match_status::failed) ==
+        m.describe_match(5u, snitch::matchers::match_status::failed) ==
         "'5' was not found in {'1', '2', '3'}"sv);
 }

@@ -5,7 +5,7 @@ using namespace std::literals;
 namespace {
 constexpr std::size_t max_length = 20u;
 
-using string_type = snatch::small_string<max_length>;
+using string_type = snitch::small_string<max_length>;
 
 enum class enum_type { value1 = 0, value2 = 12 };
 
@@ -77,7 +77,7 @@ TEMPLATE_TEST_CASE(
             !std::is_pointer_v<TestType> || std::is_function_v<std::remove_pointer_t<TestType>>) {
             CHECK(std::string_view(s) == expected);
         } else {
-#if defined(SNATCH_COMPILER_MSVC)
+#if defined(SNITCH_COMPILER_MSVC)
             CHECK(std::string_view(s).size() > 0u);
 #else
             CHECK(std::string_view(s).starts_with(expected));
@@ -148,11 +148,11 @@ TEST_CASE("append multiple", "[utility]") {
 TEMPLATE_TEST_CASE(
     "truncate_end",
     "[utility]",
-    snatch::small_string<1>,
-    snatch::small_string<2>,
-    snatch::small_string<3>,
-    snatch::small_string<4>,
-    snatch::small_string<5>) {
+    snitch::small_string<1>,
+    snitch::small_string<2>,
+    snitch::small_string<3>,
+    snitch::small_string<4>,
+    snitch::small_string<5>) {
 
     TestType s;
 
@@ -193,12 +193,12 @@ TEMPLATE_TEST_CASE(
 TEMPLATE_TEST_CASE(
     "append_or_truncate",
     "[utility]",
-    snatch::small_string<1>,
-    snatch::small_string<2>,
-    snatch::small_string<3>,
-    snatch::small_string<4>,
-    snatch::small_string<5>,
-    snatch::small_string<6>) {
+    snitch::small_string<1>,
+    snitch::small_string<2>,
+    snitch::small_string<3>,
+    snitch::small_string<4>,
+    snitch::small_string<5>,
+    snitch::small_string<6>) {
 
     TestType s;
     append_or_truncate(s, "i=", "1", "+", "2");
@@ -217,12 +217,12 @@ TEMPLATE_TEST_CASE(
 TEMPLATE_TEST_CASE(
     "replace_all",
     "[utility]",
-    snatch::small_string<5>,
-    snatch::small_string<6>,
-    snatch::small_string<7>,
-    snatch::small_string<8>,
-    snatch::small_string<9>,
-    snatch::small_string<10>) {
+    snitch::small_string<5>,
+    snitch::small_string<6>,
+    snitch::small_string<7>,
+    snitch::small_string<8>,
+    snitch::small_string<9>,
+    snitch::small_string<10>) {
     TestType s;
 
     SECTION("same size different value") {

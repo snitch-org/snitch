@@ -1,18 +1,18 @@
-# snatch
+# snitch
 
-![Build Status](https://github.com/cschreib/snatch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snatch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snatch)
+![Build Status](https://github.com/cschreib/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snitch)
 
 Lightweight C++20 testing framework.
 
-The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly testing framework. The design philosophy is to keep the testing API lean, including only what is strictly necessary to present clear messages when a test fails.
+The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly testing framework. The design philosophy is to keep the testing API lean, including only what is strictly necessary to present clear messages when a test fails.
 
 <!-- MarkdownTOC autolink="true" -->
 
 - [Features and limitations](#features-and-limitations)
 - [Example](#example)
 - [Example build configurations with CMake](#example-build-configurations-with-cmake)
-    - [Using _snatch_ as a regular library](#using-snatch-as-a-regular-library)
-    - [Using _snatch_ as a header-only library](#using-snatch-as-a-header-only-library)
+    - [Using _snitch_ as a regular library](#using-snitch-as-a-regular-library)
+    - [Using _snitch_ as a header-only library](#using-snitch-as-a-header-only-library)
 - [Benchmark](#benchmark)
 - [Documentation](#documentation)
     - [Detailed comparison with _Catch2_](#detailed-comparison-with-catch2)
@@ -29,6 +29,7 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Exceptions](#exceptions)
     - [Header-only build](#header-only-build)
     - [`clang-format` support](#clang-format-support)
+    - [Why _snitch_?](#why-_snitch_)
 
 <!-- /MarkdownTOC -->
 
@@ -37,8 +38,8 @@ The goal of _snatch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Compiles tests up to 40% faster than other testing frameworks (see [Benchmark](#benchmark)).
- - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
+ - Compiles template-heavy tests at least 60% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
@@ -57,7 +58,7 @@ Notable current limitations:
 This is the same example code as in the [_Catch2_ tutorials](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md):
 
 ```c++
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 
 unsigned int Factorial( unsigned int number ) {
     return number <= 1 ? number : Factorial(number-1)*number;
@@ -79,10 +80,10 @@ Output:
 And here is an example code for a typed test, also borrowed (and adapted) from the [_Catch2_ tutorials](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md#type-parametrised-test-cases):
 
 ```c++
-#include <snatch/snatch.hpp>
+#include <snitch/snitch.hpp>
 
-using MyTypes = snatch::type_list<int, char, float>; // could also be std::tuple; any template type list will do
-TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside snatch::type_list", "[template][list]", MyTypes)
+using MyTypes = snitch::type_list<int, char, float>; // could also be std::tuple; any template type list will do
+TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside snitch::type_list", "[template][list]", MyTypes)
 {
     REQUIRE(sizeof(TestType) > 1); // will fail for 'char'
 }
@@ -95,53 +96,53 @@ Output:
 
 ## Example build configurations with CMake
 
-### Using _snatch_ as a regular library
+### Using _snitch_ as a regular library
 
-Here is an example CMake file to download _snatch_ and define a test application:
+Here is an example CMake file to download _snitch_ and define a test application:
 
 ```cmake
 include(FetchContent)
 
-FetchContent_Declare(snatch
-                     GIT_REPOSITORY https://github.com/cschreib/snatch.git
+FetchContent_Declare(snitch
+                     GIT_REPOSITORY https://github.com/cschreib/snitch.git
                      GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
-FetchContent_MakeAvailable(snatch)
+FetchContent_MakeAvailable(snitch)
 
 set(RUNTIME_TEST_FILES
   # add your test files here...
   )
 
 add_executable(my_tests ${YOUR_TEST_FILES})
-target_link_libraries(my_tests PRIVATE snatch::snatch)
+target_link_libraries(my_tests PRIVATE snitch::snitch)
 ```
 
-_snatch_ will provide the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
+_snitch_ will provide the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
 
 
-### Using _snatch_ as a header-only library
+### Using _snitch_ as a header-only library
 
-Here is an example CMake file to download _snatch_ and define a test application:
+Here is an example CMake file to download _snitch_ and define a test application:
 
 ```cmake
 include(FetchContent)
 
-FetchContent_Declare(snatch
-                     GIT_REPOSITORY https://github.com/cschreib/snatch.git
+FetchContent_Declare(snitch
+                     GIT_REPOSITORY https://github.com/cschreib/snitch.git
                      GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
-FetchContent_MakeAvailable(snatch)
+FetchContent_MakeAvailable(snitch)
 
 set(RUNTIME_TEST_FILES
   # add your test files here...
   )
 
 add_executable(my_tests ${YOUR_TEST_FILES})
-target_link_libraries(my_tests PRIVATE snatch::snatch-header-only)
+target_link_libraries(my_tests PRIVATE snitch::snitch-header-only)
 ```
 
-One (and only one!) of your test files needs to include _snatch_ as:
+One (and only one!) of your test files needs to include _snitch_ as:
 ```c++
-#define SNATCH_IMPLEMENTATION
-#include <snatch_all.hpp>
+#define SNITCH_IMPLEMENTATION
+#include <snitch_all.hpp>
 ```
 
 See the documentation for the [header-only mode](#header-only-build) for more information. This will include the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
@@ -157,7 +158,7 @@ The following benchmarks were done using real-world tests from another library (
  - Compiler: GCC 10.3.0 with `-std=c++20`.
 
 The benchmark tests can be found in different branches of _observable_unique_ptr_:
- - _snatch_: https://github.com/cschreib/observable_unique_ptr/tree/snatch
+ - _snitch_: https://github.com/cschreib/observable_unique_ptr/tree/snitch
  - _Catch2_ v3.2.0: https://github.com/cschreib/observable_unique_ptr/tree/catch2
  - _doctest_ v2.4.9: https://github.com/cschreib/observable_unique_ptr/tree/doctest
  - _Boost.UT_ v1.1.9: https://github.com/cschreib/observable_unique_ptr/tree/boost_ut
@@ -172,7 +173,7 @@ Description of results below:
 
 Results for Debug builds:
 
-| **Debug**       | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
+| **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
 | Build tests     | 63s      | 86s      | 78s       | 109s       |
@@ -183,7 +184,7 @@ Results for Debug builds:
 
 Results for Release builds:
 
-| **Release**     | _snatch_ | _Catch2_ | _doctest_ | _Boost UT_ |
+| **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.4s     | 68s      | 3.6s      | 0s         |
 | Build tests     | 135s     | 264s     | 216s      | 281s       |
@@ -207,7 +208,7 @@ See [the dedicated page in the docs folder](doc/comparison_catch2.md).
 
 `TEST_CASE(NAME, TAGS) { /* test body */ }`
 
-This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNATCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. See the [Tags](#tags) section for more information on tags. Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
+This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNITCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. See the [Tags](#tags) section for more information on tags. Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
 
 
 `TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ }`
@@ -217,7 +218,7 @@ This is similar to `TEST_CASE`, except that it declares a new test case for each
 
 `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ }`
 
-This is equivalent to `TEMPLATE_TEST_CASE`, except that `TYPES` must be a template type list of the form `T<Types...>`, for example `snatch::type_list<Types...>` or `std::tuple<Types...>`. This type list can be declared once and reused for multiple test cases.
+This is equivalent to `TEMPLATE_TEST_CASE`, except that `TYPES` must be a template type list of the form `T<Types...>`, for example `snitch::type_list<Types...>` or `std::tuple<Types...>`. This type list can be declared once and reused for multiple test cases.
 
 
 ### Test check macros
@@ -300,7 +301,7 @@ TEST_CASE("test", "[tag1][tag 2][some other tag]") {
 }
 ```
 
-Tags can be used to filter the tests, for example, by running all tests with a given tag. There are also a few "special" tags recognized by _snatch_, which change the behavior of the test:
+Tags can be used to filter the tests, for example, by running all tests with a given tag. There are also a few "special" tags recognized by _snitch_, which change the behavior of the test:
  - `[.]` is the "hidden" tag; any test with this tag will be excluded from the default list of tests. The test will only be run if selected explicitly, either when filtering by name, or by tag.
  - `[.<some tag>]` is a shortcut for `[.][<some_tag>]`.
  - `[!mayfail]` indicates that the test may fail; if so, any failure will be recorded, but the test case will still be marked as passed.
@@ -309,22 +310,22 @@ Tags can be used to filter the tests, for example, by running all tests with a g
 
 ### Matchers
 
-Matchers in _snatch_ work differently than in _Catch2_. Matchers do not need to inherit from a common base class. The only required interface is:
+Matchers in _snitch_ work differently than in _Catch2_. Matchers do not need to inherit from a common base class. The only required interface is:
 
  - `matcher.match(obj)` must return `true` if `obj` is a match, `false` otherwise.
- - `matcher.describe_match(obj, status)` must return a value convertible to `std::string_view`, describing why `obj` is or is not a match, depending on the value of `snatch::matchers::match_status`.
- - `matcher == obj` and `obj == matcher` must return `matcher.match(obj)`, and `matcher != obj` and `obj != matcher` must return `!matcher.match(obj)`; any matcher defined in the `snatch::matchers` namespace will have these operators defined automatically.
+ - `matcher.describe_match(obj, status)` must return a value convertible to `std::string_view`, describing why `obj` is or is not a match, depending on the value of `snitch::matchers::match_status`.
+ - `matcher == obj` and `obj == matcher` must return `matcher.match(obj)`, and `matcher != obj` and `obj != matcher` must return `!matcher.match(obj)`; any matcher defined in the `snitch::matchers` namespace will have these operators defined automatically.
 
-The following matchers are provided with _snatch_:
+The following matchers are provided with _snitch_:
 
- - `snatch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
- - `snatch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
- - `snatch::matchers::is_any_of{T...}`: accepts an object of any type `T`, and will return a match if it is equal to any of the `T...`.
+ - `snitch::matchers::contains_substring{"substring"}`: accepts a `std::string_view`, and will return a match if the string contains `"substring"`.
+ - `snitch::matchers::with_what_contains{"substring"}`: accepts a `std::exception`, and will return a match if `what()` contains `"substring"`.
+ - `snitch::matchers::is_any_of{T...}`: accepts an object of any type `T`, and will return a match if it is equal to any of the `T...`.
 
 
 Here is an example matcher that, given a prefix `p`, checks if a string starts with the prefix `"<p>:"`:
 ```c++
-namespace snatch::matchers {
+namespace snitch::matchers {
 struct has_prefix {
     std::string_view prefix;
 
@@ -350,15 +351,15 @@ struct has_prefix {
         return message;
     }
 };
-} // namespace snatch::matchers
+} // namespace snitch::matchers
 ```
 
-_snatch_ will always call `match()` before calling `describe_match()`. Therefore, you can save any intermediate calculation performed during `match()` as a member variable, to be reused later in `describe_match()`. This can prevent duplicating effort, and can be important if calculating the match is an expensive operation.
+_snitch_ will always call `match()` before calling `describe_match()`. Therefore, you can save any intermediate calculation performed during `match()` as a member variable, to be reused later in `describe_match()`. This can prevent duplicating effort, and can be important if calculating the match is an expensive operation.
 
 
 ### Sections
 
-As in _Catch2_, _snatch_ supports nesting multiple tests inside a single test case, to share set-up/tear-down logic. This is done using the `SECTION("name")` macro. Please see the [Catch2 documentation](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md#test-cases-and-sections) for more details. Note: if any exception is thrown inside a section, or if a `REQUIRE()` check fails (or any other check which aborts execution), the whole test case is stopped. No other section will be executed.
+As in _Catch2_, _snitch_ supports nesting multiple tests inside a single test case, to share set-up/tear-down logic. This is done using the `SECTION("name")` macro. Please see the [Catch2 documentation](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md#test-cases-and-sections) for more details. Note: if any exception is thrown inside a section, or if a `REQUIRE()` check fails (or any other check which aborts execution), the whole test case is stopped. No other section will be executed.
 
 Here is a brief example to demonstrate the flow of the test:
 
@@ -410,7 +411,7 @@ tear-down
 
 ### Captures
 
-As in _Catch2_, _snatch_ supports capturing contextual information to be displayed in the test failure report. This can be done with the `INFO(message)` and `CAPTURE(vars...)` macros. The captured information is "scoped", and will only be displayed for failures happening:
+As in _Catch2_, _snitch_ supports capturing contextual information to be displayed in the test failure report. This can be done with the `INFO(message)` and `CAPTURE(vars...)` macros. The captured information is "scoped", and will only be displayed for failures happening:
  - after the capture, and
  - in the same scope (or deeper).
 
@@ -494,7 +495,7 @@ failed: running test case "test with many captures"
           CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
 ```
 
-The only requirement is that the captured variable or expression must of a type that _snatch_ can serialize to a string. See [Custom string serialization](#custom-string-serialization) for more information.
+The only requirement is that the captured variable or expression must of a type that _snitch_ can serialize to a string. See [Custom string serialization](#custom-string-serialization) for more information.
 
 A more free-form way to add context to the tests is to use `INFO(...)`. The parameters to this macro will be serialized together to form a single string, which will be appended as one capture. This can be combined with `CAPTURE()`. For example:
 
@@ -528,11 +529,11 @@ failed: running test case "test with info"
 
 ### Custom string serialization
 
-When the _snatch_ framework needs to serialize a value to a string, it does so with the free function `append(span, value)`, where `span` is a `snatch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
+When the _snitch_ framework needs to serialize a value to a string, it does so with the free function `append(span, value)`, where `span` is a `snitch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
 
 Builtin serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
 
-If you want to serialize custom types not supported out of the box by _snatch_, you need to provide your own `append()` function. This function must be placed in the same namespace as your custom type or in the `snatch` namespace, so it can be found by ADL. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
+If you want to serialize custom types not supported out of the box by _snitch_, you need to provide your own `append()` function. This function must be placed in the same namespace as your custom type or in the `snitch` namespace, so it can be found by ADL. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
 
 ```c++
 namespace my_namespace {
@@ -572,66 +573,66 @@ If you cannot write your serialization function in this way (or for optimal spee
  - growing the string span by this amount using `ss.grow(n)` or `ss.resize(old_size + n)`,
  - actually writing the textual representation of your value into the raw character array, accessible between `ss.begin() + old_size` and `ss.end()`.
 
-Note that _snatch_ small strings have a fixed capacity; once this capacity is reached, the string cannot grow further, and the output must be truncated. This will normally be indicated by a `...` at the end of the strings being reported (this is automatically added by _snatch_; you do not need to do this yourself). If this happens, depending on which string was truncated, there are a number of compilation options that can be modified to increase the maximum string length. See `CMakeLists.txt`, or at the top of `snatch.hpp`, for a complete list.
+Note that _snitch_ small strings have a fixed capacity; once this capacity is reached, the string cannot grow further, and the output must be truncated. This will normally be indicated by a `...` at the end of the strings being reported (this is automatically added by _snitch_; you do not need to do this yourself). If this happens, depending on which string was truncated, there are a number of compilation options that can be modified to increase the maximum string length. See `CMakeLists.txt`, or at the top of `snitch.hpp`, for a complete list.
 
 
 ### Reporters
 
-By default, _snatch_ will report the test results to the standard output, using its own report format. You can override this by supplying your own "reporter" callback function to the test registry. This requires [using your own main function](#using-your-own-main-function).
+By default, _snitch_ will report the test results to the standard output, using its own report format. You can override this by supplying your own "reporter" callback function to the test registry. This requires [using your own main function](#using-your-own-main-function).
 
 The callback is a single `noexcept` function, taking two arguments:
- - a reference to the `snatch::registry` that generated the event
- - a reference to the `snatch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
+ - a reference to the `snitch::registry` that generated the event
+ - a reference to the `snitch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
 
 The callback can be registered either as a free function, a stateless lambda, or a member function. You can register your own callback as follows:
 
 ```c++
 // Free function.
 // --------------
-void report_function(const snatch::registry& r, const snatch::event::data& e) noexcept {
+void report_function(const snitch::registry& r, const snitch::event::data& e) noexcept {
     /* ... */
 }
 
-snatch::tests.report_callback = &report_function;
+snitch::tests.report_callback = &report_function;
 
 // Stateless lambda (no captures).
 // -------------------------------
-snatch::tests.report_callback = [](const snatch::registry& r, const snatch::event::data& e) noexcept {
+snitch::tests.report_callback = [](const snitch::registry& r, const snitch::event::data& e) noexcept {
     /* ... */
 };
 
 // Stateful lambda (with captures).
 // -------------------------------
-auto lambda = [&](const snatch::registry& r, const snatch::event::data& e) noexcept {
+auto lambda = [&](const snitch::registry& r, const snitch::event::data& e) noexcept {
     /* ... */
 };
 
 // 'lambda' must remain alive for the duration of the tests!
-snatch::tests.report_callback = lambda;
+snitch::tests.report_callback = lambda;
 
 // Member function (const or non-const, up to you).
 // ------------------------------------------------
 struct Reporter {
-    void report(const snatch::registry& r, const snatch::event::data& e) /*const*/ noexcept {
+    void report(const snitch::registry& r, const snitch::event::data& e) /*const*/ noexcept {
         /* ... */
     }
 };
 
 Reporter reporter; // must remain alive for the duration of the tests!
 
-snatch::tests.report_callback = {reporter, snatch::constant<&Reporter::report>};
+snitch::tests.report_callback = {reporter, snitch::constant<&Reporter::report>};
 ```
 
 If you need to use a reporter member function, please make sure that the reporter object remains alive for the duration of the tests (e.g., declare it static, global, or as a local variable declared in `main()`), or make sure to de-register it when your reporter is destroyed.
 
-Likewise, when receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snatch::small_string`) from the `std::string_view` stored in the event object.
+Likewise, when receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
 
-An example reporter for _Teamcity_ is included for demonstration, see `include/snatch/snatch_teamcity.hpp`.
+An example reporter for _Teamcity_ is included for demonstration, see `include/snitch/snitch_teamcity.hpp`.
 
 
 ### Default main function
 
-The default `main()` function provided in _snatch_ offers the following command-line API:
+The default `main()` function provided in _snitch_ offers the following command-line API:
  - positional argument for filtering tests by name.
  - `-h,--help`: show command line help.
  - `-l,--list-tests`: list all tests.
@@ -644,54 +645,54 @@ The default `main()` function provided in _snatch_ offers the following command-
 
 ### Using your own main function
 
-By default _snatch_ defines `main()` for you. To prevent this and provide your own `main()` function, when compiling _snatch_, `SNATCH_DEFINE_MAIN` must be set to `0`. If using CMake, this can be done with
+By default _snitch_ defines `main()` for you. To prevent this and provide your own `main()` function, when compiling _snitch_, `SNITCH_DEFINE_MAIN` must be set to `0`. If using CMake, this can be done with
 
 ```cmake
-set(SNATCH_DEFINE_MAIN OFF)
+set(SNITCH_DEFINE_MAIN OFF)
 ```
 
-just before calling `FetchContent_Declare()`. If using the header-only mode, this can also be done in the file that defines the _snatch_ implementation:
+just before calling `FetchContent_Declare()`. If using the header-only mode, this can also be done in the file that defines the _snitch_ implementation:
 
 ```c++
-#define SNATCH_IMPLEMENTATION
-#define SNATCH_DEFINE_MAIN 0
-#include <snatch_all.hpp>
+#define SNITCH_IMPLEMENTATION
+#define SNITCH_DEFINE_MAIN 0
+#include <snitch_all.hpp>
 ```
 
-Here is a recommended `main()` function that replicates the default behavior of snatch:
+Here is a recommended `main()` function that replicates the default behavior of snitch:
 
 ```c++
 int main(int argc, char* argv[]) {
     // Parse the command line arguments.
-    std::optional<snatch::cli::input> args = snatch::cli::parse_arguments(argc, argv);
+    std::optional<snitch::cli::input> args = snitch::cli::parse_arguments(argc, argv);
     if (!args) {
         // Parsing failed, an error has been reported, just return.
         return 1;
     }
 
-    // Configure snatch using command line options.
+    // Configure snitch using command line options.
     // You can then override the configuration below, or just remove this call to disable
     // command line options entirely.
-    snatch::tests.configure(*args);
+    snitch::tests.configure(*args);
 
     // Your own initialization code goes here.
     // ...
 
     // Actually run the tests.
     // This will apply any filtering specified on the command line.
-    return snatch::tests.run_tests(*args) ? 0 : 1;
+    return snitch::tests.run_tests(*args) ? 0 : 1;
 }
 ```
 
 
 ### Exceptions
 
-By default, _snatch_ assumes exceptions are enabled, and uses them in two cases:
+By default, _snitch_ assumes exceptions are enabled, and uses them in two cases:
 
  1. Obviously, in test macros that check exceptions being thrown (e.g., `REQUIRE_THROWS_AS(...)`).
  2. In `REQUIRE_*()` or `FAIL()` macros, to abort execution of the current test case and continue to the next one.
 
-If _snatch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNATCH_WITH_EXCEPTIONS` to `0`), then
+If _snitch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNITCH_WITH_EXCEPTIONS` to `0`), then
 
  1. Test macros that check exceptions being thrown will not be defined.
  2. `REQUIRE_*()` and `FAIL()` macros will simply use `std::terminate()` to abort execution. As a consequence, if a `REQUIRE*()` or `FAIL()` check fails, the whole test application stops and the following test cases are not executed.
@@ -699,15 +700,15 @@ If _snatch_ detects that exceptions are not available (or is configured with exc
 
 ### Header-only build
 
-The recommended way to use _snatch_ is to build and consume it like any other library. This provides the best incremental build times, a standard way to include and link to the _snatch_ implementation, and a cleaner separation between your code and _snatch_ code, but this also requires a bit more set up (running CMake, etc.).
+The recommended way to use _snitch_ is to build and consume it like any other library. This provides the best incremental build times, a standard way to include and link to the _snitch_ implementation, and a cleaner separation between your code and _snitch_ code, but this also requires a bit more set up (running CMake, etc.).
 
-For extra convenience, _snatch_ is also provided as a header-only library. The main header is called `snatch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake build, so you can also use it like other CMake libraries; just link to `snatch::snatch-header-only` instead of `snatch::snatch`. This is the only header required to use the library; other headers may be provided for convenience functions (e.g., reporters for common CI frameworks) and these must still be included separately.
+For extra convenience, _snitch_ is also provided as a header-only library. The main header is called `snitch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake build, so you can also use it like other CMake libraries; just link to `snitch::snitch-header-only` instead of `snitch::snitch`. This is the only header required to use the library; other headers may be provided for convenience functions (e.g., reporters for common CI frameworks) and these must still be included separately.
 
-To use _snatch_ as header-only in your code, simply include `snatch_all.hpp` instead of `snatch.hpp`. Then, one of your file must include the _snatch_ implementation. This can be done with a `.cpp` file containing only the following:
+To use _snitch_ as header-only in your code, simply include `snitch_all.hpp` instead of `snitch.hpp`. Then, one of your file must include the _snitch_ implementation. This can be done with a `.cpp` file containing only the following:
 
 ```c++
-#define SNATCH_IMPLEMENTATION
-#include <snatch_all.hpp>
+#define SNITCH_IMPLEMENTATION
+#include <snitch_all.hpp>
 ```
 
 
@@ -717,6 +718,11 @@ With its default configuration, `clang-format` will incorrectly format code usin
 
 Fixing this requires `clang-format` version 13 at least, and requires adding the following to your `.clang-format` file:
 ```yaml
-IfMacros: ['SECTION', 'SNATCH_SECTION']
+IfMacros: ['SECTION', 'SNITCH_SECTION']
 SpaceBeforeParens: ControlStatementsExceptControlMacros
 ```
+
+
+### Why _snitch_?
+
+Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
