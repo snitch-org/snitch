@@ -38,8 +38,8 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Compiles tests up to 40% faster than other testing frameworks (see [Benchmark](#benchmark)).
- - Defaults to reporting test results to the standard output, with coloring for readability, but test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
+ - Compiles template-heavy tests at least 60% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Macro to mark a test as skipped: `SKIP(msg)`.
