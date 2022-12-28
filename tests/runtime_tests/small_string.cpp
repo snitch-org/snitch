@@ -368,12 +368,8 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
 }
 
 TEST_CASE("constexpr small string", "[utility]") {
-    constexpr std::size_t max_length = 5u;
-
-    using TestType = snitch::small_string<max_length>;
-
     SECTION("from string view") {
-        constexpr TestType v = "abc"sv;
+        constexpr string_type v = "abc"sv;
 
         CHECK(v.size() == 3u);
         CHECK(!v.empty());
@@ -388,8 +384,8 @@ TEST_CASE("constexpr small string", "[utility]") {
     }
 
     SECTION("from immediate lambda") {
-        constexpr TestType v = []() {
-            TestType v;
+        constexpr string_type v = []() {
+            string_type v;
             v.push_back('a');
             v.push_back('b');
             v.push_back('c');
