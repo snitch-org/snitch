@@ -31,6 +31,7 @@ TEST_CASE("section", "[test macros]") {
         framework.run_test();
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_SECTIONS("section 1");
+        CHECK_CASE_ASSERTS(false, 1u);
     }
 
     SECTION("two sections") {
@@ -48,6 +49,7 @@ TEST_CASE("section", "[test macros]") {
         REQUIRE(framework.get_num_failures() == 2u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 2");
+        CHECK_CASE_ASSERTS(false, 2u);
     }
 
     SECTION("nested sections") {
@@ -65,6 +67,7 @@ TEST_CASE("section", "[test macros]") {
         REQUIRE(framework.get_num_failures() == 2u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.1");
+        CHECK_CASE_ASSERTS(false, 2u);
     }
 
     SECTION("nested sections abort early") {
@@ -84,6 +87,7 @@ TEST_CASE("section", "[test macros]") {
 
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_SECTIONS("section 1");
+        CHECK_CASE_ASSERTS(false, 1u);
     }
 
     SECTION("nested sections std::exception throw") {
@@ -103,6 +107,7 @@ TEST_CASE("section", "[test macros]") {
 
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_NO_SECTION;
+        CHECK_CASE_ASSERTS(false, 0u);
     }
 
     SECTION("nested sections unknown exception throw") {
@@ -122,12 +127,16 @@ TEST_CASE("section", "[test macros]") {
 
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_NO_SECTION;
+        CHECK_CASE_ASSERTS(false, 0u);
     }
 
     SECTION("nested sections varying depth") {
         framework.test_case.func = []() {
+            SNITCH_CHECK(true);
+
             SNITCH_SECTION("section 1") {
-                SNITCH_SECTION("section 1.1") {}
+                SNITCH_SECTION("section 1.1") {
+                }
                 SNITCH_SECTION("section 1.2") {
                     SNITCH_FAIL_CHECK("trigger");
                 }
@@ -136,7 +145,8 @@ TEST_CASE("section", "[test macros]") {
                         SNITCH_FAIL_CHECK("trigger");
                     }
                 }
-                SNITCH_SECTION("section 1.3") {}
+                SNITCH_SECTION("section 1.3") {
+                }
             }
             SNITCH_SECTION("section 2") {
                 SNITCH_SECTION("section 2.1") {
@@ -157,11 +167,14 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 2", "section 2.1");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 3");
+        CHECK_CASE_ASSERTS(false, 11u);
     }
 
     SECTION("one section in a loop") {
         framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
+                SNITCH_CHECK(i <= 10u);
+
                 SNITCH_SECTION("section 1") {
                     SNITCH_FAIL_CHECK("trigger");
                 }
@@ -176,14 +189,18 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 1");
+        CHECK_CASE_ASSERTS(false, 30u);
     }
 
     SECTION("two sections in a loop") {
         framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
+                SNITCH_CHECK(i <= 10u);
+
                 SNITCH_SECTION("section 1") {
                     SNITCH_CHECK(i % 2u == 0u);
                 }
+
                 SNITCH_SECTION("section 2") {
                     SNITCH_CHECK(i % 2u == 1u);
                 }
@@ -198,8 +215,9 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 2");
+        CHECK_CASE_ASSERTS(false, 60u);
     }
-};
+}
 
 SNITCH_WARNING_POP
 
@@ -246,4 +264,4 @@ TEST_CASE("section readme example", "[test macros]") {
     framework.run_test();
 
     CHECK(events == "S|1|E|S|2|E|S|3|3.1|E|S|3|3.2|E"sv);
-};
+}
