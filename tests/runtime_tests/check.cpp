@@ -66,12 +66,33 @@ bool append(snitch::small_string_span ss, const unary_long_string& u) noexcept {
     return append(ss, u.value);
 }
 
+struct event_catcher {
+    snitch::registry mock_registry;
+
+    snitch::impl::test_case mock_case{
+        .id    = {"mock_test", "[mock_tag]", "mock_type"},
+        .func  = nullptr,
+        .state = snitch::impl::test_state::not_run};
+
+    snitch::impl::test_run mock_run{.reg = mock_registry, .test = mock_case};
+
+    std::optional<event_deep_copy> last_event;
+
+    event_catcher() {
+        mock_registry.report_callback = {*this, snitch::constant<&event_catcher::report>{}};
+    }
+
+    void report(const snitch::registry&, const snitch::event::data& e) noexcept {
+        last_event.emplace(deep_copy(e));
+    }
+};
+
 struct test_override {
     snitch::impl::test_run* previous;
 
-    explicit test_override(snitch::impl::test_run& run) :
+    explicit test_override(event_catcher& catcher) :
         previous(snitch::impl::try_get_current_test()) {
-        snitch::impl::set_current_test(&run);
+        snitch::impl::set_current_test(&catcher.mock_run);
     }
 
     ~test_override() {
@@ -96,42 +117,39 @@ struct long_matcher_always_fails {
 };
 } // namespace snitch::matchers
 
+#define CHECK_EXPR_SUCCESS(CATCHER)                                                                \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_run.asserts == 1u);                                                   \
+        CHECK(!(CATCHER).last_event.has_value());                                                  \
+    } while (0)
+
+#define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, MESSAGE)                                         \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_run.asserts == 1u);                                                   \
+        REQUIRE((CATCHER).last_event.has_value());                                                 \
+        const auto& event = (CATCHER).last_event.value();                                          \
+        CHECK(event.event_type == event_deep_copy::type::assertion_failed);                        \
+        CHECK_EVENT_TEST_ID(event, (CATCHER).mock_case.id);                                        \
+        CHECK_EVENT_LOCATION(event, __FILE__, (FAILURE_LINE));                                     \
+        CHECK(event.message == (MESSAGE));                                                         \
+    } while (0)
+
 SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_INT_BOOLEAN
 
 TEST_CASE("check unary", "[test macros]") {
-    snitch::registry mock_registry;
-
-    snitch::impl::test_case mock_case{
-        .id    = {"mock_test", "[mock_tag]", "mock_type"},
-        .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
-
-    snitch::impl::test_run mock_run {
-        .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNITCH_WITH_TIMINGS
-        .duration = 0.0f
-#endif
-    };
-
-    std::optional<event_deep_copy> last_event;
-    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
-        last_event.emplace(deep_copy(e));
-    };
-
-    mock_registry.report_callback = report;
+    event_catcher catcher;
 
     SECTION("bool true") {
         bool value = true;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value);
         }
 
         CHECK(value == true);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("bool false") {
@@ -139,22 +157,14 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == false);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value), got false"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value), got false"sv);
     }
 
     SECTION("bool !true") {
@@ -162,48 +172,38 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(!value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == true);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(!value), got false"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(!value), got false"sv);
     }
 
     SECTION("bool !false") {
         bool value = false;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(!value);
         }
 
         CHECK(value == false);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer non-zero") {
         int value = 5;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value);
         }
 
         CHECK(value == 5);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer zero") {
@@ -211,35 +211,26 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == 0);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value), got 0"sv);
     }
 
     SECTION("integer pre increment") {
         int value = 0;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(++value);
         }
 
         CHECK(value == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer post increment") {
@@ -247,87 +238,74 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value++); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == 1);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value++), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value++), got 0"sv);
     }
 
     SECTION("integer expression * pass") {
         int value = 1;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(2 * value);
         }
 
         CHECK(value == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer expression / pass") {
         int value = 1;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(2 / value);
         }
 
         CHECK(value == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer expression + pass") {
         int value = 1;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(2 + value);
         }
 
         CHECK(value == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer expression - pass") {
         int value = 3;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(2 - value);
         }
 
         CHECK(value == 3);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer expression % pass") {
         int value = 3;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(2 % value);
         }
 
         CHECK(value == 3);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer expression * fail") {
@@ -335,22 +313,14 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(2 * value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == 0);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(2 * value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 * value), got 0"sv);
     }
 
     SECTION("integer expression / fail") {
@@ -358,22 +328,14 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(2 / value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == 5);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(2 / value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 / value), got 0"sv);
     }
 
     SECTION("integer expression + fail") {
@@ -381,22 +343,14 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(2 + value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == -2);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(2 + value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 + value), got 0"sv);
     }
 
     SECTION("integer expression - fail") {
@@ -404,22 +358,14 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(2 - value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == 2);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(2 - value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 - value), got 0"sv);
     }
 
     SECTION("integer expression % fail") {
@@ -427,62 +373,40 @@ TEST_CASE("check unary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(2 % value); failure_line = __LINE__;
             // clang-format on
         }
 
         CHECK(value == 1);
-        CHECK(mock_run.asserts == 1u);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 % value), got 0"sv);
 
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
 
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(2 % value), got 0"sv);
     }
 }
 
 SNITCH_WARNING_POP
 
 TEST_CASE("check binary", "[test macros]") {
-    snitch::registry mock_registry;
 
-    snitch::impl::test_case mock_case{
-        .id    = {"mock_test", "[mock_tag]", "mock_type"},
-        .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
 
-    snitch::impl::test_run mock_run {
-        .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNITCH_WITH_TIMINGS
-        .duration = 0.0f
-#endif
-    };
 
-    std::optional<event_deep_copy> last_event;
-    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
-        last_event.emplace(deep_copy(e));
-    };
 
-    mock_registry.report_callback = report;
+    event_catcher catcher;
 
     SECTION("integer == pass") {
         int value1 = 0;
         int value2 = 0;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value1 == value2);
         }
 
         CHECK(value1 == 0);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer != pass") {
@@ -490,14 +414,13 @@ TEST_CASE("check binary", "[test macros]") {
         int value2 = 1;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value1 != value2);
         }
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer < pass") {
@@ -505,14 +428,13 @@ TEST_CASE("check binary", "[test macros]") {
         int value2 = 1;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value1 < value2);
         }
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer > pass") {
@@ -520,14 +442,13 @@ TEST_CASE("check binary", "[test macros]") {
         int value2 = 0;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value1 > value2);
         }
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer <= pass") {
@@ -535,14 +456,13 @@ TEST_CASE("check binary", "[test macros]") {
         int value2 = 1;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value1 <= value2);
         }
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer >= pass") {
@@ -550,14 +470,13 @@ TEST_CASE("check binary", "[test macros]") {
         int value2 = 0;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(value1 >= value2);
         }
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("integer == fail") {
@@ -566,7 +485,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 == value2); failure_line = __LINE__;
             // clang-format on
@@ -574,15 +493,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 == value2), got 0 != 1"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2), got 0 != 1"sv);
     }
 
     SECTION("integer != fail") {
@@ -591,7 +502,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 != value2); failure_line = __LINE__;
             // clang-format on
@@ -599,15 +510,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 != value2), got 0 == 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 != value2), got 0 == 0"sv);
     }
 
     SECTION("integer < fail") {
@@ -616,7 +519,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 < value2); failure_line = __LINE__;
             // clang-format on
@@ -624,15 +527,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 < value2), got 1 >= 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 < value2), got 1 >= 0"sv);
     }
 
     SECTION("integer > fail") {
@@ -641,7 +536,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 > value2); failure_line = __LINE__;
             // clang-format on
@@ -649,15 +544,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 > value2), got 0 <= 1"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 > value2), got 0 <= 1"sv);
     }
 
     SECTION("integer <= fail") {
@@ -666,7 +553,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 <= value2); failure_line = __LINE__;
             // clang-format on
@@ -674,15 +561,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 <= value2), got 1 > 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 <= value2), got 1 > 0"sv);
     }
 
     SECTION("integer >= fail") {
@@ -691,7 +570,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 >= value2); failure_line = __LINE__;
             // clang-format on
@@ -699,15 +578,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 >= value2), got 0 < 1"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 >= value2), got 0 < 1"sv);
     }
 
     SECTION("spaceship") {
@@ -716,7 +587,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 <=> value2 != 0); failure_line = __LINE__;
             // clang-format on
@@ -724,15 +595,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 <=> value2 != 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 <=> value2 != 0)"sv);
     }
 
     SECTION("complex expression") {
@@ -741,7 +604,7 @@ TEST_CASE("check binary", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(value1 == 1 && value2 == 0); failure_line = __LINE__;
             // clang-format on
@@ -749,53 +612,31 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 1);
-        CHECK(mock_run.asserts == 1u);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == 1 && value2 == 0)"sv);
 
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
 
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(value1 == 1 && value2 == 0)"sv);
     }
 }
 
 TEST_CASE("check false", "[test macros]") {
-    snitch::registry mock_registry;
 
-    snitch::impl::test_case mock_case{
-        .id    = {"mock_test", "[mock_tag]", "mock_type"},
-        .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
 
-    snitch::impl::test_run mock_run {
-        .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNITCH_WITH_TIMINGS
-        .duration = 0.0f
-#endif
-    };
 
-    std::optional<event_deep_copy> last_event;
-    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
-        last_event.emplace(deep_copy(e));
-    };
 
-    mock_registry.report_callback = report;
+    event_catcher catcher;
 
     SECTION("binary pass") {
         int value1 = 1;
         int value2 = 0;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK_FALSE(value1 < value2);
         }
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("binary fail") {
@@ -804,7 +645,7 @@ TEST_CASE("check false", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK_FALSE(value1 >= value2); failure_line = __LINE__;
             // clang-format on
@@ -812,94 +653,50 @@ TEST_CASE("check false", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK_FALSE(value1 >= value2), got 1 >= 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK_FALSE(value1 >= value2), got 1 >= 0"sv);
     }
 
     SECTION("matcher pass") {
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK_FALSE("hello"sv != snitch::matchers::contains_substring{"lo"});
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("matcher fail") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK_FALSE("hello"sv == snitch::matchers::contains_substring{"lo"}); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(
-            event.message ==
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
             "CHECK_FALSE(\"hello\"sv == snitch::matchers::contains_substring{\"lo\"}), got found 'lo' in 'hello'"sv);
     }
 }
 
 TEST_CASE("check misc", "[test macros]") {
-    snitch::registry mock_registry;
-
-    snitch::impl::test_case mock_case{
-        .id    = {"mock_test", "[mock_tag]", "mock_type"},
-        .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
-
-    snitch::impl::test_run mock_run {
-        .reg = mock_registry, .test = mock_case, .sections = {}, .captures = {}, .asserts = 0,
-#if SNITCH_WITH_TIMINGS
-        .duration = 0.0f
-#endif
-    };
-
-    std::optional<event_deep_copy> last_event;
-    auto report = [&](const snitch::registry&, const snitch::event::data& e) noexcept {
-        last_event.emplace(deep_copy(e));
-    };
-
-    mock_registry.report_callback = report;
+    event_catcher catcher;
 
     SECTION("out of space unary") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(unary_long_string{}); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(unary_long_string{})"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(unary_long_string{})"sv);
     }
 
     SECTION("out of space binary lhs") {
@@ -915,21 +712,13 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(string1.str() == string2.str())"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(string1.str() == string2.str())"sv);
     }
 
     SECTION("out of space binary rhs") {
@@ -945,21 +734,13 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(string1.str() == string2.str())"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(string1.str() == string2.str())"sv);
     }
 
     SECTION("out of space binary op") {
@@ -975,53 +756,36 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(string1.str() == string2.str()); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(string1.str() == string2.str())"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(string1.str() == string2.str())"sv);
     }
 
     SECTION("non copiable non movable pass") {
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             SNITCH_CHECK(non_relocatable(1) != non_relocatable(2));
         }
 
-        CHECK(mock_run.asserts == 1u);
-        CHECK(!last_event.has_value());
+        CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("non copiable non movable fail") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(non_relocatable(1) == non_relocatable(2)); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(
-            event.message ==
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
             "CHECK(non_relocatable(1) == non_relocatable(2)), got non_relocatable{1} != non_relocatable{2}"sv);
     }
 
@@ -1029,43 +793,28 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(non_appendable(1) == non_appendable(2)); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(event.message == "CHECK(non_appendable(1) == non_appendable(2)), got ? != ?"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CHECK(non_appendable(1) == non_appendable(2)), got ? != ?"sv);
     }
 
     SECTION("matcher fail lhs") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(snitch::matchers::long_matcher_always_fails{} == "hello"sv); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(
-            event.message ==
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
             "CHECK(snitch::matchers::long_matcher_always_fails{} == \"hello\"sv)"sv);
     }
 
@@ -1073,22 +822,14 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK("hello"sv == snitch::matchers::long_matcher_always_fails{}); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(
-            event.message ==
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
             "CHECK(\"hello\"sv == snitch::matchers::long_matcher_always_fails{})"sv);
     }
 
@@ -1096,22 +837,14 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK(snitch::matchers::contains_substring{"foo"} == "hello"sv); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(
-            event.message ==
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
             "CHECK(snitch::matchers::contains_substring{\"foo\"} == \"hello\"sv), got could not find 'foo' in 'hello'"sv);
     }
 
@@ -1119,22 +852,14 @@ TEST_CASE("check misc", "[test macros]") {
         std::size_t failure_line = 0u;
 
         {
-            test_override override(mock_run);
+            test_override override(catcher);
             // clang-format off
             SNITCH_CHECK("hello"sv == snitch::matchers::contains_substring{"foo"}); failure_line = __LINE__;
             // clang-format on
         }
 
-        CHECK(mock_run.asserts == 1u);
-
-        REQUIRE(last_event.has_value());
-        const auto& event = last_event.value();
-        CHECK(event.event_type == event_deep_copy::type::assertion_failed);
-
-        CHECK_EVENT_TEST_ID(event, mock_case.id);
-        CHECK_EVENT_LOCATION(event, __FILE__, failure_line);
-        CHECK(
-            event.message ==
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
             "CHECK(\"hello\"sv == snitch::matchers::contains_substring{\"foo\"}), got could not find 'foo' in 'hello'"sv);
     }
 }
