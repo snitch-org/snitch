@@ -578,6 +578,7 @@ TEST_CASE("check binary", "[test macros]") {
 
 SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_PRECEDENCE
+SNITCH_WARNING_DISABLE_ASSIGNMENT
 
 TEST_CASE("check no decomposition", "[test macros]") {
     event_catcher catcher;
