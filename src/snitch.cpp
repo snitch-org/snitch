@@ -545,6 +545,11 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     std::size_t skip_count      = 0;
     std::size_t assertion_count = 0;
 
+#if SNITCH_WITH_TIMINGS
+    using clock     = std::chrono::high_resolution_clock;
+    auto time_start = clock::now();
+#endif
+
     for (test_case& t : r) {
         if (!predicate(t)) {
             continue;
@@ -576,10 +581,32 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
         }
     }
 
+#if SNITCH_WITH_TIMINGS
+    auto  time_end = clock::now();
+    float duration = std::chrono::duration<float>(time_end - time_start).count();
+#endif
+
     if (!r.report_callback.empty()) {
+#if SNITCH_WITH_TIMINGS
         r.report_callback(
             r, event::test_run_ended{
-                   run_name, success, run_count, fail_count, skip_count, assertion_count});
+                   .name            = run_name,
+                   .success         = success,
+                   .run_count       = run_count,
+                   .fail_count      = fail_count,
+                   .skip_count      = skip_count,
+                   .assertion_count = assertion_count,
+                   .duration        = duration});
+#else
+        r.report_callback(
+            r, event::test_run_ended{
+                   .name            = run_name,
+                   .success         = success,
+                   .run_count       = run_count,
+                   .fail_count      = fail_count,
+                   .skip_count      = skip_count,
+                   .assertion_count = assertion_count});
+#endif
     } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print("==========================================\n");
 
@@ -596,6 +623,10 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
         if (skip_count > 0) {
             r.print(", ", skip_count, " test cases skipped");
         }
+
+#if SNITCH_WITH_TIMINGS
+        r.print(", ", duration, " seconds");
+#endif
 
         r.print(")\n");
     }
@@ -926,10 +957,23 @@ test_run registry::run(test_case& test) noexcept {
 #endif
 
     if (!report_callback.empty()) {
+        const bool skipped = state.test.state == test_state::skipped;
+        const bool success = state.test.state == test_state::success || skipped;
 #if SNITCH_WITH_TIMINGS
-        report_callback(*this, event::test_case_ended{test.id, state.duration});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .success         = success,
+                       .skipped         = skipped,
+                       .assertion_count = state.asserts,
+                       .duration        = state.duration});
 #else
-        report_callback(*this, event::test_case_ended{test.id});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .success         = success,
+                       .skipped         = skipped,
+                       .assertion_count = state.asserts});
 #endif
     } else if (is_at_least(verbose, verbosity::high)) {
 #if SNITCH_WITH_TIMINGS

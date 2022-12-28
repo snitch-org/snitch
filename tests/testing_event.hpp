@@ -21,6 +21,9 @@ struct event_deep_copy {
     std::size_t                                        test_run_skip_count      = 0;
     std::size_t                                        test_run_assertion_count = 0;
 
+    bool        test_case_success         = false;
+    std::size_t test_case_assertion_count = 0;
+
     snitch::small_string<snitch::max_test_name_length> test_id_name;
     snitch::small_string<snitch::max_test_name_length> test_id_tags;
     snitch::small_string<snitch::max_test_name_length> test_id_type;

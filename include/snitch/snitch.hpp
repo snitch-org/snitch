@@ -1087,6 +1087,9 @@ struct test_run_ended {
     std::size_t      fail_count      = 0;
     std::size_t      skip_count      = 0;
     std::size_t      assertion_count = 0;
+#if SNITCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
 };
 
 struct test_case_started {
@@ -1095,6 +1098,9 @@ struct test_case_started {
 
 struct test_case_ended {
     const test_id& id;
+    bool           success         = true;
+    bool           skipped         = false;
+    std::size_t    assertion_count = 0;
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
