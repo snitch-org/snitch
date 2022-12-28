@@ -576,6 +576,9 @@ TEST_CASE("check binary", "[test macros]") {
     }
 }
 
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_PRECEDENCE
+
 TEST_CASE("check no decomposition", "[test macros]") {
     event_catcher catcher;
 
@@ -808,6 +811,8 @@ TEST_CASE("check no decomposition", "[test macros]") {
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 ^ value3 ^ value4)"sv);
     }
 }
+
+SNITCH_WARNING_POP
 
 TEST_CASE("check false", "[test macros]") {
     event_catcher catcher;
