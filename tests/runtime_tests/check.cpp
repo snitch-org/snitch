@@ -308,42 +308,6 @@ TEST_CASE("check unary", "[test macros]") {
         CHECK_EXPR_SUCCESS(catcher);
     }
 
-    SECTION("integer expression ^ pass") {
-        int value = 1;
-
-        {
-            test_override override(catcher);
-            SNITCH_CHECK(value ^ 0);
-        }
-
-        CHECK(value == 1);
-        CHECK_EXPR_SUCCESS(catcher);
-    }
-
-    SECTION("integer expression & pass") {
-        int value = 1;
-
-        {
-            test_override override(catcher);
-            SNITCH_CHECK(value & 1);
-        }
-
-        CHECK(value == 1);
-        CHECK_EXPR_SUCCESS(catcher);
-    }
-
-    SECTION("integer expression | pass") {
-        int value = 1;
-
-        {
-            test_override override(catcher);
-            SNITCH_CHECK(value | 1);
-        }
-
-        CHECK(value == 1);
-        CHECK_EXPR_SUCCESS(catcher);
-    }
-
     SECTION("integer expression * fail") {
         int         value        = 0;
         std::size_t failure_line = 0u;
@@ -417,51 +381,6 @@ TEST_CASE("check unary", "[test macros]") {
 
         CHECK(value == 1);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 % value), got 0"sv);
-    }
-
-    SECTION("integer expression ^ fail") {
-        int         value        = 1;
-        std::size_t failure_line = 0u;
-
-        {
-            test_override override(catcher);
-            // clang-format off
-            SNITCH_CHECK(value ^ 1); failure_line = __LINE__;
-            // clang-format on
-        }
-
-        CHECK(value == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value ^ 1), got 0"sv);
-    }
-
-    SECTION("integer expression & fail") {
-        int         value        = 1;
-        std::size_t failure_line = 0u;
-
-        {
-            test_override override(catcher);
-            // clang-format off
-            SNITCH_CHECK(value & 0); failure_line = __LINE__;
-            // clang-format on
-        }
-
-        CHECK(value == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value & 0), got 0"sv);
-    }
-
-    SECTION("integer expression | fail") {
-        int         value        = 0;
-        std::size_t failure_line = 0u;
-
-        {
-            test_override override(catcher);
-            // clang-format off
-            SNITCH_CHECK(value | 0); failure_line = __LINE__;
-            // clang-format on
-        }
-
-        CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value | 0), got 0"sv);
     }
 }
 
@@ -784,6 +703,51 @@ TEST_CASE("check no decomposition", "[test macros]") {
 
         CHECK(value == 0);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value /= 10)"sv);
+    }
+
+    SECTION("with operator ^") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value ^ 1); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value ^ 1)"sv);
+    }
+
+    SECTION("with operator &") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value & 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value & 0)"sv);
+    }
+
+    SECTION("with operator |") {
+        int         value        = 0;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value | 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value | 0)"sv);
     }
 
     SECTION("with multiple comparisons") {
