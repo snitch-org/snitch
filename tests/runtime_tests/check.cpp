@@ -308,6 +308,42 @@ TEST_CASE("check unary", "[test macros]") {
         CHECK_EXPR_SUCCESS(catcher);
     }
 
+    SECTION("integer expression ^ pass") {
+        int value = 1;
+
+        {
+            test_override override(catcher);
+            SNITCH_CHECK(value ^ 0);
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("integer expression & pass") {
+        int value = 1;
+
+        {
+            test_override override(catcher);
+            SNITCH_CHECK(value & 1);
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("integer expression | pass") {
+        int value = 1;
+
+        {
+            test_override override(catcher);
+            SNITCH_CHECK(value | 1);
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
     SECTION("integer expression * fail") {
         int         value        = 0;
         std::size_t failure_line = 0u;
@@ -381,18 +417,57 @@ TEST_CASE("check unary", "[test macros]") {
 
         CHECK(value == 1);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 % value), got 0"sv);
+    }
 
+    SECTION("integer expression ^ fail") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
 
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value ^ 1); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value ^ 1), got 0"sv);
+    }
+
+    SECTION("integer expression & fail") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value & 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 1);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value & 0), got 0"sv);
+    }
+
+    SECTION("integer expression | fail") {
+        int         value        = 0;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value | 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value | 0), got 0"sv);
     }
 }
 
 SNITCH_WARNING_POP
 
 TEST_CASE("check binary", "[test macros]") {
-
-
-
-
     event_catcher catcher;
 
     SECTION("integer == pass") {
@@ -580,6 +655,10 @@ TEST_CASE("check binary", "[test macros]") {
         CHECK(value2 == 1);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 >= value2), got 0 < 1"sv);
     }
+}
+
+TEST_CASE("check no decomposition", "[test macros]") {
+    event_catcher catcher;
 
     SECTION("spaceship") {
         int         value1       = 1;
@@ -598,7 +677,7 @@ TEST_CASE("check binary", "[test macros]") {
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 <=> value2 != 0)"sv);
     }
 
-    SECTION("complex expression") {
+    SECTION("with operator &&") {
         int         value1       = 1;
         int         value2       = 1;
         std::size_t failure_line = 0u;
@@ -613,16 +692,160 @@ TEST_CASE("check binary", "[test macros]") {
         CHECK(value1 == 1);
         CHECK(value2 == 1);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == 1 && value2 == 0)"sv);
+    }
 
+    SECTION("with operator ||") {
+        int         value1       = 2;
+        int         value2       = 1;
+        std::size_t failure_line = 0u;
 
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value1 == 1 || value2 == 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 2);
+        CHECK(value2 == 1);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == 1 || value2 == 0)"sv);
+    }
+
+    SECTION("with operator =") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value = 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value = 0)"sv);
+    }
+
+    SECTION("with operator +=") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value += -1); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value += -1)"sv);
+    }
+
+    SECTION("with operator -=") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value -= 1); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value -= 1)"sv);
+    }
+
+    SECTION("with operator *=") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value *= 0); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value *= 0)"sv);
+    }
+
+    SECTION("with operator /=") {
+        int         value        = 1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value /= 10); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value /= 10)"sv);
+    }
+
+    SECTION("with multiple comparisons") {
+        int         value1       = 2;
+        int         value2       = 1;
+        bool        value3       = true;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value1 == value2 == value3); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 2);
+        CHECK(value2 == 1);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 == value3)"sv);
+    }
+
+    SECTION("with final ^") {
+        int         value1       = 2;
+        int         value2       = 1;
+        bool        value3       = false;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value1 == value2 ^ value3); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 2);
+        CHECK(value2 == 1);
+        CHECK(value3 == false);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 ^ value3)"sv);
+    }
+
+    SECTION("with two final ^") {
+        int         value1       = 2;
+        int         value2       = 1;
+        bool        value3       = false;
+        bool        value4       = false;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(value1 == value2 ^ value3 ^ value4); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 2);
+        CHECK(value2 == 1);
+        CHECK(value3 == false);
+        CHECK(value4 == false);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 ^ value3 ^ value4)"sv);
     }
 }
 
 TEST_CASE("check false", "[test macros]") {
-
-
-
-
     event_catcher catcher;
 
     SECTION("binary pass") {

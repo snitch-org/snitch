@@ -818,22 +818,36 @@ struct expression {
 
 template<bool CheckMode>
 struct invalid_expression {
-#define EXPR_OPERATOR(OP)                                                                          \
+#define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
     invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
         return {};                                                                                 \
     }
 
-    EXPR_OPERATOR(<=)
-    EXPR_OPERATOR(<)
-    EXPR_OPERATOR(>=)
-    EXPR_OPERATOR(>)
-    EXPR_OPERATOR(==)
-    EXPR_OPERATOR(!=)
-    EXPR_OPERATOR(&&)
-    EXPR_OPERATOR(||)
+    EXPR_OPERATOR_INVALID(<=)
+    EXPR_OPERATOR_INVALID(<)
+    EXPR_OPERATOR_INVALID(>=)
+    EXPR_OPERATOR_INVALID(>)
+    EXPR_OPERATOR_INVALID(==)
+    EXPR_OPERATOR_INVALID(!=)
+    EXPR_OPERATOR_INVALID(&&)
+    EXPR_OPERATOR_INVALID(||)
+    EXPR_OPERATOR_INVALID(=)
+    EXPR_OPERATOR_INVALID(+=)
+    EXPR_OPERATOR_INVALID(-=)
+    EXPR_OPERATOR_INVALID(*=)
+    EXPR_OPERATOR_INVALID(/=)
+    EXPR_OPERATOR_INVALID(%=)
+    EXPR_OPERATOR_INVALID(^=)
+    EXPR_OPERATOR_INVALID(&=)
+    EXPR_OPERATOR_INVALID(|=)
+    EXPR_OPERATOR_INVALID(<<=)
+    EXPR_OPERATOR_INVALID(>>=)
+    EXPR_OPERATOR_INVALID(^)
+    EXPR_OPERATOR_INVALID(|)
+    EXPR_OPERATOR_INVALID(&)
 
-#undef EXPR_OPERATOR
+#undef EXPR_OPERATOR_INVALID
 
     explicit operator bool() const noexcept
         requires(!CheckMode)
@@ -851,22 +865,36 @@ struct extracted_binary_expression {
     const T&    lhs;
     const U&    rhs;
 
-#define EXPR_OPERATOR(OP)                                                                          \
+#define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
     invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
         return {};                                                                                 \
     }
 
-    EXPR_OPERATOR(<=)
-    EXPR_OPERATOR(<)
-    EXPR_OPERATOR(>=)
-    EXPR_OPERATOR(>)
-    EXPR_OPERATOR(==)
-    EXPR_OPERATOR(!=)
-    EXPR_OPERATOR(&&)
-    EXPR_OPERATOR(||)
+    EXPR_OPERATOR_INVALID(<=)
+    EXPR_OPERATOR_INVALID(<)
+    EXPR_OPERATOR_INVALID(>=)
+    EXPR_OPERATOR_INVALID(>)
+    EXPR_OPERATOR_INVALID(==)
+    EXPR_OPERATOR_INVALID(!=)
+    EXPR_OPERATOR_INVALID(&&)
+    EXPR_OPERATOR_INVALID(||)
+    EXPR_OPERATOR_INVALID(=)
+    EXPR_OPERATOR_INVALID(+=)
+    EXPR_OPERATOR_INVALID(-=)
+    EXPR_OPERATOR_INVALID(*=)
+    EXPR_OPERATOR_INVALID(/=)
+    EXPR_OPERATOR_INVALID(%=)
+    EXPR_OPERATOR_INVALID(^=)
+    EXPR_OPERATOR_INVALID(&=)
+    EXPR_OPERATOR_INVALID(|=)
+    EXPR_OPERATOR_INVALID(<<=)
+    EXPR_OPERATOR_INVALID(>>=)
+    EXPR_OPERATOR_INVALID(^)
+    EXPR_OPERATOR_INVALID(|)
+    EXPR_OPERATOR_INVALID(&)
 
-#undef EXPR_OPERATOR
+#undef EXPR_OPERATOR_INVALID
 
     explicit operator bool() const noexcept
         requires(!CheckMode || requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
@@ -923,6 +951,44 @@ struct extracted_unary_expression {
     EXPR_OPERATOR(!=, operator_not_equal)
 
 #undef EXPR_OPERATOR
+
+    // We don't want to decompose these operators.
+#define EXPR_OPERATOR_INVALID(OP)                                                                  \
+    template<typename V>                                                                           \
+    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+        return {};                                                                                 \
+    }
+
+    EXPR_OPERATOR_INVALID(&&)
+    EXPR_OPERATOR_INVALID(||)
+    EXPR_OPERATOR_INVALID(=)
+    EXPR_OPERATOR_INVALID(+=)
+    EXPR_OPERATOR_INVALID(-=)
+    EXPR_OPERATOR_INVALID(*=)
+    EXPR_OPERATOR_INVALID(/=)
+    EXPR_OPERATOR_INVALID(%=)
+    EXPR_OPERATOR_INVALID(^=)
+    EXPR_OPERATOR_INVALID(&=)
+    EXPR_OPERATOR_INVALID(|=)
+    EXPR_OPERATOR_INVALID(<<=)
+    EXPR_OPERATOR_INVALID(>>=)
+
+#undef EXPR_OPERATOR_INVALID
+
+    // These operators have lower precedence, we don't want to decompose them but we can stil
+    // evaluate them, as would happen for arithmetic operators (+-/*%).
+#define EXPR_OPERATOR_IMMEDIATE(OP)                                                                \
+    template<typename U>                                                                           \
+    constexpr extracted_unary_expression<CheckMode, Expected, T> operator OP(const U& rhs)         \
+        const noexcept {                                                                           \
+        return {expr, lhs OP rhs};                                                                 \
+    }
+
+    EXPR_OPERATOR_IMMEDIATE(^)
+    EXPR_OPERATOR_IMMEDIATE(|)
+    EXPR_OPERATOR_IMMEDIATE(&)
+
+#undef EXPR_OPERATOR_IMMEDIATE
 
     explicit operator bool() const noexcept
         requires(!CheckMode || requires(const T& lhs) { static_cast<bool>(lhs); })
