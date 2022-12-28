@@ -40,7 +40,7 @@ colored<T> make_colored(const T& t, bool with_color, color_t start) {
     return {t, with_color ? start : "", with_color ? color::reset : ""};
 }
 
-thread_local snitch::impl::test_run* thread_current_test = nullptr;
+thread_local snitch::impl::test_state* thread_current_test = nullptr;
 } // namespace
 
 namespace {
@@ -226,8 +226,8 @@ void stdout_print(std::string_view message) noexcept {
     std::printf("%.*s", static_cast<int>(message.length()), message.data());
 }
 
-test_run& get_current_test() noexcept {
-    test_run* current = thread_current_test;
+test_state& get_current_test() noexcept {
+    test_state* current = thread_current_test;
     if (current == nullptr) {
         terminate_with("no test case is currently running on this thread");
     }
@@ -235,11 +235,11 @@ test_run& get_current_test() noexcept {
     return *current;
 }
 
-test_run* try_get_current_test() noexcept {
+test_state* try_get_current_test() noexcept {
     return thread_current_test;
 }
 
-void set_current_test(test_run* current) noexcept {
+void set_current_test(test_state* current) noexcept {
     thread_current_test = current;
 }
 
@@ -404,7 +404,7 @@ std::string_view extract_next_name(std::string_view& names) noexcept {
     return result;
 }
 
-small_string<max_capture_length>& add_capture(test_run& state) noexcept {
+small_string<max_capture_length>& add_capture(test_state& state) noexcept {
     if (state.captures.available() == 0) {
         state.reg.print(
             make_colored("error:", state.reg.with_color, color::fail),
@@ -545,6 +545,11 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     std::size_t skip_count      = 0;
     std::size_t assertion_count = 0;
 
+#if SNITCH_WITH_TIMINGS
+    using clock     = std::chrono::high_resolution_clock;
+    auto time_start = clock::now();
+#endif
+
     for (test_case& t : r) {
         if (!predicate(t)) {
             continue;
@@ -556,30 +561,52 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
         assertion_count += state.asserts;
 
         switch (t.state) {
-        case test_state::success: {
+        case impl::test_case_state::success: {
             // Nothing to do
             break;
         }
-        case test_state::failed: {
+        case impl::test_case_state::failed: {
             ++fail_count;
             success = false;
             break;
         }
-        case test_state::skipped: {
+        case impl::test_case_state::skipped: {
             ++skip_count;
             break;
         }
-        case test_state::not_run: {
+        case impl::test_case_state::not_run: {
             // Unreachable
             break;
         }
         }
     }
 
+#if SNITCH_WITH_TIMINGS
+    auto  time_end = clock::now();
+    float duration = std::chrono::duration<float>(time_end - time_start).count();
+#endif
+
     if (!r.report_callback.empty()) {
+#if SNITCH_WITH_TIMINGS
         r.report_callback(
             r, event::test_run_ended{
-                   run_name, success, run_count, fail_count, skip_count, assertion_count});
+                   .name            = run_name,
+                   .success         = success,
+                   .run_count       = run_count,
+                   .fail_count      = fail_count,
+                   .skip_count      = skip_count,
+                   .assertion_count = assertion_count,
+                   .duration        = duration});
+#else
+        r.report_callback(
+            r, event::test_run_ended{
+                   .name            = run_name,
+                   .success         = success,
+                   .run_count       = run_count,
+                   .fail_count      = fail_count,
+                   .skip_count      = skip_count,
+                   .assertion_count = assertion_count});
+#endif
     } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
         r.print("==========================================\n");
 
@@ -596,6 +623,10 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
         if (skip_count > 0) {
             r.print(", ", skip_count, " test cases skipped");
         }
+
+#if SNITCH_WITH_TIMINGS
+        r.print(", ", duration, " seconds");
+#endif
 
         r.print(")\n");
     }
@@ -634,10 +665,19 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) no
     return buffer.str();
 }
 
-void set_state(test_case& t, test_state s) noexcept {
-    if (static_cast<std::underlying_type_t<test_state>>(t.state) <
-        static_cast<std::underlying_type_t<test_state>>(s)) {
+void set_state(test_case& t, impl::test_case_state s) noexcept {
+    if (static_cast<std::underlying_type_t<impl::test_case_state>>(t.state) <
+        static_cast<std::underlying_type_t<impl::test_case_state>>(s)) {
         t.state = s;
+    }
+}
+
+snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcept {
+    switch (s) {
+    case impl::test_case_state::success: return snitch::test_case_state::success;
+    case impl::test_case_state::failed: return snitch::test_case_state::failed;
+    case impl::test_case_state::skipped: return snitch::test_case_state::skipped;
+    default: terminate_with("test case state cannot be exposed to the public");
     }
 }
 
@@ -733,12 +773,12 @@ void registry::print_details_expr(const expression& exp) const noexcept {
 }
 
 void registry::report_failure(
-    impl::test_run&           state,
+    impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
 
     if (!state.may_fail) {
-        set_state(state.test, test_state::failed);
+        set_state(state.test, impl::test_case_state::failed);
     }
 
     if (!report_callback.empty()) {
@@ -759,13 +799,13 @@ void registry::report_failure(
 }
 
 void registry::report_failure(
-    impl::test_run&           state,
+    impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message1,
     std::string_view          message2) const noexcept {
 
     if (!state.may_fail) {
-        set_state(state.test, test_state::failed);
+        set_state(state.test, impl::test_case_state::failed);
     }
 
     small_string<max_message_length> message;
@@ -789,12 +829,12 @@ void registry::report_failure(
 }
 
 void registry::report_failure(
-    impl::test_run&           state,
+    impl::test_state&         state,
     const assertion_location& location,
     const impl::expression&   exp) const noexcept {
 
     if (!state.may_fail) {
-        set_state(state.test, test_state::failed);
+        set_state(state.test, impl::test_case_state::failed);
     }
 
     if (!report_callback.empty()) {
@@ -824,11 +864,11 @@ void registry::report_failure(
 }
 
 void registry::report_skipped(
-    impl::test_run&           state,
+    impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
 
-    set_state(state.test, test_state::skipped);
+    set_state(state.test, impl::test_case_state::skipped);
 
     if (!report_callback.empty()) {
         const auto captures_buffer = make_capture_buffer(state.captures);
@@ -843,7 +883,7 @@ void registry::report_skipped(
     }
 }
 
-test_run registry::run(test_case& test) noexcept {
+test_state registry::run(test_case& test) noexcept {
     small_string<max_test_name_length> full_name;
 
     if (!report_callback.empty()) {
@@ -855,7 +895,7 @@ test_run registry::run(test_case& test) noexcept {
             make_colored(full_name, with_color, color::highlight1), "\n");
     }
 
-    test.state = test_state::success;
+    test.state = impl::test_case_state::success;
 
     bool may_fail    = false;
     bool should_fail = false;
@@ -867,12 +907,12 @@ test_run registry::run(test_case& test) noexcept {
         }
     });
 
-    test_run state{.reg = *this, .test = test, .may_fail = may_fail, .should_fail = should_fail};
+    test_state state{.reg = *this, .test = test, .may_fail = may_fail, .should_fail = should_fail};
 
     // Store previously running test, to restore it later.
     // This should always be a null pointer, except when testing snitch itself.
-    test_run* previous_run = thread_current_test;
-    thread_current_test    = &state;
+    test_state* previous_run = thread_current_test;
+    thread_current_test      = &state;
 
 #if SNITCH_WITH_TIMINGS
     using clock     = std::chrono::high_resolution_clock;
@@ -911,12 +951,12 @@ test_run registry::run(test_case& test) noexcept {
     } while (!state.sections.levels.empty());
 
     if (state.should_fail) {
-        if (state.test.state == test_state::success) {
+        if (state.test.state == impl::test_case_state::success) {
             state.should_fail = false;
             report_failure(state, {__FILE__, __LINE__}, "expected test to fail, but it passed");
             state.should_fail = true;
-        } else if (state.test.state == test_state::failed) {
-            state.test.state = test_state::success;
+        } else if (state.test.state == impl::test_case_state::failed) {
+            state.test.state = impl::test_case_state::success;
         }
     }
 
@@ -927,9 +967,18 @@ test_run registry::run(test_case& test) noexcept {
 
     if (!report_callback.empty()) {
 #if SNITCH_WITH_TIMINGS
-        report_callback(*this, event::test_case_ended{test.id, state.duration});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .state           = convert_to_public_state(state.test.state),
+                       .assertion_count = state.asserts,
+                       .duration        = state.duration});
 #else
-        report_callback(*this, event::test_case_ended{test.id});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .state           = convert_to_public_state(state.test.state),
+                       .assertion_count = state.asserts});
 #endif
     } else if (is_at_least(verbose, verbosity::high)) {
 #if SNITCH_WITH_TIMINGS

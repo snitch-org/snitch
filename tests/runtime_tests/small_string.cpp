@@ -367,50 +367,45 @@ TEMPLATE_TEST_CASE("small string", "[utility]", string_type, span_type, view_typ
     }
 }
 
-// This requires fixing https://github.com/cschreib/snitch/issues/17
-// TEST_CASE("constexpr small string", "[utility]") {
-//     constexpr std::size_t max_length = 5u;
+TEST_CASE("constexpr small string", "[utility]") {
+    SECTION("from string view") {
+        constexpr string_type v = "abc"sv;
 
-//     using TestType = snitch::small_string<max_length>;
+        CHECK(v.size() == 3u);
+        CHECK(!v.empty());
+        CHECK(v.capacity() == max_length);
+        CHECK(v.available() == max_length - 3u);
+        CHECK(v.end() == v.begin() + 3u);
+        CHECK(v.cend() == v.cbegin() + 3u);
 
-//     SECTION("from string view") {
-//         constexpr TestType v = "abc"sv;
+        CHECK(v[0] == 'a');
+        CHECK(v[1] == 'b');
+        CHECK(v[2] == 'c');
+    }
 
-//         CHECK(v.size() == 3u);
-//         CHECK(!v.empty());
-//         CHECK(v.capacity() == max_length);
-//         CHECK(v.available() == max_length - 3u);
-//         CHECK(v.end() == v.begin() + 3u);
-//         CHECK(v.cend() == v.cbegin() + 3u);
+    SECTION("from immediate lambda") {
+        constexpr string_type v = []() {
+            string_type v;
+            v.push_back('a');
+            v.push_back('b');
+            v.push_back('c');
+            v.push_back('d');
+            v.pop_back();
+            v.push_back('e');
+            v.grow(1u);
+            v.resize(3u);
+            return v;
+        }();
 
-//         CHECK(v[0] == 'a');
-//         CHECK(v[1] == 'b');
-//         CHECK(v[2] == 'c');
-//     }
+        CHECK(v.size() == 3u);
+        CHECK(!v.empty());
+        CHECK(v.capacity() == max_length);
+        CHECK(v.available() == max_length - 3u);
+        CHECK(v.end() == v.begin() + 3u);
+        CHECK(v.cend() == v.cbegin() + 3u);
 
-//     SECTION("from immediate lambda") {
-//         constexpr TestType v = []() {
-//             TestType v;
-//             v.push_back('a');
-//             v.push_back('b');
-//             v.push_back('c');
-//             v.push_back('d');
-//             v.pop_back();
-//             v.push_back('e');
-//             v.grow(1u);
-//             v.resize(3u);
-//             return v;
-//         }();
-
-//         CHECK(v.size() == 3u);
-//         CHECK(!v.empty());
-//         CHECK(v.capacity() == max_length);
-//         CHECK(v.available() == max_length - 3u);
-//         CHECK(v.end() = v.begin() + 3u);
-//         CHECK(v.cend() = v.cbegin() + 3u);
-
-//         CHECK(v[0] == 'a');
-//         CHECK(v[1] == 'b');
-//         CHECK(v[2] == 'c');
-//     }
-// };
+        CHECK(v[0] == 'a');
+        CHECK(v[1] == 'b');
+        CHECK(v[2] == 'c');
+    }
+}

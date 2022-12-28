@@ -720,7 +720,7 @@ public:
 // -----------------------
 
 namespace snitch::impl {
-struct test_run;
+struct test_state;
 
 using test_ptr = void (*)();
 
@@ -729,12 +729,12 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
     return []() { F{}.template operator()<T>(); };
 }
 
-enum class test_state { not_run, success, skipped, failed };
+enum class test_case_state { not_run, success, skipped, failed };
 
 struct test_case {
-    test_id    id    = {};
-    test_ptr   func  = nullptr;
-    test_state state = test_state::not_run;
+    test_id         id    = {};
+    test_ptr        func  = nullptr;
+    test_case_state state = test_case_state::not_run;
 };
 
 struct section_nesting_level {
@@ -752,7 +752,7 @@ struct section_state {
 
 using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
 
-struct test_run {
+struct test_state {
     registry&     reg;
     test_case&    test;
     section_state sections    = {};
@@ -765,14 +765,14 @@ struct test_run {
 #endif
 };
 
-test_run& get_current_test() noexcept;
-test_run* try_get_current_test() noexcept;
-void      set_current_test(test_run* current) noexcept;
+test_state& get_current_test() noexcept;
+test_state* try_get_current_test() noexcept;
+void        set_current_test(test_state* current) noexcept;
 
 struct section_entry_checker {
-    section_id section = {};
-    test_run&  state;
-    bool       entered = false;
+    section_id  section = {};
+    test_state& state;
+    bool        entered = false;
 
     ~section_entry_checker() noexcept;
 
@@ -818,22 +818,39 @@ struct expression {
 
 template<bool CheckMode>
 struct invalid_expression {
-#define EXPR_OPERATOR(OP)                                                                          \
+    // This is an invalid expression; any further operator should produce another invalid
+    // expression. We don't want to decompose these operators, but we need to declare them
+    // so the expression compiles until cast to bool. This enable conditional decomposition.
+#define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
     invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
         return {};                                                                                 \
     }
 
-    EXPR_OPERATOR(<=)
-    EXPR_OPERATOR(<)
-    EXPR_OPERATOR(>=)
-    EXPR_OPERATOR(>)
-    EXPR_OPERATOR(==)
-    EXPR_OPERATOR(!=)
-    EXPR_OPERATOR(&&)
-    EXPR_OPERATOR(||)
+    EXPR_OPERATOR_INVALID(<=)
+    EXPR_OPERATOR_INVALID(<)
+    EXPR_OPERATOR_INVALID(>=)
+    EXPR_OPERATOR_INVALID(>)
+    EXPR_OPERATOR_INVALID(==)
+    EXPR_OPERATOR_INVALID(!=)
+    EXPR_OPERATOR_INVALID(&&)
+    EXPR_OPERATOR_INVALID(||)
+    EXPR_OPERATOR_INVALID(=)
+    EXPR_OPERATOR_INVALID(+=)
+    EXPR_OPERATOR_INVALID(-=)
+    EXPR_OPERATOR_INVALID(*=)
+    EXPR_OPERATOR_INVALID(/=)
+    EXPR_OPERATOR_INVALID(%=)
+    EXPR_OPERATOR_INVALID(^=)
+    EXPR_OPERATOR_INVALID(&=)
+    EXPR_OPERATOR_INVALID(|=)
+    EXPR_OPERATOR_INVALID(<<=)
+    EXPR_OPERATOR_INVALID(>>=)
+    EXPR_OPERATOR_INVALID(^)
+    EXPR_OPERATOR_INVALID(|)
+    EXPR_OPERATOR_INVALID(&)
 
-#undef EXPR_OPERATOR
+#undef EXPR_OPERATOR_INVALID
 
     explicit operator bool() const noexcept
         requires(!CheckMode)
@@ -851,22 +868,40 @@ struct extracted_binary_expression {
     const T&    lhs;
     const U&    rhs;
 
-#define EXPR_OPERATOR(OP)                                                                          \
+    // This is a binary expression; any further operator should produce an invalid
+    // expression, since we can't/won't decompose complex expressions. We don't want to decompose
+    // these operators, but we need to declare them so the expression compiles until cast to bool.
+    // This enable conditional decomposition.
+#define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
     invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
         return {};                                                                                 \
     }
 
-    EXPR_OPERATOR(<=)
-    EXPR_OPERATOR(<)
-    EXPR_OPERATOR(>=)
-    EXPR_OPERATOR(>)
-    EXPR_OPERATOR(==)
-    EXPR_OPERATOR(!=)
-    EXPR_OPERATOR(&&)
-    EXPR_OPERATOR(||)
+    EXPR_OPERATOR_INVALID(<=)
+    EXPR_OPERATOR_INVALID(<)
+    EXPR_OPERATOR_INVALID(>=)
+    EXPR_OPERATOR_INVALID(>)
+    EXPR_OPERATOR_INVALID(==)
+    EXPR_OPERATOR_INVALID(!=)
+    EXPR_OPERATOR_INVALID(&&)
+    EXPR_OPERATOR_INVALID(||)
+    EXPR_OPERATOR_INVALID(=)
+    EXPR_OPERATOR_INVALID(+=)
+    EXPR_OPERATOR_INVALID(-=)
+    EXPR_OPERATOR_INVALID(*=)
+    EXPR_OPERATOR_INVALID(/=)
+    EXPR_OPERATOR_INVALID(%=)
+    EXPR_OPERATOR_INVALID(^=)
+    EXPR_OPERATOR_INVALID(&=)
+    EXPR_OPERATOR_INVALID(|=)
+    EXPR_OPERATOR_INVALID(<<=)
+    EXPR_OPERATOR_INVALID(>>=)
+    EXPR_OPERATOR_INVALID(^)
+    EXPR_OPERATOR_INVALID(|)
+    EXPR_OPERATOR_INVALID(&)
 
-#undef EXPR_OPERATOR
+#undef EXPR_OPERATOR_INVALID
 
     explicit operator bool() const noexcept
         requires(!CheckMode || requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
@@ -908,6 +943,7 @@ struct extracted_unary_expression {
     expression& expr;
     const T&    lhs;
 
+    // Operators we want to decompose.
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
     constexpr extracted_binary_expression<CheckMode, Expected, T, OP_TYPE, U> operator OP(         \
@@ -923,6 +959,33 @@ struct extracted_unary_expression {
     EXPR_OPERATOR(!=, operator_not_equal)
 
 #undef EXPR_OPERATOR
+
+    // We don't want to decompose the following operators, but we need to declare them so the
+    // expression compiles until cast to bool. This enable conditional decomposition.
+#define EXPR_OPERATOR_INVALID(OP)                                                                  \
+    template<typename V>                                                                           \
+    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+        return {};                                                                                 \
+    }
+
+    EXPR_OPERATOR_INVALID(&&)
+    EXPR_OPERATOR_INVALID(||)
+    EXPR_OPERATOR_INVALID(=)
+    EXPR_OPERATOR_INVALID(+=)
+    EXPR_OPERATOR_INVALID(-=)
+    EXPR_OPERATOR_INVALID(*=)
+    EXPR_OPERATOR_INVALID(/=)
+    EXPR_OPERATOR_INVALID(%=)
+    EXPR_OPERATOR_INVALID(^=)
+    EXPR_OPERATOR_INVALID(&=)
+    EXPR_OPERATOR_INVALID(|=)
+    EXPR_OPERATOR_INVALID(<<=)
+    EXPR_OPERATOR_INVALID(>>=)
+    EXPR_OPERATOR_INVALID(^)
+    EXPR_OPERATOR_INVALID(|)
+    EXPR_OPERATOR_INVALID(&)
+
+#undef EXPR_OPERATOR_INVALID
 
     explicit operator bool() const noexcept
         requires(!CheckMode || requires(const T& lhs) { static_cast<bool>(lhs); })
@@ -964,22 +1027,23 @@ struct scoped_capture {
 
 std::string_view extract_next_name(std::string_view& names) noexcept;
 
-small_string<max_capture_length>& add_capture(test_run& state) noexcept;
+small_string<max_capture_length>& add_capture(test_state& state) noexcept;
 
 template<string_appendable T>
-void add_capture(test_run& state, std::string_view& names, const T& arg) noexcept {
+void add_capture(test_state& state, std::string_view& names, const T& arg) noexcept {
     auto& capture = add_capture(state);
     append_or_truncate(capture, extract_next_name(names), " := ", arg);
 }
 
 template<string_appendable... Args>
-scoped_capture add_captures(test_run& state, std::string_view names, const Args&... args) noexcept {
+scoped_capture
+add_captures(test_state& state, std::string_view names, const Args&... args) noexcept {
     (add_capture(state, names, args), ...);
     return {state.captures, sizeof...(args)};
 }
 
 template<string_appendable... Args>
-scoped_capture add_info(test_run& state, const Args&... args) noexcept {
+scoped_capture add_info(test_state& state, const Args&... args) noexcept {
     auto& capture = add_capture(state);
     append_or_truncate(capture, args...);
     return {state.captures, 1};
@@ -1012,6 +1076,8 @@ struct assertion_location {
     std::size_t      line = 0u;
 };
 
+enum class test_case_state { success, failed, skipped };
+
 namespace event {
 struct test_run_started {
     std::string_view name = {};
@@ -1024,6 +1090,9 @@ struct test_run_ended {
     std::size_t      fail_count      = 0;
     std::size_t      skip_count      = 0;
     std::size_t      assertion_count = 0;
+#if SNITCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
 };
 
 struct test_case_started {
@@ -1031,7 +1100,9 @@ struct test_case_started {
 };
 
 struct test_case_ended {
-    const test_id& id;
+    const test_id&  id;
+    test_case_state state           = test_case_state::success;
+    std::size_t     assertion_count = 0;
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
@@ -1145,27 +1216,27 @@ public:
     }
 
     void report_failure(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
     void report_failure(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message1,
         std::string_view          message2) const noexcept;
 
     void report_failure(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         const impl::expression&   exp) const noexcept;
 
     void report_skipped(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
-    impl::test_run run(impl::test_case& test) noexcept;
+    impl::test_state run(impl::test_case& test) noexcept;
 
     bool run_all_tests(std::string_view run_name) noexcept;
     bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;

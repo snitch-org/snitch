@@ -21,6 +21,9 @@ struct event_deep_copy {
     std::size_t                                        test_run_skip_count      = 0;
     std::size_t                                        test_run_assertion_count = 0;
 
+    snitch::test_case_state test_case_state           = snitch::test_case_state::success;
+    std::size_t             test_case_assertion_count = 0;
+
     snitch::small_string<snitch::max_test_name_length> test_id_name;
     snitch::small_string<snitch::max_test_name_length> test_id_tags;
     snitch::small_string<snitch::max_test_name_length> test_id_type;
@@ -44,7 +47,7 @@ struct mock_framework {
     snitch::impl::test_case test_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
+        .state = snitch::impl::test_case_state::not_run};
 
     snitch::small_vector<event_deep_copy, 16> events;
     snitch::small_string<4086>                messages;
@@ -162,4 +165,13 @@ struct cli_input {
         CHECK(end.test_run_fail_count == FAIL_COUNT);                                              \
         CHECK(end.test_run_skip_count == SKIP_COUNT);                                              \
         CHECK(end.test_run_assertion_count == ASSERT_COUNT);                                       \
+    } while (0)
+
+#define CHECK_CASE(STATE, ASSERT_COUNT)                                                            \
+    do {                                                                                           \
+        REQUIRE(framework.events.size() >= 2u);                                                    \
+        auto end = framework.events.back();                                                        \
+        REQUIRE(end.event_type == event_deep_copy::type::test_case_ended);                         \
+        CHECK(end.test_case_state == STATE);                                                       \
+        CHECK(end.test_case_assertion_count == ASSERT_COUNT);                                      \
     } while (0)
