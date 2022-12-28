@@ -442,48 +442,47 @@ TEST_CASE("constexpr small vector test_struct", "[utility]") {
     }
 }
 
-// This requires fixing https://github.com/cschreib/snitch/issues/17
-// TEST_CASE("constexpr small vector int", "[utility]") {
-//     using TestType = snitch::small_vector<int, max_test_elements>;
+TEST_CASE("constexpr small vector int", "[utility]") {
+    using TestType = snitch::small_vector<int, max_test_elements>;
 
-//     SECTION("from initializer list") {
-//         constexpr TestType v = {1, 2, 5};
+    SECTION("from initializer list") {
+        constexpr TestType v = {1, 2, 5};
 
-//         CHECK(v.size() == 3u);
-//         CHECK(!v.empty());
-//         CHECK(v.capacity() == max_test_elements);
-//         CHECK(v.available() == max_test_elements - 3u);
-//         CHECK(v.end() == v.begin() + 3u);
-//         CHECK(v.cend() == v.cbegin() + 3u);
+        CHECK(v.size() == 3u);
+        CHECK(!v.empty());
+        CHECK(v.capacity() == max_test_elements);
+        CHECK(v.available() == max_test_elements - 3u);
+        CHECK(v.end() == v.begin() + 3u);
+        CHECK(v.cend() == v.cbegin() + 3u);
 
-//         CHECK(v[0] == 1);
-//         CHECK(v[1] == 2);
-//         CHECK(v[2] == 3);
-//     }
+        CHECK(v[0] == 1);
+        CHECK(v[1] == 2);
+        CHECK(v[2] == 5);
+    }
 
-//     SECTION("from immediate lambda") {
-//         constexpr TestType v = []() {
-//             TestType v;
-//             v.push_back(1);
-//             v.push_back(2);
-//             v.push_back(5);
-//             v.push_back(6);
-//             v.pop_back();
-//             v.push_back(7);
-//             v.grow(1u);
-//             v.resize(3u);
-//             return v;
-//         }();
+    SECTION("from immediate lambda") {
+        constexpr TestType v = []() {
+            TestType v;
+            v.push_back(1);
+            v.push_back(2);
+            v.push_back(5);
+            v.push_back(6);
+            v.pop_back();
+            v.push_back(7);
+            v.grow(1u);
+            v.resize(3u);
+            return v;
+        }();
 
-//         CHECK(v.size() == 3u);
-//         CHECK(!v.empty());
-//         CHECK(v.capacity() == max_test_elements);
-//         CHECK(v.available() == max_test_elements - 3u);
-//         CHECK(v.end() == v.begin() + 3u);
-//         CHECK(v.cend() == v.cbegin() + 3u);
+        CHECK(v.size() == 3u);
+        CHECK(!v.empty());
+        CHECK(v.capacity() == max_test_elements);
+        CHECK(v.available() == max_test_elements - 3u);
+        CHECK(v.end() == v.begin() + 3u);
+        CHECK(v.cend() == v.cbegin() + 3u);
 
-//         CHECK(v[0] == 1);
-//         CHECK(v[1] == 2);
-//         CHECK(v[2] == 5);
-//     }
-// };
+        CHECK(v[0] == 1);
+        CHECK(v[1] == 2);
+        CHECK(v[2] == 5);
+    }
+}
