@@ -47,7 +47,7 @@ struct mock_framework {
     snitch::impl::test_case test_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
+        .state = snitch::impl::test_case_state::not_run};
 
     snitch::small_vector<event_deep_copy, 16> events;
     snitch::small_string<4086>                messages;

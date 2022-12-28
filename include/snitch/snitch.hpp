@@ -720,7 +720,7 @@ public:
 // -----------------------
 
 namespace snitch::impl {
-struct test_run;
+struct test_state;
 
 using test_ptr = void (*)();
 
@@ -729,12 +729,12 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
     return []() { F{}.template operator()<T>(); };
 }
 
-enum class test_state { not_run, success, skipped, failed };
+enum class test_case_state { not_run, success, skipped, failed };
 
 struct test_case {
-    test_id    id    = {};
-    test_ptr   func  = nullptr;
-    test_state state = test_state::not_run;
+    test_id         id    = {};
+    test_ptr        func  = nullptr;
+    test_case_state state = test_case_state::not_run;
 };
 
 struct section_nesting_level {
@@ -752,7 +752,7 @@ struct section_state {
 
 using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
 
-struct test_run {
+struct test_state {
     registry&     reg;
     test_case&    test;
     section_state sections    = {};
@@ -765,14 +765,14 @@ struct test_run {
 #endif
 };
 
-test_run& get_current_test() noexcept;
-test_run* try_get_current_test() noexcept;
-void      set_current_test(test_run* current) noexcept;
+test_state& get_current_test() noexcept;
+test_state* try_get_current_test() noexcept;
+void        set_current_test(test_state* current) noexcept;
 
 struct section_entry_checker {
-    section_id section = {};
-    test_run&  state;
-    bool       entered = false;
+    section_id  section = {};
+    test_state& state;
+    bool        entered = false;
 
     ~section_entry_checker() noexcept;
 
@@ -1027,22 +1027,23 @@ struct scoped_capture {
 
 std::string_view extract_next_name(std::string_view& names) noexcept;
 
-small_string<max_capture_length>& add_capture(test_run& state) noexcept;
+small_string<max_capture_length>& add_capture(test_state& state) noexcept;
 
 template<string_appendable T>
-void add_capture(test_run& state, std::string_view& names, const T& arg) noexcept {
+void add_capture(test_state& state, std::string_view& names, const T& arg) noexcept {
     auto& capture = add_capture(state);
     append_or_truncate(capture, extract_next_name(names), " := ", arg);
 }
 
 template<string_appendable... Args>
-scoped_capture add_captures(test_run& state, std::string_view names, const Args&... args) noexcept {
+scoped_capture
+add_captures(test_state& state, std::string_view names, const Args&... args) noexcept {
     (add_capture(state, names, args), ...);
     return {state.captures, sizeof...(args)};
 }
 
 template<string_appendable... Args>
-scoped_capture add_info(test_run& state, const Args&... args) noexcept {
+scoped_capture add_info(test_state& state, const Args&... args) noexcept {
     auto& capture = add_capture(state);
     append_or_truncate(capture, args...);
     return {state.captures, 1};
@@ -1215,27 +1216,27 @@ public:
     }
 
     void report_failure(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
     void report_failure(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message1,
         std::string_view          message2) const noexcept;
 
     void report_failure(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         const impl::expression&   exp) const noexcept;
 
     void report_skipped(
-        impl::test_run&           state,
+        impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
-    impl::test_run run(impl::test_case& test) noexcept;
+    impl::test_state run(impl::test_case& test) noexcept;
 
     bool run_all_tests(std::string_view run_name) noexcept;
     bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;

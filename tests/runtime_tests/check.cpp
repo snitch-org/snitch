@@ -72,9 +72,9 @@ struct event_catcher {
     snitch::impl::test_case mock_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
-        .state = snitch::impl::test_state::not_run};
+        .state = snitch::impl::test_case_state::not_run};
 
-    snitch::impl::test_run mock_run{.reg = mock_registry, .test = mock_case};
+    snitch::impl::test_state mock_test{.reg = mock_registry, .test = mock_case};
 
     std::optional<event_deep_copy> last_event;
 
@@ -88,11 +88,11 @@ struct event_catcher {
 };
 
 struct test_override {
-    snitch::impl::test_run* previous;
+    snitch::impl::test_state* previous;
 
     explicit test_override(event_catcher& catcher) :
         previous(snitch::impl::try_get_current_test()) {
-        snitch::impl::set_current_test(&catcher.mock_run);
+        snitch::impl::set_current_test(&catcher.mock_test);
     }
 
     ~test_override() {
@@ -119,13 +119,13 @@ struct long_matcher_always_fails {
 
 #define CHECK_EXPR_SUCCESS(CATCHER)                                                                \
     do {                                                                                           \
-        CHECK((CATCHER).mock_run.asserts == 1u);                                                   \
+        CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
         CHECK(!(CATCHER).last_event.has_value());                                                  \
     } while (0)
 
 #define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, MESSAGE)                                         \
     do {                                                                                           \
-        CHECK((CATCHER).mock_run.asserts == 1u);                                                   \
+        CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
         REQUIRE((CATCHER).last_event.has_value());                                                 \
         const auto& event = (CATCHER).last_event.value();                                          \
         CHECK(event.event_type == event_deep_copy::type::assertion_failed);                        \
