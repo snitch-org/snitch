@@ -21,8 +21,8 @@ struct event_deep_copy {
     std::size_t                                        test_run_skip_count      = 0;
     std::size_t                                        test_run_assertion_count = 0;
 
-    bool        test_case_success         = false;
-    std::size_t test_case_assertion_count = 0;
+    snitch::test_case_state test_case_state           = snitch::test_case_state::success;
+    std::size_t             test_case_assertion_count = 0;
 
     snitch::small_string<snitch::max_test_name_length> test_id_name;
     snitch::small_string<snitch::max_test_name_length> test_id_tags;
@@ -167,11 +167,11 @@ struct cli_input {
         CHECK(end.test_run_assertion_count == ASSERT_COUNT);                                       \
     } while (0)
 
-#define CHECK_CASE_ASSERTS(SUCCESS, ASSERT_COUNT)                                                  \
+#define CHECK_CASE(STATE, ASSERT_COUNT)                                                            \
     do {                                                                                           \
         REQUIRE(framework.events.size() >= 2u);                                                    \
         auto end = framework.events.back();                                                        \
         REQUIRE(end.event_type == event_deep_copy::type::test_case_ended);                         \
-        CHECK(end.test_case_success == SUCCESS);                                                   \
+        CHECK(end.test_case_state == STATE);                                                       \
         CHECK(end.test_case_assertion_count == ASSERT_COUNT);                                      \
     } while (0)

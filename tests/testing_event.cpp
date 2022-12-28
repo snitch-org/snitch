@@ -85,7 +85,7 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_ended;
                 copy_test_case_id(c, s);
-                c.test_case_success         = s.success;
+                c.test_case_state           = s.state;
                 c.test_case_assertion_count = s.assertion_count;
                 return c;
             },

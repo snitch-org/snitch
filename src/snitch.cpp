@@ -672,6 +672,15 @@ void set_state(test_case& t, test_state s) noexcept {
     }
 }
 
+test_case_state convert_to_public_state(test_state s) noexcept {
+    switch (s) {
+    case test_state::success: return test_case_state::success;
+    case test_state::failed: return test_case_state::failed;
+    case test_state::skipped: return test_case_state::skipped;
+    default: terminate_with("test case state cannot be exposed to the public");
+    }
+}
+
 small_vector<std::string_view, max_captures> make_capture_buffer(const capture_state& captures) {
     small_vector<std::string_view, max_captures> captures_buffer;
     for (const auto& c : captures) {
@@ -957,22 +966,18 @@ test_run registry::run(test_case& test) noexcept {
 #endif
 
     if (!report_callback.empty()) {
-        const bool skipped = state.test.state == test_state::skipped;
-        const bool success = state.test.state == test_state::success || skipped;
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_case_ended{
                        .id              = test.id,
-                       .success         = success,
-                       .skipped         = skipped,
+                       .state           = convert_to_public_state(state.test.state),
                        .assertion_count = state.asserts,
                        .duration        = state.duration});
 #else
         report_callback(
             *this, event::test_case_ended{
                        .id              = test.id,
-                       .success         = success,
-                       .skipped         = skipped,
+                       .state           = convert_to_public_state(state.test.state),
                        .assertion_count = state.asserts});
 #endif
     } else if (is_at_least(verbose, verbosity::high)) {

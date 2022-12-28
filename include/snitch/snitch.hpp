@@ -1075,6 +1075,8 @@ struct assertion_location {
     std::size_t      line = 0u;
 };
 
+enum class test_case_state { success, failed, skipped };
+
 namespace event {
 struct test_run_started {
     std::string_view name = {};
@@ -1097,10 +1099,9 @@ struct test_case_started {
 };
 
 struct test_case_ended {
-    const test_id& id;
-    bool           success         = true;
-    bool           skipped         = false;
-    std::size_t    assertion_count = 0;
+    const test_id&  id;
+    test_case_state state           = test_case_state::success;
+    std::size_t     assertion_count = 0;
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
