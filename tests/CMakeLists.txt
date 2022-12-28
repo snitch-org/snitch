@@ -64,7 +64,8 @@ set(RUNTIME_TEST_FILES
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/section.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/cli.cpp
   ${PROJECT_SOURCE_DIR}/tests/runtime_tests/registry.cpp
-  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/macros.cpp)
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/macros.cpp
+  ${PROJECT_SOURCE_DIR}/tests/runtime_tests/regressions.cpp)
 
 # Test snitch with doctest
 add_executable(snitch_runtime_tests ${PROJECT_SOURCE_DIR}/src/snitch.cpp ${RUNTIME_TEST_FILES})

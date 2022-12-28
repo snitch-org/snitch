@@ -2,7 +2,7 @@
 
 namespace {
 bool test_called = false;
-}
+} // namespace
 
 TEST_CASE("test without tags") {
     CHECK(!test_called);
