@@ -42,14 +42,14 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
-   - Macro to mark a test as skipped: `SKIP(msg)`.
+   - Macro to dynamically mark a test as skipped: `SKIP(msg)`. This is useful if a test depends on a system property that can only be checked at run time (e.g., admin privilege, installed hardware & software, etc.).
    - Matchers use a different API (see [Matchers](#matchers) below).
 
 If you need features that are not in the list above, please use _Catch2_ or _doctest_.
 
 Notable current limitations:
 
- - No fixtures, or set-up/tear-down helpers (`SECTION()` can be used to share set-up/tear-down logic).
+ - No fixtures, or set-up/tear-down helpers. `SECTION()` can be used to share set-up/tear-down logic instead.
  - No multi-threaded test execution.
 
 
@@ -105,10 +105,10 @@ include(FetchContent)
 
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-                     GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
+                     GIT_TAG        v1.0.0) # update version number if needed
 FetchContent_MakeAvailable(snitch)
 
-set(RUNTIME_TEST_FILES
+set(YOUR_TEST_FILES
   # add your test files here...
   )
 
@@ -128,10 +128,10 @@ include(FetchContent)
 
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-                     GIT_TAG        6b71837fc60e2adc0d0d5603e04a16f694445804)
+                     GIT_TAG        v1.0.0) # update version number if needed
 FetchContent_MakeAvailable(snitch)
 
-set(RUNTIME_TEST_FILES
+set(YOUR_TEST_FILES
   # add your test files here...
   )
 
