@@ -1394,8 +1394,8 @@ bool operator==(const M& m, const T& value) noexcept {
     snitch::impl::is_decomposable<                                                                 \
         decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= EXP)>
 
-// Public test macros.
-// -------------------
+// Public test macros: test cases.
+// -------------------------------
 
 #define SNITCH_TEST_CASE_IMPL(ID, ...)                                                             \
     static void        ID();                                                                       \
@@ -1432,6 +1432,57 @@ bool operator==(const M& m, const T& value) noexcept {
     SNITCH_TEMPLATE_TEST_CASE_IMPL(                                                                \
         SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
 
+#define SNITCH_TEST_CASE_METHOD_IMPL(ID, FIXTURE, ...)                                             \
+    namespace {                                                                                    \
+    struct ID : FIXTURE {                                                                          \
+        void test_fun();                                                                           \
+    };                                                                                             \
+    }                                                                                              \
+    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snitch::tests.add({__VA_ARGS__}, []() { ID{}.test_fun(); });                               \
+    void ID::test_fun()
+
+#define SNITCH_TEST_CASE_METHOD(FIXTURE, ...)                                                      \
+    SNITCH_TEST_CASE_METHOD_IMPL(                                                                  \
+        SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, __VA_ARGS__)
+
+#define SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD_IMPL(ID, FIXTURE, NAME, TAGS, TYPES)                 \
+    namespace {                                                                                    \
+    template<typename TestType>                                                                    \
+    struct ID : FIXTURE<TestType> {                                                                \
+        void test_fun();                                                                           \
+    };                                                                                             \
+    }                                                                                              \
+    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snitch::tests.add_with_types<TYPES>(                                                       \
+            NAME, TAGS, []() < typename TestType > { ID<TestType>{}.test_fun(); });                \
+    template<typename TestType>                                                                    \
+    void ID<TestType>::test_fun()
+
+#define SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, TYPES)                          \
+    SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD_IMPL(                                                    \
+        SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, NAME, TAGS, TYPES)
+
+#define SNITCH_TEMPLATE_TEST_CASE_METHOD_IMPL(ID, FIXTURE, NAME, TAGS, ...)                        \
+    namespace {                                                                                    \
+    template<typename TestType>                                                                    \
+    struct ID : FIXTURE<TestType> {                                                                \
+        void test_fun();                                                                           \
+    };                                                                                             \
+    }                                                                                              \
+    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
+        snitch::tests.add_with_types<__VA_ARGS__>(                                                 \
+            NAME, TAGS, []() < typename TestType > { ID<TestType>{}.test_fun(); });                \
+    template<typename TestType>                                                                    \
+    void ID<TestType>::test_fun()
+
+#define SNITCH_TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, ...)                                 \
+    SNITCH_TEMPLATE_TEST_CASE_METHOD_IMPL(                                                         \
+        SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, NAME, TAGS, __VA_ARGS__)
+
+// Public test macros: utilities.
+// ------------------------------
+
 #define SNITCH_SECTION(...)                                                                        \
     if (snitch::impl::section_entry_checker SNITCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
             {__VA_ARGS__}, snitch::impl::get_current_test()})
@@ -1443,6 +1494,9 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNITCH_INFO(...)                                                                           \
     auto SNITCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \
         snitch::impl::add_info(snitch::impl::get_current_test(), __VA_ARGS__)
+
+// Public test macros: checks.
+// ------------------------------
 
 #define SNITCH_REQUIRE(EXP)                                                                        \
     do {                                                                                           \
@@ -1586,21 +1640,27 @@ bool operator==(const M& m, const T& value) noexcept {
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS
-#    define TEST_CASE(...)                             SNITCH_TEST_CASE(__VA_ARGS__)
+#    define TEST_CASE(NAME, ...)                       SNITCH_TEST_CASE(NAME, __VA_ARGS__)
 #    define TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)
 #    define TEMPLATE_TEST_CASE(NAME, TAGS, ...)        SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, __VA_ARGS__)
-#    define SECTION(...)                               SNITCH_SECTION(__VA_ARGS__)
-#    define CAPTURE(...)                               SNITCH_CAPTURE(__VA_ARGS__)
-#    define INFO(...)                                  SNITCH_INFO(__VA_ARGS__)
-#    define REQUIRE(EXP)                               SNITCH_REQUIRE(EXP)
-#    define CHECK(EXP)                                 SNITCH_CHECK(EXP)
-#    define REQUIRE_FALSE(EXP)                         SNITCH_REQUIRE_FALSE(EXP)
-#    define CHECK_FALSE(EXP)                           SNITCH_CHECK_FALSE(EXP)
-#    define FAIL(MESSAGE)                              SNITCH_FAIL(MESSAGE)
-#    define FAIL_CHECK(MESSAGE)                        SNITCH_FAIL_CHECK(MESSAGE)
-#    define SKIP(MESSAGE)                              SNITCH_SKIP(MESSAGE)
-#    define REQUIRE_THAT(EXP, MATCHER)                 SNITCH_REQUIRE(EXP, MATCHER)
-#    define CHECK_THAT(EXP, MATCHER)                   SNITCH_CHECK(EXP, MATCHER)
+
+#    define TEST_CASE_METHOD(FIXTURE, NAME, ...)                       SNITCH_TEST_CASE_METHOD(FIXTURE, NAME, __VA_ARGS__)
+#    define TEMPLATE_LIST_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, TYPES) SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, TYPES)
+#    define TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, ...)        SNITCH_TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, __VA_ARGS__)
+
+#    define SECTION(NAME, ...) SNITCH_SECTION(NAME, __VA_ARGS__)
+#    define CAPTURE(...) SNITCH_CAPTURE(__VA_ARGS__)
+#    define INFO(...)    SNITCH_INFO(__VA_ARGS__)
+
+#    define REQUIRE(EXP)               SNITCH_REQUIRE(EXP)
+#    define CHECK(EXP)                 SNITCH_CHECK(EXP)
+#    define REQUIRE_FALSE(EXP)         SNITCH_REQUIRE_FALSE(EXP)
+#    define CHECK_FALSE(EXP)           SNITCH_CHECK_FALSE(EXP)
+#    define FAIL(MESSAGE)              SNITCH_FAIL(MESSAGE)
+#    define FAIL_CHECK(MESSAGE)        SNITCH_FAIL_CHECK(MESSAGE)
+#    define SKIP(MESSAGE)              SNITCH_SKIP(MESSAGE)
+#    define REQUIRE_THAT(EXP, MATCHER) SNITCH_REQUIRE(EXP, MATCHER)
+#    define CHECK_THAT(EXP, MATCHER)   SNITCH_CHECK(EXP, MATCHER)
 #endif
 // clang-format on
 

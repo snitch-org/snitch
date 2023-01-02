@@ -17,6 +17,8 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
 - [Documentation](#documentation)
     - [Detailed comparison with _Catch2_](#detailed-comparison-with-catch2)
     - [Test case macros](#test-case-macros)
+        - [Standalone test cases](#standalone-test-cases)
+        - [Test cases with fixtures](#test-cases-with-fixtures)
     - [Test check macros](#test-check-macros)
     - [Tags](#tags)
     - [Matchers](#matchers)
@@ -49,8 +51,7 @@ If you need features that are not in the list above, please use _Catch2_ or _doc
 
 Notable current limitations:
 
- - No fixtures, or set-up/tear-down helpers. `SECTION()` can be used to share set-up/tear-down logic instead.
- - No multi-threaded test execution.
+ - No multi-threaded test execution yet; the code is thread-friendly, this is just not implemented.
 
 
 ## Example
@@ -206,6 +207,8 @@ See [the dedicated page in the docs folder](doc/comparison_catch2.md).
 
 ### Test case macros
 
+#### Standalone test cases
+
 `TEST_CASE(NAME, TAGS) { /* test body */ }`
 
 This must be called at namespace, global, or class scope; not inside a function or another test case. This defines a new test case of name `NAME`. `NAME` must be a string literal, and may contain any character, up to a maximum length configured by `SNITCH_MAX_TEST_NAME_LENGTH` (default is `1024`). This name will be used to display test reports, and can be used to filter the tests. It is not required to be a unique name. `TAGS` specify which tag(s) are associated with this test case. This must be a string literal with the same limitations as `NAME`. See the [Tags](#tags) section for more information on tags. Finally, `test body` is the body of your test case. Within this scope, you can use the test macros listed [below](#test-check-macros).
@@ -219,6 +222,23 @@ This is similar to `TEST_CASE`, except that it declares a new test case for each
 `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ }`
 
 This is equivalent to `TEMPLATE_TEST_CASE`, except that `TYPES` must be a template type list of the form `T<Types...>`, for example `snitch::type_list<Types...>` or `std::tuple<Types...>`. This type list can be declared once and reused for multiple test cases.
+
+
+#### Test cases with fixtures
+
+`TEST_CASE_METHOD(FIXTURE, NAME, TAGS) { /* test body */ }`
+
+This is similar to `TEST_CASE`, except that the test body is interpreted "as if" it was a member function of a class deriving from the `FIXTURE` class. This means the test body has access to public and protected members of `FIXTURE`, but not to private members. Each time the test is executed, a new instance of `FIXTURE` is created, the test body is run on this temporary instance, and finally the instance is destroyed; the instance is not shared between tests.
+
+
+`TEMPLATE_TEST_CASE_METHOD(NAME, TAGS, TYPES...) { /* test code for TestType */ }`
+
+This is similar to `TEST_CASE_METHOD`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE_METHOD()` is recommended instead.
+
+
+`TEMPLATE_LIST_TEST_CASE_METHOD(NAME, TAGS, TYPES) { /* test code for TestType */ }`
+
+This is equivalent to `TEMPLATE_TEST_CASE_METHOD`, except that `TYPES` must be a template type list of the form `T<Types...>`, for example `snitch::type_list<Types...>` or `std::tuple<Types...>`. This type list can be declared once and reused for multiple test cases.
 
 
 ### Test check macros
