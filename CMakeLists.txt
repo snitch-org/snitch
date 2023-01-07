@@ -41,6 +41,7 @@ if (SNITCH_CREATE_LIBRARY)
   add_library(snitch
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
+    ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp
     ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 
   add_library(snitch::snitch ALIAS snitch)
@@ -74,27 +75,28 @@ if (SNITCH_CREATE_LIBRARY)
 endif()
 
 if(SNITCH_CREATE_HEADER_ONLY)
+  find_package(Python3)
+
   # Build as a header-only library.
-  file(READ ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp SNITCH_FILE_CONFIG)
-  file(READ ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp SNITCH_FILE_HEADER)
-  file(READ ${PROJECT_SOURCE_DIR}/src/snitch.cpp SNITCH_FILE_SOURCE)
+  add_custom_command(
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/make_snitch_all.py" "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}"
+    VERBATIM
+    OUTPUT ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
+    DEPENDS
+      ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
+      ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp
+      ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 
-  set(SNITCH_ALL_CONTENT "${SNITCH_FILE_CONFIG}\n${SNITCH_FILE_HEADER}\n#if defined(SNITCH_IMPLEMENTATION)\n${SNITCH_FILE_SOURCE}\n#endif")
-
-  # Remove includes to snitch.hpp; it's all one header now
-  string(REPLACE "#include \"snitch/snitch.hpp\"\n" "" SNITCH_ALL_CONTENT "${SNITCH_ALL_CONTENT}")
-  string(REPLACE "#include \"snitch/snitch_config.hpp\"\n" "" SNITCH_ALL_CONTENT "${SNITCH_ALL_CONTENT}")
-
-  file(GENERATE OUTPUT ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp CONTENT "${SNITCH_ALL_CONTENT}")
+  add_custom_target(snitch-header-only-impl ALL DEPENDS ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
 
   add_library(snitch-header-only INTERFACE)
   add_library(snitch::snitch-header-only ALIAS snitch-header-only)
+  add_dependencies(snitch-header-only snitch-header-only-impl)
   set_target_properties(snitch-header-only PROPERTIES EXPORT_NAME snitch::snitch-header-only)
 
   target_sources(snitch-header-only INTERFACE
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
-  set_source_files_properties(${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp PROPERTIES GENERATED TRUE)
   target_include_directories(snitch-header-only INTERFACE
       $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
