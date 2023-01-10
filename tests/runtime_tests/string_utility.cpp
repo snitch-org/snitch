@@ -504,3 +504,14 @@ TEST_CASE("is_match", "[utility]") {
         CHECK(!snitch::is_match("abc"sv, "abc**def"sv));
     }
 }
+
+TEST_CASE("is_filter_match", "[utility]") {
+    CHECK(snitch::is_filter_match("abc"sv, "abc"sv));
+    CHECK(snitch::is_filter_match("abc"sv, "ab*"sv));
+    CHECK(snitch::is_filter_match("abc"sv, "*bc"sv));
+    CHECK(snitch::is_filter_match("abc"sv, "*"sv));
+    CHECK(!snitch::is_filter_match("abc"sv, "~abc"sv));
+    CHECK(!snitch::is_filter_match("abc"sv, "~ab*"sv));
+    CHECK(!snitch::is_filter_match("abc"sv, "~*bc"sv));
+    CHECK(!snitch::is_filter_match("abc"sv, "~*"sv));
+}

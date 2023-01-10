@@ -268,6 +268,16 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
     // an exact match. Therefore, only match if the string size is the same as the regex.
     return regex_size == string_size;
 }
+
+bool is_filter_match(std::string_view name, std::string_view filter) noexcept {
+    bool expected = true;
+    if (filter.size() > 1 && filter[0] == '~') {
+        filter   = filter.substr(1);
+        expected = false;
+    }
+
+    return is_match(name, filter) == expected;
+}
 } // namespace snitch
 
 namespace snitch::impl {
