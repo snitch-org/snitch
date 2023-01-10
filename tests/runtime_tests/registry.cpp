@@ -526,7 +526,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all pass") {
-            framework.registry.run_tests_matching_name("test_app", "are you");
+            framework.registry.run_tests_matching_name("test_app", "*are you");
 
             CHECK(test_called);
             CHECK(!test_called_other_tag);
@@ -547,7 +547,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all failed") {
-            framework.registry.run_tests_matching_name("test_app", "lights");
+            framework.registry.run_tests_matching_name("test_app", "*lights*");
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -568,7 +568,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all skipped") {
-            framework.registry.run_tests_matching_name("test_app", "cup");
+            framework.registry.run_tests_matching_name("test_app", "*cup");
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -872,7 +872,7 @@ TEST_CASE("run tests cli", "[registry]") {
     }
 
     SECTION("test filter") {
-        const arg_vector args = {"test", "how many"};
+        const arg_vector args = {"test", "how many*"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 

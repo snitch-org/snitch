@@ -1074,10 +1074,7 @@ bool registry::run_tests_matching_name(
     std::string_view run_name, std::string_view name_filter) noexcept {
     small_string<max_test_name_length> buffer;
     return ::run_tests(*this, run_name, [&](const test_case& t) {
-        std::string_view v = make_full_name(buffer, t.id);
-
-        // TODO: use regex here?
-        return v.find(name_filter) != v.npos;
+        return is_filter_match(make_full_name(buffer, t.id), name_filter);
     });
 }
 

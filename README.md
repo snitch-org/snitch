@@ -653,7 +653,7 @@ An example reporter for _Teamcity_ is included for demonstration, see `include/s
 ### Default main function
 
 The default `main()` function provided in _snitch_ offers the following command-line API:
- - positional argument for filtering tests by name.
+ - positional argument for filtering tests by name, see below.
  - `-h,--help`: show command line help.
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
@@ -661,6 +661,22 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-t,--tags`: filter tests by tags instead of by name.
  - `-v,--verbosity [quiet|normal|high]`: select level of detail for the default reporter.
  - `   --color [always|never]`: enable/disable colors in the default reporter.
+
+The positional argument is used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If a filter is provided, then hidden tests will no longer be excluded. This reproduces the behavior of _Catch2_.
+
+A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
+ - `ab*` will match all test cases with names starting with `ab`.
+ - `*cd` will match all test cases with names ending with `cd`.
+ - `ab*cd` will match all test cases with names starting with `ab` and ending with `cd`.
+ - `abcd` will only match the test case with name `abcd`.
+ - `*` will match all test cases.
+
+ If the filter starts with `~`, then it is negated:
+ - `~ab*` will match all test cases with names NOT starting with `ab`.
+ - `~*cd` will match all test cases with names NOT ending with `cd`.
+ - `~ab*cd` will match all test cases with names NOT starting with `ab` or NOT ending with `cd`.
+ - `~abcd` will match all test cases except the test case with name `abcd`.
+ - `~*` will match no test case.
 
 
 ### Using your own main function
