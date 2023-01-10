@@ -580,6 +580,8 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
 
+[[nodiscard]] bool is_match(std::string_view string, std::string_view regex) noexcept;
+
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {
                           { m.match(value) } -> convertible_to<bool>;

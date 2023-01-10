@@ -355,3 +355,152 @@ TEMPLATE_TEST_CASE(
         CHECK(std::string_view(s) == "abaca");
     }
 }
+
+TEST_CASE("is_match", "[utility]") {
+    SECTION("empty") {
+        CHECK(snitch::is_match(""sv, ""sv));
+    }
+
+    SECTION("empty regex") {
+        CHECK(snitch::is_match("abc"sv, ""sv));
+    }
+
+    SECTION("empty string") {
+        CHECK(!snitch::is_match(""sv, "abc"sv));
+    }
+
+    SECTION("no wildcard match") {
+        CHECK(snitch::is_match("abc"sv, "abc"sv));
+    }
+
+    SECTION("no wildcard not match") {
+        CHECK(!snitch::is_match("abc"sv, "cba"sv));
+    }
+
+    SECTION("no wildcard not match smaller regex") {
+        CHECK(!snitch::is_match("abc"sv, "ab"sv));
+        CHECK(!snitch::is_match("abc"sv, "bc"sv));
+        CHECK(!snitch::is_match("abc"sv, "a"sv));
+        CHECK(!snitch::is_match("abc"sv, "b"sv));
+        CHECK(!snitch::is_match("abc"sv, "c"sv));
+    }
+
+    SECTION("no wildcard not match larger regex") {
+        CHECK(!snitch::is_match("abc"sv, "abcd"sv));
+        CHECK(!snitch::is_match("abc"sv, "zabc"sv));
+        CHECK(!snitch::is_match("abc"sv, "abcdefghijkl"sv));
+    }
+
+    SECTION("single wildcard match") {
+        CHECK(snitch::is_match("abc"sv, "*"sv));
+        CHECK(snitch::is_match("azzzzzzzzzzbc"sv, "*"sv));
+        CHECK(snitch::is_match(""sv, "*"sv));
+    }
+
+    SECTION("start wildcard match") {
+        CHECK(snitch::is_match("abc"sv, "*bc"sv));
+        CHECK(snitch::is_match("azzzzzzzzzzbc"sv, "*bc"sv));
+        CHECK(snitch::is_match("bc"sv, "*bc"sv));
+    }
+
+    SECTION("start wildcard not match") {
+        CHECK(!snitch::is_match("abd"sv, "*bc"sv));
+        CHECK(!snitch::is_match("azzzzzzzzzzbd"sv, "*bc"sv));
+        CHECK(!snitch::is_match("bd"sv, "*bc"sv));
+    }
+
+    SECTION("end wildcard match") {
+        CHECK(snitch::is_match("abc"sv, "ab*"sv));
+        CHECK(snitch::is_match("abccccccccccc"sv, "ab*"sv));
+        CHECK(snitch::is_match("ab"sv, "ab*"sv));
+    }
+
+    SECTION("end wildcard not match") {
+        CHECK(!snitch::is_match("adc"sv, "ab*"sv));
+        CHECK(!snitch::is_match("adccccccccccc"sv, "ab*"sv));
+        CHECK(!snitch::is_match("ad"sv, "ab*"sv));
+    }
+
+    SECTION("mid wildcard match") {
+        CHECK(snitch::is_match("ab_cd"sv, "ab*cd"sv));
+        CHECK(snitch::is_match("abasdasdasdcd"sv, "ab*cd"sv));
+        CHECK(snitch::is_match("abcd"sv, "ab*cd"sv));
+    }
+
+    SECTION("mid wildcard not match") {
+        CHECK(!snitch::is_match("adcd"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("abcc"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("accccccccccd"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("ab"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("abc"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("abd"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("cd"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("bcd"sv, "ab*cd"sv));
+        CHECK(!snitch::is_match("acd"sv, "ab*cd"sv));
+    }
+
+    SECTION("multi wildcard match") {
+        CHECK(snitch::is_match("zab_cdw"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("zzzzzzabcccccccccccdwwwwwww"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("abcd"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("ab_cdw"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("zabcdw"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("zab_cd"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("abcd"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("ababcd"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("abcdabcd"sv, "*ab*cd*"sv));
+        CHECK(snitch::is_match("abcdabcc"sv, "*ab*cd*"sv));
+    }
+
+    SECTION("multi wildcard not match") {
+        CHECK(!snitch::is_match("zad_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zac_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zaa_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zdb_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zcb_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zbb_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_ddw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_bdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_adw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_ccw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_cbw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_caw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab_"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("zab"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("ab_"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("ab"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("_cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("cdw"sv, "*ab*cd*"sv));
+        CHECK(!snitch::is_match("cd"sv, "*ab*cd*"sv));
+    }
+
+    SECTION("double wildcard match") {
+        CHECK(snitch::is_match("abc"sv, "**"sv));
+        CHECK(snitch::is_match("azzzzzzzzzzbc"sv, "**"sv));
+        CHECK(snitch::is_match(""sv, "**"sv));
+        CHECK(snitch::is_match("abc"sv, "abc**"sv));
+        CHECK(snitch::is_match("abc"sv, "ab**"sv));
+        CHECK(snitch::is_match("abc"sv, "a**"sv));
+        CHECK(snitch::is_match("abc"sv, "**abc"sv));
+        CHECK(snitch::is_match("abc"sv, "**bc"sv));
+        CHECK(snitch::is_match("abc"sv, "**c"sv));
+        CHECK(snitch::is_match("abc"sv, "ab**c"sv));
+        CHECK(snitch::is_match("abc"sv, "a**bc"sv));
+        CHECK(snitch::is_match("abc"sv, "a**c"sv));
+    }
+
+    SECTION("double wildcard not match") {
+        CHECK(!snitch::is_match("abc"sv, "abd**"sv));
+        CHECK(!snitch::is_match("abc"sv, "ad**"sv));
+        CHECK(!snitch::is_match("abc"sv, "d**"sv));
+        CHECK(!snitch::is_match("abc"sv, "**abd"sv));
+        CHECK(!snitch::is_match("abc"sv, "**bd"sv));
+        CHECK(!snitch::is_match("abc"sv, "**d"sv));
+        CHECK(!snitch::is_match("abc"sv, "ab**d"sv));
+        CHECK(!snitch::is_match("abc"sv, "a**d"sv));
+        CHECK(!snitch::is_match("abc"sv, "abc**abc"sv));
+        CHECK(!snitch::is_match("abc"sv, "abc**ab"sv));
+        CHECK(!snitch::is_match("abc"sv, "abc**a"sv));
+        CHECK(!snitch::is_match("abc"sv, "abc**def"sv));
+    }
+}

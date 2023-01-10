@@ -218,6 +218,56 @@ bool replace_all(
         return !overflow;
     }
 }
+
+bool is_match(std::string_view string, std::string_view regex) noexcept {
+    // An empty regex matches any string; early exit.
+    // An empty string matches an empty regex (exit here) or any regex containing
+    // only wildcards (exit later).
+    if ((string.empty() && regex.empty()) || regex.empty()) {
+        return true;
+    }
+
+    const std::size_t regex_size  = regex.size();
+    const std::size_t string_size = string.size();
+
+    // Iterate characters of the regex string and exit at first non-match.
+    for (std::size_t j = 0; j < regex_size; ++j) {
+        if (regex[j] == '*') {
+            // Wildcard is found; if this is the last character of the regex
+            // then any further content will be a match; early exit.
+            if (j == regex_size - 1) {
+                return true;
+            }
+
+            // Discard what has already been matched. If there are no more characters in the
+            // string after discarding, then we only match if the regex contains only
+            // wildcards from there on.
+            regex                       = regex.substr(j + 1);
+            const std::size_t remaining = string_size >= j ? string_size - j : 0u;
+            if (remaining == 0u) {
+                return regex.find_first_not_of('*') == regex.npos;
+            }
+
+            // Otherwise, we loop over all remaining characters of the string and look
+            // for a match when starting from each of them.
+            for (std::size_t o = 0; o < remaining; ++o) {
+                if (is_match(string.substr(j + o), regex)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } else if (j >= string_size || regex[j] != string[j]) {
+            // Regular character is found; not a match if not an exact match in the string.
+            return false;
+        }
+    }
+
+    // We have finished reading the regex string and did not find either a definite non-match
+    // or a definite match. This means we did not have any wildcard left, hence that we need
+    // an exact match. Therefore, only match if the string size is the same as the regex.
+    return regex_size == string_size;
+}
 } // namespace snitch
 
 namespace snitch::impl {
