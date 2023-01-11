@@ -610,6 +610,27 @@ TEST_CASE("run tests", "[registry]") {
             }
         }
 
+        SECTION("run tests filtered tags wildcard") {
+            framework.registry.run_tests_with_tag("test_app", "*tag]");
+
+            CHECK(test_called);
+            CHECK(test_called_other_tag);
+            CHECK(test_called_skipped);
+            CHECK(test_called_int);
+            CHECK(test_called_float);
+            CHECK(test_called_hidden1);
+            CHECK(!test_called_hidden2);
+
+            if (r == reporter::print) {
+                CHECK(
+                    framework.messages ==
+                    contains_substring("some tests failed (3 out of 6 test cases, 3 assertions"));
+            } else {
+                CHECK(framework.get_num_runs() == 6u);
+                CHECK_RUN(false, 6u, 3u, 1u, 3u);
+            }
+        }
+
         SECTION("run tests special tag [.]") {
             framework.registry.run_tests_with_tag("test_app", "[hidden]");
 
@@ -697,14 +718,16 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("[other_tag]"));
         CHECK(framework.messages == contains_substring("[tag with spaces]"));
         CHECK(framework.messages == contains_substring("[hidden]"));
-        CHECK(framework.messages != contains_substring("[.]"));
+        CHECK(framework.messages == contains_substring("[.]"));
         CHECK(framework.messages != contains_substring("[.hidden]"));
+        CHECK(framework.messages == contains_substring("[!shouldfail]"));
+        CHECK(framework.messages == contains_substring("[!mayfail]"));
     }
 
     SECTION("list_tests_with_tag") {
         for (auto tag :
              {"[tag]"sv, "[other_tag]"sv, "[skipped]"sv, "[tag with spaces]"sv, "[wrong_tag]"sv,
-              "[hidden]"sv, "[.]"sv, "[.hidden]"sv}) {
+              "[hidden]"sv, "[.]"sv, "[.hidden]"sv, "*tag]"sv}) {
 
             CAPTURE(tag);
             framework.messages.clear();
@@ -738,10 +761,16 @@ TEST_CASE("list tests", "[registry]") {
                 CHECK(framework.messages == contains_substring("how many templated lights [int]"));
                 CHECK(
                     framework.messages == contains_substring("how many templated lights [float]"));
-            } else if (tag == "[hidden]"sv) {
+            } else if (tag == "[hidden]"sv || tag == "[.]"sv) {
                 CHECK(framework.messages == contains_substring("hidden test 1"));
                 CHECK(framework.messages == contains_substring("hidden test 2"));
-            } else if (tag == "[wrong_tag]"sv || tag == "[.]"sv || tag == "[.hidden]"sv) {
+            } else if (tag == "*tag]"sv) {
+                CHECK(framework.messages == contains_substring("how are you"));
+                CHECK(framework.messages == contains_substring("how many lights"));
+                CHECK(framework.messages == contains_substring("drink from the cup"));
+                CHECK(framework.messages == contains_substring("how many templated lights"));
+                CHECK(framework.messages == contains_substring("hidden test 1"));
+            } else if (tag == "[wrong_tag]"sv || tag == "[.hidden]"sv) {
                 CHECK(framework.messages.empty());
             }
         }

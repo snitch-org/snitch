@@ -658,11 +658,11 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
  - `   --list-tests-with-tag`: list all tests with a given tag.
- - `-t,--tags`: filter tests by tags instead of by name.
- - `-v,--verbosity [quiet|normal|high]`: select level of detail for the default reporter.
- - `   --color [always|never]`: enable/disable colors in the default reporter.
+ - `-t,--tags <filter>`: filter tests by tags, see below.
+ - `-v,--verbosity <quiet|normal|high>`: select level of detail for the default reporter.
+ - `   --color <always|never>`: enable/disable colors in the default reporter.
 
-The positional argument is used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If a filter is provided, then hidden tests will no longer be excluded. This reproduces the behavior of _Catch2_.
+The positional argument is used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If a filter is provided, then hidden tests will no longer be excluded. This reproduces the behavior of _Catch2_. If the `-t` (or `--tags`) option is given, the filtering is applied to tags instead of test case names.
 
 A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
  - `ab*` will match all test cases with names starting with `ab`.
@@ -671,7 +671,7 @@ A filter may contain any number of "wildcard" character, `*`, which can represen
  - `abcd` will only match the test case with name `abcd`.
  - `*` will match all test cases.
 
- If the filter starts with `~`, then it is negated:
+If the filter starts with `~`, then it is negated:
  - `~ab*` will match all test cases with names NOT starting with `ab`.
  - `~*cd` will match all test cases with names NOT ending with `cd`.
  - `~ab*cd` will match all test cases with names NOT starting with `ab` or NOT ending with `cd`.

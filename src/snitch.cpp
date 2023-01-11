@@ -538,14 +538,6 @@ void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
     callback(s.substr(last_pos));
 }
 
-std::string_view get_tag_name(std::string_view tag) {
-    if (tag.size() < 2u || tag[0] != '[' || tag[tag.size() - 1u] != ']') {
-        return {};
-    }
-
-    return tag.substr(1u, tag.size() - 2u);
-}
-
 namespace tags {
 struct ignored {};
 struct may_fail {};
@@ -556,32 +548,34 @@ using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail
 
 template<typename F>
 void for_each_tag(std::string_view s, F&& callback) noexcept {
+    small_string<max_tag_length> buffer;
+
     for_each_raw_tag(s, [&](std::string_view t) {
         // Look for "ignore" tags, which is either "[.]"
         // or a a tag starting with ".", like "[.integration]".
         if (t == "[.]"sv) {
             // This is a pure "ignore" tag, add this to the list of special tags.
             callback(tags::parsed_tag{tags::ignored{}});
-            return;
+        } else if (t.starts_with("[."sv)) {
+            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
+            // tags, and continue with the normal tag.
+            callback(tags::parsed_tag{tags::ignored{}});
+            callback(tags::parsed_tag{std::string_view("[.]")});
+
+            buffer.clear();
+            if (!append(buffer, "[", t.substr(2u))) {
+                terminate_with("tag is too long");
+            }
+
+            t = buffer;
         }
 
         if (t == "[!mayfail]") {
             callback(tags::parsed_tag{tags::may_fail{}});
-            return;
         }
 
         if (t == "[!shouldfail]") {
             callback(tags::parsed_tag{tags::should_fail{}});
-            return;
-        }
-
-        if (t.starts_with("[."sv)) {
-            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
-            // tags, and continue with the normal tag.
-            callback(tags::parsed_tag{tags::ignored{}});
-            t = t.substr(2u, t.size() - 3u);
-        } else {
-            t = t.substr(1u, t.size() - 2u);
         }
 
         callback(tags::parsed_tag(t));
@@ -1079,18 +1073,11 @@ bool registry::run_tests_matching_name(
 }
 
 bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
-    tag_filter = get_tag_name(tag_filter);
-    if (tag_filter.empty()) {
-        print(
-            make_colored("error:", with_color, color::fail),
-            " tag must be of the form '[tag_name]'.");
-        std::terminate();
-    }
-
     return ::run_tests(*this, run_name, [&](const test_case& t) {
         bool selected = false;
         for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
-            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag_filter) {
+            if (auto* vs = std::get_if<std::string_view>(&v);
+                vs != nullptr && is_filter_match(*vs, tag_filter)) {
                 selected = true;
             }
         });
@@ -1132,18 +1119,11 @@ void registry::list_all_tests() const noexcept {
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
-    tag = get_tag_name(tag);
-    if (tag.empty()) {
-        print(
-            make_colored("error:", with_color, color::fail),
-            " tag must be of the form '[tag_name]'.");
-        std::terminate();
-    }
-
     list_tests(*this, [&](const test_case& t) {
         bool selected = false;
         for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
-            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag) {
+            if (auto* vs = std::get_if<std::string_view>(&v);
+                vs != nullptr && is_filter_match(*vs, tag)) {
                 selected = true;
             }
         });
