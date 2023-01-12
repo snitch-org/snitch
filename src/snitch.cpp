@@ -1163,13 +1163,15 @@ using namespace std::literals;
 
 constexpr std::size_t max_arg_names = 2;
 
-enum class argument_type { optional, mandatory };
+namespace argument_type {
+enum type { optional = 0b00, mandatory = 0b01, repeatable = 0b10 };
+}
 
 struct expected_argument {
     small_vector<std::string_view, max_arg_names> names;
     std::optional<std::string_view>               value_name;
     std::string_view                              description;
-    argument_type                                 type = argument_type::optional;
+    argument_type::type                           type = argument_type::optional;
 };
 
 using expected_arguments = small_vector<expected_argument, max_command_line_args>;
@@ -1189,6 +1191,26 @@ std::string_view extract_executable(std::string_view path) {
     return path;
 }
 
+bool is_option(const expected_argument& e) {
+    return !e.names.empty();
+}
+
+bool is_option(const cli::argument& a) {
+    return !a.name.empty();
+}
+
+bool has_value(const expected_argument& e) {
+    return e.value_name.has_value();
+}
+
+bool is_mandatory(const expected_argument& e) {
+    return (e.type & argument_type::mandatory) != 0;
+}
+
+bool is_repeatable(const expected_argument& e) {
+    return (e.type & argument_type::repeatable) != 0;
+}
+
 std::optional<cli::input> parse_arguments(
     int                       argc,
     const char* const         argv[],
@@ -1205,7 +1227,8 @@ std::optional<cli::input> parse_arguments(
     small_vector<bool, max_command_line_args> expected_found;
     for (const auto& e : expected) {
         expected_found.push_back(false);
-        if (!e.names.empty()) {
+
+        if (is_option(e)) {
             if (e.names.size() == 1) {
                 if (!e.names[0].starts_with('-')) {
                     terminate_with("option name must start with '-' or '--'");
@@ -1216,7 +1239,7 @@ std::optional<cli::input> parse_arguments(
                 }
             }
         } else {
-            if (!e.value_name.has_value()) {
+            if (!has_value(e)) {
                 terminate_with("positional argument must have a value name");
             }
         }
@@ -1225,12 +1248,15 @@ std::optional<cli::input> parse_arguments(
     // Parse
     for (int argi = 1; argi < argc; ++argi) {
         std::string_view arg(argv[argi]);
+
         if (arg.starts_with('-')) {
+            // Options start with dashes.
             bool found = false;
+
             for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
                 const auto& e = expected[arg_index];
 
-                if (e.names.empty()) {
+                if (!is_option(e)) {
                     continue;
                 }
 
@@ -1240,7 +1266,7 @@ std::optional<cli::input> parse_arguments(
 
                 found = true;
 
-                if (expected_found[arg_index]) {
+                if (expected_found[arg_index] && !is_repeatable(e)) {
                     console_print(
                         make_colored("error:", settings.with_color, color::error),
                         " duplicate command line argument '", arg, "'\n");
@@ -1250,7 +1276,7 @@ std::optional<cli::input> parse_arguments(
 
                 expected_found[arg_index] = true;
 
-                if (e.value_name) {
+                if (has_value(e)) {
                     if (argi + 1 == argc) {
                         console_print(
                             make_colored("error:", settings.with_color, color::error),
@@ -1276,11 +1302,17 @@ std::optional<cli::input> parse_arguments(
                     " unknown command line argument '", arg, "'\n");
             }
         } else {
+            // If no dash, this is a positional argument.
             bool found = false;
+
             for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
                 const auto& e = expected[arg_index];
 
-                if (!e.names.empty() || expected_found[arg_index]) {
+                if (is_option(e)) {
+                    continue;
+                }
+
+                if (expected_found[arg_index] && !is_repeatable(e)) {
                     continue;
                 }
 
@@ -1302,8 +1334,8 @@ std::optional<cli::input> parse_arguments(
 
     for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
         const auto& e = expected[arg_index];
-        if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
-            if (e.names.empty()) {
+        if (!expected_found[arg_index] && is_mandatory(e)) {
+            if (!is_option(e)) {
                 console_print(
                     make_colored("error:", settings.with_color, color::error),
                     " missing positional argument '<", *e.value_name, ">'\n");
@@ -1339,16 +1371,22 @@ void print_help(
     // Print command line usage example
     console_print(make_colored("Usage:", settings.with_color, color::pass), "\n");
     console_print("  ", program_name);
-    if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
+    if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return is_option(e); })) {
         console_print(" [options...]");
     }
 
     for (const auto& e : expected) {
-        if (e.names.empty()) {
-            if (e.type == argument_type::mandatory) {
-                console_print(" <", *e.value_name, ">");
-            } else {
+        if (!is_option(e)) {
+            if (!is_mandatory(e) && !is_repeatable(e)) {
                 console_print(" [<", *e.value_name, ">]");
+            } else if (is_mandatory(e) && !is_repeatable(e)) {
+                console_print(" <", *e.value_name, ">");
+            } else if (!is_mandatory(e) && is_repeatable(e)) {
+                console_print(" [<", *e.value_name, ">...]");
+            } else if (is_mandatory(e) && is_repeatable(e)) {
+                console_print(" <", *e.value_name, ">...");
+            } else {
+                terminate_with("unhandled argument type");
             }
         }
     }
@@ -1361,7 +1399,7 @@ void print_help(
         heading.clear();
 
         bool success = true;
-        if (!e.names.empty()) {
+        if (is_option(e)) {
             if (e.names[0].starts_with("--")) {
                 success = success && append(heading, "    ");
             }
@@ -1372,7 +1410,7 @@ void print_help(
                 success = success && append(heading, ", ", e.names[1]);
             }
 
-            if (e.value_name) {
+            if (has_value(e)) {
                 success = success && append(heading, " <", *e.value_name, ">");
             }
         } else {
@@ -1438,7 +1476,7 @@ get_positional_argument(const cli::input& args, std::string_view name) noexcept 
     std::optional<cli::argument> ret;
 
     auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
-        return arg.name.empty() && arg.value_name == name;
+        return !is_option(arg) && arg.value_name == name;
     });
 
     if (iter != args.arguments.cend()) {
