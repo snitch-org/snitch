@@ -216,7 +216,7 @@ This must be called at namespace, global, or class scope; not inside a function 
 
 `TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ }`
 
-This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
+This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. The full name of the test, used when filtering tests by name, is `"NAME <TYPE>"`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
 
 
 `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ }`

@@ -146,8 +146,8 @@ TEST_CASE("add template test", "[registry]") {
             CHECK(test_called == false);
             CHECK(test_called_int == true);
             CHECK(test_called_float == false);
-            CHECK(framework.messages == contains_substring("starting: how many lights [int]"));
-            CHECK(framework.messages == contains_substring("finished: how many lights [int]"));
+            CHECK(framework.messages == contains_substring("starting: how many lights <int>"));
+            CHECK(framework.messages == contains_substring("finished: how many lights <int>"));
         }
 
         SECTION("run float default reporter") {
@@ -157,8 +157,8 @@ TEST_CASE("add template test", "[registry]") {
             CHECK(test_called == false);
             CHECK(test_called_int == false);
             CHECK(test_called_float == true);
-            CHECK(framework.messages == contains_substring("starting: how many lights [float]"));
-            CHECK(framework.messages == contains_substring("finished: how many lights [float]"));
+            CHECK(framework.messages == contains_substring("starting: how many lights <float>"));
+            CHECK(framework.messages == contains_substring("finished: how many lights <float>"));
         }
 
         SECTION("run int custom reporter") {
@@ -704,8 +704,8 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("how are you"));
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages == contains_substring("drink from the cup"));
-        CHECK(framework.messages == contains_substring("how many templated lights [int]"));
-        CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages == contains_substring("how many templated lights <int>"));
+        CHECK(framework.messages == contains_substring("how many templated lights <float>"));
         CHECK(framework.messages == contains_substring("hidden test 1"));
         CHECK(framework.messages == contains_substring("hidden test 2"));
     }
@@ -737,30 +737,30 @@ TEST_CASE("list tests", "[registry]") {
                 CHECK(framework.messages == contains_substring("how are you"));
                 CHECK(framework.messages == contains_substring("how many lights"));
                 CHECK(framework.messages == contains_substring("drink from the cup"));
-                CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages == contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages == contains_substring("how many templated lights [float]"));
+                    framework.messages == contains_substring("how many templated lights <float>"));
             } else if (tag == "[other_tag]"sv) {
                 CHECK(framework.messages != contains_substring("how are you"));
                 CHECK(framework.messages == contains_substring("how many lights"));
                 CHECK(framework.messages != contains_substring("drink from the cup"));
-                CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages != contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages != contains_substring("how many templated lights [float]"));
+                    framework.messages != contains_substring("how many templated lights <float>"));
             } else if (tag == "[skipped]"sv) {
                 CHECK(framework.messages != contains_substring("how are you"));
                 CHECK(framework.messages != contains_substring("how many lights"));
                 CHECK(framework.messages == contains_substring("drink from the cup"));
-                CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages != contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages != contains_substring("how many templated lights [float]"));
+                    framework.messages != contains_substring("how many templated lights <float>"));
             } else if (tag == "[tag with spaces]"sv) {
                 CHECK(framework.messages != contains_substring("how are you"));
                 CHECK(framework.messages != contains_substring("how many lights"));
                 CHECK(framework.messages != contains_substring("drink from the cup"));
-                CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages == contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages == contains_substring("how many templated lights [float]"));
+                    framework.messages == contains_substring("how many templated lights <float>"));
             } else if (tag == "[hidden]"sv || tag == "[.]"sv) {
                 CHECK(framework.messages == contains_substring("hidden test 1"));
                 CHECK(framework.messages == contains_substring("hidden test 2"));
@@ -871,8 +871,8 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK(framework.messages == contains_substring("how are you"));
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages == contains_substring("drink from the cup"));
-        CHECK(framework.messages == contains_substring("how many templated lights [int]"));
-        CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages == contains_substring("how many templated lights <int>"));
+        CHECK(framework.messages == contains_substring("how many templated lights <float>"));
     }
 
     SECTION("--list-tags") {
@@ -896,8 +896,8 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK(framework.messages != contains_substring("how are you"));
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages != contains_substring("drink from the cup"));
-        CHECK(framework.messages != contains_substring("how many templated lights [int]"));
-        CHECK(framework.messages != contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages != contains_substring("how many templated lights <int>"));
+        CHECK(framework.messages != contains_substring("how many templated lights <float>"));
     }
 
     SECTION("test filter") {

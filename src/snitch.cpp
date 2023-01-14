@@ -688,26 +688,11 @@ bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
     return success;
 }
 
-template<typename F>
-void list_tests(const registry& r, F&& predicate) noexcept {
-    for (const test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        if (!t.id.type.empty()) {
-            r.print(t.id.name, " [", t.id.type, "]\n");
-        } else {
-            r.print(t.id.name, "\n");
-        }
-    }
-}
-
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
     buffer.clear();
     if (id.type.length() != 0) {
-        if (!append(buffer, id.name, " [", id.type, "]")) {
+        if (!append(buffer, id.name, " <", id.type, ">")) {
             return {};
         }
     } else {
@@ -717,6 +702,18 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) no
     }
 
     return buffer.str();
+}
+
+template<typename F>
+void list_tests(const registry& r, F&& predicate) noexcept {
+    small_string<max_test_name_length> buffer;
+    for (const test_case& t : r) {
+        if (!predicate(t)) {
+            continue;
+        }
+
+        r.print(make_full_name(buffer, t.id), "\n");
+    }
 }
 
 void set_state(test_case& t, impl::test_case_state s) noexcept {
