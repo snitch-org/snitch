@@ -282,16 +282,6 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
     // an exact match. Therefore, only match if the string size is the same as the regex.
     return js == string_size;
 }
-
-bool is_filter_match(std::string_view name, std::string_view filter) noexcept {
-    bool expected = true;
-    if (filter.size() > 1 && filter[0] == '~') {
-        filter   = filter.substr(1);
-        expected = false;
-    }
-
-    return is_match(name, filter) == expected;
-}
 } // namespace snitch
 
 namespace snitch::impl {
@@ -757,6 +747,36 @@ small_vector<std::string_view, max_captures> make_capture_buffer(const capture_s
 } // namespace
 
 namespace snitch {
+bool is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
+    bool expected = true;
+    if (filter.size() > 1 && filter[0] == '~') {
+        filter   = filter.substr(1);
+        expected = false;
+    }
+
+    return is_match(name, filter) == expected;
+}
+
+bool is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+    bool selected = false;
+    for_each_tag(tags, [&](const tags::parsed_tag& v) {
+        if (auto* vs = std::get_if<std::string_view>(&v);
+            vs != nullptr && is_filter_match_name(*vs, filter)) {
+            selected = true;
+        }
+    });
+
+    return selected;
+}
+
+bool is_filter_match_id(const test_id& id, std::string_view filter) noexcept {
+    if (filter.starts_with("[") || filter.starts_with("~[")) {
+        return is_filter_match_tags(id.tags, filter);
+    } else {
+        return is_filter_match_name(id.name, filter);
+    }
+}
+
 const char* registry::add(const test_id& id, test_ptr func) noexcept {
     if (test_list.size() == test_list.capacity()) {
         print(

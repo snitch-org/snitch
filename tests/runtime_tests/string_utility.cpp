@@ -518,12 +518,49 @@ TEST_CASE("is_match", "[utility]") {
 }
 
 TEST_CASE("is_filter_match", "[utility]") {
-    CHECK(snitch::is_filter_match("abc"sv, "abc"sv));
-    CHECK(snitch::is_filter_match("abc"sv, "ab*"sv));
-    CHECK(snitch::is_filter_match("abc"sv, "*bc"sv));
-    CHECK(snitch::is_filter_match("abc"sv, "*"sv));
-    CHECK(!snitch::is_filter_match("abc"sv, "~abc"sv));
-    CHECK(!snitch::is_filter_match("abc"sv, "~ab*"sv));
-    CHECK(!snitch::is_filter_match("abc"sv, "~*bc"sv));
-    CHECK(!snitch::is_filter_match("abc"sv, "~*"sv));
+    CHECK(snitch::is_filter_match_name("abc"sv, "abc"sv));
+    CHECK(snitch::is_filter_match_name("abc"sv, "ab*"sv));
+    CHECK(snitch::is_filter_match_name("abc"sv, "*bc"sv));
+    CHECK(snitch::is_filter_match_name("abc"sv, "*"sv));
+    CHECK(!snitch::is_filter_match_name("abc"sv, "~abc"sv));
+    CHECK(!snitch::is_filter_match_name("abc"sv, "~ab*"sv));
+    CHECK(!snitch::is_filter_match_name("abc"sv, "~*bc"sv));
+    CHECK(!snitch::is_filter_match_name("abc"sv, "~*"sv));
+}
+
+TEST_CASE("is_filter_match_tag", "[utility]") {
+    CHECK(snitch::is_filter_match_tags("[tag1]"sv, "[tag1]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag1]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag2]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag*]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag*]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[tug*]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2][.]"sv, "[.]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][.tag2]"sv, "[.]"sv));
+    CHECK(snitch::is_filter_match_tags("[.tag1][tag2]"sv, "[.]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[.]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2][!mayfail]"sv, "[!mayfail]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[!mayfail]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2][!shouldfail]"sv, "[!shouldfail]"sv));
+    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[!shouldfail]"sv));
+
+    CHECK(!snitch::is_filter_match_tags("[tag1]"sv, "[tag2]"sv));
+    CHECK(!snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag3]"sv));
+    CHECK(!snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tug*]*"sv));
+    CHECK(!snitch::is_filter_match_tags("[tag1][tag2]"sv, "[.]"sv));
+    CHECK(!snitch::is_filter_match_tags("[.tag1][tag2]"sv, "[.tag1]"sv));
+    CHECK(!snitch::is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag1]"sv));
+    CHECK(!snitch::is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag2]"sv));
+}
+
+TEST_CASE("is_filter_match_id", "[utility]") {
+    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "abc"sv));
+    CHECK(!snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~abc"sv));
+    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "ab*"sv));
+    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag1]"sv));
+    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag2]"sv));
+    CHECK(!snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag3]"sv));
+    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~[tag3]"sv));
+    CHECK(snitch::is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "\\[weird]"sv));
+    CHECK(!snitch::is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "[weird]"sv));
 }
