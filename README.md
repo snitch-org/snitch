@@ -678,6 +678,15 @@ If the filter starts with `~`, then it is negated:
  - `~abcd` will match all test cases except the test case with name `abcd`.
  - `~*` will match no test case.
 
+**Note:** To match the actual character `*` in a test name, the `*` in the filter must be escaped using a backslash `\`, for example `\*`. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_:
+
+| Bash    | _snitch_ | matches                                    |
+|---------|----------|--------------------------------------------|
+| `\\`    | `\`      | nothing (ill-formed filter)                |
+| `\\*`   | `\*`     | exactly the `*` character                  |
+| `\\\\`  | `\\`     | exactly the `\` character                  |
+| `\\\\*` | `\\*`    | any string starting with the `\` character |
+
 
 ### Using your own main function
 

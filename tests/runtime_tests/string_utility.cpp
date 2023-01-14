@@ -503,6 +503,18 @@ TEST_CASE("is_match", "[utility]") {
         CHECK(!snitch::is_match("abc"sv, "abc**a"sv));
         CHECK(!snitch::is_match("abc"sv, "abc**def"sv));
     }
+
+    SECTION("string contains wildcard & escaped wildcard") {
+        CHECK(snitch::is_match("a*c"sv, "a\\*c"sv));
+        CHECK(snitch::is_match("a*"sv, "a\\*"sv));
+        CHECK(snitch::is_match("*a"sv, "\\*a"sv));
+        CHECK(snitch::is_match("a*"sv, "a*"sv));
+        CHECK(snitch::is_match("a\\b"sv, "a\\\\b"sv));
+        CHECK(snitch::is_match("a"sv, "\\a"sv));
+        CHECK(!snitch::is_match("a"sv, "a\\"sv));
+        CHECK(!snitch::is_match("a"sv, "a\\\\"sv));
+        CHECK(!snitch::is_match("a"sv, "\\\\a"sv));
+    }
 }
 
 TEST_CASE("is_filter_match", "[utility]") {

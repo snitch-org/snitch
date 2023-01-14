@@ -231,19 +231,33 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
     const std::size_t string_size = string.size();
 
     // Iterate characters of the regex string and exit at first non-match.
-    for (std::size_t j = 0; j < regex_size; ++j) {
-        if (regex[j] == '*') {
+    std::size_t js = 0;
+    for (std::size_t jr = 0; jr < regex_size; ++jr, ++js) {
+        bool escaped = false;
+        if (regex[jr] == '\\') {
+            // Escaped character, look ahead ignoring special characters.
+            ++jr;
+            if (jr >= regex_size) {
+                // Nothing left to escape; the regex is ill-formed.
+                return false;
+            }
+
+            escaped = true;
+        }
+
+        if (!escaped && regex[jr] == '*') {
             // Wildcard is found; if this is the last character of the regex
             // then any further content will be a match; early exit.
-            if (j == regex_size - 1) {
+            if (jr == regex_size - 1) {
                 return true;
             }
 
-            // Discard what has already been matched. If there are no more characters in the
-            // string after discarding, then we only match if the regex contains only
-            // wildcards from there on.
-            regex                       = regex.substr(j + 1);
-            const std::size_t remaining = string_size >= j ? string_size - j : 0u;
+            // Discard what has already been matched.
+            regex = regex.substr(jr + 1);
+
+            // If there are no more characters in the string after discarding, then we only match if
+            // the regex contains only wildcards from there on.
+            const std::size_t remaining = string_size >= js ? string_size - js : 0u;
             if (remaining == 0u) {
                 return regex.find_first_not_of('*') == regex.npos;
             }
@@ -251,13 +265,13 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
             // Otherwise, we loop over all remaining characters of the string and look
             // for a match when starting from each of them.
             for (std::size_t o = 0; o < remaining; ++o) {
-                if (is_match(string.substr(j + o), regex)) {
+                if (is_match(string.substr(js + o), regex)) {
                     return true;
                 }
             }
 
             return false;
-        } else if (j >= string_size || regex[j] != string[j]) {
+        } else if (js >= string_size || regex[jr] != string[js]) {
             // Regular character is found; not a match if not an exact match in the string.
             return false;
         }
@@ -266,7 +280,7 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
     // We have finished reading the regex string and did not find either a definite non-match
     // or a definite match. This means we did not have any wildcard left, hence that we need
     // an exact match. Therefore, only match if the string size is the same as the regex.
-    return regex_size == string_size;
+    return js == string_size;
 }
 
 bool is_filter_match(std::string_view name, std::string_view filter) noexcept {
