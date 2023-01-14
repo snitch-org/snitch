@@ -586,112 +586,6 @@ void for_each_tag(std::string_view s, F&& callback) noexcept {
     });
 }
 
-template<typename F>
-bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
-    if (!r.report_callback.empty()) {
-        r.report_callback(r, event::test_run_started{run_name});
-    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
-        r.print(
-            make_colored("starting tests with ", r.with_color, color::highlight2),
-            make_colored("snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
-        r.print("==========================================\n");
-    }
-
-    bool        success         = true;
-    std::size_t run_count       = 0;
-    std::size_t fail_count      = 0;
-    std::size_t skip_count      = 0;
-    std::size_t assertion_count = 0;
-
-#if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::high_resolution_clock;
-    auto time_start = clock::now();
-#endif
-
-    for (test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        auto state = r.run(t);
-
-        ++run_count;
-        assertion_count += state.asserts;
-
-        switch (t.state) {
-        case impl::test_case_state::success: {
-            // Nothing to do
-            break;
-        }
-        case impl::test_case_state::failed: {
-            ++fail_count;
-            success = false;
-            break;
-        }
-        case impl::test_case_state::skipped: {
-            ++skip_count;
-            break;
-        }
-        case impl::test_case_state::not_run: {
-            // Unreachable
-            break;
-        }
-        }
-    }
-
-#if SNITCH_WITH_TIMINGS
-    auto  time_end = clock::now();
-    float duration = std::chrono::duration<float>(time_end - time_start).count();
-#endif
-
-    if (!r.report_callback.empty()) {
-#if SNITCH_WITH_TIMINGS
-        r.report_callback(
-            r, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count,
-                   .duration        = duration});
-#else
-        r.report_callback(
-            r, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count});
-#endif
-    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
-        r.print("==========================================\n");
-
-        if (success) {
-            r.print(
-                make_colored("success:", r.with_color, color::pass), " all tests passed (",
-                run_count, " test cases, ", assertion_count, " assertions");
-        } else {
-            r.print(
-                make_colored("error:", r.with_color, color::fail), " some tests failed (",
-                fail_count, " out of ", run_count, " test cases, ", assertion_count, " assertions");
-        }
-
-        if (skip_count > 0) {
-            r.print(", ", skip_count, " test cases skipped");
-        }
-
-#if SNITCH_WITH_TIMINGS
-        r.print(", ", duration, " seconds");
-#endif
-
-        r.print(")\n");
-    }
-
-    return success;
-}
-
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
     buffer.clear();
@@ -1082,39 +976,127 @@ test_state registry::run(test_case& test) noexcept {
     return state;
 }
 
-bool registry::run_all_tests(std::string_view run_name) noexcept {
-    return ::run_tests(*this, run_name, [](const test_case& t) {
+bool registry::run_selected_tests(
+    std::string_view                                     run_name,
+    const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::test_run_started{run_name});
+    } else if (is_at_least(verbose, registry::verbosity::normal)) {
+        print(
+            make_colored("starting tests with ", with_color, color::highlight2),
+            make_colored("snitch v" SNITCH_FULL_VERSION "\n", with_color, color::highlight1));
+        print("==========================================\n");
+    }
+
+    bool        success         = true;
+    std::size_t run_count       = 0;
+    std::size_t fail_count      = 0;
+    std::size_t skip_count      = 0;
+    std::size_t assertion_count = 0;
+
+#if SNITCH_WITH_TIMINGS
+    using clock     = std::chrono::high_resolution_clock;
+    auto time_start = clock::now();
+#endif
+
+    for (test_case& t : *this) {
+        if (!predicate(t.id)) {
+            continue;
+        }
+
+        auto state = run(t);
+
+        ++run_count;
+        assertion_count += state.asserts;
+
+        switch (t.state) {
+        case impl::test_case_state::success: {
+            // Nothing to do
+            break;
+        }
+        case impl::test_case_state::failed: {
+            ++fail_count;
+            success = false;
+            break;
+        }
+        case impl::test_case_state::skipped: {
+            ++skip_count;
+            break;
+        }
+        case impl::test_case_state::not_run: {
+            // Unreachable
+            break;
+        }
+        }
+    }
+
+#if SNITCH_WITH_TIMINGS
+    auto  time_end = clock::now();
+    float duration = std::chrono::duration<float>(time_end - time_start).count();
+#endif
+
+    if (!report_callback.empty()) {
+#if SNITCH_WITH_TIMINGS
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count,
+                       .duration        = duration});
+#else
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count});
+#endif
+    } else if (is_at_least(verbose, registry::verbosity::normal)) {
+        print("==========================================\n");
+
+        if (success) {
+            print(
+                make_colored("success:", with_color, color::pass), " all tests passed (", run_count,
+                " test cases, ", assertion_count, " assertions");
+        } else {
+            print(
+                make_colored("error:", with_color, color::fail), " some tests failed (", fail_count,
+                " out of ", run_count, " test cases, ", assertion_count, " assertions");
+        }
+
+        if (skip_count > 0) {
+            print(", ", skip_count, " test cases skipped");
+        }
+
+#if SNITCH_WITH_TIMINGS
+        print(", ", duration, " seconds");
+#endif
+
+        print(")\n");
+    }
+
+    return success;
+}
+
+bool registry::run_tests(std::string_view run_name) noexcept {
+    const auto filter = [](const test_id& id) {
         bool selected = true;
-        for_each_tag(t.id.tags, [&](const tags::parsed_tag& s) {
+        for_each_tag(id.tags, [&](const tags::parsed_tag& s) {
             if (std::holds_alternative<tags::ignored>(s)) {
                 selected = false;
             }
         });
 
         return selected;
-    });
-}
+    };
 
-bool registry::run_tests_matching_name(
-    std::string_view run_name, std::string_view name_filter) noexcept {
-    small_string<max_test_name_length> buffer;
-    return ::run_tests(*this, run_name, [&](const test_case& t) {
-        return is_filter_match(make_full_name(buffer, t.id), name_filter);
-    });
-}
-
-bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
-    return ::run_tests(*this, run_name, [&](const test_case& t) {
-        bool selected = false;
-        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
-            if (auto* vs = std::get_if<std::string_view>(&v);
-                vs != nullptr && is_filter_match(*vs, tag_filter)) {
-                selected = true;
-            }
-        });
-
-        return selected;
-    });
+    return run_selected_tests(run_name, filter);
 }
 
 void registry::list_all_tags() const noexcept {
@@ -1150,17 +1132,7 @@ void registry::list_all_tests() const noexcept {
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
-    list_tests(*this, [&](const test_case& t) {
-        bool selected = false;
-        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
-            if (auto* vs = std::get_if<std::string_view>(&v);
-                vs != nullptr && is_filter_match(*vs, tag)) {
-                selected = true;
-            }
-        });
-
-        return selected;
-    });
+    list_tests(*this, [&](const test_case& t) { return is_filter_match_tags(t.id.tags, tag); });
 }
 
 test_case* registry::begin() noexcept {
@@ -1463,11 +1435,10 @@ constexpr expected_arguments expected_args = {
     {{"-l", "--list-tests"},    {},                    "List tests by name"},
     {{"--list-tags"},           {},                    "List tags by name"},
     {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
-    {{"-t", "--tags"},          {},                    "Use tags for filtering, not name"},
     {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
     {{"--color"},               {"always|never"},      "Enable/disable color in output"},
     {{"-h", "--help"},          {},                    "Print help"},
-    {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
+    {{},                        {"test regex"},        "A regex to select which test cases to run", argument_type::repeatable}};
 // clang-format on
 
 constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
@@ -1589,14 +1560,24 @@ bool registry::run_tests(const cli::input& args) noexcept {
         return true;
     }
 
-    if (auto opt = get_positional_argument(args, "test regex")) {
-        if (get_option(args, "--tags")) {
-            return run_tests_with_tag(args.executable, *opt->value);
-        } else {
-            return run_tests_matching_name(args.executable, *opt->value);
-        }
+    if (get_positional_argument(args, "test regex").has_value()) {
+        small_string<max_test_name_length> buffer;
+
+        const auto filter = [&](const test_id& id) noexcept {
+            bool selected = true;
+
+            const auto callback = [&](std::string_view filter) noexcept {
+                selected = is_filter_match_id(id, filter);
+            };
+
+            for_each_positional_argument(args, "test regex", callback);
+
+            return selected;
+        };
+
+        return run_selected_tests(args.executable, filter);
     } else {
-        return run_all_tests(args.executable);
+        return run_tests(args.executable);
     }
 }
 } // namespace snitch

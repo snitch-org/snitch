@@ -503,8 +503,8 @@ TEST_CASE("run tests", "[registry]") {
 
         INFO((r == reporter::print ? "default reporter" : "custom reporter"));
 
-        SECTION("run all tests") {
-            framework.registry.run_all_tests("test_app");
+        SECTION("run tests") {
+            framework.registry.run_tests("test_app");
 
             CHECK(test_called);
             CHECK(test_called_other_tag);
@@ -526,7 +526,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all pass") {
-            framework.registry.run_tests_matching_name("test_app", "*are you");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_name(id.name, "*are you");
+                });
 
             CHECK(test_called);
             CHECK(!test_called_other_tag);
@@ -547,7 +550,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all failed") {
-            framework.registry.run_tests_matching_name("test_app", "*lights*");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_name(id.name, "*lights*");
+                });
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -568,7 +574,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all skipped") {
-            framework.registry.run_tests_matching_name("test_app", "*cup");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_name(id.name, "*cup");
+                });
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -590,7 +599,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered tags") {
-            framework.registry.run_tests_with_tag("test_app", "[other_tag]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[other_tag]");
+                });
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -611,7 +623,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered tags wildcard") {
-            framework.registry.run_tests_with_tag("test_app", "*tag]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "*tag]");
+                });
 
             CHECK(test_called);
             CHECK(test_called_other_tag);
@@ -632,7 +647,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [.]") {
-            framework.registry.run_tests_with_tag("test_app", "[hidden]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[hidden]");
+                });
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -653,7 +671,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!mayfail]") {
-            framework.registry.run_tests_with_tag("test_app", "[may fail]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[may fail]");
+                });
 
             if (r == reporter::print) {
                 CHECK(
@@ -666,7 +687,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!shouldfail]") {
-            framework.registry.run_tests_with_tag("test_app", "[should fail]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[should fail]");
+                });
 
             if (r == reporter::print) {
                 CHECK(
@@ -679,7 +703,10 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!shouldfail][!mayfail]") {
-            framework.registry.run_tests_with_tag("test_app", "[may+should fail]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[may+should fail]");
+                });
 
             if (r == reporter::print) {
                 CHECK(

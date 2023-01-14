@@ -653,16 +653,15 @@ An example reporter for _Teamcity_ is included for demonstration, see `include/s
 ### Default main function
 
 The default `main()` function provided in _snitch_ offers the following command-line API:
- - positional argument for filtering tests by name, see below.
+ - positional arguments for filtering tests by name, see below.
  - `-h,--help`: show command line help.
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
  - `   --list-tests-with-tag`: list all tests with a given tag.
- - `-t,--tags <filter>`: filter tests by tags, see below.
  - `-v,--verbosity <quiet|normal|high>`: select level of detail for the default reporter.
  - `   --color <always|never>`: enable/disable colors in the default reporter.
 
-The positional argument is used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If a filter is provided, then hidden tests will no longer be excluded. This reproduces the behavior of _Catch2_. If the `-t` (or `--tags`) option is given, the filtering is applied to tags instead of test case names.
+The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at lease one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
 
 A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
  - `ab*` will match all test cases with names starting with `ab`.
@@ -678,14 +677,18 @@ If the filter starts with `~`, then it is negated:
  - `~abcd` will match all test cases except the test case with name `abcd`.
  - `~*` will match no test case.
 
-**Note:** To match the actual character `*` in a test name, the `*` in the filter must be escaped using a backslash `\`, for example `\*`. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_:
+If the filter starts with `[` or `~[`, then it applies to the test case tags, else it applies to the test case name.
 
-| Bash    | _snitch_ | matches                                    |
-|---------|----------|--------------------------------------------|
-| `\\`    | `\`      | nothing (ill-formed filter)                |
-| `\\*`   | `\*`     | exactly the `*` character                  |
-| `\\\\`  | `\\`     | exactly the `\` character                  |
-| `\\\\*` | `\\*`    | any string starting with the `\` character |
+**Note:** To match the actual character `*` in a test name, the `*` in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
+
+| Bash    | _snitch_ | matches                                     |
+|---------|----------|---------------------------------------------|
+| `\\`    | `\`      | nothing (ill-formed filter)                 |
+| `\\*`   | `\*`     | any name which is exactly the `*` character |
+| `\\\\`  | `\\`     | any name which is exactly the `\` character |
+| `\\\\*` | `\\*`    | any name starting with the `\` character    |
+| `[a*`   | `[a*`    | any tag starting with `[a`                  |
+| `\\[a*` | `\[a*`   | any name starting with `[a`                 |
 
 
 ### Using your own main function

@@ -1253,9 +1253,11 @@ public:
 
     impl::test_state run(impl::test_case& test) noexcept;
 
-    bool run_all_tests(std::string_view run_name) noexcept;
-    bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;
-    bool run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept;
+    bool run_tests(std::string_view run_name) noexcept;
+
+    bool run_selected_tests(
+        std::string_view                                     run_name,
+        const small_function<bool(const test_id&) noexcept>& filter) noexcept;
 
     bool run_tests(const cli::input& args) noexcept;
 
