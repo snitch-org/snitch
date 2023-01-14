@@ -1496,6 +1496,24 @@ get_positional_argument(const cli::input& args, std::string_view name) noexcept 
 
     return ret;
 }
+
+void for_each_positional_argument(
+    const cli::input&                                      args,
+    std::string_view                                       name,
+    const small_function<void(std::string_view) noexcept>& callback) noexcept {
+
+    auto iter = args.arguments.cbegin();
+    while (iter != args.arguments.cend()) {
+        iter = std::find_if(iter, args.arguments.cend(), [&](const auto& arg) {
+            return !is_option(arg) && arg.value_name == name;
+        });
+
+        if (iter != args.arguments.cend()) {
+            callback(*iter->value);
+            ++iter;
+        }
+    }
+}
 } // namespace snitch::cli
 
 namespace snitch {

@@ -1165,6 +1165,11 @@ std::optional<cli::argument> get_option(const cli::input& args, std::string_view
 
 std::optional<cli::argument>
 get_positional_argument(const cli::input& args, std::string_view name) noexcept;
+
+void for_each_positional_argument(
+    const cli::input&                                      args,
+    std::string_view                                       name,
+    const small_function<void(std::string_view) noexcept>& callback) noexcept;
 } // namespace snitch::cli
 
 // Test registry.
