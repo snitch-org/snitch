@@ -33,8 +33,6 @@ constexpr std::size_t max_message_length = SNITCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNITCH_MAX_TEST_NAME_LENGTH;
-// Maximum length of a tag, including brackets.
-constexpr std::size_t max_tag_length = SNITCH_MAX_TAG_LENGTH;
 // Maximum number of captured expressions in a test case.
 constexpr std::size_t max_captures = SNITCH_MAX_CAPTURES;
 // Maximum length of a captured expression.

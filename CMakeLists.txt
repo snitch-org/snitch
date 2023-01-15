@@ -7,7 +7,6 @@ set(SNITCH_MAX_NESTED_SECTIONS    8    CACHE STRING "Maximum depth of nested sec
 set(SNITCH_MAX_EXPR_LENGTH        1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
 set(SNITCH_MAX_MESSAGE_LENGTH     1024 CACHE STRING "Maximum length of error or status messages.")
 set(SNITCH_MAX_TEST_NAME_LENGTH   1024 CACHE STRING "Maximum length of a test case name.")
-set(SNITCH_MAX_TAG_LENGTH         256  CACHE STRING "Maximum length of a test tag.")
 set(SNITCH_MAX_CAPTURES           8    CACHE STRING "Maximum number of captured expressions in a test case.")
 set(SNITCH_MAX_CAPTURE_LENGTH     256  CACHE STRING "Maximum length of a captured expression.")
 set(SNITCH_MAX_UNIQUE_TAGS        1024 CACHE STRING "Maximum number of unique tags in a test application.")
@@ -60,7 +59,6 @@ if (SNITCH_CREATE_LIBRARY)
     SNITCH_MAX_EXPR_LENGTH=${SNITCH_MAX_EXPR_LENGTH}
     SNITCH_MAX_MESSAGE_LENGTH=${SNITCH_MAX_MESSAGE_LENGTH}
     SNITCH_MAX_TEST_NAME_LENGTH=${SNITCH_MAX_TEST_NAME_LENGTH}
-    SNITCH_MAX_TAG_LENGTH=${SNITCH_MAX_TAG_LENGTH}
     SNITCH_MAX_UNIQUE_TAGS=${SNITCH_MAX_UNIQUE_TAGS}
     SNITCH_MAX_COMMAND_LINE_ARGS=${SNITCH_MAX_COMMAND_LINE_ARGS}
     SNITCH_DEFINE_MAIN=$<BOOL:${SNITCH_DEFINE_MAIN}>
