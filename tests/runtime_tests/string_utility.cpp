@@ -517,50 +517,69 @@ TEST_CASE("is_match", "[utility]") {
     }
 }
 
+using snitch::filter_result;
+using snitch::is_filter_match_id;
+using snitch::is_filter_match_name;
+using snitch::is_filter_match_tags;
+
 TEST_CASE("is_filter_match", "[utility]") {
-    CHECK(snitch::is_filter_match_name("abc"sv, "abc"sv));
-    CHECK(snitch::is_filter_match_name("abc"sv, "ab*"sv));
-    CHECK(snitch::is_filter_match_name("abc"sv, "*bc"sv));
-    CHECK(snitch::is_filter_match_name("abc"sv, "*"sv));
-    CHECK(!snitch::is_filter_match_name("abc"sv, "~abc"sv));
-    CHECK(!snitch::is_filter_match_name("abc"sv, "~ab*"sv));
-    CHECK(!snitch::is_filter_match_name("abc"sv, "~*bc"sv));
-    CHECK(!snitch::is_filter_match_name("abc"sv, "~*"sv));
+    CHECK(is_filter_match_name("abc"sv, "abc"sv) == filter_result::included);
+    CHECK(is_filter_match_name("abc"sv, "ab*"sv) == filter_result::included);
+    CHECK(is_filter_match_name("abc"sv, "*bc"sv) == filter_result::included);
+    CHECK(is_filter_match_name("abc"sv, "*"sv) == filter_result::included);
+    CHECK(is_filter_match_name("abc"sv, "def"sv) == filter_result::not_included);
+    CHECK(is_filter_match_name("abc"sv, "~abc"sv) == filter_result::excluded);
+    CHECK(is_filter_match_name("abc"sv, "~ab*"sv) == filter_result::excluded);
+    CHECK(is_filter_match_name("abc"sv, "~*bc"sv) == filter_result::excluded);
+    CHECK(is_filter_match_name("abc"sv, "~*"sv) == filter_result::excluded);
+    CHECK(is_filter_match_name("abc"sv, "~def"sv) == filter_result::not_excluded);
 }
 
 TEST_CASE("is_filter_match_tag", "[utility]") {
-    CHECK(snitch::is_filter_match_tags("[tag1]"sv, "[tag1]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag1]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag2]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag*]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag*]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[tug*]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2][.]"sv, "[.]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][.tag2]"sv, "[.]"sv));
-    CHECK(snitch::is_filter_match_tags("[.tag1][tag2]"sv, "[.]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[.]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2][!mayfail]"sv, "[!mayfail]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[!mayfail]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2][!shouldfail]"sv, "[!shouldfail]"sv));
-    CHECK(snitch::is_filter_match_tags("[tag1][tag2]"sv, "~[!shouldfail]"sv));
+    CHECK(is_filter_match_tags("[tag1]"sv, "[tag1]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag1]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag2]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag*]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag*]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tug*]"sv) == filter_result::not_excluded);
+    CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][.tag2]"sv, "[.]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[.tag1][tag2]"sv, "[.]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[.]"sv) == filter_result::not_excluded);
+    CHECK(is_filter_match_tags("[tag1][!mayfail]"sv, "[!mayfail]"sv) == filter_result::included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[!mayfail]"sv) == filter_result::not_excluded);
+    CHECK(
+        is_filter_match_tags("[tag1][!shouldfail]"sv, "[!shouldfail]"sv) ==
+        filter_result::included);
+    CHECK(
+        is_filter_match_tags("[tag1][tag2]"sv, "~[!shouldfail]"sv) == filter_result::not_excluded);
 
-    CHECK(!snitch::is_filter_match_tags("[tag1]"sv, "[tag2]"sv));
-    CHECK(!snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tag3]"sv));
-    CHECK(!snitch::is_filter_match_tags("[tag1][tag2]"sv, "[tug*]*"sv));
-    CHECK(!snitch::is_filter_match_tags("[tag1][tag2]"sv, "[.]"sv));
-    CHECK(!snitch::is_filter_match_tags("[.tag1][tag2]"sv, "[.tag1]"sv));
-    CHECK(!snitch::is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag1]"sv));
-    CHECK(!snitch::is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag2]"sv));
+    CHECK(is_filter_match_tags("[tag1]"sv, "[tag2]"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag3]"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tug*]*"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[.]"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[.tag1][tag2]"sv, "[.tag1]"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag1]"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag2]"sv) == filter_result::not_included);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag1]"sv) == filter_result::excluded);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag2]"sv) == filter_result::excluded);
 }
 
 TEST_CASE("is_filter_match_id", "[utility]") {
-    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "abc"sv));
-    CHECK(!snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~abc"sv));
-    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "ab*"sv));
-    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag1]"sv));
-    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag2]"sv));
-    CHECK(!snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag3]"sv));
-    CHECK(snitch::is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~[tag3]"sv));
-    CHECK(snitch::is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "\\[weird]"sv));
-    CHECK(!snitch::is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "[weird]"sv));
+    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "abc"sv) == filter_result::included);
+    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~abc"sv) == filter_result::excluded);
+    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "ab*"sv) == filter_result::included);
+    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag1]"sv) == filter_result::included);
+    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag2]"sv) == filter_result::included);
+    CHECK(
+        is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag3]"sv) == filter_result::not_included);
+    CHECK(
+        is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~[tag3]"sv) ==
+        filter_result::not_excluded);
+    CHECK(
+        is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "\\[weird]"sv) ==
+        filter_result::included);
+    CHECK(
+        is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "[weird]"sv) ==
+        filter_result::not_included);
 }

@@ -661,23 +661,35 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-v,--verbosity <quiet|normal|high>`: select level of detail for the default reporter.
  - `   --color <always|never>`: enable/disable colors in the default reporter.
 
-The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at lease one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
+The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at least one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
 
 A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
- - `ab*` will match all test cases with names starting with `ab`.
- - `*cd` will match all test cases with names ending with `cd`.
- - `ab*cd` will match all test cases with names starting with `ab` and ending with `cd`.
- - `abcd` will only match the test case with name `abcd`.
- - `*` will match all test cases.
+ - `ab*` will include all test cases with names starting with `ab`.
+ - `*cd` will include all test cases with names ending with `cd`.
+ - `ab*cd` will include all test cases with names starting with `ab` and ending with `cd`.
+ - `abcd` will only include the test case with name `abcd`.
+ - `*` will include all test cases.
 
-If the filter starts with `~`, then it is negated:
- - `~ab*` will match all test cases with names NOT starting with `ab`.
- - `~*cd` will match all test cases with names NOT ending with `cd`.
- - `~ab*cd` will match all test cases with names NOT starting with `ab` or NOT ending with `cd`.
- - `~abcd` will match all test cases except the test case with name `abcd`.
- - `~*` will match no test case.
+If a filter starts with `~`, then it is interpreted as an exclusion:
+ - `~ab*` will exclude all test cases with names starting with `ab`.
+ - `~*cd` will exclude all test cases with names ending with `cd`.
+ - `~ab*cd` will exclude all test cases with names starting with `ab` and ending with `cd`.
+ - `~abcd` will exclude the test case with name `abcd`.
+ - `~*` will exclude all test cases.
 
-If the filter starts with `[` or `~[`, then it applies to the test case tags, else it applies to the test case name.
+If a filter starts with `[` or `~[`, then it applies to the test case tags, else it applies to the test case name. This behavior can be bypassed by escaping the bracket `\[`, in which case the filter applies to the test case name again (see note below on escaping).
+
+Finally, if more than one filter is provided, then filters are applied one after the other, in the order provided. As in _Catch2_, a filter will include (or exclude with `~`) the tests that match the inclusion (or exclusion) pattern, but will leave the status of tests that do not match the filter unchanged. Filters on test names and tags can be mixed. For example, the table below shows which test is included (1) or excluded (0) after applying the three filters `a* ~*d abcd`:
+
+| Test name | Initial |  Apply `a*` | State | Apply `~*d` | State | Apply `abcd` | State |
+|-----------|---------| ------------|-------|-------------|-------|--------------|-------|
+| `a`       | 0       |  1          | 1     |             | 1     |              | 1     |
+| `b`       | 0       |             | 0     |             | 0     |              | 0     |
+| `c`       | 0       |             | 0     |             | 0     |              | 0     |
+| `d`       | 0       |             | 0     | 0           | 0     |              | 0     |
+| `abc`     | 0       |  1          | 1     |             | 1     |              | 1     |
+| `abd`     | 0       |  1          | 1     | 0           | 0     |              | 0     |
+| `abcd`    | 0       |  1          | 1     | 0           | 0     | 1            | 1     |
 
 **Note:** To match the actual character `*` in a test name, the `*` in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
 

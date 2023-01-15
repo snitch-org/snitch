@@ -584,11 +584,15 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 
 [[nodiscard]] bool is_match(std::string_view string, std::string_view regex) noexcept;
 
-[[nodiscard]] bool is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
+enum class filter_result { included, excluded, not_included, not_excluded };
 
-[[nodiscard]] bool is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
+[[nodiscard]] filter_result
+is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
 
-[[nodiscard]] bool is_filter_match_id(const test_id& id, std::string_view filter) noexcept;
+[[nodiscard]] filter_result
+is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
+
+[[nodiscard]] filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept;
 
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {

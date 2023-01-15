@@ -528,7 +528,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests filtered all pass") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*are you");
+                    return snitch::is_filter_match_name(id.name, "*are you") ==
+                           snitch::filter_result::included;
                 });
 
             CHECK(test_called);
@@ -552,7 +553,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests filtered all failed") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*lights*");
+                    return snitch::is_filter_match_name(id.name, "*lights*") ==
+                           snitch::filter_result::included;
                 });
 
             CHECK(!test_called);
@@ -576,7 +578,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests filtered all skipped") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*cup");
+                    return snitch::is_filter_match_name(id.name, "*cup") ==
+                           snitch::filter_result::included;
                 });
 
             CHECK(!test_called);
@@ -601,7 +604,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests filtered tags") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[other_tag]");
+                    return snitch::is_filter_match_tags(id.tags, "[other_tag]") ==
+                           snitch::filter_result::included;
                 });
 
             CHECK(!test_called);
@@ -625,7 +629,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests filtered tags wildcard") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "*tag]");
+                    return snitch::is_filter_match_tags(id.tags, "*tag]") ==
+                           snitch::filter_result::included;
                 });
 
             CHECK(test_called);
@@ -649,7 +654,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests special tag [.]") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[hidden]");
+                    return snitch::is_filter_match_tags(id.tags, "[hidden]") ==
+                           snitch::filter_result::included;
                 });
 
             CHECK(!test_called);
@@ -673,7 +679,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests special tag [!mayfail]") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[may fail]");
+                    return snitch::is_filter_match_tags(id.tags, "[may fail]") ==
+                           snitch::filter_result::included;
                 });
 
             if (r == reporter::print) {
@@ -689,7 +696,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests special tag [!shouldfail]") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[should fail]");
+                    return snitch::is_filter_match_tags(id.tags, "[should fail]") ==
+                           snitch::filter_result::included;
                 });
 
             if (r == reporter::print) {
@@ -705,7 +713,8 @@ TEST_CASE("run tests", "[registry]") {
         SECTION("run tests special tag [!shouldfail][!mayfail]") {
             framework.registry.run_selected_tests(
                 "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[may+should fail]");
+                    return snitch::is_filter_match_tags(id.tags, "[may+should fail]") ==
+                           snitch::filter_result::included;
                 });
 
             if (r == reporter::print) {
@@ -936,10 +945,35 @@ TEST_CASE("run tests cli", "[registry]") {
     }
 
     SECTION("test tag filter") {
-        const arg_vector args = {"test", "--tags", "[skipped]"};
+        const arg_vector args = {"test", "[skipped]"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(true, 1u, 0u, 1u, 0u);
     }
+}
+
+std::array<bool, 7> readme_test_called = {false};
+
+TEST_CASE("run tests cli readme example", "[registry]") {
+    mock_framework framework;
+    framework.setup_reporter_and_print();
+    console_output_catcher console;
+
+    readme_test_called = {false};
+
+    framework.registry.add({"a"}, []() { readme_test_called[0] = true; });
+    framework.registry.add({"b"}, []() { readme_test_called[1] = true; });
+    framework.registry.add({"c"}, []() { readme_test_called[2] = true; });
+    framework.registry.add({"d"}, []() { readme_test_called[3] = true; });
+    framework.registry.add({"abc"}, []() { readme_test_called[4] = true; });
+    framework.registry.add({"abd"}, []() { readme_test_called[5] = true; });
+    framework.registry.add({"abcd"}, []() { readme_test_called[6] = true; });
+
+    const arg_vector args = {"test", "a*", "~*d", "abcd"};
+    auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+    framework.registry.run_tests(*input);
+
+    std::array<bool, 7> expected = {true, false, false, false, true, false, true};
+    CHECK(readme_test_called == expected);
 }

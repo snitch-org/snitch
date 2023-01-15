@@ -641,30 +641,39 @@ small_vector<std::string_view, max_captures> make_capture_buffer(const capture_s
 } // namespace
 
 namespace snitch {
-bool is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
-    bool expected = true;
-    if (filter.size() > 1 && filter[0] == '~') {
-        filter   = filter.substr(1);
-        expected = false;
+filter_result is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
+    filter_result match_action    = filter_result::included;
+    filter_result no_match_action = filter_result::not_included;
+    if (filter.starts_with('~')) {
+        filter          = filter.substr(1);
+        match_action    = filter_result::excluded;
+        no_match_action = filter_result::not_excluded;
     }
 
-    return is_match(name, filter) == expected;
+    return is_match(name, filter) ? match_action : no_match_action;
 }
 
-bool is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
-    bool selected = false;
+filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+    filter_result match_action    = filter_result::included;
+    filter_result no_match_action = filter_result::not_included;
+    if (filter.starts_with('~')) {
+        filter          = filter.substr(1);
+        match_action    = filter_result::excluded;
+        no_match_action = filter_result::not_excluded;
+    }
+
+    bool match = false;
     for_each_tag(tags, [&](const tags::parsed_tag& v) {
-        if (auto* vs = std::get_if<std::string_view>(&v);
-            vs != nullptr && is_filter_match_name(*vs, filter)) {
-            selected = true;
+        if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && is_match(*vs, filter)) {
+            match = true;
         }
     });
 
-    return selected;
+    return match ? match_action : no_match_action;
 }
 
-bool is_filter_match_id(const test_id& id, std::string_view filter) noexcept {
-    if (filter.starts_with("[") || filter.starts_with("~[")) {
+filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept {
+    if (filter.starts_with('[') || filter.starts_with("~[")) {
         return is_filter_match_tags(id.tags, filter);
     } else {
         return is_filter_match_name(id.name, filter);
@@ -1132,7 +1141,10 @@ void registry::list_all_tests() const noexcept {
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
-    list_tests(*this, [&](const test_case& t) { return is_filter_match_tags(t.id.tags, tag); });
+    list_tests(*this, [&](const test_case& t) {
+        const auto result = is_filter_match_tags(t.id.tags, tag);
+        return result == filter_result::included || result == filter_result::not_excluded;
+    });
 }
 
 test_case* registry::begin() noexcept {
@@ -1564,15 +1576,28 @@ bool registry::run_tests(const cli::input& args) noexcept {
         small_string<max_test_name_length> buffer;
 
         const auto filter = [&](const test_id& id) noexcept {
-            bool selected = true;
+            std::optional<bool> selected;
 
             const auto callback = [&](std::string_view filter) noexcept {
-                selected = is_filter_match_id(id, filter);
+                switch (is_filter_match_id(id, filter)) {
+                case filter_result::included: selected = true; break;
+                case filter_result::excluded: selected = false; break;
+                case filter_result::not_included:
+                    if (!selected.has_value()) {
+                        selected = false;
+                    }
+                    break;
+                case filter_result::not_excluded:
+                    if (!selected.has_value()) {
+                        selected = true;
+                    }
+                    break;
+                }
             };
 
             for_each_positional_argument(args, "test regex", callback);
 
-            return selected;
+            return selected.value();
         };
 
         return run_selected_tests(args.executable, filter);
