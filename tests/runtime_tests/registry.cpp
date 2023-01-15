@@ -944,6 +944,14 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK_RUN(false, 3u, 3u, 0u, 3u);
     }
 
+    SECTION("test filter exclusion") {
+        const arg_vector args = {"test", "~*fail"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK_RUN(false, 7u, 3u, 1u, 3u);
+    }
+
     SECTION("test tag filter") {
         const arg_vector args = {"test", "[skipped]"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());

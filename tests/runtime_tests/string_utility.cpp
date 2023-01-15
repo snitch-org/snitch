@@ -478,6 +478,7 @@ TEST_CASE("is_match", "[utility]") {
         CHECK(snitch::is_match("abc"sv, "**"sv));
         CHECK(snitch::is_match("azzzzzzzzzzbc"sv, "**"sv));
         CHECK(snitch::is_match(""sv, "**"sv));
+        CHECK(snitch::is_match("abcdefg"sv, "*g*******"sv));
         CHECK(snitch::is_match("abc"sv, "abc**"sv));
         CHECK(snitch::is_match("abc"sv, "ab**"sv));
         CHECK(snitch::is_match("abc"sv, "a**"sv));
