@@ -40,7 +40,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Compiles template-heavy tests at least 60% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - Compiles template-heavy tests at least 50% faster than other testing frameworks (see Release [benchmarks](#benchmark)).
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
@@ -152,7 +152,7 @@ See the documentation for the [header-only mode](#header-only-build) for more in
 ## Benchmark
 
 The following benchmarks were done using real-world tests from another library ([_observable_unique_ptr_](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were ran on a desktop with the following specs:
- - OS: Linux Mint 20.3, linux kernel 5.15.0-48-generic.
+ - OS: Linux Mint 20.3, linux kernel 5.15.0-56-generic.
  - CPU: AMD Ryzen 5 2600 (6 core).
  - RAM: 16GB.
  - Storage: NVMe.
@@ -176,22 +176,22 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
-| Build tests     | 63s      | 86s      | 78s       | 109s       |
-| Build all       | 65s      | 150s     | 80s       | 109s       |
-| Run tests       | 18ms     | 83ms     | 60ms      | 20ms       |
-| Library size    | 2.90MB   | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 33.2MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
+| Build tests     | 65s      | 79s      | 73s       | 118s       |
+| Build all       | 67s      | 120s     | 75s       | 118s       |
+| Run tests       | 31ms     | 76ms     | 63ms      | 20ms       |
+| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 33.4MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 2.4s     | 68s      | 3.6s      | 0s         |
-| Build tests     | 135s     | 264s     | 216s      | 281s       |
-| Build all       | 137s     | 332s     | 220s      | 281s       |
-| Run tests       | 9ms      | 31ms     | 36ms      | 10ms       |
-| Library size    | 0.62MB   | 2.6MB    | 0.39MB    | 0MB        |
+| Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
+| Build tests     | 137s     | 254s     | 207s      | 289s       |
+| Build all       | 140s     | 301s     | 210s      | 289s       |
+| Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
+| Library size    | 0.65MB   | 2.6MB    | 0.39MB    | 0MB        |
 | Executable size | 9.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
