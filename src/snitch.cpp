@@ -903,7 +903,7 @@ test_state registry::run(test_case& test) noexcept {
     thread_current_test      = &state;
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::high_resolution_clock;
+    using clock     = std::chrono::steady_clock;
     auto time_start = clock::now();
 #endif
 
@@ -1005,7 +1005,7 @@ bool registry::run_selected_tests(
     std::size_t assertion_count = 0;
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::high_resolution_clock;
+    using clock     = std::chrono::steady_clock;
     auto time_start = clock::now();
 #endif
 
