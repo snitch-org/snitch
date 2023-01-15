@@ -1573,8 +1573,6 @@ bool registry::run_tests(const cli::input& args) noexcept {
     }
 
     if (get_positional_argument(args, "test regex").has_value()) {
-        small_string<max_test_name_length> buffer;
-
         const auto filter = [&](const test_id& id) noexcept {
             std::optional<bool> selected;
 
