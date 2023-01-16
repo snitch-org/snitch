@@ -49,7 +49,7 @@ struct mock_framework {
         .func  = nullptr,
         .state = snitch::impl::test_case_state::not_run};
 
-    snitch::small_vector<event_deep_copy, 16> events;
+    snitch::small_vector<event_deep_copy, 32> events;
     snitch::small_string<4086>                messages;
 
     void report(const snitch::registry&, const snitch::event::data& e) noexcept;

@@ -156,14 +156,29 @@ TEST_CASE("parse arguments positional", "[cli]") {
     CHECK(console.messages.empty());
 }
 
-TEST_CASE("parse arguments too many positional", "[cli]") {
+TEST_CASE("parse arguments multiple positional", "[cli]") {
     console_output_catcher console;
 
     const arg_vector args = {"test", "arg1", "arg2"};
     auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
 
-    REQUIRE(!input.has_value());
-    CHECK(console.messages == contains_substring("too many positional arguments"));
+    REQUIRE(input.has_value());
+    CHECK(input->executable == "test"sv);
+    REQUIRE(input->arguments.size() == 2u);
+
+    CHECK(input->arguments[0].name == ""sv);
+    REQUIRE(input->arguments[0].value.has_value());
+    REQUIRE(input->arguments[0].value_name.has_value());
+    CHECK(input->arguments[0].value.value() == "arg1"sv);
+    CHECK(input->arguments[0].value_name.value() == "test regex"sv);
+
+    CHECK(input->arguments[1].name == ""sv);
+    REQUIRE(input->arguments[1].value.has_value());
+    REQUIRE(input->arguments[1].value_name.has_value());
+    CHECK(input->arguments[1].value.value() == "arg2"sv);
+    CHECK(input->arguments[1].value_name.value() == "test regex"sv);
+
+    CHECK(console.messages.empty());
 }
 
 TEST_CASE("get option", "[cli]") {
@@ -200,6 +215,9 @@ TEST_CASE("get positional argument", "[cli]") {
                  cli_input{"at middle"sv, {"test", "--help", "arg1", "--verbosity", "high"}},
                  cli_input{"at start"sv, {"test", "arg1", "--help", "--verbosity", "high"}},
                  cli_input{"alone"sv, {"test", "arg1"}},
+                 cli_input{"multiple"sv, {"test", "arg1", "arg2"}},
+                 cli_input{
+                     "multiple interleaved"sv, {"test", "arg1", "--verbosity", "high", "arg2"}},
              }) {
 
 #if SNITCH_TEST_WITH_SNITCH
@@ -214,6 +232,23 @@ TEST_CASE("get positional argument", "[cli]") {
             CHECK(arg->name == ""sv);
             CHECK(arg->value == "arg1"sv);
             CHECK(arg->value_name == "test regex"sv);
+
+            if (input->executable.starts_with("multiple")) {
+                std::size_t i = 0u;
+
+                auto callback = [&](std::string_view value) noexcept {
+                    if (i == 0u) {
+                        CHECK(value == "arg1"sv);
+                    } else {
+                        CHECK(value == "arg2"sv);
+                    }
+
+                    ++i;
+                };
+
+                snitch::cli::for_each_positional_argument(*input, "test regex", callback);
+                CHECK(i == 2u);
+            }
         }
     }
 

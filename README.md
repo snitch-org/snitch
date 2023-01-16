@@ -40,7 +40,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
  - No external dependency; just pure C++20 with the STL.
- - Compiles template-heavy tests at least 60% faster than other testing frameworks (see [Benchmark](#benchmark)).
+ - Compiles template-heavy tests at least 50% faster than other testing frameworks (see Release [benchmarks](#benchmark)).
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
@@ -152,7 +152,7 @@ See the documentation for the [header-only mode](#header-only-build) for more in
 ## Benchmark
 
 The following benchmarks were done using real-world tests from another library ([_observable_unique_ptr_](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were ran on a desktop with the following specs:
- - OS: Linux Mint 20.3, linux kernel 5.15.0-48-generic.
+ - OS: Linux Mint 20.3, linux kernel 5.15.0-56-generic.
  - CPU: AMD Ryzen 5 2600 (6 core).
  - RAM: 16GB.
  - Storage: NVMe.
@@ -176,22 +176,22 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 1.7s     | 64s      | 2.0s      | 0s         |
-| Build tests     | 63s      | 86s      | 78s       | 109s       |
-| Build all       | 65s      | 150s     | 80s       | 109s       |
-| Run tests       | 18ms     | 83ms     | 60ms      | 20ms       |
-| Library size    | 2.90MB   | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 33.2MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
+| Build tests     | 65s      | 79s      | 73s       | 118s       |
+| Build all       | 67s      | 120s     | 75s       | 118s       |
+| Run tests       | 31ms     | 76ms     | 63ms      | 20ms       |
+| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 33.4MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 2.4s     | 68s      | 3.6s      | 0s         |
-| Build tests     | 135s     | 264s     | 216s      | 281s       |
-| Build all       | 137s     | 332s     | 220s      | 281s       |
-| Run tests       | 9ms      | 31ms     | 36ms      | 10ms       |
-| Library size    | 0.62MB   | 2.6MB    | 0.39MB    | 0MB        |
+| Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
+| Build tests     | 137s     | 254s     | 207s      | 289s       |
+| Build all       | 140s     | 301s     | 210s      | 289s       |
+| Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
+| Library size    | 0.65MB   | 2.6MB    | 0.39MB    | 0MB        |
 | Executable size | 9.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
@@ -216,7 +216,7 @@ This must be called at namespace, global, or class scope; not inside a function 
 
 `TEMPLATE_TEST_CASE(NAME, TAGS, TYPES...) { /* test code for TestType */ }`
 
-This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
+This is similar to `TEST_CASE`, except that it declares a new test case for each of the types listed in `TYPES...`. Within the test body, the current type can be accessed as `TestType`. The full name of the test, used when filtering tests by name, is `"NAME <TYPE>"`. If you tend to reuse the same list of types for multiple test cases, then `TEMPLATE_LIST_TEST_CASE()` is recommended instead.
 
 
 `TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) { /* test code for TestType */ }`
@@ -653,14 +653,54 @@ An example reporter for _Teamcity_ is included for demonstration, see `include/s
 ### Default main function
 
 The default `main()` function provided in _snitch_ offers the following command-line API:
- - positional argument for filtering tests by name.
+ - positional arguments for filtering tests by name, see below.
  - `-h,--help`: show command line help.
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
  - `   --list-tests-with-tag`: list all tests with a given tag.
- - `-t,--tags`: filter tests by tags instead of by name.
- - `-v,--verbosity [quiet|normal|high]`: select level of detail for the default reporter.
- - `   --color [always|never]`: enable/disable colors in the default reporter.
+ - `-v,--verbosity <quiet|normal|high>`: select level of detail for the default reporter.
+ - `   --color <always|never>`: enable/disable colors in the default reporter.
+
+The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at least one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
+
+A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
+ - `ab*` will include all test cases with names starting with `ab`.
+ - `*cd` will include all test cases with names ending with `cd`.
+ - `ab*cd` will include all test cases with names starting with `ab` and ending with `cd`.
+ - `abcd` will only include the test case with name `abcd`.
+ - `*` will include all test cases.
+
+If a filter starts with `~`, then it is interpreted as an exclusion:
+ - `~ab*` will exclude all test cases with names starting with `ab`.
+ - `~*cd` will exclude all test cases with names ending with `cd`.
+ - `~ab*cd` will exclude all test cases with names starting with `ab` and ending with `cd`.
+ - `~abcd` will exclude the test case with name `abcd`.
+ - `~*` will exclude all test cases.
+
+If a filter starts with `[` or `~[`, then it applies to the test case tags, else it applies to the test case name. This behavior can be bypassed by escaping the bracket `\[`, in which case the filter applies to the test case name again (see note below on escaping).
+
+Finally, if more than one filter is provided, then filters are applied one after the other, in the order provided. As in _Catch2_, a filter will include (or exclude with `~`) the tests that match the inclusion (or exclusion) pattern, but will leave the status of tests that do not match the filter unchanged. Filters on test names and tags can be mixed. For example, the table below shows which test is included (1) or excluded (0) after applying the three filters `a* ~*d abcd`:
+
+| Test name | Initial |  Apply `a*` | State | Apply `~*d` | State | Apply `abcd` | State |
+|-----------|---------| ------------|-------|-------------|-------|--------------|-------|
+| `a`       | 0       |  1          | 1     |             | 1     |              | 1     |
+| `b`       | 0       |             | 0     |             | 0     |              | 0     |
+| `c`       | 0       |             | 0     |             | 0     |              | 0     |
+| `d`       | 0       |             | 0     | 0           | 0     |              | 0     |
+| `abc`     | 0       |  1          | 1     |             | 1     |              | 1     |
+| `abd`     | 0       |  1          | 1     | 0           | 0     |              | 0     |
+| `abcd`    | 0       |  1          | 1     | 0           | 0     | 1            | 1     |
+
+**Note:** To match the actual character `*` in a test name, the `*` in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
+
+| Bash    | _snitch_ | matches                                     |
+|---------|----------|---------------------------------------------|
+| `\\`    | `\`      | nothing (ill-formed filter)                 |
+| `\\*`   | `\*`     | any name which is exactly the `*` character |
+| `\\\\`  | `\\`     | any name which is exactly the `\` character |
+| `\\\\*` | `\\*`    | any name starting with the `\` character    |
+| `[a*`   | `[a*`    | any tag starting with `[a`                  |
+| `\\[a*` | `\[a*`   | any name starting with `[a`                 |
 
 
 ### Using your own main function

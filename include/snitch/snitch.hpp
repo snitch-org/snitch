@@ -33,6 +33,8 @@ constexpr std::size_t max_message_length = SNITCH_MAX_MESSAGE_LENGTH;
 // Maximum length of a full test case name.
 // The full test case name includes the base name, plus any type.
 constexpr std::size_t max_test_name_length = SNITCH_MAX_TEST_NAME_LENGTH;
+// Maximum length of a tag, including brackets.
+constexpr std::size_t max_tag_length = SNITCH_MAX_TAG_LENGTH;
 // Maximum number of captured expressions in a test case.
 constexpr std::size_t max_captures = SNITCH_MAX_CAPTURES;
 // Maximum length of a captured expression.
@@ -579,6 +581,18 @@ bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
 
 [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+
+[[nodiscard]] bool is_match(std::string_view string, std::string_view regex) noexcept;
+
+enum class filter_result { included, excluded, not_included, not_excluded };
+
+[[nodiscard]] filter_result
+is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
+
+[[nodiscard]] filter_result
+is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
+
+[[nodiscard]] filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept;
 
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {
@@ -1159,6 +1173,11 @@ std::optional<cli::argument> get_option(const cli::input& args, std::string_view
 
 std::optional<cli::argument>
 get_positional_argument(const cli::input& args, std::string_view name) noexcept;
+
+void for_each_positional_argument(
+    const cli::input&                                      args,
+    std::string_view                                       name,
+    const small_function<void(std::string_view) noexcept>& callback) noexcept;
 } // namespace snitch::cli
 
 // Test registry.
@@ -1238,9 +1257,11 @@ public:
 
     impl::test_state run(impl::test_case& test) noexcept;
 
-    bool run_all_tests(std::string_view run_name) noexcept;
-    bool run_tests_matching_name(std::string_view run_name, std::string_view name_filter) noexcept;
-    bool run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept;
+    bool run_tests(std::string_view run_name) noexcept;
+
+    bool run_selected_tests(
+        std::string_view                                     run_name,
+        const small_function<bool(const test_id&) noexcept>& filter) noexcept;
 
     bool run_tests(const cli::input& args) noexcept;
 

@@ -146,8 +146,8 @@ TEST_CASE("add template test", "[registry]") {
             CHECK(test_called == false);
             CHECK(test_called_int == true);
             CHECK(test_called_float == false);
-            CHECK(framework.messages == contains_substring("starting: how many lights [int]"));
-            CHECK(framework.messages == contains_substring("finished: how many lights [int]"));
+            CHECK(framework.messages == contains_substring("starting: how many lights <int>"));
+            CHECK(framework.messages == contains_substring("finished: how many lights <int>"));
         }
 
         SECTION("run float default reporter") {
@@ -157,8 +157,8 @@ TEST_CASE("add template test", "[registry]") {
             CHECK(test_called == false);
             CHECK(test_called_int == false);
             CHECK(test_called_float == true);
-            CHECK(framework.messages == contains_substring("starting: how many lights [float]"));
-            CHECK(framework.messages == contains_substring("finished: how many lights [float]"));
+            CHECK(framework.messages == contains_substring("starting: how many lights <float>"));
+            CHECK(framework.messages == contains_substring("finished: how many lights <float>"));
         }
 
         SECTION("run int custom reporter") {
@@ -503,8 +503,8 @@ TEST_CASE("run tests", "[registry]") {
 
         INFO((r == reporter::print ? "default reporter" : "custom reporter"));
 
-        SECTION("run all tests") {
-            framework.registry.run_all_tests("test_app");
+        SECTION("run tests") {
+            framework.registry.run_tests("test_app");
 
             CHECK(test_called);
             CHECK(test_called_other_tag);
@@ -526,7 +526,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all pass") {
-            framework.registry.run_tests_matching_name("test_app", "are you");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_name(id.name, "*are you") ==
+                           snitch::filter_result::included;
+                });
 
             CHECK(test_called);
             CHECK(!test_called_other_tag);
@@ -547,7 +551,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all failed") {
-            framework.registry.run_tests_matching_name("test_app", "lights");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_name(id.name, "*lights*") ==
+                           snitch::filter_result::included;
+                });
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -568,7 +576,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all skipped") {
-            framework.registry.run_tests_matching_name("test_app", "cup");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_name(id.name, "*cup") ==
+                           snitch::filter_result::included;
+                });
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -590,7 +602,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered tags") {
-            framework.registry.run_tests_with_tag("test_app", "[other_tag]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[other_tag]") ==
+                           snitch::filter_result::included;
+                });
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -610,8 +626,37 @@ TEST_CASE("run tests", "[registry]") {
             }
         }
 
+        SECTION("run tests filtered tags wildcard") {
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "*tag]") ==
+                           snitch::filter_result::included;
+                });
+
+            CHECK(test_called);
+            CHECK(test_called_other_tag);
+            CHECK(test_called_skipped);
+            CHECK(test_called_int);
+            CHECK(test_called_float);
+            CHECK(test_called_hidden1);
+            CHECK(!test_called_hidden2);
+
+            if (r == reporter::print) {
+                CHECK(
+                    framework.messages ==
+                    contains_substring("some tests failed (3 out of 6 test cases, 3 assertions"));
+            } else {
+                CHECK(framework.get_num_runs() == 6u);
+                CHECK_RUN(false, 6u, 3u, 1u, 3u);
+            }
+        }
+
         SECTION("run tests special tag [.]") {
-            framework.registry.run_tests_with_tag("test_app", "[hidden]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[hidden]") ==
+                           snitch::filter_result::included;
+                });
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -632,7 +677,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!mayfail]") {
-            framework.registry.run_tests_with_tag("test_app", "[may fail]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[may fail]") ==
+                           snitch::filter_result::included;
+                });
 
             if (r == reporter::print) {
                 CHECK(
@@ -645,7 +694,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!shouldfail]") {
-            framework.registry.run_tests_with_tag("test_app", "[should fail]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[should fail]") ==
+                           snitch::filter_result::included;
+                });
 
             if (r == reporter::print) {
                 CHECK(
@@ -658,7 +711,11 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!shouldfail][!mayfail]") {
-            framework.registry.run_tests_with_tag("test_app", "[may+should fail]");
+            framework.registry.run_selected_tests(
+                "test_app", [](const snitch::test_id& id) noexcept {
+                    return snitch::is_filter_match_tags(id.tags, "[may+should fail]") ==
+                           snitch::filter_result::included;
+                });
 
             if (r == reporter::print) {
                 CHECK(
@@ -683,8 +740,8 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("how are you"));
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages == contains_substring("drink from the cup"));
-        CHECK(framework.messages == contains_substring("how many templated lights [int]"));
-        CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages == contains_substring("how many templated lights <int>"));
+        CHECK(framework.messages == contains_substring("how many templated lights <float>"));
         CHECK(framework.messages == contains_substring("hidden test 1"));
         CHECK(framework.messages == contains_substring("hidden test 2"));
     }
@@ -697,14 +754,16 @@ TEST_CASE("list tests", "[registry]") {
         CHECK(framework.messages == contains_substring("[other_tag]"));
         CHECK(framework.messages == contains_substring("[tag with spaces]"));
         CHECK(framework.messages == contains_substring("[hidden]"));
-        CHECK(framework.messages != contains_substring("[.]"));
+        CHECK(framework.messages == contains_substring("[.]"));
         CHECK(framework.messages != contains_substring("[.hidden]"));
+        CHECK(framework.messages == contains_substring("[!shouldfail]"));
+        CHECK(framework.messages == contains_substring("[!mayfail]"));
     }
 
     SECTION("list_tests_with_tag") {
         for (auto tag :
              {"[tag]"sv, "[other_tag]"sv, "[skipped]"sv, "[tag with spaces]"sv, "[wrong_tag]"sv,
-              "[hidden]"sv, "[.]"sv, "[.hidden]"sv}) {
+              "[hidden]"sv, "[.]"sv, "[.hidden]"sv, "*tag]"sv}) {
 
             CAPTURE(tag);
             framework.messages.clear();
@@ -714,34 +773,40 @@ TEST_CASE("list tests", "[registry]") {
                 CHECK(framework.messages == contains_substring("how are you"));
                 CHECK(framework.messages == contains_substring("how many lights"));
                 CHECK(framework.messages == contains_substring("drink from the cup"));
-                CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages == contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages == contains_substring("how many templated lights [float]"));
+                    framework.messages == contains_substring("how many templated lights <float>"));
             } else if (tag == "[other_tag]"sv) {
                 CHECK(framework.messages != contains_substring("how are you"));
                 CHECK(framework.messages == contains_substring("how many lights"));
                 CHECK(framework.messages != contains_substring("drink from the cup"));
-                CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages != contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages != contains_substring("how many templated lights [float]"));
+                    framework.messages != contains_substring("how many templated lights <float>"));
             } else if (tag == "[skipped]"sv) {
                 CHECK(framework.messages != contains_substring("how are you"));
                 CHECK(framework.messages != contains_substring("how many lights"));
                 CHECK(framework.messages == contains_substring("drink from the cup"));
-                CHECK(framework.messages != contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages != contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages != contains_substring("how many templated lights [float]"));
+                    framework.messages != contains_substring("how many templated lights <float>"));
             } else if (tag == "[tag with spaces]"sv) {
                 CHECK(framework.messages != contains_substring("how are you"));
                 CHECK(framework.messages != contains_substring("how many lights"));
                 CHECK(framework.messages != contains_substring("drink from the cup"));
-                CHECK(framework.messages == contains_substring("how many templated lights [int]"));
+                CHECK(framework.messages == contains_substring("how many templated lights <int>"));
                 CHECK(
-                    framework.messages == contains_substring("how many templated lights [float]"));
-            } else if (tag == "[hidden]"sv) {
+                    framework.messages == contains_substring("how many templated lights <float>"));
+            } else if (tag == "[hidden]"sv || tag == "[.]"sv) {
                 CHECK(framework.messages == contains_substring("hidden test 1"));
                 CHECK(framework.messages == contains_substring("hidden test 2"));
-            } else if (tag == "[wrong_tag]"sv || tag == "[.]"sv || tag == "[.hidden]"sv) {
+            } else if (tag == "*tag]"sv) {
+                CHECK(framework.messages == contains_substring("how are you"));
+                CHECK(framework.messages == contains_substring("how many lights"));
+                CHECK(framework.messages == contains_substring("drink from the cup"));
+                CHECK(framework.messages == contains_substring("how many templated lights"));
+                CHECK(framework.messages == contains_substring("hidden test 1"));
+            } else if (tag == "[wrong_tag]"sv || tag == "[.hidden]"sv) {
                 CHECK(framework.messages.empty());
             }
         }
@@ -842,8 +907,8 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK(framework.messages == contains_substring("how are you"));
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages == contains_substring("drink from the cup"));
-        CHECK(framework.messages == contains_substring("how many templated lights [int]"));
-        CHECK(framework.messages == contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages == contains_substring("how many templated lights <int>"));
+        CHECK(framework.messages == contains_substring("how many templated lights <float>"));
     }
 
     SECTION("--list-tags") {
@@ -867,23 +932,56 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK(framework.messages != contains_substring("how are you"));
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages != contains_substring("drink from the cup"));
-        CHECK(framework.messages != contains_substring("how many templated lights [int]"));
-        CHECK(framework.messages != contains_substring("how many templated lights [float]"));
+        CHECK(framework.messages != contains_substring("how many templated lights <int>"));
+        CHECK(framework.messages != contains_substring("how many templated lights <float>"));
     }
 
     SECTION("test filter") {
-        const arg_vector args = {"test", "how many"};
+        const arg_vector args = {"test", "how many*"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(false, 3u, 3u, 0u, 3u);
     }
 
+    SECTION("test filter exclusion") {
+        const arg_vector args = {"test", "~*fail"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        CHECK_RUN(false, 7u, 3u, 1u, 3u);
+    }
+
     SECTION("test tag filter") {
-        const arg_vector args = {"test", "--tags", "[skipped]"};
+        const arg_vector args = {"test", "[skipped]"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(true, 1u, 0u, 1u, 0u);
     }
+}
+
+std::array<bool, 7> readme_test_called = {false};
+
+TEST_CASE("run tests cli readme example", "[registry]") {
+    mock_framework framework;
+    framework.setup_reporter_and_print();
+    console_output_catcher console;
+
+    readme_test_called = {false};
+
+    framework.registry.add({"a"}, []() { readme_test_called[0] = true; });
+    framework.registry.add({"b"}, []() { readme_test_called[1] = true; });
+    framework.registry.add({"c"}, []() { readme_test_called[2] = true; });
+    framework.registry.add({"d"}, []() { readme_test_called[3] = true; });
+    framework.registry.add({"abc"}, []() { readme_test_called[4] = true; });
+    framework.registry.add({"abd"}, []() { readme_test_called[5] = true; });
+    framework.registry.add({"abcd"}, []() { readme_test_called[6] = true; });
+
+    const arg_vector args = {"test", "a*", "~*d", "abcd"};
+    auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+    framework.registry.run_tests(*input);
+
+    std::array<bool, 7> expected = {true, false, false, false, true, false, true};
+    CHECK(readme_test_called == expected);
 }

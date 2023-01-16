@@ -218,6 +218,70 @@ bool replace_all(
         return !overflow;
     }
 }
+
+bool is_match(std::string_view string, std::string_view regex) noexcept {
+    // An empty regex matches any string; early exit.
+    // An empty string matches an empty regex (exit here) or any regex containing
+    // only wildcards (exit later).
+    if ((string.empty() && regex.empty()) || regex.empty()) {
+        return true;
+    }
+
+    const std::size_t regex_size  = regex.size();
+    const std::size_t string_size = string.size();
+
+    // Iterate characters of the regex string and exit at first non-match.
+    std::size_t js = 0;
+    for (std::size_t jr = 0; jr < regex_size; ++jr, ++js) {
+        bool escaped = false;
+        if (regex[jr] == '\\') {
+            // Escaped character, look ahead ignoring special characters.
+            ++jr;
+            if (jr >= regex_size) {
+                // Nothing left to escape; the regex is ill-formed.
+                return false;
+            }
+
+            escaped = true;
+        }
+
+        if (!escaped && regex[jr] == '*') {
+            // Wildcard is found; if this is the last character of the regex
+            // then any further content will be a match; early exit.
+            if (jr == regex_size - 1) {
+                return true;
+            }
+
+            // Discard what has already been matched.
+            regex = regex.substr(jr + 1);
+
+            // If there are no more characters in the string after discarding, then we only match if
+            // the regex contains only wildcards from there on.
+            const std::size_t remaining = string_size >= js ? string_size - js : 0u;
+            if (remaining == 0u) {
+                return regex.find_first_not_of('*') == regex.npos;
+            }
+
+            // Otherwise, we loop over all remaining characters of the string and look
+            // for a match when starting from each of them.
+            for (std::size_t o = 0; o < remaining; ++o) {
+                if (is_match(string.substr(js + o), regex)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } else if (js >= string_size || regex[jr] != string[js]) {
+            // Regular character is found; not a match if not an exact match in the string.
+            return false;
+        }
+    }
+
+    // We have finished reading the regex string and did not find either a definite non-match
+    // or a definite match. This means we did not have any wildcard left, hence that we need
+    // an exact match. Therefore, only match if the string size is the same as the regex.
+    return js == string_size;
+}
 } // namespace snitch
 
 namespace snitch::impl {
@@ -478,14 +542,6 @@ void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
     callback(s.substr(last_pos));
 }
 
-std::string_view get_tag_name(std::string_view tag) {
-    if (tag.size() < 2u || tag[0] != '[' || tag[tag.size() - 1u] != ']') {
-        return {};
-    }
-
-    return tag.substr(1u, tag.size() - 2u);
-}
-
 namespace tags {
 struct ignored {};
 struct may_fail {};
@@ -496,164 +552,45 @@ using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail
 
 template<typename F>
 void for_each_tag(std::string_view s, F&& callback) noexcept {
+    small_string<max_tag_length> buffer;
+
     for_each_raw_tag(s, [&](std::string_view t) {
         // Look for "ignore" tags, which is either "[.]"
         // or a a tag starting with ".", like "[.integration]".
         if (t == "[.]"sv) {
             // This is a pure "ignore" tag, add this to the list of special tags.
             callback(tags::parsed_tag{tags::ignored{}});
-            return;
+        } else if (t.starts_with("[."sv)) {
+            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
+            // tags, and continue with the normal tag.
+            callback(tags::parsed_tag{tags::ignored{}});
+            callback(tags::parsed_tag{std::string_view("[.]")});
+
+            buffer.clear();
+            if (!append(buffer, "[", t.substr(2u))) {
+                terminate_with("tag is too long");
+            }
+
+            t = buffer;
         }
 
         if (t == "[!mayfail]") {
             callback(tags::parsed_tag{tags::may_fail{}});
-            return;
         }
 
         if (t == "[!shouldfail]") {
             callback(tags::parsed_tag{tags::should_fail{}});
-            return;
-        }
-
-        if (t.starts_with("[."sv)) {
-            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
-            // tags, and continue with the normal tag.
-            callback(tags::parsed_tag{tags::ignored{}});
-            t = t.substr(2u, t.size() - 3u);
-        } else {
-            t = t.substr(1u, t.size() - 2u);
         }
 
         callback(tags::parsed_tag(t));
     });
 }
 
-template<typename F>
-bool run_tests(registry& r, std::string_view run_name, F&& predicate) noexcept {
-    if (!r.report_callback.empty()) {
-        r.report_callback(r, event::test_run_started{run_name});
-    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
-        r.print(
-            make_colored("starting tests with ", r.with_color, color::highlight2),
-            make_colored("snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
-        r.print("==========================================\n");
-    }
-
-    bool        success         = true;
-    std::size_t run_count       = 0;
-    std::size_t fail_count      = 0;
-    std::size_t skip_count      = 0;
-    std::size_t assertion_count = 0;
-
-#if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::high_resolution_clock;
-    auto time_start = clock::now();
-#endif
-
-    for (test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        auto state = r.run(t);
-
-        ++run_count;
-        assertion_count += state.asserts;
-
-        switch (t.state) {
-        case impl::test_case_state::success: {
-            // Nothing to do
-            break;
-        }
-        case impl::test_case_state::failed: {
-            ++fail_count;
-            success = false;
-            break;
-        }
-        case impl::test_case_state::skipped: {
-            ++skip_count;
-            break;
-        }
-        case impl::test_case_state::not_run: {
-            // Unreachable
-            break;
-        }
-        }
-    }
-
-#if SNITCH_WITH_TIMINGS
-    auto  time_end = clock::now();
-    float duration = std::chrono::duration<float>(time_end - time_start).count();
-#endif
-
-    if (!r.report_callback.empty()) {
-#if SNITCH_WITH_TIMINGS
-        r.report_callback(
-            r, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count,
-                   .duration        = duration});
-#else
-        r.report_callback(
-            r, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count});
-#endif
-    } else if (is_at_least(r.verbose, registry::verbosity::normal)) {
-        r.print("==========================================\n");
-
-        if (success) {
-            r.print(
-                make_colored("success:", r.with_color, color::pass), " all tests passed (",
-                run_count, " test cases, ", assertion_count, " assertions");
-        } else {
-            r.print(
-                make_colored("error:", r.with_color, color::fail), " some tests failed (",
-                fail_count, " out of ", run_count, " test cases, ", assertion_count, " assertions");
-        }
-
-        if (skip_count > 0) {
-            r.print(", ", skip_count, " test cases skipped");
-        }
-
-#if SNITCH_WITH_TIMINGS
-        r.print(", ", duration, " seconds");
-#endif
-
-        r.print(")\n");
-    }
-
-    return success;
-}
-
-template<typename F>
-void list_tests(const registry& r, F&& predicate) noexcept {
-    for (const test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        if (!t.id.type.empty()) {
-            r.print(t.id.name, " [", t.id.type, "]\n");
-        } else {
-            r.print(t.id.name, "\n");
-        }
-    }
-}
-
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
     buffer.clear();
     if (id.type.length() != 0) {
-        if (!append(buffer, id.name, " [", id.type, "]")) {
+        if (!append(buffer, id.name, " <", id.type, ">")) {
             return {};
         }
     } else {
@@ -663,6 +600,18 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) no
     }
 
     return buffer.str();
+}
+
+template<typename F>
+void list_tests(const registry& r, F&& predicate) noexcept {
+    small_string<max_test_name_length> buffer;
+    for (const test_case& t : r) {
+        if (!predicate(t)) {
+            continue;
+        }
+
+        r.print(make_full_name(buffer, t.id), "\n");
+    }
 }
 
 void set_state(test_case& t, impl::test_case_state s) noexcept {
@@ -692,6 +641,45 @@ small_vector<std::string_view, max_captures> make_capture_buffer(const capture_s
 } // namespace
 
 namespace snitch {
+filter_result is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
+    filter_result match_action    = filter_result::included;
+    filter_result no_match_action = filter_result::not_included;
+    if (filter.starts_with('~')) {
+        filter          = filter.substr(1);
+        match_action    = filter_result::excluded;
+        no_match_action = filter_result::not_excluded;
+    }
+
+    return is_match(name, filter) ? match_action : no_match_action;
+}
+
+filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+    filter_result match_action    = filter_result::included;
+    filter_result no_match_action = filter_result::not_included;
+    if (filter.starts_with('~')) {
+        filter          = filter.substr(1);
+        match_action    = filter_result::excluded;
+        no_match_action = filter_result::not_excluded;
+    }
+
+    bool match = false;
+    for_each_tag(tags, [&](const tags::parsed_tag& v) {
+        if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && is_match(*vs, filter)) {
+            match = true;
+        }
+    });
+
+    return match ? match_action : no_match_action;
+}
+
+filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept {
+    if (filter.starts_with('[') || filter.starts_with("~[")) {
+        return is_filter_match_tags(id.tags, filter);
+    } else {
+        return is_filter_match_name(id.name, filter);
+    }
+}
+
 const char* registry::add(const test_id& id, test_ptr func) noexcept {
     if (test_list.size() == test_list.capacity()) {
         print(
@@ -915,7 +903,7 @@ test_state registry::run(test_case& test) noexcept {
     thread_current_test      = &state;
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::high_resolution_clock;
+    using clock     = std::chrono::steady_clock;
     auto time_start = clock::now();
 #endif
 
@@ -997,49 +985,127 @@ test_state registry::run(test_case& test) noexcept {
     return state;
 }
 
-bool registry::run_all_tests(std::string_view run_name) noexcept {
-    return ::run_tests(*this, run_name, [](const test_case& t) {
+bool registry::run_selected_tests(
+    std::string_view                                     run_name,
+    const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
+
+    if (!report_callback.empty()) {
+        report_callback(*this, event::test_run_started{run_name});
+    } else if (is_at_least(verbose, registry::verbosity::normal)) {
+        print(
+            make_colored("starting tests with ", with_color, color::highlight2),
+            make_colored("snitch v" SNITCH_FULL_VERSION "\n", with_color, color::highlight1));
+        print("==========================================\n");
+    }
+
+    bool        success         = true;
+    std::size_t run_count       = 0;
+    std::size_t fail_count      = 0;
+    std::size_t skip_count      = 0;
+    std::size_t assertion_count = 0;
+
+#if SNITCH_WITH_TIMINGS
+    using clock     = std::chrono::steady_clock;
+    auto time_start = clock::now();
+#endif
+
+    for (test_case& t : *this) {
+        if (!predicate(t.id)) {
+            continue;
+        }
+
+        auto state = run(t);
+
+        ++run_count;
+        assertion_count += state.asserts;
+
+        switch (t.state) {
+        case impl::test_case_state::success: {
+            // Nothing to do
+            break;
+        }
+        case impl::test_case_state::failed: {
+            ++fail_count;
+            success = false;
+            break;
+        }
+        case impl::test_case_state::skipped: {
+            ++skip_count;
+            break;
+        }
+        case impl::test_case_state::not_run: {
+            // Unreachable
+            break;
+        }
+        }
+    }
+
+#if SNITCH_WITH_TIMINGS
+    auto  time_end = clock::now();
+    float duration = std::chrono::duration<float>(time_end - time_start).count();
+#endif
+
+    if (!report_callback.empty()) {
+#if SNITCH_WITH_TIMINGS
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count,
+                       .duration        = duration});
+#else
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count});
+#endif
+    } else if (is_at_least(verbose, registry::verbosity::normal)) {
+        print("==========================================\n");
+
+        if (success) {
+            print(
+                make_colored("success:", with_color, color::pass), " all tests passed (", run_count,
+                " test cases, ", assertion_count, " assertions");
+        } else {
+            print(
+                make_colored("error:", with_color, color::fail), " some tests failed (", fail_count,
+                " out of ", run_count, " test cases, ", assertion_count, " assertions");
+        }
+
+        if (skip_count > 0) {
+            print(", ", skip_count, " test cases skipped");
+        }
+
+#if SNITCH_WITH_TIMINGS
+        print(", ", duration, " seconds");
+#endif
+
+        print(")\n");
+    }
+
+    return success;
+}
+
+bool registry::run_tests(std::string_view run_name) noexcept {
+    const auto filter = [](const test_id& id) {
         bool selected = true;
-        for_each_tag(t.id.tags, [&](const tags::parsed_tag& s) {
+        for_each_tag(id.tags, [&](const tags::parsed_tag& s) {
             if (std::holds_alternative<tags::ignored>(s)) {
                 selected = false;
             }
         });
 
         return selected;
-    });
-}
+    };
 
-bool registry::run_tests_matching_name(
-    std::string_view run_name, std::string_view name_filter) noexcept {
-    small_string<max_test_name_length> buffer;
-    return ::run_tests(*this, run_name, [&](const test_case& t) {
-        std::string_view v = make_full_name(buffer, t.id);
-
-        // TODO: use regex here?
-        return v.find(name_filter) != v.npos;
-    });
-}
-
-bool registry::run_tests_with_tag(std::string_view run_name, std::string_view tag_filter) noexcept {
-    tag_filter = get_tag_name(tag_filter);
-    if (tag_filter.empty()) {
-        print(
-            make_colored("error:", with_color, color::fail),
-            " tag must be of the form '[tag_name]'.");
-        std::terminate();
-    }
-
-    return ::run_tests(*this, run_name, [&](const test_case& t) {
-        bool selected = false;
-        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
-            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag_filter) {
-                selected = true;
-            }
-        });
-
-        return selected;
-    });
+    return run_selected_tests(run_name, filter);
 }
 
 void registry::list_all_tags() const noexcept {
@@ -1075,23 +1141,9 @@ void registry::list_all_tests() const noexcept {
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
-    tag = get_tag_name(tag);
-    if (tag.empty()) {
-        print(
-            make_colored("error:", with_color, color::fail),
-            " tag must be of the form '[tag_name]'.");
-        std::terminate();
-    }
-
     list_tests(*this, [&](const test_case& t) {
-        bool selected = false;
-        for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
-            if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && *vs == tag) {
-                selected = true;
-            }
-        });
-
-        return selected;
+        const auto result = is_filter_match_tags(t.id.tags, tag);
+        return result == filter_result::included || result == filter_result::not_excluded;
     });
 }
 
@@ -1126,13 +1178,15 @@ using namespace std::literals;
 
 constexpr std::size_t max_arg_names = 2;
 
-enum class argument_type { optional, mandatory };
+namespace argument_type {
+enum type { optional = 0b00, mandatory = 0b01, repeatable = 0b10 };
+}
 
 struct expected_argument {
     small_vector<std::string_view, max_arg_names> names;
     std::optional<std::string_view>               value_name;
     std::string_view                              description;
-    argument_type                                 type = argument_type::optional;
+    argument_type::type                           type = argument_type::optional;
 };
 
 using expected_arguments = small_vector<expected_argument, max_command_line_args>;
@@ -1152,6 +1206,26 @@ std::string_view extract_executable(std::string_view path) {
     return path;
 }
 
+bool is_option(const expected_argument& e) {
+    return !e.names.empty();
+}
+
+bool is_option(const cli::argument& a) {
+    return !a.name.empty();
+}
+
+bool has_value(const expected_argument& e) {
+    return e.value_name.has_value();
+}
+
+bool is_mandatory(const expected_argument& e) {
+    return (e.type & argument_type::mandatory) != 0;
+}
+
+bool is_repeatable(const expected_argument& e) {
+    return (e.type & argument_type::repeatable) != 0;
+}
+
 std::optional<cli::input> parse_arguments(
     int                       argc,
     const char* const         argv[],
@@ -1168,7 +1242,8 @@ std::optional<cli::input> parse_arguments(
     small_vector<bool, max_command_line_args> expected_found;
     for (const auto& e : expected) {
         expected_found.push_back(false);
-        if (!e.names.empty()) {
+
+        if (is_option(e)) {
             if (e.names.size() == 1) {
                 if (!e.names[0].starts_with('-')) {
                     terminate_with("option name must start with '-' or '--'");
@@ -1179,7 +1254,7 @@ std::optional<cli::input> parse_arguments(
                 }
             }
         } else {
-            if (!e.value_name.has_value()) {
+            if (!has_value(e)) {
                 terminate_with("positional argument must have a value name");
             }
         }
@@ -1188,12 +1263,15 @@ std::optional<cli::input> parse_arguments(
     // Parse
     for (int argi = 1; argi < argc; ++argi) {
         std::string_view arg(argv[argi]);
+
         if (arg.starts_with('-')) {
+            // Options start with dashes.
             bool found = false;
+
             for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
                 const auto& e = expected[arg_index];
 
-                if (e.names.empty()) {
+                if (!is_option(e)) {
                     continue;
                 }
 
@@ -1203,7 +1281,7 @@ std::optional<cli::input> parse_arguments(
 
                 found = true;
 
-                if (expected_found[arg_index]) {
+                if (expected_found[arg_index] && !is_repeatable(e)) {
                     console_print(
                         make_colored("error:", settings.with_color, color::error),
                         " duplicate command line argument '", arg, "'\n");
@@ -1213,7 +1291,7 @@ std::optional<cli::input> parse_arguments(
 
                 expected_found[arg_index] = true;
 
-                if (e.value_name) {
+                if (has_value(e)) {
                     if (argi + 1 == argc) {
                         console_print(
                             make_colored("error:", settings.with_color, color::error),
@@ -1239,11 +1317,17 @@ std::optional<cli::input> parse_arguments(
                     " unknown command line argument '", arg, "'\n");
             }
         } else {
+            // If no dash, this is a positional argument.
             bool found = false;
+
             for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
                 const auto& e = expected[arg_index];
 
-                if (!e.names.empty() || expected_found[arg_index]) {
+                if (is_option(e)) {
+                    continue;
+                }
+
+                if (expected_found[arg_index] && !is_repeatable(e)) {
                     continue;
                 }
 
@@ -1265,8 +1349,8 @@ std::optional<cli::input> parse_arguments(
 
     for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
         const auto& e = expected[arg_index];
-        if (e.type == argument_type::mandatory && !expected_found[arg_index]) {
-            if (e.names.empty()) {
+        if (!expected_found[arg_index] && is_mandatory(e)) {
+            if (!is_option(e)) {
                 console_print(
                     make_colored("error:", settings.with_color, color::error),
                     " missing positional argument '<", *e.value_name, ">'\n");
@@ -1302,16 +1386,22 @@ void print_help(
     // Print command line usage example
     console_print(make_colored("Usage:", settings.with_color, color::pass), "\n");
     console_print("  ", program_name);
-    if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return !e.names.empty(); })) {
+    if (std::any_of(expected.cbegin(), expected.cend(), [](auto& e) { return is_option(e); })) {
         console_print(" [options...]");
     }
 
     for (const auto& e : expected) {
-        if (e.names.empty()) {
-            if (e.type == argument_type::mandatory) {
-                console_print(" <", *e.value_name, ">");
-            } else {
+        if (!is_option(e)) {
+            if (!is_mandatory(e) && !is_repeatable(e)) {
                 console_print(" [<", *e.value_name, ">]");
+            } else if (is_mandatory(e) && !is_repeatable(e)) {
+                console_print(" <", *e.value_name, ">");
+            } else if (!is_mandatory(e) && is_repeatable(e)) {
+                console_print(" [<", *e.value_name, ">...]");
+            } else if (is_mandatory(e) && is_repeatable(e)) {
+                console_print(" <", *e.value_name, ">...");
+            } else {
+                terminate_with("unhandled argument type");
             }
         }
     }
@@ -1324,7 +1414,7 @@ void print_help(
         heading.clear();
 
         bool success = true;
-        if (!e.names.empty()) {
+        if (is_option(e)) {
             if (e.names[0].starts_with("--")) {
                 success = success && append(heading, "    ");
             }
@@ -1335,7 +1425,7 @@ void print_help(
                 success = success && append(heading, ", ", e.names[1]);
             }
 
-            if (e.value_name) {
+            if (has_value(e)) {
                 success = success && append(heading, " <", *e.value_name, ">");
             }
         } else {
@@ -1357,11 +1447,10 @@ constexpr expected_arguments expected_args = {
     {{"-l", "--list-tests"},    {},                    "List tests by name"},
     {{"--list-tags"},           {},                    "List tags by name"},
     {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
-    {{"-t", "--tags"},          {},                    "Use tags for filtering, not name"},
     {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
     {{"--color"},               {"always|never"},      "Enable/disable color in output"},
     {{"-h", "--help"},          {},                    "Print help"},
-    {{},                        {"test regex"},        "A regex to select which test cases (or tags) to run"}};
+    {{},                        {"test regex"},        "A regex to select which test cases to run", argument_type::repeatable}};
 // clang-format on
 
 constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
@@ -1401,7 +1490,7 @@ get_positional_argument(const cli::input& args, std::string_view name) noexcept 
     std::optional<cli::argument> ret;
 
     auto iter = std::find_if(args.arguments.cbegin(), args.arguments.cend(), [&](const auto& arg) {
-        return arg.name.empty() && arg.value_name == name;
+        return !is_option(arg) && arg.value_name == name;
     });
 
     if (iter != args.arguments.cend()) {
@@ -1409,6 +1498,24 @@ get_positional_argument(const cli::input& args, std::string_view name) noexcept 
     }
 
     return ret;
+}
+
+void for_each_positional_argument(
+    const cli::input&                                      args,
+    std::string_view                                       name,
+    const small_function<void(std::string_view) noexcept>& callback) noexcept {
+
+    auto iter = args.arguments.cbegin();
+    while (iter != args.arguments.cend()) {
+        iter = std::find_if(iter, args.arguments.cend(), [&](const auto& arg) {
+            return !is_option(arg) && arg.value_name == name;
+        });
+
+        if (iter != args.arguments.cend()) {
+            callback(*iter->value);
+            ++iter;
+        }
+    }
 }
 } // namespace snitch::cli
 
@@ -1465,14 +1572,35 @@ bool registry::run_tests(const cli::input& args) noexcept {
         return true;
     }
 
-    if (auto opt = get_positional_argument(args, "test regex")) {
-        if (get_option(args, "--tags")) {
-            return run_tests_with_tag(args.executable, *opt->value);
-        } else {
-            return run_tests_matching_name(args.executable, *opt->value);
-        }
+    if (get_positional_argument(args, "test regex").has_value()) {
+        const auto filter = [&](const test_id& id) noexcept {
+            std::optional<bool> selected;
+
+            const auto callback = [&](std::string_view filter) noexcept {
+                switch (is_filter_match_id(id, filter)) {
+                case filter_result::included: selected = true; break;
+                case filter_result::excluded: selected = false; break;
+                case filter_result::not_included:
+                    if (!selected.has_value()) {
+                        selected = false;
+                    }
+                    break;
+                case filter_result::not_excluded:
+                    if (!selected.has_value()) {
+                        selected = true;
+                    }
+                    break;
+                }
+            };
+
+            for_each_positional_argument(args, "test regex", callback);
+
+            return selected.value();
+        };
+
+        return run_selected_tests(args.executable, filter);
     } else {
-        return run_all_tests(args.executable);
+        return run_tests(args.executable);
     }
 }
 } // namespace snitch
