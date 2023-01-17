@@ -201,7 +201,19 @@ Notes:
 
 ### Detailed comparison with _Catch2_
 
-See [the dedicated page in the docs folder](doc/comparison_catch2.md).
+See [the dedicated page in the docs folder](doc/comparison_catch2.md) for a break down of _Catch2_ features and their implementation status in _snitch_.
+
+Given that _snitch_ only offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
+
+ - _snitch_ does not do any heap allocation, ever. This is important if the tests need to monitor the global heap usage, to ensure that the tested code only allocates what it is supposed to (or not at all). This is tricky to do with _Catch2_, since some check macros will trigger heap allocations by using `std::string` and other heap-allocated data structures. To add to the confusion, some `std::string` instances used by _Catch2_ will fall under the small-string-optimization threshold, and won't generate heap allocations on some implementations of the C++ STL. This makes any measurement of heap usage not only noisy, but platform-dependent. If this is a concern to you, then _snitch_ is a better choice.
+
+ - _snitch_ has a much smaller compile-time footprint than _Catch2_, see the benchmarks above. If your tested code is very cheap to compile, but you have a large number of tests and/or assertions, your compilation time may be dominated by the testing framework implementation (this is the case in the benchmarks). If the compilation time with _Catch2_ becomes prohibitive or annoying, you can give _snitch_ a try to see if it improves it.
+
+ - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use CMake.
+
+ - _snitch_ has better reporting of typed tests (template test cases). While _Catch2_ will only report the type index in the test type list, _snitch_ will actually report the type name. This makes it easier to find which type generated a failure.
+
+If none of the above applies, then _Catch2_ will generally offer more value.
 
 
 ### Test case macros
