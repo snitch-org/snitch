@@ -85,6 +85,7 @@
 | - `BENCHMARK_ADVANCED`                              | No            | No           |
 | - `GENERATE`                                        | No            | No           |
 | - `REGISTER_LISTENER`                               | Yes (6)       | Done         |
+| - `SKIP`                                            | Yes (2)       | Done         |
 
 **Notes:**
  1. Support for hidden tests (`[.]` or `[.tag]`), `[!mayfail]`, and `[!shouldfail]` only.
