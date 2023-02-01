@@ -80,7 +80,7 @@
 | **Other matchers**                                  |               |              |
 | - `Predicate`                                       | No            | Unlikely     |
 | - `Message`                                         | Yes (5)       | Done         |
-| **Miscelaneous**                                    |               |              |
+| **Miscellaneous**                                   |               |              |
 | - `BENCHMARK`                                       | No            | No           |
 | - `BENCHMARK_ADVANCED`                              | No            | No           |
 | - `GENERATE`                                        | No            | No           |
@@ -99,5 +99,5 @@
 **Roadmap:**
  - "Yes" is something that we want to eventually support in _snitch_, even if it comes at a cost (at run time or compile time). Contributions are welcome.
  - "Maybe" is something that we have no objection against supporting, but for which we have no immediate need. It may be refused if the cost is significant. Contributions are welcome, but expect some extra scrutiny, and perhaps push back.
- - "Unlikely" is something we would want to support, but is expected to have too high cost, or seems impossible without violating other requirements of _snitch_ (e.g., no heap allocation). This can be included in _snitch_ if the cost ends up beeing negligible. We recommend discussing with the maintainers before contributing.
+ - "Unlikely" is something we would want to support, but is expected to have too high cost, or seems impossible without violating other requirements of _snitch_ (e.g., no heap allocation). This can be included in _snitch_ if the cost ends up being negligible. We recommend discussing with the maintainers before contributing.
  - "No" is something we explicitly do not want to support. This can still be included in _snitch_ if well motivated, but please argue your case with the maintainers before contributing.
