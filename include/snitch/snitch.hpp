@@ -13,6 +13,7 @@
 #include <optional> // for cli
 #include <string_view> // for all strings
 #include <type_traits> // for std::is_nothrow_*
+#include <utility> // for std::forward, std::move
 #include <variant> // for events and small_function
 
 // Testing framework configuration.
