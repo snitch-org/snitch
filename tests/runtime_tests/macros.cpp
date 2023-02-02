@@ -58,6 +58,7 @@ TEST_CASE("test after test with fixture") {
 }
 
 namespace {
+#if SNITCH_WITH_EXCEPTIONS
 // Dummy template parameters to allow commas when specifying the exception type
 template<typename T, typename U>
 struct test_exception : std::exception {
@@ -65,13 +66,18 @@ struct test_exception : std::exception {
         return "test exception";
     }
 };
+#endif
 
 template<std::size_t i, std::size_t j, std::size_t k>
 int foo() {
     if (i != j || i != k) {
         return 0;
     } else {
+#if SNITCH_WITH_EXCEPTIONS
         throw test_exception<int, int>{};
+#else
+        return 1;
+#endif
     }
 }
 
@@ -129,13 +135,17 @@ TEST_CASE("check macros with commas") {
     // around the expression:
 
     REQUIRE_THAT((foo<1, 2, 3>()), snitch::matchers::match_anything{0, 0});
-    REQUIRE_THROWS_AS((foo<2, 2, 2>()), test_exception<int, int>);
     CHECK_THAT((foo<1, 2, 3>()), snitch::matchers::match_anything{0, 0});
+
+#    if SNITCH_WITH_EXCEPTIONS
     CHECK_THROWS_AS((foo<2, 2, 2>()), test_exception<int, int>);
+    REQUIRE_THROWS_AS((foo<2, 2, 2>()), test_exception<int, int>);
+#    endif
 
     // Even more unfortunately, macros cannot support 'test_exception' to be specified inline here,
     // it must be declared first with an alias without template parameters:
 
+#    if SNITCH_WITH_EXCEPTIONS
     using expected_exception = test_exception<int, int>;
 
     REQUIRE_THROWS_MATCHES(
@@ -143,23 +153,26 @@ TEST_CASE("check macros with commas") {
 
     CHECK_THROWS_MATCHES(
         (foo<2, 2, 2>()), expected_exception, snitch::matchers::match_anything{0, 0});
+#    endif
 }
-#endif
 
 TEST_CASE("matcher is not copied") {
     matcher_created_count = 0u;
-    SNITCH_REQUIRE_THAT(1, snitch::matchers::tracked_matcher{});
+    REQUIRE_THAT(1, snitch::matchers::tracked_matcher{});
     CHECK(matcher_created_count == 1u);
 
     matcher_created_count = 0u;
-    SNITCH_CHECK_THAT(1, snitch::matchers::tracked_matcher{});
+    CHECK_THAT(1, snitch::matchers::tracked_matcher{});
+    CHECK(matcher_created_count == 1u);
+
+#    if SNITCH_WITH_EXCEPTIONS
+    matcher_created_count = 0u;
+    REQUIRE_THROWS_MATCHES(throw 1, int, snitch::matchers::tracked_matcher{});
     CHECK(matcher_created_count == 1u);
 
     matcher_created_count = 0u;
-    SNITCH_REQUIRE_THROWS_MATCHES(throw 1, int, snitch::matchers::tracked_matcher{});
+    CHECK_THROWS_MATCHES(throw 1, int, snitch::matchers::tracked_matcher{});
     CHECK(matcher_created_count == 1u);
-
-    matcher_created_count = 0u;
-    SNITCH_CHECK_THROWS_MATCHES(throw 1, int, snitch::matchers::tracked_matcher{});
-    CHECK(matcher_created_count == 1u);
+#    endif
 }
+#endif
