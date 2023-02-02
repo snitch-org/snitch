@@ -223,7 +223,7 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
     // An empty regex matches any string; early exit.
     // An empty string matches an empty regex (exit here) or any regex containing
     // only wildcards (exit later).
-    if ((string.empty() && regex.empty()) || regex.empty()) {
+    if (regex.empty()) {
         return true;
     }
 
