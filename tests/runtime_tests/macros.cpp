@@ -70,7 +70,7 @@ struct test_exception : std::exception {
 
 template<std::size_t i, std::size_t j, std::size_t k>
 int foo() {
-    if (i != j || i != k) {
+    if constexpr (i != j || i != k) {
         return 0;
     } else {
 #if SNITCH_WITH_EXCEPTIONS
@@ -156,6 +156,9 @@ TEST_CASE("check macros with commas") {
 #    endif
 }
 
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
+
 TEST_CASE("matcher is not copied") {
     matcher_created_count = 0u;
     REQUIRE_THAT(1, snitch::matchers::tracked_matcher{});
@@ -175,4 +178,6 @@ TEST_CASE("matcher is not copied") {
     CHECK(matcher_created_count == 1u);
 #    endif
 }
+
+SNITCH_WARNING_POP
 #endif
