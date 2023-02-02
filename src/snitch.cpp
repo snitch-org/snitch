@@ -59,7 +59,7 @@ constexpr const char* get_format_code() noexcept {
     } else if constexpr (std::is_same_v<T, double>) {
         return "%lf";
     } else {
-        static_assert(std::is_same_v<T, T>, "unsupported type");
+        static_assert(!std::is_same_v<T, T>, "unsupported type");
     }
 }
 
