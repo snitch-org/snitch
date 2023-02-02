@@ -556,7 +556,7 @@ void for_each_tag(std::string_view s, F&& callback) noexcept {
 
     for_each_raw_tag(s, [&](std::string_view t) {
         // Look for "ignore" tags, which is either "[.]"
-        // or a a tag starting with ".", like "[.integration]".
+        // or a tag starting with ".", like "[.integration]".
         if (t == "[.]"sv) {
             // This is a pure "ignore" tag, add this to the list of special tags.
             callback(tags::parsed_tag{tags::ignored{}});
@@ -1380,7 +1380,7 @@ void print_help(
     const expected_arguments&  expected,
     const print_help_settings& settings = print_help_settings{}) {
 
-    // Print program desription
+    // Print program description
     console_print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
 
     // Print command line usage example
