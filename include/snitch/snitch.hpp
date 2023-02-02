@@ -1404,17 +1404,17 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNITCH_CONCAT_IMPL(x, y) x##y
 #define SNITCH_MACRO_CONCAT(x, y) SNITCH_CONCAT_IMPL(x, y)
 
-#define SNITCH_EXPR_TRUE(TYPE, EXP)                                                                \
-    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #EXP ")"};                  \
-    snitch::impl::expression_extractor<false, true>{SNITCH_CURRENT_EXPRESSION} <= EXP
+#define SNITCH_EXPR_TRUE(TYPE, ...)                                                                \
+    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
+    snitch::impl::expression_extractor<false, true>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
 
-#define SNITCH_EXPR_FALSE(TYPE, EXP)                                                               \
-    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #EXP ")"};                  \
-    snitch::impl::expression_extractor<false, false>{SNITCH_CURRENT_EXPRESSION} <= EXP
+#define SNITCH_EXPR_FALSE(TYPE, ...)                                                               \
+    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
+    snitch::impl::expression_extractor<false, false>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
 
-#define SNITCH_DECOMPOSABLE(EXP)                                                                   \
+#define SNITCH_DECOMPOSABLE(...)                                                                   \
     snitch::impl::is_decomposable<                                                                 \
-        decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= EXP)>
+        decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= __VA_ARGS__)>
 
 // Public test macros: test cases.
 // -------------------------------
@@ -1520,89 +1520,89 @@ bool operator==(const M& m, const T& value) noexcept {
 // Public test macros: checks.
 // ------------------------------
 
-#define SNITCH_REQUIRE(EXP)                                                                        \
+#define SNITCH_REQUIRE(...)                                                                        \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         ++SNITCH_CURRENT_TEST.asserts;                                                             \
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNITCH_EXPR_TRUE("REQUIRE", EXP)) {                                                \
+        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
+            if (SNITCH_EXPR_TRUE("REQUIRE", __VA_ARGS__)) {                                        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } else {                                                                                   \
-            if (!(EXP)) {                                                                          \
+            if (!(__VA_ARGS__)) {                                                                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #EXP ")");               \
-                SNITCH_TESTING_ABORT;                                                              \
-            }                                                                                      \
-        }                                                                                          \
-        SNITCH_WARNING_POP                                                                         \
-    } while (0)
-
-#define SNITCH_CHECK(EXP)                                                                          \
-    do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_WARNING_PUSH                                                                        \
-        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNITCH_EXPR_TRUE("CHECK", EXP)) {                                                  \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            }                                                                                      \
-        } else {                                                                                   \
-            if (!(EXP)) {                                                                          \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #EXP ")");                 \
-            }                                                                                      \
-        }                                                                                          \
-        SNITCH_WARNING_POP                                                                         \
-    } while (0)
-
-#define SNITCH_REQUIRE_FALSE(EXP)                                                                  \
-    do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_WARNING_PUSH                                                                        \
-        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNITCH_EXPR_FALSE("REQUIRE_FALSE", EXP)) {                                         \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-                SNITCH_TESTING_ABORT;                                                              \
-            }                                                                                      \
-        } else {                                                                                   \
-            if (!(EXP)) {                                                                          \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #EXP ")");         \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #__VA_ARGS__ ")");       \
                 SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
     } while (0)
 
-#define SNITCH_CHECK_FALSE(EXP)                                                                    \
+#define SNITCH_CHECK(...)                                                                          \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         ++SNITCH_CURRENT_TEST.asserts;                                                             \
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(EXP)) {                                                  \
-            if (SNITCH_EXPR_FALSE("CHECK_FALSE", EXP)) {                                           \
+        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
+            if (SNITCH_EXPR_TRUE("CHECK", __VA_ARGS__)) {                                          \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
-            if (!(EXP)) {                                                                          \
+            if (!(__VA_ARGS__)) {                                                                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #EXP ")");           \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #__VA_ARGS__ ")");         \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_REQUIRE_FALSE(...)                                                                  \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
+            if (SNITCH_EXPR_FALSE("REQUIRE_FALSE", __VA_ARGS__)) {                                 \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        } else {                                                                                   \
+            if (!(__VA_ARGS__)) {                                                                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #__VA_ARGS__ ")"); \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CHECK_FALSE(...)                                                                    \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
+            if (SNITCH_EXPR_FALSE("CHECK_FALSE", __VA_ARGS__)) {                                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if (!(__VA_ARGS__)) {                                                                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #__VA_ARGS__ ")");   \
             }                                                                                      \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
@@ -1633,30 +1633,32 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
-#define SNITCH_REQUIRE_THAT(EXPR, MATCHER)                                                         \
+#define SNITCH_REQUIRE_THAT(EXPR, ...)                                                             \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        const auto& SNITCH_TEMP_VALUE   = (EXPR);                                                  \
-        const auto& SNITCH_TEMP_MATCHER = (MATCHER);                                               \
+        auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                       \
+        auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                                  \
         if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
             SNITCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                SNITCH_TEMP_MATCHER.describe_fail(SNITCH_TEMP_VALUE));                             \
+                SNITCH_TEMP_MATCHER.describe_match(                                                \
+                    SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
             SNITCH_TESTING_ABORT;                                                                  \
         }                                                                                          \
     } while (0)
 
-#define SNITCH_CHECK_THAT(EXPR, MATCHER)                                                           \
+#define SNITCH_CHECK_THAT(EXPR, ...)                                                               \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        const auto& SNITCH_TEMP_VALUE   = (EXPR);                                                  \
-        const auto& SNITCH_TEMP_MATCHER = (MATCHER);                                               \
+        auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                       \
+        auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                                  \
         if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
             SNITCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                SNITCH_TEMP_MATCHER.describe_fail(SNITCH_TEMP_VALUE));                             \
+                SNITCH_TEMP_MATCHER.describe_match(                                                \
+                    SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
         }                                                                                          \
     } while (0)
 
@@ -1674,21 +1676,21 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define CAPTURE(...) SNITCH_CAPTURE(__VA_ARGS__)
 #    define INFO(...)    SNITCH_INFO(__VA_ARGS__)
 
-#    define REQUIRE(EXP)               SNITCH_REQUIRE(EXP)
-#    define CHECK(EXP)                 SNITCH_CHECK(EXP)
-#    define REQUIRE_FALSE(EXP)         SNITCH_REQUIRE_FALSE(EXP)
-#    define CHECK_FALSE(EXP)           SNITCH_CHECK_FALSE(EXP)
+#    define REQUIRE(...)               SNITCH_REQUIRE(__VA_ARGS__)
+#    define CHECK(...)                 SNITCH_CHECK(__VA_ARGS__)
+#    define REQUIRE_FALSE(...)         SNITCH_REQUIRE_FALSE(__VA_ARGS__)
+#    define CHECK_FALSE(...)           SNITCH_CHECK_FALSE(__VA_ARGS__)
 #    define FAIL(MESSAGE)              SNITCH_FAIL(MESSAGE)
 #    define FAIL_CHECK(MESSAGE)        SNITCH_FAIL_CHECK(MESSAGE)
 #    define SKIP(MESSAGE)              SNITCH_SKIP(MESSAGE)
-#    define REQUIRE_THAT(EXP, MATCHER) SNITCH_REQUIRE(EXP, MATCHER)
-#    define CHECK_THAT(EXP, MATCHER)   SNITCH_CHECK(EXP, MATCHER)
+#    define REQUIRE_THAT(EXP, ...)     SNITCH_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CHECK_THAT(EXP, ...)       SNITCH_CHECK_THAT(EXP, __VA_ARGS__)
 #endif
 // clang-format on
 
 #if SNITCH_WITH_EXCEPTIONS
 
-#    define SNITCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)                                        \
+#    define SNITCH_REQUIRE_THROWS_AS(EXPRESSION, ...)                                              \
         do {                                                                                       \
             auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
@@ -1696,9 +1698,9 @@ bool operator==(const M& m, const T& value) noexcept {
                 EXPRESSION;                                                                        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
-                    #EXCEPTION " expected but no exception thrown");                               \
+                    #__VA_ARGS__ " expected but no exception thrown");                             \
                 SNITCH_TESTING_ABORT;                                                              \
-            } catch (const EXCEPTION&) {                                                           \
+            } catch (const __VA_ARGS__&) {                                                         \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
                 try {                                                                              \
@@ -1706,18 +1708,18 @@ bool operator==(const M& m, const T& value) noexcept {
                 } catch (const std::exception& e) {                                                \
                     SNITCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
-                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
+                        #__VA_ARGS__ " expected but other std::exception thrown; message: ",       \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     SNITCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
-                        #EXCEPTION " expected but other unknown exception thrown");                \
+                        #__VA_ARGS__ " expected but other unknown exception thrown");              \
                 }                                                                                  \
                 SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
         } while (0)
 
-#    define SNITCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                                          \
+#    define SNITCH_CHECK_THROWS_AS(EXPRESSION, ...)                                                \
         do {                                                                                       \
             auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
@@ -1725,8 +1727,8 @@ bool operator==(const M& m, const T& value) noexcept {
                 EXPRESSION;                                                                        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
-                    #EXCEPTION " expected but no exception thrown");                               \
-            } catch (const EXCEPTION&) {                                                           \
+                    #__VA_ARGS__ " expected but no exception thrown");                             \
+            } catch (const __VA_ARGS__&) {                                                         \
                 /* success */                                                                      \
             } catch (...) {                                                                        \
                 try {                                                                              \
@@ -1734,17 +1736,17 @@ bool operator==(const M& m, const T& value) noexcept {
                 } catch (const std::exception& e) {                                                \
                     SNITCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
-                        #EXCEPTION " expected but other std::exception thrown; message: ",         \
+                        #__VA_ARGS__ " expected but other std::exception thrown; message: ",       \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     SNITCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
-                        #EXCEPTION " expected but other unknown exception thrown");                \
+                        #__VA_ARGS__ " expected but other unknown exception thrown");              \
                 }                                                                                  \
             }                                                                                      \
         } while (0)
 
-#    define SNITCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                          \
+#    define SNITCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, ...)                              \
         do {                                                                                       \
             auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
@@ -1755,11 +1757,13 @@ bool operator==(const M& m, const T& value) noexcept {
                     #EXCEPTION " expected but no exception thrown");                               \
                 SNITCH_TESTING_ABORT;                                                              \
             } catch (const EXCEPTION& e) {                                                         \
-                if (!(MATCHER).match(e)) {                                                         \
+                auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                          \
+                if (!SNITCH_TEMP_MATCHER.match(e)) {                                               \
                     SNITCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_match(e, snitch::matchers::match_status::failed));      \
+                        SNITCH_TEMP_MATCHER.describe_match(                                        \
+                            e, snitch::matchers::match_status::failed));                           \
                     SNITCH_TESTING_ABORT;                                                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
@@ -1779,7 +1783,7 @@ bool operator==(const M& m, const T& value) noexcept {
             }                                                                                      \
         } while (0)
 
-#    define SNITCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)                            \
+#    define SNITCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, ...)                                \
         do {                                                                                       \
             auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
             try {                                                                                  \
@@ -1789,11 +1793,13 @@ bool operator==(const M& m, const T& value) noexcept {
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     #EXCEPTION " expected but no exception thrown");                               \
             } catch (const EXCEPTION& e) {                                                         \
-                if (!(MATCHER).match(e)) {                                                         \
+                auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                          \
+                if (!SNITCH_TEMP_MATCHER.match(e)) {                                               \
                     SNITCH_CURRENT_TEST.reg.report_failure(                                        \
                         SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
-                        (MATCHER).describe_match(e, snitch::matchers::match_status::failed));      \
+                        SNITCH_TEMP_MATCHER.describe_match(                                        \
+                            e, snitch::matchers::match_status::failed));                           \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
@@ -1813,10 +1819,10 @@ bool operator==(const M& m, const T& value) noexcept {
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS
-#    define REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)               SNITCH_REQUIRE_THROWS_AS(EXPRESSION, EXCEPTION)
-#    define CHECK_THROWS_AS(EXPRESSION, EXCEPTION)                 SNITCH_CHECK_THROWS_AS(EXPRESSION, EXCEPTION)
-#    define REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER) SNITCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)
-#    define CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)   SNITCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, MATCHER)
+#    define REQUIRE_THROWS_AS(EXPRESSION, ...)                 SNITCH_REQUIRE_THROWS_AS(EXPRESSION, __VA_ARGS__)
+#    define CHECK_THROWS_AS(EXPRESSION, ...)                   SNITCH_CHECK_THROWS_AS(EXPRESSION, __VA_ARGS__)
+#    define REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, ...) SNITCH_REQUIRE_THROWS_MATCHES(EXPRESSION, EXCEPTION, __VA_ARGS__)
+#    define CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, ...)   SNITCH_CHECK_THROWS_MATCHES(EXPRESSION, EXCEPTION, __VA_ARGS__)
 #endif
 // clang-format on
 

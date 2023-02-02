@@ -33,7 +33,7 @@ endfunction()
 
 function(configure_snitch_for_tests TARGET)
   target_compile_definitions(${TARGET} PUBLIC
-    SNITCH_MAX_TEST_CASES=100
+    SNITCH_MAX_TEST_CASES=200
     SNITCH_MAX_EXPR_LENGTH=128
     SNITCH_MAX_MESSAGE_LENGTH=128
     SNITCH_MAX_TEST_NAME_LENGTH=128

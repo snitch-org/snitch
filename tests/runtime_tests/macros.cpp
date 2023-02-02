@@ -1,5 +1,7 @@
 #include "testing.hpp"
 
+using namespace std::literals;
+
 namespace {
 bool test_called = false;
 } // namespace
@@ -53,4 +55,111 @@ TEST_CASE_METHOD(test_fixture, "test with fixture and section") {
 
 TEST_CASE("test after test with fixture") {
     CHECK(test_fixture_instances == 0u);
+}
+
+namespace {
+// Dummy template parameters to allow commas when specifying the exception type
+template<typename T, typename U>
+struct test_exception : std::exception {
+    const char* what() const noexcept override {
+        return "test exception";
+    }
+};
+
+template<std::size_t i, std::size_t j, std::size_t k>
+int foo() {
+    if (i != j || i != k) {
+        return 0;
+    } else {
+        throw test_exception<int, int>{};
+    }
+}
+
+std::size_t matcher_created_count = 0u;
+} // namespace
+
+namespace snitch::matchers {
+struct match_anything {
+    // Dummy variable to allow commas when constructing the matcher
+    int i = 0;
+    int j = 0;
+
+    template<typename T>
+    bool match(T&&) const noexcept {
+        return true;
+    }
+
+    template<typename T>
+    small_string<max_message_length> describe_match(T&&, match_status) const noexcept {
+        return "matched"sv;
+    }
+};
+
+struct tracked_matcher {
+    tracked_matcher() {
+        ++matcher_created_count;
+    }
+    tracked_matcher(const tracked_matcher&) {
+        ++matcher_created_count;
+    }
+    tracked_matcher(tracked_matcher&&) {
+        ++matcher_created_count;
+    }
+
+    template<typename T>
+    bool match(T&&) const noexcept {
+        return true;
+    }
+
+    template<typename T>
+    small_string<max_message_length> describe_match(T&&, match_status) const noexcept {
+        return "matched"sv;
+    }
+};
+} // namespace snitch::matchers
+
+#if defined(SNITCH_TEST_WITH_SNITCH)
+TEST_CASE("check macros with commas") {
+    REQUIRE(foo<1, 2, 3>() == 0);
+    REQUIRE_FALSE(foo<1, 2, 3>() != 0);
+    CHECK(foo<1, 2, 3>() == 0);
+    CHECK_FALSE(foo<1, 2, 3>() != 0);
+
+    // Unfortunately, macros cannot support the following without the extra parentheses
+    // around the expression:
+
+    REQUIRE_THAT((foo<1, 2, 3>()), snitch::matchers::match_anything{0, 0});
+    REQUIRE_THROWS_AS((foo<2, 2, 2>()), test_exception<int, int>);
+    CHECK_THAT((foo<1, 2, 3>()), snitch::matchers::match_anything{0, 0});
+    CHECK_THROWS_AS((foo<2, 2, 2>()), test_exception<int, int>);
+
+    // Even more unfortunately, macros cannot support 'test_exception' to be specified inline here,
+    // it must be declared first with an alias without template parameters:
+
+    using expected_exception = test_exception<int, int>;
+
+    REQUIRE_THROWS_MATCHES(
+        (foo<2, 2, 2>()), expected_exception, snitch::matchers::match_anything{0, 0});
+
+    CHECK_THROWS_MATCHES(
+        (foo<2, 2, 2>()), expected_exception, snitch::matchers::match_anything{0, 0});
+}
+#endif
+
+TEST_CASE("matcher is not copied") {
+    matcher_created_count = 0u;
+    SNITCH_REQUIRE_THAT(1, snitch::matchers::tracked_matcher{});
+    CHECK(matcher_created_count == 1u);
+
+    matcher_created_count = 0u;
+    SNITCH_CHECK_THAT(1, snitch::matchers::tracked_matcher{});
+    CHECK(matcher_created_count == 1u);
+
+    matcher_created_count = 0u;
+    SNITCH_REQUIRE_THROWS_MATCHES(throw 1, int, snitch::matchers::tracked_matcher{});
+    CHECK(matcher_created_count == 1u);
+
+    matcher_created_count = 0u;
+    SNITCH_CHECK_THROWS_MATCHES(throw 1, int, snitch::matchers::tracked_matcher{});
+    CHECK(matcher_created_count == 1u);
 }
