@@ -3,32 +3,34 @@ project('snitch', 'cpp',
   version : '1.0.0'
 )
 
-subdir('snitch')
+include_dirs = include_directories('.','include')
 
-headers = files(
-  'include/snitch/snitch.hpp',
-  'include/snitch/snitch_teamcity.hpp'
-)
+headers = files('include/snitch/snitch.hpp',
+                'include/snitch/snitch_teamcity.hpp')
+
+main = files('src/snitch.cpp')
+
+make_snitch_all = files('make_snitch_all.py')
+
+subdir('snitch')
 
 install_headers(headers, subdir: 'snitch')
 
 if get_option('create_library')
 
-  pkg = import('pkgconfig')
-
   snitch = library('snitch',
-    conf_file, 'src/snitch.cpp', 'include/snitch/snitch_teamcity.hpp',
-    include_directories: 'include',
+    conf_file, main, headers,
+    include_directories: include_dirs,
     install: true,
     cpp_args: snitch_config_cpp_args,
   )
 
   snitch_dep = declare_dependency(
     link_with: snitch,
-    include_directories : include_directories('.','include')
+    include_directories : include_dirs
   )
 
-  pkg.generate(
+  import('pkgconfig').generate(
     snitch,
     filebase: 'snitch',
     description: 'Lightweight C++20 testing framework.',
@@ -37,28 +39,10 @@ if get_option('create_library')
 
 else
 
-  snitch_dep = declare_dependency(
-    include_directories : include_directories('.','include')
-  )
+  snitch_dep = declare_dependency(include_directories : include_dirs)
 
 endif
 
 if meson.version().version_compare('>=0.54.0')
   meson.override_dependency('snitch', snitch_dep)
 endif
-
-python = import('python').find_installation('python3')
-
-snitch_single_header = custom_target(
-  output: 'snitch_all.hpp',
-  build_by_default: get_option('create_header_only'),
-  depend_files : [conf_file, headers, 'src/snitch.cpp'],
-  command: [python, files('make_snitch_all.py'),
-            meson.project_source_root(), meson.project_build_root()],
-  depfile: 'snitch_single_header.d',
-  install_dir: 'include/snitch',
-)
-
-snitch_single_header_dep = declare_dependency(
-  include_directories : include_directories('.')
-)
