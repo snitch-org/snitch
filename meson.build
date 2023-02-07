@@ -22,7 +22,6 @@ if get_option('create_library')
     conf_file, main, headers,
     include_directories: include_dirs,
     install: true,
-    cpp_args: snitch_config_cpp_args,
   )
 
   snitch_dep = declare_dependency(
