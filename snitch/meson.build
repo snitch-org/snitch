@@ -40,24 +40,6 @@ conf_file = configure_file(
   install_dir: 'include/snitch'
 )
 
-snitch_config_cpp_args = [
-  '-DSNITCH_MAX_TEST_CASES='        + conf_data.get('SNITCH_MAX_TEST_CASES').to_string(),
-  '-DSNITCH_MAX_NESTED_SECTIONS='   + conf_data.get('SNITCH_MAX_NESTED_SECTIONS').to_string(),
-  '-DSNITCH_MAX_EXPR_LENGTH='       + conf_data.get('SNITCH_MAX_EXPR_LENGTH').to_string(),
-  '-DSNITCH_MAX_MESSAGE_LENGTH='    + conf_data.get('SNITCH_MAX_MESSAGE_LENGTH').to_string(),
-  '-DSNITCH_MAX_TEST_NAME_LENGTH='  + conf_data.get('SNITCH_MAX_TEST_NAME_LENGTH').to_string(),
-  '-DSNITCH_MAX_TAG_LENGTH='        + conf_data.get('SNITCH_MAX_TAG_LENGTH').to_string(),
-
-  '-DSNITCH_MAX_UNIQUE_TAGS='       + conf_data.get('SNITCH_MAX_UNIQUE_TAGS').to_string(),
-  '-DSNITCH_MAX_COMMAND_LINE_ARGS=' + conf_data.get('SNITCH_MAX_COMMAND_LINE_ARGS').to_string(),
-
-  '-DSNITCH_DEFINE_MAIN='           + conf_data.get('SNITCH_DEFINE_MAIN').to_string(),
-  '-DSNITCH_WITH_EXCEPTIONS='       + conf_data.get('SNITCH_WITH_EXCEPTIONS').to_string(),
-  '-DSNITCH_WITH_TIMINGS='          + conf_data.get('SNITCH_WITH_TIMINGS').to_string(),
-  '-DSNITCH_WITH_SHORTHAND_MACROS=' + conf_data.get('SNITCH_WITH_SHORTHAND_MACROS').to_string(),
-  '-DSNITCH_DEFAULT_WITH_COLOR='    + conf_data.get('SNITCH_DEFAULT_WITH_COLOR').to_string(),
-]
-
 snitch_all = custom_target(
   output: 'snitch_all.hpp',
   build_by_default: get_option('create_header_only'),
