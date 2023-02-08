@@ -45,3 +45,12 @@ endif
 if meson.version().version_compare('>=0.54.0')
   meson.override_dependency('snitch', snitch_dep)
 endif
+
+test('snitch_all_test'
+    ,executable('snitch_all_test'
+               ,[snitch_all,'tests/testing.cpp']
+               ,cpp_args : ['-DSNITCH_TEST_WITH_SNITCH'
+                           ,'-DSNITCH_TEST_HEADER_ONLY']
+               ,dependencies: [snitch_dep]
+               )
+)

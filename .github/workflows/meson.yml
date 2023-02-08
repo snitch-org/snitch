@@ -1,0 +1,55 @@
+name: CI_meson
+
+on: push
+
+env:
+  EM_VERSION: 'tot'
+
+jobs:
+  meson-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Linux GCC 12,   os: ubuntu-latest,  compiler: g++12,    cxx: "g++12",      build: "linux-libstdc++"}
+        - { name: Linux Clang 14, os: ubuntu-latest,  compiler: clang-14, cxx: "clang++-14", build: "linux-libc++"}
+        - { name: Windows 64,     os: windows-latest, compiler: msvc,     cxx: "cl",         build: "win64-vs2022"}
+        - { name: MacOS,          os: macos-latest,   compiler: clang++,  cxx: "clang++",    build: "osx-libc++"}
+        - { name: WebAssembly,    os: ubuntu-latest,  compiler: em++,     cxx: "em++",       build: "wasm32"}
+        build-type:
+        - release
+
+    name: ${{matrix.platform.name}} ${{matrix.build-type}} ${{matrix.config.name}}
+    runs-on: ${{matrix.platform.os}}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - run: pip install meson ninja
+
+    - name: Setup Emscripten
+      if: matrix.platform.compiler == 'em++'
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: ${{env.EM_VERSION}}
+
+    - name: meson setup
+      run: meson setup ${{matrix.platform.build}} -Dbuildtype=${{matrix.build-type}} -Dprefix=`pwd`/../install
+      env:
+        CXX: ${{ matrix.config.cxx }}
+
+    - name: Build
+      run: meson compile -C ${{matrix.platform.build}}
+
+    - name: Install
+      run: meson install -C ${{matrix.platform.build}}
+
+    - name: Test single header
+      run: meson test -C ${{matrix.platform.build}}
