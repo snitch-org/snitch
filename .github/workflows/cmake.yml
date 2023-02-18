@@ -1,6 +1,9 @@
 name: CI
 
-on: push
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
 
 env:
   EM_VERSION: 2.0.34

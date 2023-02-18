@@ -1,6 +1,9 @@
 name: CI_meson
 
-on: push
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
 
 jobs:
   meson-build:
