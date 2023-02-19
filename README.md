@@ -147,6 +147,62 @@ One (and only one!) of your test files needs to include _snitch_ as:
 
 See the documentation for the [header-only mode](#header-only-build) for more information. This will include the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
 
+## Example build configuration with meson
+
+First, [meson build](https://mesonbuild.com/)
+needs a
+[`subprojects`](https://mesonbuild.com/Subprojects.html#using-a-subproject)
+directory in the project source root
+for dependencies, then:
+
+```bash
+> meson wrap install snitch
+```
+
+downloads a reviewed wrap-file from
+[WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
+to `subprojects/snitch.wrap`  
+Here's an equivalent wrap-git specification, for illustration:
+
+```ini
+[wrap-git]
+directory = snitch
+url = https://github.com/cschreib/snitch.git
+revision = v1.1.0
+depth = 1
+
+[provide]
+snitch = snitch_dep
+```
+
+The provided `snitch_dep` dependency is then retrieved and used
+in a `meson.build` script, e.g.:
+
+```python
+snitch_dep = dependency('snitch')
+
+test('mytest', executable('test','test.cpp',dependencies:snitch_dep) )
+```
+
+Or use `snitch_dep = subproject('snitch').get_variable('snitch_dep')`
+in meson < v0.54.
+With its [`wrap` dependency system](https://mesonbuild.com/Wrap-dependency-system-manual.html),
+meson uses a _snitch_ install, if found,
+or downloads snitch as a fallback.
+
+Then, configure the project in a given build directory, build and test:
+
+```bash
+> meson setup builddir
+
+> meson compile -C builddir
+> meson test -C builddir
+```
+
+To avoid unneeded build steps, configure with one of these options:
+
+- `-Dsnitch:create_library=false` to disable the library build
+- `-Dsnitch:create_header_only=false` to disable "`snitch_all.hpp`" generation
 
 ## Benchmark
 
