@@ -152,16 +152,16 @@ See the documentation for the [header-only mode](#header-only-build) for more in
 First, [meson build](https://mesonbuild.com/)
 needs a
 [`subprojects`](https://mesonbuild.com/Subprojects.html#using-a-subproject)
-directory in the project source root
-for dependencies, then:
+directory in your project source root
+for dependencies. Create this directory if it does not exist, then, from within your project source root, run:
 
 ```bash
 > meson wrap install snitch
 ```
 
-downloads a reviewed wrap-file from
+This downloads a reviewed wrap-file from
 [WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
-to `subprojects/snitch.wrap`  
+to `subprojects/snitch.wrap`.
 Here's an equivalent wrap-git specification, for illustration:
 
 ```ini
@@ -188,7 +188,7 @@ Or use `snitch_dep = subproject('snitch').get_variable('snitch_dep')`
 in meson < v0.54.
 With its [`wrap` dependency system](https://mesonbuild.com/Wrap-dependency-system-manual.html),
 meson uses a _snitch_ install, if found,
-or downloads snitch as a fallback.
+or downloads _snitch_ as a fallback.
 
 Then, configure the project in a given build directory, build and test:
 
@@ -201,8 +201,8 @@ Then, configure the project in a given build directory, build and test:
 
 To avoid unneeded build steps, configure with one of these options:
 
-- `-Dsnitch:create_library=false` to disable the library build
-- `-Dsnitch:create_header_only=false` to disable "`snitch_all.hpp`" generation
+- `-Dsnitch:create_library=false` to disable the library build (if you use _snitch_ as a [header-only library](#header-only-build))
+- `-Dsnitch:create_header_only=false` to disable "`snitch_all.hpp`" generation (if you use _snitch_ as a regular library)
 
 ## Benchmark
 
