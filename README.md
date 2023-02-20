@@ -13,6 +13,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
 - [Example build configurations with CMake](#example-build-configurations-with-cmake)
     - [Using _snitch_ as a regular library](#using-snitch-as-a-regular-library)
     - [Using _snitch_ as a header-only library](#using-snitch-as-a-header-only-library)
+- [Example build configuration with meson](#example-build-configuration-with-meson)
 - [Benchmark](#benchmark)
 - [Documentation](#documentation)
     - [Detailed comparison with _Catch2_](#detailed-comparison-with-catch2)
@@ -159,23 +160,18 @@ for dependencies. Create this directory if it does not exist, then, from within 
 > meson wrap install snitch
 ```
 
-This downloads a reviewed wrap-file from
+This downloads a
+[_wrap file_](https://mesonbuild.com/Wrap-dependency-system-manual.html#wrap-format),
+`snitch.wrap`, from
 [WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
-to `subprojects/snitch.wrap`.
-Here's an equivalent wrap-git specification, for illustration:
+to the `subprojects` directory.
+A `[provide]` section declares `snitch = snitch_dep`,
+and that guides meson's
+[`wrap` dependency system](https://mesonbuild.com/Wrap-dependency-system-manual.html)
+to use a _snitch_ install,
+if found, or to download _snitch_ as a fallback.
 
-```ini
-[wrap-git]
-directory = snitch
-url = https://github.com/cschreib/snitch.git
-revision = v1.1.0
-depth = 1
-
-[provide]
-snitch = snitch_dep
-```
-
-The provided `snitch_dep` dependency is then retrieved and used
+The provided `snitch_dep` dependency is retrieved and used
 in a `meson.build` script, e.g.:
 
 ```python
@@ -184,25 +180,25 @@ snitch_dep = dependency('snitch')
 test('mytest', executable('test','test.cpp',dependencies:snitch_dep) )
 ```
 
-Or use `snitch_dep = subproject('snitch').get_variable('snitch_dep')`
-in meson < v0.54.
-With its [`wrap` dependency system](https://mesonbuild.com/Wrap-dependency-system-manual.html),
-meson uses a _snitch_ install, if found,
-or downloads _snitch_ as a fallback.
+Alternatively, you can `git clone` _snitch_ directly to `subprojects/snitch`.
+A wrap file is then optional.
+You can retrieve the dependency directly (as is necessary in meson < v0.54):
 
-Then, configure the project in a given build directory, build and test:
-
-```bash
-> meson setup builddir
-
-> meson compile -C builddir
-> meson test -C builddir
+```python
+snitch_dep = subproject('snitch').get_variable('snitch_dep')
 ```
 
-To avoid unneeded build steps, configure with one of these options:
+If you use _snitch_ only as a [header-only library](#header-only-build)
+then you can disable the library build by configuring with:
 
-- `-Dsnitch:create_library=false` to disable the library build (if you use _snitch_ as a [header-only library](#header-only-build))
-- `-Dsnitch:create_header_only=false` to disable "`snitch_all.hpp`" generation (if you use _snitch_ as a regular library)
+- `-D snitch:create_library=false`
+
+Otherwise, if you use _snitch_ only as a regular library,
+then you can configure with:
+
+- `-D snitch:create_header_only=false`
+
+And this disables the build step that generates the single-header file "`snitch_all.hpp`".
 
 ## Benchmark
 
