@@ -261,7 +261,7 @@ Given that _snitch_ only offers a subset of the _Catch2_ API, why would anyone w
 
  - _snitch_ has a much smaller compile-time footprint than _Catch2_, see the benchmarks above. If your tested code is very cheap to compile, but you have a large number of tests and/or assertions, your compilation time may be dominated by the testing framework implementation (this is the case in the benchmarks). If the compilation time with _Catch2_ becomes prohibitive or annoying, you can give _snitch_ a try to see if it improves it.
 
- - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use CMake.
+ - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use one of the supported build systems.
 
  - _snitch_ has better reporting of typed tests (template test cases). While _Catch2_ will only report the type index in the test type list, _snitch_ will actually report the type name. This makes it easier to find which type generated a failure.
 
@@ -768,19 +768,23 @@ Finally, if more than one filter is provided, then filters are applied one after
 
 ### Using your own main function
 
-By default _snitch_ defines `main()` for you. To prevent this and provide your own `main()` function, when compiling _snitch_, `SNITCH_DEFINE_MAIN` must be set to `0`. If using CMake, this can be done with
+By default _snitch_ defines `main()` for you. To prevent this and provide your own `main()` function, when compiling _snitch_, `SNITCH_DEFINE_MAIN` must be set to `0`.
 
-```cmake
-set(SNITCH_DEFINE_MAIN OFF)
-```
-
-just before calling `FetchContent_Declare()`. If using the header-only mode, this can also be done in the file that defines the _snitch_ implementation:
+If using the header-only mode, this can be done in the file that defines the _snitch_ implementation:
 
 ```c++
 #define SNITCH_IMPLEMENTATION
 #define SNITCH_DEFINE_MAIN 0
 #include <snitch_all.hpp>
 ```
+
+If using CMake, this can be done by setting the option just before calling `FetchContent_Declare()`:
+
+```cmake
+set(SNITCH_DEFINE_MAIN OFF)
+```
+
+If using meson, then you can configure with `-D snitch:define_main=false`.
 
 Here is a recommended `main()` function that replicates the default behavior of snitch:
 
@@ -823,9 +827,15 @@ If _snitch_ detects that exceptions are not available (or is configured with exc
 
 ### Header-only build
 
-The recommended way to use _snitch_ is to build and consume it like any other library. This provides the best incremental build times, a standard way to include and link to the _snitch_ implementation, and a cleaner separation between your code and _snitch_ code, but this also requires a bit more set up (running CMake, etc.).
+The recommended way to use _snitch_ is to build and consume it like any other library. This provides the best incremental build times, a standard way to include and link to the _snitch_ implementation, and a cleaner separation between your code and _snitch_ code, but this also requires a bit more set up (using a build generator like CMake, meson, or some other build system).
 
-For extra convenience, _snitch_ is also provided as a header-only library. The main header is called `snitch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake build, so you can also use it like other CMake libraries; just link to `snitch::snitch-header-only` instead of `snitch::snitch`. This is the only header required to use the library; other headers may be provided for convenience functions (e.g., reporters for common CI frameworks) and these must still be included separately.
+For extra convenience, _snitch_ is also provided as a header-only library. The main header is called `snitch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake or meson build, so you can also use it like other library.
+
+With CMake, just link to `snitch::snitch-header-only` instead of `snitch::snitch`.
+
+With meson, the `snitch_dep` dependency works for both library and header-only usage.
+
+`snitch_all.hpp` is the only header required to use the library; other headers may be provided for convenience functions (e.g., reporters for common CI frameworks) and these must still be included separately.
 
 To use _snitch_ as header-only in your code, simply include `snitch_all.hpp` instead of `snitch.hpp`. Then, one of your file must include the _snitch_ implementation. This can be done with a `.cpp` file containing only the following:
 
