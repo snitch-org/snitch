@@ -829,7 +829,7 @@ If _snitch_ detects that exceptions are not available (or is configured with exc
 
 The recommended way to use _snitch_ is to build and consume it like any other library. This provides the best incremental build times, a standard way to include and link to the _snitch_ implementation, and a cleaner separation between your code and _snitch_ code, but this also requires a bit more set up (using a build generator like CMake, meson, or some other build system).
 
-For extra convenience, _snitch_ is also provided as a header-only library. The main header is called `snitch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake or meson build, so you can also use it like other library.
+For extra convenience, _snitch_ is also provided as a header-only library. The main header is called `snitch_all.hpp`, and can be downloaded as an artifact from each release on GitHub. It is also produced by any local CMake or meson build, so you can also use it like any other library.
 
 With CMake, just link to `snitch::snitch-header-only` instead of `snitch::snitch`.
 
