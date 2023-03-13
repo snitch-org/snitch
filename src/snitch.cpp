@@ -922,7 +922,7 @@ test_state registry::run(test_case& test) noexcept {
         } catch (const std::exception& e) {
             report_failure(
                 state, {"<snitch internal>", 0},
-                "unhandled std::exception caught; message:", e.what());
+                "unhandled std::exception caught; message: ", e.what());
         } catch (...) {
             report_failure(state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
         }
