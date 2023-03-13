@@ -419,6 +419,71 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
         CHECK(failure.message == contains_substring("there are four lights"));
     }
 }
+
+TEST_CASE("report unhandled std::exception", "[registry]") {
+    mock_framework framework;
+
+    framework.registry.add(
+        {"how many lights", "[tag]"}, []() { throw std::runtime_error("error message"); });
+
+    auto& test = *framework.registry.begin();
+
+    SECTION("default reporter") {
+        framework.setup_print();
+        framework.registry.run(test);
+
+        CHECK(framework.messages == contains_substring("how many lights"));
+        CHECK(framework.messages == contains_substring("<snitch internal>:0"));
+        CHECK(
+            framework.messages ==
+            contains_substring("unhandled std::exception caught; message: error message"));
+    }
+
+    SECTION("custom reporter") {
+        framework.setup_reporter();
+        framework.registry.run(test);
+
+        REQUIRE(framework.get_num_failures() == 1u);
+        auto failure_opt = framework.get_failure_event(0u);
+        REQUIRE(failure_opt.has_value());
+        const auto& failure = failure_opt.value();
+        CHECK_EVENT_TEST_ID(failure, test.id);
+        CHECK_EVENT_LOCATION(failure, "<snitch internal>", 0u);
+        CHECK(
+            failure.message ==
+            contains_substring("unhandled std::exception caught; message: error message"));
+    }
+}
+
+TEST_CASE("report unhandled unknown exception", "[registry]") {
+    mock_framework framework;
+
+    framework.registry.add({"how many lights", "[tag]"}, []() { throw 42; });
+
+    auto& test = *framework.registry.begin();
+
+    SECTION("default reporter") {
+        framework.setup_print();
+        framework.registry.run(test);
+
+        CHECK(framework.messages == contains_substring("how many lights"));
+        CHECK(framework.messages == contains_substring("<snitch internal>:0"));
+        CHECK(framework.messages == contains_substring("unhandled unknown exception caught"));
+    }
+
+    SECTION("custom reporter") {
+        framework.setup_reporter();
+        framework.registry.run(test);
+
+        REQUIRE(framework.get_num_failures() == 1u);
+        auto failure_opt = framework.get_failure_event(0u);
+        REQUIRE(failure_opt.has_value());
+        const auto& failure = failure_opt.value();
+        CHECK_EVENT_TEST_ID(failure, test.id);
+        CHECK_EVENT_LOCATION(failure, "<snitch internal>", 0u);
+        CHECK(failure.message == contains_substring("unhandled unknown exception caught"));
+    }
+}
 #endif
 
 TEST_CASE("report SKIP", "[registry]") {
