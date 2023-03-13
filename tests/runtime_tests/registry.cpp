@@ -366,6 +366,15 @@ TEST_CASE("report REQUIRE", "[registry]") {
     SECTION("custom reporter") {
         framework.setup_reporter();
         framework.registry.run(test);
+
+        REQUIRE(framework.get_num_failures() == 1u);
+        auto failure_opt = framework.get_failure_event(0u);
+        REQUIRE(failure_opt.has_value());
+        const auto& failure = failure_opt.value();
+        CHECK_EVENT_TEST_ID(failure, test.id);
+        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
+        CHECK(failure.message == contains_substring("number_of_lights == 3"));
+        CHECK(failure.message == contains_substring("4 != 3"));
     }
 }
 
@@ -397,6 +406,17 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     SECTION("custom reporter") {
         framework.setup_reporter();
         framework.registry.run(test);
+
+        REQUIRE(framework.get_num_failures() == 1u);
+        auto failure_opt = framework.get_failure_event(0u);
+        REQUIRE(failure_opt.has_value());
+        const auto& failure = failure_opt.value();
+        CHECK_EVENT_TEST_ID(failure, test.id);
+        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
+        CHECK(
+            failure.message ==
+            contains_substring("std::logic_error expected but other std::exception thrown"));
+        CHECK(failure.message == contains_substring("there are four lights"));
     }
 }
 #endif
@@ -424,6 +444,14 @@ TEST_CASE("report SKIP", "[registry]") {
     SECTION("custom reporter") {
         framework.setup_reporter();
         framework.registry.run(test);
+
+        REQUIRE(framework.get_num_skips() == 1u);
+        auto skip_opt = framework.get_skip_event();
+        REQUIRE(skip_opt.has_value());
+        const auto& skip = skip_opt.value();
+        CHECK_EVENT_TEST_ID(skip, test.id);
+        CHECK_EVENT_LOCATION(skip, __FILE__, failure_line);
+        CHECK(skip.message == contains_substring("there are four lights"));
     }
 }
 

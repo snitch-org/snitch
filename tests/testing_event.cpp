@@ -109,6 +109,7 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
             [](const snitch::event::test_case_skipped& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_skipped;
+                copy_test_case_id(c, s);
                 copy_full_location(c, s);
                 return c;
             },
