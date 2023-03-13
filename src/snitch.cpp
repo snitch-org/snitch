@@ -921,9 +921,10 @@ test_state registry::run(test_case& test) noexcept {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_failure(
-                state, {__FILE__, __LINE__}, "unhandled std::exception caught; message:", e.what());
+                state, {"<snitch internal>", 0},
+                "unhandled std::exception caught; message:", e.what());
         } catch (...) {
-            report_failure(state, {__FILE__, __LINE__}, "unhandled unknown exception caught");
+            report_failure(state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
         }
 #else
         test.func();
@@ -941,7 +942,7 @@ test_state registry::run(test_case& test) noexcept {
     if (state.should_fail) {
         if (state.test.state == impl::test_case_state::success) {
             state.should_fail = false;
-            report_failure(state, {__FILE__, __LINE__}, "expected test to fail, but it passed");
+            report_failure(state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
             state.should_fail = true;
         } else if (state.test.state == impl::test_case_state::failed) {
             state.test.state = impl::test_case_state::success;
