@@ -916,6 +916,10 @@ struct extracted_binary_expression {
     EXPR_OPERATOR_INVALID(|)
     EXPR_OPERATOR_INVALID(&)
 
+#define EXPR_COMMA ,
+    EXPR_OPERATOR_INVALID(EXPR_COMMA)
+#undef EXPR_COMMA
+
 #undef EXPR_OPERATOR_INVALID
 
     explicit operator bool() const noexcept
@@ -999,6 +1003,10 @@ struct extracted_unary_expression {
     EXPR_OPERATOR_INVALID(^)
     EXPR_OPERATOR_INVALID(|)
     EXPR_OPERATOR_INVALID(&)
+
+#define EXPR_COMMA ,
+    EXPR_OPERATOR_INVALID(EXPR_COMMA)
+#undef EXPR_COMMA
 
 #undef EXPR_OPERATOR_INVALID
 

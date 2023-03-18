@@ -811,6 +811,23 @@ TEST_CASE("check no decomposition", "[test macros]") {
         CHECK(value4 == false);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 ^ value3 ^ value4)"sv);
     }
+
+    SECTION("with operator , (int,int)") {
+        int         value1       = 1;
+        int         value2       = -1;
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CHECK(++value1, ++value2); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK(value1 == 2);
+        CHECK(value2 == 0);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(++value1, ++value2)"sv);
+    }
 }
 
 SNITCH_WARNING_POP
