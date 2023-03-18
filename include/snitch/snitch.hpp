@@ -1412,15 +1412,15 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNITCH_CONCAT_IMPL(x, y) x##y
 #define SNITCH_MACRO_CONCAT(x, y) SNITCH_CONCAT_IMPL(x, y)
 
-#define SNITCH_EXPR_TRUE(TYPE, ...)                                                                \
+#define SNITCH_EXPR_IS_FALSE(TYPE, ...)                                                            \
     auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
     snitch::impl::expression_extractor<false, true>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
 
-#define SNITCH_EXPR_FALSE(TYPE, ...)                                                               \
+#define SNITCH_EXPR_IS_TRUE(TYPE, ...)                                                             \
     auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
     snitch::impl::expression_extractor<false, false>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
 
-#define SNITCH_DECOMPOSABLE(...)                                                                   \
+#define SNITCH_IS_DECOMPOSABLE(...)                                                                \
     snitch::impl::is_decomposable<                                                                 \
         decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= __VA_ARGS__)>
 
@@ -1535,8 +1535,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_TRUE("REQUIRE", __VA_ARGS__)) {                                        \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_FALSE("REQUIRE", __VA_ARGS__)) {                                    \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
@@ -1558,8 +1558,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_TRUE("CHECK", __VA_ARGS__)) {                                          \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_FALSE("CHECK", __VA_ARGS__)) {                                      \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
@@ -1579,8 +1579,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_FALSE("REQUIRE_FALSE", __VA_ARGS__)) {                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_TRUE("REQUIRE_FALSE", __VA_ARGS__)) {                               \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
@@ -1602,8 +1602,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_FALSE("CHECK_FALSE", __VA_ARGS__)) {                                   \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_TRUE("CHECK_FALSE", __VA_ARGS__)) {                                 \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
