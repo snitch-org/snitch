@@ -722,12 +722,13 @@ namespace snitch::impl {
     return x >= 10 ? 1u + num_digits(x / 10) : x <= -10 ? 1u + num_digits(x / 10) : x > 0 ? 1u : 2u;
 }
 
-constexpr std::array<char, 10> digits         = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-constexpr std::size_t          max_int_length = num_digits(std::numeric_limits<std::size_t>::max());
+constexpr std::array<char, 10> digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+constexpr std::size_t max_uint_length = num_digits(std::numeric_limits<std::size_t>::max());
+constexpr std::size_t max_int_length  = max_uint_length + 1;
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::size_t i) noexcept {
     if (i != 0u) {
-        small_string<max_int_length> tmp;
+        small_string<max_uint_length> tmp;
         tmp.resize(num_digits(i));
         std::size_t k = 1;
         for (std::size_t j = i; j != 0u; j /= 10u, ++k) {
@@ -740,7 +741,7 @@ constexpr std::size_t          max_int_length = num_digits(std::numeric_limits<s
 }
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::ptrdiff_t i) noexcept {
-    if (i > 0u) {
+    if (i > 0) {
         small_string<max_int_length> tmp;
         tmp.resize(num_digits(i));
         std::size_t k = 1;
@@ -748,7 +749,7 @@ constexpr std::size_t          max_int_length = num_digits(std::numeric_limits<s
             tmp[tmp.size() - k] = digits[j % 10];
         }
         return append_constexpr(ss, tmp);
-    } else if (i < 0u) {
+    } else if (i < 0) {
         small_string<max_int_length> tmp;
         tmp.resize(num_digits(i));
         std::size_t k = 1;
