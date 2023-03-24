@@ -8,8 +8,10 @@
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception> // for std::exception
 #endif
+#include <bit> // for compile-time float to string
 #include <compare> // for std::partial_ordering
 #include <initializer_list> // for std::initializer_list
+#include <limits> // for compile-time integer to string
 #include <optional> // for cli
 #include <string_view> // for all strings
 #include <type_traits> // for std::is_nothrow_*
@@ -141,14 +143,14 @@ public:
         *data_size = 0;
     }
     constexpr void resize(std::size_t size) noexcept {
-        if (size > buffer_size) {
+        if (!std::is_constant_evaluated() && size > buffer_size) {
             terminate_with("small vector is full");
         }
 
         *data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
-        if (*data_size + elem > buffer_size) {
+        if (!std::is_constant_evaluated() && *data_size + elem > buffer_size) {
             terminate_with("small vector is full");
         }
 
@@ -156,7 +158,7 @@ public:
     }
     constexpr ElemType&
     push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
-        if (*data_size == buffer_size) {
+        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
             terminate_with("small vector is full");
         }
 
@@ -169,7 +171,7 @@ public:
     }
     constexpr ElemType&
     push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
-        if (*data_size == buffer_size) {
+        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
             terminate_with("small vector is full");
         }
 
@@ -180,21 +182,21 @@ public:
         return elem;
     }
     constexpr void pop_back() noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("pop_back() called on empty vector");
         }
 
         --*data_size;
     }
     constexpr ElemType& back() noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
     constexpr const ElemType& back() const noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("back() called on empty vector");
         }
 
@@ -225,13 +227,13 @@ public:
         return begin() + size();
     }
     constexpr ElemType& operator[](std::size_t i) noexcept {
-        if (i >= size()) {
+        if (!std::is_constant_evaluated() && i >= size()) {
             terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (i >= size()) {
+        if (!std::is_constant_evaluated() && i >= size()) {
             terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
@@ -264,7 +266,7 @@ public:
         return *data_size == 0;
     }
     constexpr const ElemType& back() const noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("back() called on empty vector");
         }
 
@@ -286,7 +288,7 @@ public:
         return begin() + size();
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (i >= size()) {
+        if (!std::is_constant_evaluated() && i >= size()) {
             terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
@@ -331,8 +333,12 @@ public:
     constexpr void grow(std::size_t elem) noexcept {
         span().grow(elem);
     }
-    template<typename U = const ElemType&>
-    constexpr ElemType& push_back(U&& t) noexcept(noexcept(this->span().push_back(t))) {
+    constexpr ElemType&
+    push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
+        return this->span().push_back(t);
+    }
+    constexpr ElemType&
+    push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
         return this->span().push_back(t);
     }
     constexpr void pop_back() noexcept {
@@ -498,32 +504,452 @@ public:
         return std::string_view(data(), length());
     }
 };
+} // namespace snitch
 
-[[nodiscard]] bool append(small_string_span ss, std::string_view value) noexcept;
+// Internal utilities: fixed.
+// --------------------------
 
-[[nodiscard]] bool append(small_string_span ss, const void* ptr) noexcept;
-[[nodiscard]] bool append(small_string_span ss, std::nullptr_t) noexcept;
-[[nodiscard]] bool append(small_string_span ss, std::size_t i) noexcept;
-[[nodiscard]] bool append(small_string_span ss, std::ptrdiff_t i) noexcept;
-[[nodiscard]] bool append(small_string_span ss, float f) noexcept;
+namespace snitch::impl {
+struct fixed_data {
+    std::int32_t digits   = 0;
+    std::int32_t exponent = 0;
+};
+
+class fixed {
+    fixed_data data = {};
+
+    constexpr fixed to_exponent(std::int32_t new_exponent) const noexcept {
+        fixed r = *this;
+
+        if (r.data.exponent > new_exponent) {
+            do {
+                r.data.digits *= 10;
+                r.data.exponent -= 1;
+            } while (r.data.exponent > new_exponent);
+        } else if (r.data.exponent < new_exponent) {
+            do {
+                r.data.digits = (r.data.digits + 5) / 10;
+                r.data.exponent += 1;
+            } while (r.data.exponent < new_exponent);
+        }
+
+        return r;
+    }
+
+public:
+    constexpr fixed(std::int64_t digits_in, std::int32_t exponent_in) noexcept {
+        // Normalise inputs so that we maximize the number of digits stored.
+        if (digits_in > 0) {
+            constexpr std::int64_t cap_up  = std::numeric_limits<std::int32_t>::max();
+            constexpr std::int64_t cap_low = cap_up / 10;
+
+            if (digits_in > cap_up) {
+                do {
+                    digits_in = (digits_in + 5) / 10;
+                    exponent_in += 1;
+                } while (digits_in > cap_up);
+            } else if (digits_in < cap_low) {
+                do {
+                    digits_in *= 10;
+                    exponent_in -= 1;
+                } while (digits_in < cap_low);
+            }
+        } else if (digits_in < 0) {
+            constexpr std::int64_t cap_up  = std::numeric_limits<std::int32_t>::min();
+            constexpr std::int64_t cap_low = cap_up / 10;
+
+            if (digits_in < cap_up) {
+                do {
+                    digits_in = (digits_in + 5) / 10;
+                    exponent_in += 1;
+                } while (digits_in < cap_up);
+            } else if (digits_in > cap_low) {
+                do {
+                    digits_in *= 10;
+                    exponent_in -= 1;
+                } while (digits_in > cap_low);
+            }
+        } else {
+            // Pick the smallest possible exponent for zero;
+            // This guarantees that we will preserve precision for whatever number
+            // gets added to this.
+            exponent_in = -127;
+        }
+
+        data.digits   = static_cast<std::int32_t>(digits_in);
+        data.exponent = exponent_in;
+    }
+
+    constexpr std::int32_t digits() const {
+        return data.digits;
+    }
+
+    constexpr std::int32_t exponent() const {
+        return data.exponent;
+    }
+
+    constexpr fixed operator+(const fixed f) const noexcept {
+        if (data.exponent == f.data.exponent) {
+            return fixed(static_cast<std::int64_t>(data.digits) + f.data.digits, data.exponent);
+        } else if (data.exponent > f.data.exponent) {
+            const auto fn = f.to_exponent(data.exponent);
+            return fixed(static_cast<std::int64_t>(data.digits) + fn.data.digits, data.exponent);
+        } else {
+            const auto fn = this->to_exponent(f.data.exponent);
+            return fixed(
+                static_cast<std::int64_t>(fn.data.digits) + f.data.digits, f.data.exponent);
+        }
+    }
+
+    constexpr fixed& operator+=(const fixed f) noexcept {
+        return *this = *this + f;
+    }
+
+    constexpr fixed operator*(const fixed f) const noexcept {
+        return fixed(
+            static_cast<std::int64_t>(data.digits) * f.data.digits,
+            data.exponent + f.data.exponent);
+    }
+
+    constexpr fixed& operator*=(const fixed f) noexcept {
+        return *this = *this * f;
+    }
+};
+
+struct float_bits {
+    std::uint32_t significand = 0u;
+    std::uint8_t  exponent    = 0u;
+    bool          sign        = 0;
+};
+
+[[nodiscard]] constexpr float_bits to_bits(float f) {
+    constexpr std::uint32_t sign_mask  = 0b10000000000000000000000000000000;
+    constexpr std::uint32_t exp_mask   = 0b01111111100000000000000000000000;
+    constexpr std::uint32_t exp_offset = 23;
+    constexpr std::uint32_t sig_mask   = 0b00000000011111111111111111111111;
+
+    const std::uint32_t bits = std::bit_cast<std::uint32_t>(f);
+
+    float_bits b;
+    b.sign        = (bits & sign_mask) != 0u;
+    b.exponent    = (bits & exp_mask) >> exp_offset;
+    b.significand = (bits & sig_mask);
+
+    return b;
+}
+
+[[nodiscard]] constexpr fixed to_fixed(const float_bits& bits) {
+    constexpr std::uint32_t exp_offset    = 23;
+    constexpr std::int32_t  exp_origin    = -127;
+    constexpr std::int32_t  exp_subnormal = -126;
+
+    constexpr std::array<fixed, 23> sig_elems = {
+        {fixed(11920928, -14), fixed(23841857, -14), fixed(47683715, -14), fixed(95367431, -14),
+         fixed(19073486, -13), fixed(38146972, -13), fixed(76293945, -13), fixed(15258789, -12),
+         fixed(30517578, -12), fixed(61035156, -12), fixed(12207031, -11), fixed(24414062, -11),
+         fixed(48828125, -11), fixed(97656250, -11), fixed(19531250, -10), fixed(39062500, -10),
+         fixed(78125000, -10), fixed(15625000, -9),  fixed(31250000, -9),  fixed(62500000, -9),
+         fixed(12500000, -8),  fixed(25000000, -8),  fixed(50000000, -8)}};
+
+    fixed fix(0, 0);
+    for (std::size_t i = 0; i < exp_offset; ++i) {
+        if (((bits.significand >> i) & 1u) != 0u) {
+            fix += sig_elems[i];
+        }
+    }
+
+    const bool subnormal = bits.exponent == 0x0;
+
+    if (!subnormal) {
+        fix += fixed(1, 0);
+    }
+
+    std::int32_t exponent =
+        subnormal ? exp_subnormal : static_cast<std::int32_t>(bits.exponent) + exp_origin;
+    if (exponent > 0) {
+        do {
+            fix *= fixed(2, 0);
+            exponent -= 1;
+        } while (exponent > 0);
+    } else if (exponent < 0) {
+        do {
+            fix *= fixed(5, -1);
+            exponent += 1;
+        } while (exponent < 0);
+    }
+
+    if (bits.sign) {
+        fix *= fixed(-1, 0);
+    }
+
+    return fix;
+}
+} // namespace snitch::impl
+
+// Public utilities: append.
+// -------------------------
+
+namespace snitch::impl {
+[[nodiscard]] bool append_fast(small_string_span ss, std::string_view str) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, const void* ptr) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, std::size_t i) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, std::ptrdiff_t i) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, float f) noexcept;
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::string_view str) noexcept {
+    const bool        could_fit  = str.size() <= ss.available();
+    const std::size_t copy_count = std::min(str.size(), ss.available());
+
+    const std::size_t offset = ss.size();
+    ss.grow(copy_count);
+    for (std::size_t i = 0; i < copy_count; ++i) {
+        ss[offset + i] = str[i];
+    }
+
+    return could_fit;
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, const void*) noexcept {
+    constexpr std::string_view unknown_ptr_str = "0x????????";
+    return append_constexpr(ss, unknown_ptr_str);
+}
+
+[[nodiscard]] constexpr std::size_t num_digits(std::size_t x) {
+    return x >= 10u ? 1u + num_digits(x / 10u) : 1u;
+}
+
+[[nodiscard]] constexpr std::size_t num_digits(std::ptrdiff_t x) {
+    return x >= 10 ? 1u + num_digits(x / 10) : x <= -10 ? 1u + num_digits(x / 10) : x > 0 ? 1u : 2u;
+}
+
+constexpr std::array<char, 10> digits         = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+constexpr std::size_t          max_int_length = num_digits(std::numeric_limits<std::size_t>::max());
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::size_t i) noexcept {
+    if (i != 0u) {
+        small_string<max_int_length> tmp;
+        tmp.resize(num_digits(i));
+        std::size_t k = 1;
+        for (std::size_t j = i; j != 0u; j /= 10u, ++k) {
+            tmp[tmp.size() - k] = digits[j % 10u];
+        }
+        return append_constexpr(ss, tmp);
+    } else {
+        return append_constexpr(ss, "0");
+    }
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::ptrdiff_t i) noexcept {
+    if (i > 0u) {
+        small_string<max_int_length> tmp;
+        tmp.resize(num_digits(i));
+        std::size_t k = 1;
+        for (std::ptrdiff_t j = i; j != 0; j /= 10, ++k) {
+            tmp[tmp.size() - k] = digits[j % 10];
+        }
+        return append_constexpr(ss, tmp);
+    } else if (i < 0u) {
+        small_string<max_int_length> tmp;
+        tmp.resize(num_digits(i));
+        std::size_t k = 1;
+        for (std::ptrdiff_t j = i; j != 0; j /= 10, ++k) {
+            tmp[tmp.size() - k] = digits[-(j % 10)];
+        }
+        tmp[0] = '-';
+        return append_constexpr(ss, tmp);
+    } else {
+        return append_constexpr(ss, "0");
+    }
+}
+
+[[nodiscard]] constexpr std::size_t num_digits(fixed x) {
+    // +1 for fractional separator '.'
+    // +1 for exponent separator 'e'
+    // +1 for exponent sign
+    // +2 for exponent (zero padded)
+    return num_digits(static_cast<std::ptrdiff_t>(x.digits())) + 5u;
+}
+
+constexpr std::size_t max_float_length =
+    num_digits(fixed(std::numeric_limits<std::int32_t>::max(), 127));
+
+[[nodiscard]] constexpr fixed_data set_precision(fixed fp, std::size_t p) {
+    fixed_data fd = {fp.digits(), fp.exponent()};
+
+    std::size_t base_digits =
+        num_digits(static_cast<std::size_t>(fd.digits > 0 ? fd.digits : -fd.digits));
+    while (base_digits > p) {
+        fd.digits = (fd.digits + 5) / 10;
+        fd.exponent += 1;
+        base_digits -= 1u;
+    }
+
+    return fd;
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, fixed fp) noexcept {
+    // Truncate the digits of the input to the chosen precision (number of digits).
+    // Precision must be less or equal to 9.
+    constexpr std::size_t display_precision = 7u;
+
+    fixed_data fd = set_precision(fp, display_precision);
+
+    // Statically allocate enough space for the biggest float,
+    // then resize to the length of this particular float.
+    small_string<max_float_length> tmp;
+    tmp.resize(num_digits(fp));
+
+    // The exponent has a fixed size, so we can start by writing the main digits.
+    // We write the digits with always a single digit before the decimal separator,
+    // and the rest as fractional part. This will require adjusting the value of
+    // the exponent later.
+    std::size_t k = 5u;
+    for (std::int32_t j = fd.digits > 0 ? fd.digits : -fd.digits; j != 0; j /= 10, ++k) {
+        if (j < 10) {
+            tmp[tmp.size() - k] = '.';
+            ++k;
+        }
+        tmp[tmp.size() - k] = digits[j % 10];
+    }
+
+    // Add a negative sign for negative floats.
+    if (fd.digits < 0) {
+        tmp[0] = '-';
+    }
+
+    // Now write the exponent, adjusted for the chosen display (one digit before the decimal
+    // separator).
+    const std::int32_t exponent = fd.exponent + static_cast<std::int32_t>(k - 7u);
+
+    k = 1;
+    for (std::int32_t j = exponent > 0 ? exponent : -exponent; j != 0; j /= 10, ++k) {
+        tmp[tmp.size() - k] = digits[j % 10];
+    }
+
+    // Pad exponent with zeros if it is shorter than the max (-45/+38).
+    for (; k < 3; ++k) {
+        tmp[tmp.size() - k] = '0';
+    }
+
+    // Write the sign, and exponent delimitation character.
+    tmp[tmp.size() - k] = exponent >= 0 ? '+' : '-';
+    ++k;
+    tmp[tmp.size() - k] = 'e';
+    ++k;
+
+    // Finally write as much of the string as we can to the chosen destination.
+    return append_constexpr(ss, tmp);
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, float f) noexcept {
+    if constexpr (sizeof(float) == 4 && std::numeric_limits<float>::is_iec559) {
+        // Handle special cases.
+        const float_bits bits = to_bits(f);
+        if (bits.exponent == 0x0) {
+            if (bits.significand == 0x0) {
+                // Zero.
+                constexpr std::string_view plus_zero_str  = "0.000000e+00";
+                constexpr std::string_view minus_zero_str = "-0.000000e+00";
+                return bits.sign ? append_constexpr(ss, minus_zero_str)
+                                 : append_constexpr(ss, plus_zero_str);
+            } else {
+                // Subnormals.
+                return append_constexpr(ss, to_fixed(bits));
+            }
+        } else if (bits.exponent == 0xff) {
+            if (bits.significand == 0x0) {
+                // Infinity.
+                constexpr std::string_view plus_inf_str  = "inf";
+                constexpr std::string_view minus_inf_str = "-inf";
+                return bits.sign ? append_constexpr(ss, minus_inf_str)
+                                 : append_constexpr(ss, plus_inf_str);
+            } else {
+                // NaN.
+                constexpr std::string_view nan_str = "nan";
+                return append_constexpr(ss, nan_str);
+            }
+        } else {
+            // Normal number.
+            return append_constexpr(ss, to_fixed(bits));
+        }
+    } else {
+        constexpr std::string_view unknown_str = "?";
+        return append_constexpr(ss, unknown_str);
+    }
+}
+} // namespace snitch::impl
+
+namespace snitch {
+[[nodiscard]] constexpr bool append(small_string_span ss, std::string_view str) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, str);
+    } else {
+        return impl::append_fast(ss, str);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, const void* ptr) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, ptr);
+    } else {
+        return impl::append_fast(ss, ptr);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, std::nullptr_t) noexcept {
+    constexpr std::string_view nullptr_str = "nullptr";
+    return append(ss, nullptr_str);
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, std::size_t i) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, i);
+    } else {
+        return impl::append_fast(ss, i);
+    }
+}
+[[nodiscard]] constexpr bool append(small_string_span ss, std::ptrdiff_t i) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, i);
+    } else {
+        return impl::append_fast(ss, i);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, float f) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, f);
+    } else {
+        return impl::append_fast(ss, f);
+    }
+}
+
 [[nodiscard]] bool append(small_string_span ss, double f) noexcept;
-[[nodiscard]] bool append(small_string_span ss, bool value) noexcept;
+
+[[nodiscard]] constexpr bool append(small_string_span ss, bool value) noexcept {
+    constexpr std::string_view true_str  = "true";
+    constexpr std::string_view false_str = "false";
+    return append(ss, value ? true_str : false_str);
+}
+
 template<typename T>
-[[nodiscard]] bool append(small_string_span ss, T* ptr) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, T* ptr) noexcept {
     if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
         return append(ss, std::string_view(ptr));
     } else if constexpr (std::is_function_v<T>) {
         if (ptr != nullptr) {
-            return append(ss, std::string_view("0x????????"));
+            constexpr std::string_view function_ptr_str = "0x????????";
+            return append(ss, function_ptr_str);
         } else {
-            return append(ss, std::string_view("nullptr"));
+            return append(ss, nullptr);
         }
     } else {
         return append(ss, static_cast<const void*>(ptr));
     }
 }
+
 template<std::size_t N>
-[[nodiscard]] bool append(small_string_span ss, const char str[N]) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, const char str[N]) noexcept {
     return append(ss, std::string_view(str));
 }
 
@@ -540,34 +966,39 @@ template<typename T>
 concept enumeration = std::is_enum_v<T>;
 
 template<signed_integral T>
-[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
-    return snitch::append(ss, static_cast<std::ptrdiff_t>(value));
+[[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
+    return append(ss, static_cast<std::ptrdiff_t>(value));
 }
 
 template<unsigned_integral T>
-[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
-    return snitch::append(ss, static_cast<std::size_t>(value));
+[[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
+    return append(ss, static_cast<std::size_t>(value));
 }
 
 template<enumeration T>
-[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
     return append(ss, static_cast<std::underlying_type_t<T>>(value));
 }
 
 template<convertible_to<std::string_view> T>
-[[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
-    return snitch::append(ss, std::string_view(value));
+[[nodiscard]] constexpr bool append(small_string_span ss, const T& value) noexcept {
+    return append(ss, std::string_view(value));
 }
 
 template<typename T>
 concept string_appendable = requires(small_string_span ss, T value) { append(ss, value); };
 
 template<string_appendable T, string_appendable U, string_appendable... Args>
-[[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
     return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
            (append(ss, std::forward<Args>(args)) && ...);
 }
+} // namespace snitch
 
+// Public utilities: string utilities.
+// -----------------------------------
+
+namespace snitch {
 void truncate_end(small_string_span ss) noexcept;
 
 template<string_appendable... Args>
@@ -819,15 +1250,17 @@ DEFINE_OPERATOR(!=, not_equal, " != ", " == ");
 struct expression {
     std::string_view              expected = {};
     small_string<max_expr_length> actual   = {};
+    bool                          success  = true;
 
     template<string_appendable T>
-    [[nodiscard]] bool append_value(T&& value) noexcept {
+    [[nodiscard]] constexpr bool append_value(T&& value) noexcept {
         return append(actual, std::forward<T>(value));
     }
 
     template<typename T>
-    [[nodiscard]] bool append_value(T&&) noexcept {
-        return append(actual, "?");
+    [[nodiscard]] constexpr bool append_value(T&&) noexcept {
+        constexpr std::string_view unknown_value = "?";
+        return append(actual, unknown_value);
     }
 };
 
@@ -835,10 +1268,11 @@ template<bool CheckMode>
 struct invalid_expression {
     // This is an invalid expression; any further operator should produce another invalid
     // expression. We don't want to decompose these operators, but we need to declare them
-    // so the expression compiles until cast to bool. This enable conditional decomposition.
+    // so the expression compiles until calling to_expression(). This enable conditional
+    // decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+    constexpr invalid_expression<CheckMode> operator OP(const V&) noexcept {                       \
         return {};                                                                                 \
     }
 
@@ -867,21 +1301,21 @@ struct invalid_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    explicit operator bool() const noexcept
+    constexpr expression to_expression() const noexcept
         requires(!CheckMode)
     {
         // This should be unreachable, because we check if an expression is decomposable
-        // before calling the decomposed expression, but just in case:
-        static_assert(CheckMode != CheckMode, "snitch bug: cannot decompose chained expression");
-        return false;
+        // before calling the decomposed expression. But the code will be instantiated in
+        // constexpr expressions, so don't static_assert.
+        return expression{};
     }
 };
 
 template<bool CheckMode, bool Expected, typename T, typename O, typename U>
 struct extracted_binary_expression {
-    expression& expr;
-    const T&    lhs;
-    const U&    rhs;
+    std::string_view expected;
+    const T&         lhs;
+    const U&         rhs;
 
     // This is a binary expression; any further operator should produce an invalid
     // expression, since we can't/won't decompose complex expressions. We don't want to decompose
@@ -889,7 +1323,7 @@ struct extracted_binary_expression {
     // This enable conditional decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+    constexpr invalid_expression<CheckMode> operator OP(const V&) noexcept {                       \
         return {};                                                                                 \
     }
 
@@ -922,9 +1356,11 @@ struct extracted_binary_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    explicit operator bool() const noexcept
+    constexpr expression to_expression() const noexcept
         requires(!CheckMode || requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
     {
+        expression expr{expected};
+
         if (O{}(lhs, rhs) != Expected) {
             if constexpr (matcher_for<T, U>) {
                 using namespace snitch::matchers;
@@ -950,24 +1386,26 @@ struct extracted_binary_expression {
                 }
             }
 
-            return true;
+            expr.success = false;
+        } else {
+            expr.success = true;
         }
 
-        return false;
+        return expr;
     }
 };
 
 template<bool CheckMode, bool Expected, typename T>
 struct extracted_unary_expression {
-    expression& expr;
-    const T&    lhs;
+    std::string_view expected;
+    const T&         lhs;
 
     // Operators we want to decompose.
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
     constexpr extracted_binary_expression<CheckMode, Expected, T, OP_TYPE, U> operator OP(         \
         const U& rhs) const noexcept {                                                             \
-        return {expr, lhs, rhs};                                                                   \
+        return {expected, lhs, rhs};                                                               \
     }
 
     EXPR_OPERATOR(<, operator_less)
@@ -983,7 +1421,7 @@ struct extracted_unary_expression {
     // expression compiles until cast to bool. This enable conditional decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+    constexpr invalid_expression<CheckMode> operator OP(const V&) noexcept {                       \
         return {};                                                                                 \
     }
 
@@ -1010,34 +1448,38 @@ struct extracted_unary_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    explicit operator bool() const noexcept
+    constexpr expression to_expression() const noexcept
         requires(!CheckMode || requires(const T& lhs) { static_cast<bool>(lhs); })
     {
+        expression expr{expected};
+
         if (static_cast<bool>(lhs) != Expected) {
             if (!expr.append_value(lhs)) {
                 expr.actual.clear();
             }
 
-            return true;
+            expr.success = false;
+        } else {
+            expr.success = true;
         }
 
-        return false;
+        return expr;
     }
 };
 
 template<bool CheckMode, bool Expected>
 struct expression_extractor {
-    expression& expr;
+    std::string_view expected;
 
     template<typename T>
     constexpr extracted_unary_expression<CheckMode, Expected, T>
     operator<=(const T& lhs) const noexcept {
-        return {expr, lhs};
+        return {expected, lhs};
     }
 };
 
 template<typename T>
-constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
+constexpr bool is_decomposable = requires(const T& t) { t.to_expression(); };
 
 struct scoped_capture {
     capture_state& captures;
@@ -1413,16 +1855,20 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNITCH_MACRO_CONCAT(x, y) SNITCH_CONCAT_IMPL(x, y)
 
 #define SNITCH_EXPR_IS_FALSE(TYPE, ...)                                                            \
-    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
-    snitch::impl::expression_extractor<false, true>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
+    auto SNITCH_CURRENT_EXPRESSION = (snitch::impl::expression_extractor<false, true>{             \
+                                          TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)               \
+                                         .to_expression();                                         \
+    !SNITCH_CURRENT_EXPRESSION.success
 
 #define SNITCH_EXPR_IS_TRUE(TYPE, ...)                                                             \
-    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
-    snitch::impl::expression_extractor<false, false>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
+    auto SNITCH_CURRENT_EXPRESSION = (snitch::impl::expression_extractor<false, false>{            \
+                                          TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)               \
+                                         .to_expression();                                         \
+    !SNITCH_CURRENT_EXPRESSION.success
 
 #define SNITCH_IS_DECOMPOSABLE(...)                                                                \
     snitch::impl::is_decomposable<                                                                 \
-        decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= __VA_ARGS__)>
+        decltype(snitch::impl::expression_extractor<true, true>{std::declval<std::string_view>()} <= __VA_ARGS__)>
 
 // Public test macros: test cases.
 // -------------------------------
@@ -1677,17 +2123,22 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (!(__VA_ARGS__)) {                                                            \
-            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                                \
-        }                                                                                          \
         if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE(                                          \
+                              "CONSTEXPR_CHECK[compile-time]", __VA_ARGS__)) {                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
             if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_CHECK[run-time]", __VA_ARGS__)) {                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                            \
+            }                                                                                      \
             if (!(__VA_ARGS__)) {                                                                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
@@ -1705,19 +2156,24 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         bool SNITCH_CURRENT_ASSERTION_FAILED = false;                                              \
-        if constexpr (!(__VA_ARGS__)) {                                                            \
-            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                "CONSTEXPR_REQUIRE[compile-time](" #__VA_ARGS__ ")");                              \
-            SNITCH_CURRENT_ASSERTION_FAILED = true;                                                \
-        }                                                                                          \
         if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE(                                          \
+                              "CONSTEXPR_REQUIRE[compile-time]", __VA_ARGS__)) {                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
             if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_REQUIRE[run-time]", __VA_ARGS__)) {                \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
             }                                                                                      \
         } else {                                                                                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE[compile-time](" #__VA_ARGS__ ")");                          \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
             if (!(__VA_ARGS__)) {                                                                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \

@@ -52,6 +52,12 @@ Notable current limitations:
 
  - No multi-threaded test execution yet; the code is thread-friendly, this is just not implemented.
 
+Supported compilers:
+
+ - GCC 11 and above
+ - Clang 13 and above
+ - MSVC 14.30 (compiler 19.30) and above
+
 
 ## Example
 

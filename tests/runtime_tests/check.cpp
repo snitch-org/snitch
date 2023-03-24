@@ -1080,13 +1080,19 @@ TEST_CASE("check misc", "[test macros]") {
     }
 }
 
-#define CHECK_EXPR_SUCCESS_2(CATCHER)                                                              \
+#define CONSTEXPR_CHECK_EXPR_SUCCESS(CATCHER)                                                      \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
         CHECK((CATCHER).events.empty());                                                           \
     } while (0)
 
-#define CHECK_EXPR_FAILURE_2(CATCHER)                                                              \
+#define CONSTEXPR_CHECK_EXPR_FAILURE(CATCHER)                                                      \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
+        REQUIRE((CATCHER).events.size() == 1u);                                                    \
+    } while (0)
+
+#define CONSTEXPR_CHECK_EXPR_FAILURE_2(CATCHER)                                                    \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
         REQUIRE((CATCHER).events.size() == 2u);                                                    \
@@ -1102,7 +1108,7 @@ TEST_CASE("constexpr check", "[test macros]") {
             SNITCH_CONSTEXPR_CHECK(i == 10);
         }
 
-        CHECK_EXPR_SUCCESS_2(catcher);
+        CONSTEXPR_CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("decomposable fail") {
@@ -1116,9 +1122,10 @@ TEST_CASE("constexpr check", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE_2(catcher);
+        CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK[compile-time](i == 10)"sv);
+            catcher, catcher.events[0u], failure_line,
+            "CONSTEXPR_CHECK[compile-time](i == 10), got 9 != 10"sv);
         CHECK_EVENT_FAILURE(
             catcher, catcher.events[1u], failure_line,
             "CONSTEXPR_CHECK[run-time](i == 10), got 9 != 10"sv);
@@ -1131,7 +1138,7 @@ TEST_CASE("constexpr check", "[test macros]") {
             SNITCH_CONSTEXPR_CHECK(i == 10 || i == 9);
         }
 
-        CHECK_EXPR_SUCCESS_2(catcher);
+        CONSTEXPR_CHECK_EXPR_SUCCESS(catcher);
     }
 
     SECTION("not decomposable fail") {
@@ -1145,16 +1152,65 @@ TEST_CASE("constexpr check", "[test macros]") {
             // clang-format on
         }
 
-        constexpr int i = 9;
-        CONSTEXPR_CHECK(i == 8);
-
-        CHECK_EXPR_FAILURE_2(catcher);
+        CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
             catcher, catcher.events[0u], failure_line,
             "CONSTEXPR_CHECK[compile-time](i == 10 || i == 8)"sv);
         CHECK_EVENT_FAILURE(
             catcher, catcher.events[1u], failure_line,
             "CONSTEXPR_CHECK[run-time](i == 10 || i == 8)"sv);
+    }
+
+    SECTION("compile-time failure only") {
+        std::size_t failure_line = 0u;
+
+        struct compile_time_bug {
+            constexpr bool foo() {
+                if (std::is_constant_evaluated()) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        };
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CONSTEXPR_CHECK(compile_time_bug{}.foo()); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CONSTEXPR_CHECK_EXPR_FAILURE(catcher);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[0u], failure_line,
+            "CONSTEXPR_CHECK[compile-time](compile_time_bug{}.foo()), got false"sv);
+    }
+
+    SECTION("run-time failure only") {
+        std::size_t failure_line = 0u;
+
+        struct compile_time_bug {
+            constexpr bool foo() {
+                if (std::is_constant_evaluated()) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        };
+
+        {
+            test_override override(catcher);
+            // clang-format off
+            SNITCH_CONSTEXPR_CHECK(compile_time_bug{}.foo()); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CONSTEXPR_CHECK_EXPR_FAILURE(catcher);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[0u], failure_line,
+            "CONSTEXPR_CHECK[run-time](compile_time_bug{}.foo()), got false"sv);
     }
 
     // SECTION("not constexpr") {

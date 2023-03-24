@@ -96,8 +96,8 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 }
 } // namespace
 
-namespace snitch {
-bool append(small_string_span ss, std::string_view str) noexcept {
+namespace snitch::impl {
+bool append_fast(small_string_span ss, std::string_view str) noexcept {
     if (str.empty()) {
         return true;
     }
@@ -112,32 +112,30 @@ bool append(small_string_span ss, std::string_view str) noexcept {
     return could_fit;
 }
 
-bool append(small_string_span ss, const void* ptr) noexcept {
+bool append_fast(small_string_span ss, const void* ptr) noexcept {
     return append_fmt(ss, ptr);
 }
 
-bool append(small_string_span ss, std::nullptr_t) noexcept {
-    return append(ss, "nullptr");
-}
-
-bool append(small_string_span ss, std::size_t i) noexcept {
+bool append_fast(small_string_span ss, std::size_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(small_string_span ss, std::ptrdiff_t i) noexcept {
+bool append_fast(small_string_span ss, std::ptrdiff_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(small_string_span ss, float f) noexcept {
+bool append_fast(small_string_span ss, float f) noexcept {
     return append_fmt(ss, f);
 }
 
-bool append(small_string_span ss, double d) noexcept {
+bool append_fast(small_string_span ss, double d) noexcept {
     return append_fmt(ss, d);
 }
+} // namespace snitch::impl
 
-bool append(small_string_span ss, bool value) noexcept {
-    return append(ss, value ? "true" : "false");
+namespace snitch {
+bool append(small_string_span ss, double d) noexcept {
+    return impl::append_fast(ss, d);
 }
 
 void truncate_end(small_string_span ss) noexcept {

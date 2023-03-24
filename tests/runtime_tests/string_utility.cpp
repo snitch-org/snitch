@@ -116,6 +116,172 @@ TEMPLATE_TEST_CASE(
     }
 }
 
+namespace {
+struct append_expected {
+    std::string_view str;
+    bool             success = true;
+};
+
+struct append_expected2 {
+    append_expected comptime;
+    append_expected runtime;
+};
+
+template<std::size_t N>
+struct append_result {
+    snitch::small_string<N> str;
+    bool                    success = true;
+
+    constexpr bool operator==(const append_expected& o) const {
+        return success == o.success && str == o.str;
+    }
+    constexpr bool operator==(const append_expected2& o) const {
+        if (std::is_constant_evaluated()) {
+            return *this == o.comptime;
+        } else {
+            return *this == o.runtime;
+        }
+    }
+};
+
+template<std::size_t N, typename T>
+constexpr append_result<N> to_string_append_n(const T& value) {
+    snitch::small_string<N> str;
+    bool                    success = append(str, value);
+    return {str, success};
+}
+
+template<typename T>
+constexpr append_result<21> to_string_append(const T& value) {
+    return to_string_append_n<21>(value);
+}
+
+template<std::size_t N>
+constexpr bool append(snitch::small_string_span s, const append_result<N>& r) {
+    return append(s, "{", r.str, ",", r.success, "}");
+}
+constexpr bool append(snitch::small_string_span s, const append_expected& r) {
+    return append(s, "{", r.str, ",", r.success, "}");
+}
+} // namespace
+
+TEST_CASE("constexpr append", "[utility]") {
+    SECTION("strings do fit") {
+        CONSTEXPR_CHECK(to_string_append("") == append_expected{""sv, true});
+        CONSTEXPR_CHECK(to_string_append("a") == append_expected{"a"sv, true});
+        CONSTEXPR_CHECK(to_string_append("abcd") == append_expected{"abcd"sv, true});
+    }
+
+    SECTION("strings don't fit") {
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>("abcdefghijklmnopqrst") == append_expected{"abcdefgh"sv, false});
+    }
+
+    SECTION("booleans do fit") {
+        CONSTEXPR_CHECK(to_string_append(true) == append_expected{"true"sv, true});
+        CONSTEXPR_CHECK(to_string_append(false) == append_expected{"false"sv, true});
+    }
+
+    SECTION("booleans don't fit") {
+        CONSTEXPR_CHECK(to_string_append_n<3>(true) == append_expected{"tru"sv, false});
+        CONSTEXPR_CHECK(to_string_append_n<3>(false) == append_expected{"fal"sv, false});
+    }
+
+    SECTION("nullptr do fit") {
+        CONSTEXPR_CHECK(to_string_append(nullptr) == append_expected{"nullptr"sv, true});
+    }
+
+    SECTION("nullptr don't fit") {
+        CONSTEXPR_CHECK(to_string_append_n<3>(nullptr) == append_expected{"nul"sv, false});
+    }
+
+    SECTION("integers do fit") {
+        CONSTEXPR_CHECK(to_string_append(0) == append_expected{"0"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-0) == append_expected{"0"sv, true});
+        CONSTEXPR_CHECK(to_string_append(0u) == append_expected{"0"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1) == append_expected{"1"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-1) == append_expected{"-1"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1u) == append_expected{"1"sv, true});
+        CONSTEXPR_CHECK(to_string_append(9) == append_expected{"9"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-9) == append_expected{"-9"sv, true});
+        CONSTEXPR_CHECK(to_string_append(9u) == append_expected{"9"sv, true});
+        CONSTEXPR_CHECK(to_string_append(10) == append_expected{"10"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-10) == append_expected{"-10"sv, true});
+        CONSTEXPR_CHECK(to_string_append(10u) == append_expected{"10"sv, true});
+        CONSTEXPR_CHECK(to_string_append(15) == append_expected{"15"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-15) == append_expected{"-15"sv, true});
+        CONSTEXPR_CHECK(to_string_append(15u) == append_expected{"15"sv, true});
+        CONSTEXPR_CHECK(to_string_append(115) == append_expected{"115"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-115) == append_expected{"-115"sv, true});
+        CONSTEXPR_CHECK(to_string_append(115u) == append_expected{"115"sv, true});
+        CONSTEXPR_CHECK(to_string_append(10005) == append_expected{"10005"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-10005) == append_expected{"-10005"sv, true});
+        CONSTEXPR_CHECK(to_string_append(10005u) == append_expected{"10005"sv, true});
+
+        // Limits 32bit
+        if constexpr (sizeof(std::size_t) >= 4) {
+            CONSTEXPR_CHECK(to_string_append(4294967295u) == append_expected{"4294967295"sv, true});
+            CONSTEXPR_CHECK(to_string_append(2147483647) == append_expected{"2147483647"sv, true});
+            // NB: "-2147483648" does not work as an integer literal even though it is
+            // representable, because "-" and "2147483648" are treated as two tokens,
+            // and the latter (as positive integer) isn't representable. Hence the trick below.
+            // https://stackoverflow.com/a/65008288/1565581
+            CONSTEXPR_CHECK(
+                to_string_append(-2147483647 - 1) == append_expected{"-2147483648"sv, true});
+        }
+
+        // Limits 64bit
+        if constexpr (sizeof(std::size_t) >= 8) {
+            CONSTEXPR_CHECK(
+                to_string_append(18446744073709551615u) ==
+                append_expected{"18446744073709551615"sv, true});
+            CONSTEXPR_CHECK(
+                to_string_append(9223372036854775807) ==
+                append_expected{"9223372036854775807"sv, true});
+            // NB: "-9223372036854775808" does not work as an integer literal even though it is
+            // representable, because "-" and "9223372036854775808" are treated as two tokens,
+            // and the latter (as positive integer) isn't representable. Hence the trick below.
+            // https://stackoverflow.com/a/65008288/1565581
+            CONSTEXPR_CHECK(
+                to_string_append(-9223372036854775807 - 1) ==
+                append_expected{"-9223372036854775808"sv, true});
+        }
+    }
+
+    SECTION("integers don't fit") {
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(123456789) ==
+            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(1234567891) ==
+            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(12345678912) ==
+            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(-12345678) ==
+            append_expected2{{"-1234567"sv, false}, {"-123456"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(-123456789) ==
+            append_expected2{{"-1234567"sv, false}, {"-123456"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(-1234567891) ==
+            append_expected2{{"-1234567"sv, false}, {"-123456"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(123456789u) ==
+            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(1234567891u) ==
+            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+        CONSTEXPR_CHECK(
+            to_string_append_n<8>(12345678912u) ==
+            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+    }
+}
+
 TEST_CASE("append multiple", "[utility]") {
     string_type s;
 
