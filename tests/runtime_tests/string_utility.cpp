@@ -156,6 +156,7 @@ constexpr append_result<21> to_string_append(const T& value) {
     return to_string_append_n<21>(value);
 }
 
+#if defined(SNITCH_TEST_WITH_SNITCH)
 template<std::size_t N>
 constexpr bool append(snitch::small_string_span s, const append_result<N>& r) {
     return append(s, "{", r.str, ",", r.success, "}");
@@ -163,6 +164,7 @@ constexpr bool append(snitch::small_string_span s, const append_result<N>& r) {
 constexpr bool append(snitch::small_string_span s, const append_expected& r) {
     return append(s, "{", r.str, ",", r.success, "}");
 }
+#endif
 } // namespace
 
 TEST_CASE("constexpr append", "[utility]") {
