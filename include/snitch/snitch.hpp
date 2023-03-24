@@ -632,7 +632,7 @@ struct float_bits {
 
     float_bits b;
     b.sign        = (bits & sign_mask) != 0u;
-    b.exponent    = (bits & exp_mask) >> exp_offset;
+    b.exponent    = static_cast<std::uint8_t>((bits & exp_mask) >> exp_offset);
     b.significand = (bits & sig_mask);
 
     return b;
