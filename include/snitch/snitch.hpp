@@ -1264,7 +1264,8 @@ struct expression {
     }
 };
 
-template<bool CheckMode>
+struct nondecomposable_expression : expression {};
+
 struct invalid_expression {
     // This is an invalid expression; any further operator should produce another invalid
     // expression. We don't want to decompose these operators, but we need to declare them
@@ -1272,7 +1273,7 @@ struct invalid_expression {
     // decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    constexpr invalid_expression<CheckMode> operator OP(const V&) noexcept {                       \
+    constexpr invalid_expression operator OP(const V&) noexcept {                                  \
         return {};                                                                                 \
     }
 
@@ -1301,17 +1302,15 @@ struct invalid_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    constexpr expression to_expression() const noexcept
-        requires(!CheckMode)
-    {
+    constexpr nondecomposable_expression to_expression() const noexcept {
         // This should be unreachable, because we check if an expression is decomposable
         // before calling the decomposed expression. But the code will be instantiated in
         // constexpr expressions, so don't static_assert.
-        return expression{};
+        return nondecomposable_expression{};
     }
 };
 
-template<bool CheckMode, bool Expected, typename T, typename O, typename U>
+template<bool Expected, typename T, typename O, typename U>
 struct extracted_binary_expression {
     std::string_view expected;
     const T&         lhs;
@@ -1323,7 +1322,7 @@ struct extracted_binary_expression {
     // This enable conditional decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    constexpr invalid_expression<CheckMode> operator OP(const V&) noexcept {                       \
+    constexpr invalid_expression operator OP(const V&) noexcept {                                  \
         return {};                                                                                 \
     }
 
@@ -1357,7 +1356,7 @@ struct extracted_binary_expression {
 #undef EXPR_OPERATOR_INVALID
 
     constexpr expression to_expression() const noexcept
-        requires(!CheckMode || requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
+        requires(requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
     {
         expression expr{expected};
 
@@ -1393,9 +1392,18 @@ struct extracted_binary_expression {
 
         return expr;
     }
+
+    constexpr nondecomposable_expression to_expression() const noexcept
+        requires(!requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
+    {
+        // This should be unreachable, because we check if an expression is decomposable
+        // before calling the decomposed expression. But the code will be instantiated in
+        // constexpr expressions, so don't static_assert.
+        return nondecomposable_expression{};
+    }
 };
 
-template<bool CheckMode, bool Expected, typename T>
+template<bool Expected, typename T>
 struct extracted_unary_expression {
     std::string_view expected;
     const T&         lhs;
@@ -1403,8 +1411,8 @@ struct extracted_unary_expression {
     // Operators we want to decompose.
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
-    constexpr extracted_binary_expression<CheckMode, Expected, T, OP_TYPE, U> operator OP(         \
-        const U& rhs) const noexcept {                                                             \
+    constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U& rhs)       \
+        const noexcept {                                                                           \
         return {expected, lhs, rhs};                                                               \
     }
 
@@ -1421,7 +1429,7 @@ struct extracted_unary_expression {
     // expression compiles until cast to bool. This enable conditional decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    constexpr invalid_expression<CheckMode> operator OP(const V&) noexcept {                       \
+    constexpr invalid_expression operator OP(const V&) noexcept {                                  \
         return {};                                                                                 \
     }
 
@@ -1449,7 +1457,7 @@ struct extracted_unary_expression {
 #undef EXPR_OPERATOR_INVALID
 
     constexpr expression to_expression() const noexcept
-        requires(!CheckMode || requires(const T& lhs) { static_cast<bool>(lhs); })
+        requires(requires(const T& lhs) { static_cast<bool>(lhs); })
     {
         expression expr{expected};
 
@@ -1465,21 +1473,29 @@ struct extracted_unary_expression {
 
         return expr;
     }
+
+    constexpr nondecomposable_expression to_expression() const noexcept
+        requires(!requires(const T& lhs) { static_cast<bool>(lhs); })
+    {
+        // This should be unreachable, because we check if an expression is decomposable
+        // before calling the decomposed expression. But the code will be instantiated in
+        // constexpr expressions, so don't static_assert.
+        return nondecomposable_expression{};
+    }
 };
 
-template<bool CheckMode, bool Expected>
+template<bool Expected>
 struct expression_extractor {
     std::string_view expected;
 
     template<typename T>
-    constexpr extracted_unary_expression<CheckMode, Expected, T>
-    operator<=(const T& lhs) const noexcept {
+    constexpr extracted_unary_expression<Expected, T> operator<=(const T& lhs) const noexcept {
         return {expected, lhs};
     }
 };
 
 template<typename T>
-constexpr bool is_decomposable = requires(const T& t) { t.to_expression(); };
+constexpr bool is_decomposable = !std::is_same_v<T, nondecomposable_expression>;
 
 struct scoped_capture {
     capture_state& captures;
@@ -1855,20 +1871,21 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNITCH_MACRO_CONCAT(x, y) SNITCH_CONCAT_IMPL(x, y)
 
 #define SNITCH_EXPR_IS_FALSE(TYPE, ...)                                                            \
-    auto SNITCH_CURRENT_EXPRESSION = (snitch::impl::expression_extractor<false, true>{             \
-                                          TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)               \
-                                         .to_expression();                                         \
+    auto SNITCH_CURRENT_EXPRESSION =                                                               \
+        (snitch::impl::expression_extractor<true>{TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)       \
+            .to_expression();                                                                      \
     !SNITCH_CURRENT_EXPRESSION.success
 
 #define SNITCH_EXPR_IS_TRUE(TYPE, ...)                                                             \
-    auto SNITCH_CURRENT_EXPRESSION = (snitch::impl::expression_extractor<false, false>{            \
-                                          TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)               \
-                                         .to_expression();                                         \
+    auto SNITCH_CURRENT_EXPRESSION =                                                               \
+        (snitch::impl::expression_extractor<false>{TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)      \
+            .to_expression();                                                                      \
     !SNITCH_CURRENT_EXPRESSION.success
 
 #define SNITCH_IS_DECOMPOSABLE(...)                                                                \
-    snitch::impl::is_decomposable<                                                                 \
-        decltype(snitch::impl::expression_extractor<true, true>{std::declval<std::string_view>()} <= __VA_ARGS__)>
+    snitch::impl::is_decomposable<decltype((snitch::impl::expression_extractor<true>{              \
+                                                std::declval<std::string_view>()} <= __VA_ARGS__)  \
+                                               .to_expression())>
 
 // Public test macros: test cases.
 // -------------------------------
