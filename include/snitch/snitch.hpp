@@ -2169,6 +2169,7 @@ bool operator==(const M& m, const T& value) noexcept {
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
             }                                                                                      \
         } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_REQUIRE[compile-time](" #__VA_ARGS__ ")");                          \
@@ -2212,8 +2213,6 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define CHECK_THAT(EXP, ...)       SNITCH_CHECK_THAT(EXP, __VA_ARGS__)
 #    define CONSTEXPR_REQUIRE(...)     SNITCH_CONSTEXPR_REQUIRE(__VA_ARGS__)
 #    define CONSTEXPR_CHECK(...)       SNITCH_CONSTEXPR_CHECK(__VA_ARGS__)
-#    define REQUIRE_CONSTEXPR(...)     SNITCH_CONSTEXPR_CHECK(__VA_ARGS__)
-#    define CHECK_CONSTEXPR(...)       SNITCH_CONSTEXPR_CHECK(__VA_ARGS__)
 #endif
 // clang-format on
 
