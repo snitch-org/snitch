@@ -624,6 +624,7 @@ struct float_bits {
 
 [[nodiscard]] constexpr float_bits to_bits(float f) {
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+
     constexpr std::uint32_t sign_mask  = 0b10000000000000000000000000000000;
     constexpr std::uint32_t exp_mask   = 0b01111111100000000000000000000000;
     constexpr std::uint32_t exp_offset = 23;
@@ -637,8 +638,10 @@ struct float_bits {
     b.significand = (bits & sig_mask);
 
     return b;
+
 #else
-    float_bits     b;
+
+    float_bits b;
 
     if (f != f) {
         // NaN
@@ -690,6 +693,7 @@ struct float_bits {
     }
 
     return b;
+
 #endif
 }
 
