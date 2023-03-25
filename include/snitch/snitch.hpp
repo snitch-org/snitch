@@ -768,16 +768,6 @@ namespace snitch::impl {
     return could_fit;
 }
 
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, const void* p) noexcept {
-    if (p == nullptr) {
-        constexpr std::string_view nullptr_str = "nullptr";
-        return append_constexpr(ss, nullptr_str);
-    } else {
-        constexpr std::string_view unknown_ptr_str = "0x????????";
-        return append_constexpr(ss, unknown_ptr_str);
-    }
-}
-
 [[nodiscard]] constexpr std::size_t num_digits(std::size_t x) {
     return x >= 10u ? 1u + num_digits(x / 10u) : 1u;
 }
@@ -940,6 +930,16 @@ constexpr std::size_t max_float_length =
     } else {
         constexpr std::string_view unknown_str = "?";
         return append_constexpr(ss, unknown_str);
+    }
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, const void* p) noexcept {
+    if (p == nullptr) {
+        constexpr std::string_view nullptr_str = "nullptr";
+        return append_constexpr(ss, nullptr_str);
+    } else {
+        constexpr std::string_view unknown_ptr_str = "0x????????";
+        return append_constexpr(ss, unknown_ptr_str);
     }
 }
 } // namespace snitch::impl
