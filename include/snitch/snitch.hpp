@@ -528,7 +528,7 @@ class fixed {
             } while (r.data.exponent > new_exponent);
         } else if (r.data.exponent < new_exponent) {
             do {
-                r.data.digits = (r.data.digits + 5) / 10;
+                r.data.digits = (r.data.digits + (r.data.digits < 0 ? -5 : 5)) / 10;
                 r.data.exponent += 1;
             } while (r.data.exponent < new_exponent);
         }
@@ -560,7 +560,7 @@ public:
 
             if (digits_in < cap_up) {
                 do {
-                    digits_in = (digits_in + 5) / 10;
+                    digits_in = (digits_in - 5) / 10;
                     exponent_in += 1;
                 } while (digits_in < cap_up);
             } else if (digits_in > cap_low) {
@@ -703,12 +703,14 @@ struct float_bits {
     constexpr std::int32_t  exp_subnormal = -126;
 
     constexpr std::array<fixed, 23> sig_elems = {
-        {fixed(11920928, -14), fixed(23841857, -14), fixed(47683715, -14), fixed(95367431, -14),
-         fixed(19073486, -13), fixed(38146972, -13), fixed(76293945, -13), fixed(15258789, -12),
-         fixed(30517578, -12), fixed(61035156, -12), fixed(12207031, -11), fixed(24414062, -11),
-         fixed(48828125, -11), fixed(97656250, -11), fixed(19531250, -10), fixed(39062500, -10),
-         fixed(78125000, -10), fixed(15625000, -9),  fixed(31250000, -9),  fixed(62500000, -9),
-         fixed(12500000, -8),  fixed(25000000, -8),  fixed(50000000, -8)}};
+        {fixed(11920928955, -17), fixed(23841857910, -17), fixed(47683715820, -17),
+         fixed(95367431640, -17), fixed(19073486328, -16), fixed(38146972656, -16),
+         fixed(76293945313, -16), fixed(15258789063, -15), fixed(30517578125, -15),
+         fixed(61035156250, -15), fixed(12207031250, -14), fixed(24414062500, -14),
+         fixed(48828125000, -14), fixed(97656250000, -14), fixed(19531250000, -13),
+         fixed(39062500000, -13), fixed(78125000000, -13), fixed(15625000000, -12),
+         fixed(31250000000, -12), fixed(62500000000, -12), fixed(12500000000, -11),
+         fixed(25000000000, -11), fixed(50000000000, -11)}};
 
     fixed fix(0, 0);
     for (std::size_t i = 0; i < exp_offset; ++i) {
@@ -725,6 +727,7 @@ struct float_bits {
 
     std::int32_t exponent =
         subnormal ? exp_subnormal : static_cast<std::int32_t>(bits.exponent) + exp_origin;
+
     if (exponent > 0) {
         do {
             fix *= fixed(2, 0);
@@ -817,24 +820,25 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
     }
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(fixed x) {
+[[nodiscard]] constexpr std::size_t num_digits(fixed_data x) {
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
     // +2 for exponent (zero padded)
-    return num_digits(static_cast<std::ptrdiff_t>(x.digits())) + 5u;
+    return num_digits(static_cast<std::ptrdiff_t>(x.digits)) + 5u;
 }
 
 constexpr std::size_t max_float_length =
-    num_digits(fixed(std::numeric_limits<std::int32_t>::max(), 127));
+    num_digits(fixed_data{std::numeric_limits<std::int32_t>::max(), 27});
 
 [[nodiscard]] constexpr fixed_data set_precision(fixed fp, std::size_t p) {
     fixed_data fd = {fp.digits(), fp.exponent()};
 
     std::size_t base_digits =
         num_digits(static_cast<std::size_t>(fd.digits > 0 ? fd.digits : -fd.digits));
+
     while (base_digits > p) {
-        fd.digits = (fd.digits + 5) / 10;
+        fd.digits = (fd.digits + (fd.digits < 0 ? -5 : 5)) / 10;
         fd.exponent += 1;
         base_digits -= 1u;
     }
@@ -843,16 +847,16 @@ constexpr std::size_t max_float_length =
 }
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, fixed fp) noexcept {
-    // Truncate the digits of the input to the chosen precision (number of digits).
-    // Precision must be less or equal to 9.
+    // Truncate the digits of the input to the chosen precision (number of digits on both
+    // sides of the decimal point). Precision must be less or equal to 9.
     constexpr std::size_t display_precision = 7u;
 
-    fixed_data fd = set_precision(fp, display_precision);
+    const fixed_data fd = set_precision(fp, display_precision);
 
     // Statically allocate enough space for the biggest float,
     // then resize to the length of this particular float.
     small_string<max_float_length> tmp;
-    tmp.resize(num_digits(fp));
+    tmp.resize(num_digits(fd));
 
     // The exponent has a fixed size, so we can start by writing the main digits.
     // We write the digits with always a single digit before the decimal separator,
