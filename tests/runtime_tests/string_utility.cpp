@@ -1,5 +1,7 @@
 #include "testing.hpp"
 
+#include <cmath>
+
 using namespace std::literals;
 
 namespace {
@@ -43,9 +45,9 @@ TEMPLATE_TEST_CASE(
         } else if constexpr (std::is_same_v<TestType, std::size_t>) {
             return {26545u, "26545"sv};
         } else if constexpr (std::is_same_v<TestType, float>) {
-            return {3.1415f, "3.141500"sv};
+            return {3.1415f, "3.141500e+00"sv};
         } else if constexpr (std::is_same_v<TestType, double>) {
-            return {-0.0001, "-0.000100"sv};
+            return {-0.0001, "-1.000000e-04"sv};
         } else if constexpr (std::is_same_v<TestType, bool>) {
             return {true, "true"sv};
         } else if constexpr (std::is_same_v<TestType, void*>) {
@@ -282,6 +284,71 @@ TEST_CASE("constexpr append", "[utility]") {
             to_string_append_n<5>(12345678u) ==
             append_expected2{{"12345"sv, false}, {"1234"sv, false}});
     }
+
+    SECTION("floats do fit") {
+        CONSTEXPR_CHECK(to_string_append(0.0f) == append_expected{"0.000000e+00"sv, true});
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        CONSTEXPR_CHECK(to_string_append(-0.0f) == append_expected{"-0.000000e+00"sv, true});
+#else
+        // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
+        // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
+        CONSTEXPR_CHECK(
+            to_string_append(-0.0f) ==
+            append_expected2{{"0.000000e+00"sv, true}, {"-0.000000e+00"sv, true}});
+#endif
+        CONSTEXPR_CHECK(to_string_append(1.0f) == append_expected{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1.5f) == append_expected{"1.500000e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1.51f) == append_expected{"1.510000e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1.501f) == append_expected{"1.501000e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1.5001f) == append_expected{"1.500100e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1.50001f) == append_expected{"1.500010e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1.500001f) == append_expected{"1.500001e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-1.0f) == append_expected{"-1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(to_string_append(10.0f) == append_expected{"1.000000e+01"sv, true});
+        CONSTEXPR_CHECK(to_string_append(1e4f) == append_expected{"1.000000e+04"sv, true});
+        CONSTEXPR_CHECK(to_string_append(2.3456e28f) == append_expected{"2.345600e+28"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-2.3456e28f) == append_expected{"-2.345600e+28"sv, true});
+        CONSTEXPR_CHECK(to_string_append(2.3456e-28f) == append_expected{"2.345600e-28"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-2.3456e-28f) == append_expected{"-2.345600e-28"sv, true});
+        CONSTEXPR_CHECK(to_string_append(2.3456e-42f) == append_expected{"2.345774e-42"sv, true});
+        CONSTEXPR_CHECK(to_string_append(-2.3456e-42f) == append_expected{"-2.345774e-42"sv, true});
+        CONSTEXPR_CHECK(
+            to_string_append(std::numeric_limits<float>::infinity()) ==
+            append_expected{"inf"sv, true});
+        CONSTEXPR_CHECK(
+            to_string_append(-std::numeric_limits<float>::infinity()) ==
+            append_expected{"-inf"sv, true});
+        CONSTEXPR_CHECK(
+            to_string_append(std::numeric_limits<float>::quiet_NaN()) ==
+            append_expected{"nan"sv, true});
+    }
+
+#if 0
+    // This takes a long time, and a few floats don't match exactly.
+    SECTION("constexpr floats match printf(%e)") {
+        const float mi = -std::numeric_limits<float>::max();
+        // const float ma = std::numeric_limits<float>::max();
+
+        snitch::small_string<21> ssc;
+        snitch::small_string<21> ssr;
+
+        // Iterate over all float point values between 'mi' and 'ma'
+        // std::size_t k = 0;
+        // for (float f = mi; f < ma; f = std::nextafter(f, ma), ++k) {
+        float f = mi;
+        {
+            ssc.clear();
+            ssr.clear();
+
+            (void)snitch::impl::append_constexpr(ssc, f);
+            (void)snitch::impl::append_fast(ssr, f);
+
+            auto svc = std::string_view(ssc.begin(), ssc.end());
+            auto svr = std::string_view(ssr.begin(), ssr.end());
+            CHECK(svc == svr);
+        }
+    }
+#endif
 }
 
 TEST_CASE("append multiple", "[utility]") {
