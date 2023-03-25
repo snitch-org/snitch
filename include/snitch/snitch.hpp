@@ -623,6 +623,7 @@ struct float_bits {
 };
 
 [[nodiscard]] constexpr float_bits to_bits(float f) {
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
     constexpr std::uint32_t sign_mask  = 0b10000000000000000000000000000000;
     constexpr std::uint32_t exp_mask   = 0b01111111100000000000000000000000;
     constexpr std::uint32_t exp_offset = 23;
@@ -636,6 +637,60 @@ struct float_bits {
     b.significand = (bits & sig_mask);
 
     return b;
+#else
+    float_bits     b;
+
+    if (f != f) {
+        // NaN
+        b.sign        = false;
+        b.exponent    = 0xff;
+        b.significand = 0x400000;
+    } else if (f == std::numeric_limits<float>::infinity()) {
+        // +Inf
+        b.sign        = false;
+        b.exponent    = 0xff;
+        b.significand = 0x0;
+    } else if (f == -std::numeric_limits<float>::infinity()) {
+        // -Inf
+        b.sign        = true;
+        b.exponent    = 0xff;
+        b.significand = 0x0;
+    } else {
+        // General case
+        constexpr std::uint32_t exp_offset = 23;
+        constexpr std::uint32_t sig_mask   = 0b00000000011111111111111111111111;
+
+        if (f < 0.0f) {
+            b.sign = true;
+            f      = -f;
+        }
+
+        b.exponent = 127u;
+        if (f >= 2.0f) {
+            do {
+                f /= 2.0f;
+                b.exponent += 1u;
+            } while (f >= 2.0f);
+        } else if (f < 1.0f) {
+            do {
+                f *= 2.0f;
+                b.exponent -= 1u;
+            } while (f < 1.0f && b.exponent > 0u);
+        }
+
+        if (b.exponent == 0u) {
+            // Sub-normals
+            f *= static_cast<float>(2u << (exp_offset - 2u));
+        } else {
+            // Normals
+            f *= static_cast<float>(2u << (exp_offset - 1u));
+        }
+
+        b.significand = static_cast<std::uint32_t>(f) & sig_mask;
+    }
+
+    return b;
+#endif
 }
 
 [[nodiscard]] constexpr fixed to_fixed(const float_bits& bits) {
