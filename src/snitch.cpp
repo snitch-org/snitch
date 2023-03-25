@@ -55,9 +55,9 @@ constexpr const char* get_format_code() noexcept {
     } else if constexpr (std::is_same_v<T, std::ptrdiff_t>) {
         return "%td";
     } else if constexpr (std::is_same_v<T, float>) {
-        return "%f";
+        return "%e";
     } else if constexpr (std::is_same_v<T, double>) {
-        return "%lf";
+        return "%e";
     } else {
         static_assert(!std::is_same_v<T, T>, "unsupported type");
     }
@@ -113,7 +113,11 @@ bool append_fast(small_string_span ss, std::string_view str) noexcept {
 }
 
 bool append_fast(small_string_span ss, const void* ptr) noexcept {
-    return append_fmt(ss, ptr);
+    if (ptr == nullptr) {
+        return append(ss, nullptr);
+    } else {
+        return append_fmt(ss, ptr);
+    }
 }
 
 bool append_fast(small_string_span ss, std::size_t i) noexcept {
