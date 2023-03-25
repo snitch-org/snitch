@@ -255,32 +255,32 @@ TEST_CASE("constexpr append", "[utility]") {
         // we are stuck with snprintf, which insists on writing a null-terminator character,
         // therefore we loose one character at the end.
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(123456789) ==
-            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+            to_string_append_n<5>(123456) ==
+            append_expected2{{"12345"sv, false}, {"1234"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(1234567891) ==
-            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+            to_string_append_n<5>(1234567) ==
+            append_expected2{{"12345"sv, false}, {"1234"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(12345678912) ==
-            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+            to_string_append_n<5>(12345678) ==
+            append_expected2{{"12345"sv, false}, {"1234"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(-12345678) ==
-            append_expected2{{"-1234567"sv, false}, {"-123456"sv, false}});
+            to_string_append_n<5>(-12345) ==
+            append_expected2{{"-1234"sv, false}, {"-123"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(-123456789) ==
-            append_expected2{{"-1234567"sv, false}, {"-123456"sv, false}});
+            to_string_append_n<5>(-123456) ==
+            append_expected2{{"-1234"sv, false}, {"-123"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(-1234567891) ==
-            append_expected2{{"-1234567"sv, false}, {"-123456"sv, false}});
+            to_string_append_n<5>(-1234567) ==
+            append_expected2{{"-1234"sv, false}, {"-123"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(123456789u) ==
-            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+            to_string_append_n<5>(123456u) ==
+            append_expected2{{"12345"sv, false}, {"1234"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(1234567891u) ==
-            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+            to_string_append_n<5>(1234567u) ==
+            append_expected2{{"12345"sv, false}, {"1234"sv, false}});
         CONSTEXPR_CHECK(
-            to_string_append_n<8>(12345678912u) ==
-            append_expected2{{"12345678"sv, false}, {"1234567"sv, false}});
+            to_string_append_n<5>(12345678u) ==
+            append_expected2{{"12345"sv, false}, {"1234"sv, false}});
     }
 }
 
