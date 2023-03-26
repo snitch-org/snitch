@@ -55,9 +55,9 @@ Notable current limitations:
 
 Supported compilers:
 
- - GCC 11 and above
- - Clang 13 and above
- - MSVC 14.30 (compiler 19.30) and above
+ - Mininum: GCC 10, recommended: GCC 11.
+ - Minimum: Clang 10, recommended: Clang 13.
+ - Minimum: MSVC 14.30 (compiler 19.29).
 
 
 ## Example
