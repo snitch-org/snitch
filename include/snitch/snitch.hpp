@@ -8,7 +8,9 @@
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception> // for std::exception
 #endif
-#include <bit> // for compile-time float to string
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+#    include <bit> // for compile-time float to string
+#endif
 #include <initializer_list> // for std::initializer_list
 #include <limits> // for compile-time integer to string
 #include <optional> // for cli
