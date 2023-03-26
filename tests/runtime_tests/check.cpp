@@ -2,6 +2,7 @@
 #include "testing_event.hpp"
 
 #include <algorithm>
+#include <compare>
 
 using namespace std::literals;
 
