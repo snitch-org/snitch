@@ -900,6 +900,57 @@ TEST_CASE("check false", "[test macros]") {
     }
 }
 
+namespace snitch::matchers {
+struct is_even {
+    // Some silly state; to make sure we support this.
+    int remainder = -1;
+
+    constexpr bool match(int i) {
+        remainder = i % 2;
+        return remainder == 0;
+    }
+
+    constexpr snitch::small_string<snitch::max_message_length>
+    describe_match(int i, match_status status) {
+        small_string<max_message_length> description_buffer;
+        append_or_truncate(
+            description_buffer, "input value ", i, " ",
+            (status == match_status::matched ? "is" : "is not"), " even; remainder: ", remainder);
+        return description_buffer;
+    }
+};
+} // namespace snitch::matchers
+
+TEST_CASE("check that", "[test macros]") {
+    event_catcher<2> catcher;
+
+    SECTION("pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 10;
+            SNITCH_CHECK_THAT(i, snitch::matchers::is_even{});
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CHECK_THAT(i, snitch::matchers::is_even{}); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "CHECK_THAT(i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+    }
+}
+
 TEST_CASE("check misc", "[test macros]") {
     event_catcher<1> catcher;
 
@@ -1081,6 +1132,157 @@ TEST_CASE("check misc", "[test macros]") {
     }
 }
 
+TEST_CASE("consteval check", "[test macros]") {
+    event_catcher<2> catcher;
+
+    SECTION("decomposable pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 10;
+            SNITCH_CONSTEVAL_CHECK(i == 10);
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("decomposable fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEVAL_CHECK(i == 10); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK(i == 10), got 9 != 10"sv);
+    }
+
+    SECTION("not decomposable pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            SNITCH_CONSTEVAL_CHECK(i == 10 || i == 9);
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("not decomposable fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEVAL_CHECK(i == 10 || i == 8); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK(i == 10 || i == 8)"sv);
+    }
+
+    // This triggers a compile-time error, so we can't enable it.
+    // But we keep it here to monitor that the error message being displayed is reasonable.
+
+#if 0
+    SECTION("not constexpr") {
+        struct not_fully_constexpr {
+            bool foo() {
+                std::printf("runtime stuff\n");
+                return true;
+            }
+        };
+
+        constexpr not_fully_constexpr c{};
+        SNITCH_CONSTEVAL_CHECK(not_fully_constexpr{c}.foo());
+    }
+#endif
+}
+
+TEST_CASE("consteval check false", "[test macros]") {
+    event_catcher<2> catcher;
+
+    SECTION("decomposable pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 10;
+            SNITCH_CONSTEVAL_CHECK_FALSE(i == 9);
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("decomposable fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEVAL_CHECK_FALSE(i == 9); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK_FALSE(i == 9), got 9 == 9"sv);
+    }
+
+    SECTION("not decomposable pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            SNITCH_CONSTEVAL_CHECK_FALSE(i == 10 || i == 8);
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("not decomposable fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEVAL_CHECK_FALSE(i == 10 || i == 9); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK_FALSE(i == 10 || i == 9)"sv);
+    }
+}
+
+TEST_CASE("consteval check that", "[test macros]") {
+    event_catcher<2> catcher;
+
+    SECTION("pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 10;
+            SNITCH_CONSTEVAL_CHECK_THAT(i, snitch::matchers::is_even{});
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEVAL_CHECK_THAT(i, snitch::matchers::is_even{}); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "CONSTEVAL_CHECK_THAT(i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+    }
+}
+
 #define CONSTEXPR_CHECK_EXPR_SUCCESS(CATCHER)                                                      \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
@@ -1214,24 +1416,118 @@ TEST_CASE("constexpr check", "[test macros]") {
             "CONSTEXPR_CHECK[run-time](compile_time_bug{}.foo()), got false"sv);
     }
 
-    // SECTION("not constexpr") {
-    //     std::size_t failure_line = 0u;
+    // This triggers a compile-time error, so we can't enable it.
+    // But we keep it here to monitor that the error message being displayed is reasonable.
 
-    //     struct not_fully_constexpr {
-    //         bool foo() {
-    //             std::printf("runtime stuff\n");
-    //             return true;
-    //         }
-    //     };
+#if 0
+    SECTION("not constexpr") {
+        struct not_fully_constexpr {
+            bool foo() {
+                std::printf("runtime stuff\n");
+                return true;
+            }
+        };
 
-    //     {
-    //         test_override override(catcher);
-    //         // clang-format off
-    //         constexpr not_fully_constexpr c{};
-    //         SNITCH_CONSTEXPR_CHECK(not_fully_constexpr{c}.foo()); failure_line = __LINE__;
-    //         // clang-format on
-    //     }
+        constexpr not_fully_constexpr c{};
+        SNITCH_CONSTEXPR_CHECK(not_fully_constexpr{c}.foo());
+    }
+#endif
+}
 
-    //     CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEXPR_CHECK(i == 10 || i == 8)"sv);
-    // }
+TEST_CASE("constexpr check false", "[test macros]") {
+    event_catcher<2> catcher;
+
+    SECTION("decomposable pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 10;
+            SNITCH_CONSTEXPR_CHECK_FALSE(i == 9);
+        }
+
+        CONSTEXPR_CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("decomposable fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEXPR_CHECK_FALSE(i == 9); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[0u], failure_line,
+            "CONSTEXPR_CHECK_FALSE[compile-time](i == 9), got 9 == 9"sv);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[1u], failure_line,
+            "CONSTEXPR_CHECK_FALSE[run-time](i == 9), got 9 == 9"sv);
+    }
+
+    SECTION("not decomposable pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            SNITCH_CONSTEXPR_CHECK_FALSE(i == 10 || i == 8);
+        }
+
+        CONSTEXPR_CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("not decomposable fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEXPR_CHECK_FALSE(i == 10 || i == 9); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[0u], failure_line,
+            "CONSTEXPR_CHECK_FALSE[compile-time](i == 10 || i == 9)"sv);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[1u], failure_line,
+            "CONSTEXPR_CHECK_FALSE[run-time](i == 10 || i == 9)"sv);
+    }
+}
+
+TEST_CASE("constexpr check that", "[test macros]") {
+    event_catcher<2> catcher;
+
+    SECTION("pass") {
+        {
+            test_override override(catcher);
+            constexpr int i = 10;
+            SNITCH_CONSTEXPR_CHECK_THAT(i, snitch::matchers::is_even{});
+        }
+
+        CONSTEXPR_CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            constexpr int i = 9;
+            // clang-format off
+            SNITCH_CONSTEXPR_CHECK_THAT(i, snitch::matchers::is_even{}); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[0u], failure_line,
+            "CONSTEXPR_CHECK_THAT[compile-time](i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+        CHECK_EVENT_FAILURE(
+            catcher, catcher.events[1u], failure_line,
+            "CONSTEXPR_CHECK_THAT[run-time](i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+    }
 }

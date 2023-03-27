@@ -21,6 +21,11 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Standalone test cases](#standalone-test-cases)
         - [Test cases with fixtures](#test-cases-with-fixtures)
     - [Test check macros](#test-check-macros)
+        - [Run-time](#run-time)
+        - [Compile-time](#compile-time)
+        - [Run-time and compile-time](#run-time-and-compile-time)
+        - [Exception checks](#exception-checks)
+        - [Miscelaneous](#miscelaneous)
     - [Tags](#tags)
     - [Matchers](#matchers)
     - [Sections](#sections)
@@ -46,6 +51,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Matchers use a different API (see [Matchers](#matchers) below).
+   - Additional macros for testing [`constexpr`](#run-time-and-compile-time) and [`consteval`](#compile-time) expressions.
 
 If you need features that are not in the list above, please use _Catch2_ or _doctest_.
 
@@ -312,8 +318,12 @@ This is equivalent to `TEMPLATE_TEST_CASE_METHOD`, except that `TYPES` must be a
 
 ### Test check macros
 
-The following macros can be used inside a test body, either immediately in the body itself, or inside a lambda function defined inside the body (if the lambda uses automatic by-reference capture, `[&]`). They _cannot_ be used inside other functions.
+The following macros can only be used inside a test body, either immediately in the body itself, or inside a function called by the test. They _cannot_ be used if a test is not running (e.g.,  they cannot be used as generic assertion macros).
 
+
+#### Run-time
+
+The macros in this section evaluate their operands are run-time exclusively.
 
 `REQUIRE(EXPR);`
 
@@ -345,20 +355,69 @@ This is equivalent to `REQUIRE(EXPR == MATCHER)`, and is provided for compatibil
 This is equivalent to `CHECK(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.
 
 
-`FAIL(MSG);`
+#### Compile-time
 
-This reports a test failure with the message `MSG`. The current test case is stopped. Execution then continues with the next test case, if any.
+The macros in this section evaluate their operands are compile-time exclusively. To benefit from the run-time infrastructure of _snitch_ (allowed failures, custom reporter, etc.), the test report is still generated at run-time. However, if the operands cannot be evaluated at compile-time, a compiler error will be generated.
+
+These macros are recommended for testing `consteval` functions, which are always evaluated at compile-time. For `constexpr` functions, which can be evaluated both at compile-time and run-time, prefer the `CONSTEXPR_*` macros described below.
+
+`CONSTEVAL_REQUIRE(EXPR);`
+
+Same as `REQUIRE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_CHECK(EXPR);`
+
+Same as `CHECK(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_REQUIRE_FALSE(EXPR);`
+
+Same as `REQUIRE_FALSE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_CHECK_FALSE(EXPR);`
+
+Same as `CHECK_FALSE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_REQUIRE_THAT(EXPR, MATCHER);`
+
+Same as `REQUIRE_THAT(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_CHECK_THAT(EXPR, MATCHER);`
+
+Same as `CHECK_THAT(EXPR)` but with operands evaluated at compile-time.
 
 
-`FAIL_CHECK(MSG);`
+#### Run-time and compile-time
 
-This is similar to `FAIL`, except that the test case continues. Further failures may be reported in the same test case.
+The macros in this section evaluate their operands both are compile-time and at run-time. To benefit from the run-time infrastructure of _snitch_ (allowed failures, custom reporter, etc.), the test report is still generated at run-time regardless of the above. However, if the operands cannot be evaluated at compile-time, a compiler error will be generated.
+
+These macros are recommended for testing `constexpr` functions, which can be evaluated both at compile-time and at run-time. Since the operands are also evaluated at run-time, the test will contribute to the coverage analysis (if any), which is impossible for purely compile-time tests (e.g., `CONSTEVAL_*` macros above).
+
+`CONSTEXPR_REQUIRE(EXPR);`
+
+Same as `REQUIRE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEXPR_CHECK(EXPR);`
+
+Same as `CHECK(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEXPR_REQUIRE_FALSE(EXPR);`
+
+Same as `REQUIRE_FALSE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEXPR_CHECK_FALSE(EXPR);`
+
+Same as `CHECK_FALSE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEXPR_REQUIRE_THAT(EXPR, MATCHER);`
+
+Same as `REQUIRE_THAT(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEXPR_CHECK_THAT(EXPR, MATCHER);`
+
+Same as `CHECK_THAT(EXPR)` but with operands evaluated at compile-time.
 
 
-`SKIP(MSG);`
-
-This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
-
+#### Exception checks
 
 `REQUIRE_THROWS_AS(EXPR, EXCEPT);`
 
@@ -378,6 +437,23 @@ This is similar to `REQUIRE_THROWS_AS`, but further checks the content of the ex
 `CHECK_THROWS_MATCHES(EXPR, EXCEPT, MATCHER);`
 
 This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test case continues. Further failures may be reported in the same test case.
+
+
+#### Miscelaneous
+
+`FAIL(MSG);`
+
+This reports a test failure with the message `MSG`. The current test case is stopped. Execution then continues with the next test case, if any.
+
+
+`FAIL_CHECK(MSG);`
+
+This is similar to `FAIL`, except that the test case continues. Further failures may be reported in the same test case.
+
+
+`SKIP(MSG);`
+
+This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
 
 
 ### Tags

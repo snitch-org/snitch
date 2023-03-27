@@ -1834,6 +1834,19 @@ extern constinit registry tests;
 // Matchers.
 // ---------
 
+namespace snitch::impl {
+template<typename T, typename M>
+[[nodiscard]] constexpr auto constexpr_match(T&& value, M&& matcher) {
+    using result_type = decltype(matcher.describe_match(value, matchers::match_status::failed));
+    if (!matcher.match(value)) {
+        return std::optional<result_type>(
+            matcher.describe_match(value, matchers::match_status::failed));
+    } else {
+        return std::optional<result_type>{};
+    }
+}
+} // namespace snitch::impl
+
 namespace snitch::matchers {
 struct contains_substring {
     std::string_view substring_pattern;
@@ -2197,6 +2210,7 @@ bool operator==(const M& m, const T& value) noexcept {
         if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
             SNITCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                 \
                 SNITCH_TEMP_MATCHER.describe_match(                                                \
                     SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
             SNITCH_TESTING_ABORT;                                                                  \
@@ -2212,25 +2226,45 @@ bool operator==(const M& m, const T& value) noexcept {
         if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
             SNITCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                   \
                 SNITCH_TEMP_MATCHER.describe_match(                                                \
                     SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
         }                                                                                          \
     } while (0)
 
-#define SNITCH_CONSTEXPR_CHECK(...)                                                                \
+#define SNITCH_CONSTEVAL_REQUIRE(...)                                                              \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
-            if constexpr (constexpr SNITCH_EXPR_IS_FALSE(                                          \
-                              "CONSTEXPR_CHECK[compile-time]", __VA_ARGS__)) {                     \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE("CONSTEVAL_REQUIRE", __VA_ARGS__)) {      \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
             }                                                                                      \
-            if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_CHECK[run-time]", __VA_ARGS__)) {                  \
+        } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_REQUIRE(" #__VA_ARGS__ ")");                                        \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_CHECK(...)                                                                \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE("CONSTEVAL_CHECK", __VA_ARGS__)) {        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
@@ -2238,15 +2272,85 @@ bool operator==(const M& m, const T& value) noexcept {
             if constexpr (!(__VA_ARGS__)) {                                                        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
-                    "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                            \
-            }                                                                                      \
-            if (!(__VA_ARGS__)) {                                                                  \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
-                    "CONSTEXPR_CHECK[run-time](" #__VA_ARGS__ ")");                                \
+                    "CONSTEVAL_CHECK(" #__VA_ARGS__ ")");                                          \
             }                                                                                      \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_REQUIRE_FALSE(...)                                                        \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE("CONSTEVAL_REQUIRE_FALSE", __VA_ARGS__)) { \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_REQUIRE_FALSE(" #__VA_ARGS__ ")");                                  \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_CHECK_FALSE(...)                                                          \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE("CONSTEVAL_CHECK_FALSE", __VA_ARGS__)) {   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_CHECK_FALSE(" #__VA_ARGS__ ")");                                    \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_REQUIRE_THAT(EXPR, ...)                                                   \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEVAL_REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                       \
+                SNITCH_TEMP_ERROR.value());                                                        \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_CHECK_THAT(EXPR, ...)                                                     \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEVAL_CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                         \
+                SNITCH_TEMP_ERROR.value());                                                        \
+        }                                                                                          \
     } while (0)
 
 #define SNITCH_CONSTEXPR_REQUIRE(...)                                                              \
@@ -2289,6 +2393,166 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_POP                                                                         \
     } while (0)
 
+#define SNITCH_CONSTEXPR_CHECK(...)                                                                \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE(                                          \
+                              "CONSTEXPR_CHECK[compile-time]", __VA_ARGS__)) {                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_CHECK[run-time]", __VA_ARGS__)) {                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                            \
+            }                                                                                      \
+            if (!(__VA_ARGS__)) {                                                                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[run-time](" #__VA_ARGS__ ")");                                \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_REQUIRE_FALSE(...)                                                        \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        bool SNITCH_CURRENT_ASSERTION_FAILED = false;                                              \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE(                                           \
+                              "CONSTEXPR_REQUIRE_FALSE[compile-time]", __VA_ARGS__)) {             \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_TRUE("CONSTEXPR_REQUIRE_FALSE[run-time]", __VA_ARGS__)) {           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_FALSE[compile-time](" #__VA_ARGS__ ")");                    \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+            if (__VA_ARGS__) {                                                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_FALSE[run-time](" #__VA_ARGS__ ")");                        \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        }                                                                                          \
+        if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_CHECK_FALSE(...)                                                          \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE(                                           \
+                              "CONSTEXPR_CHECK_FALSE[compile-time]", __VA_ARGS__)) {               \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_TRUE("CONSTEXPR_CHECK_FALSE[run-time]", __VA_ARGS__)) {             \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_FALSE[compile-time](" #__VA_ARGS__ ")");                      \
+            }                                                                                      \
+            if (__VA_ARGS__) {                                                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_FALSE[run-time](" #__VA_ARGS__ ")");                          \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_REQUIRE_THAT(EXPR, ...)                                                   \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        bool SNITCH_CURRENT_ASSERTION_FAILED = false;                                              \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEXPR_REQUIRE_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",         \
+                SNITCH_TEMP_ERROR.value());                                                        \
+            SNITCH_CURRENT_ASSERTION_FAILED = true;                                                \
+        }                                                                                          \
+        {                                                                                          \
+            auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                   \
+            auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                              \
+            if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",         \
+                    SNITCH_TEMP_MATCHER.describe_match(                                            \
+                        SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));               \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        }                                                                                          \
+        if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_CHECK_THAT(EXPR, ...)                                                     \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEXPR_CHECK_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
+                SNITCH_TEMP_ERROR.value());                                                        \
+        }                                                                                          \
+        {                                                                                          \
+            auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                   \
+            auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                              \
+            if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
+                    SNITCH_TEMP_MATCHER.describe_match(                                            \
+                        SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));               \
+            }                                                                                      \
+        }                                                                                          \
+    } while (0)
+
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS
 #    define TEST_CASE(NAME, ...)                       SNITCH_TEST_CASE(NAME, __VA_ARGS__)
@@ -2303,17 +2567,30 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define CAPTURE(...)       SNITCH_CAPTURE(__VA_ARGS__)
 #    define INFO(...)          SNITCH_INFO(__VA_ARGS__)
 
-#    define REQUIRE(...)               SNITCH_REQUIRE(__VA_ARGS__)
-#    define CHECK(...)                 SNITCH_CHECK(__VA_ARGS__)
-#    define REQUIRE_FALSE(...)         SNITCH_REQUIRE_FALSE(__VA_ARGS__)
-#    define CHECK_FALSE(...)           SNITCH_CHECK_FALSE(__VA_ARGS__)
-#    define FAIL(MESSAGE)              SNITCH_FAIL(MESSAGE)
-#    define FAIL_CHECK(MESSAGE)        SNITCH_FAIL_CHECK(MESSAGE)
-#    define SKIP(MESSAGE)              SNITCH_SKIP(MESSAGE)
-#    define REQUIRE_THAT(EXP, ...)     SNITCH_REQUIRE_THAT(EXP, __VA_ARGS__)
-#    define CHECK_THAT(EXP, ...)       SNITCH_CHECK_THAT(EXP, __VA_ARGS__)
-#    define CONSTEXPR_REQUIRE(...)     SNITCH_CONSTEXPR_REQUIRE(__VA_ARGS__)
-#    define CONSTEXPR_CHECK(...)       SNITCH_CONSTEXPR_CHECK(__VA_ARGS__)
+#    define FAIL(MESSAGE)       SNITCH_FAIL(MESSAGE)
+#    define FAIL_CHECK(MESSAGE) SNITCH_FAIL_CHECK(MESSAGE)
+#    define SKIP(MESSAGE)       SNITCH_SKIP(MESSAGE)
+
+#    define REQUIRE(...)           SNITCH_REQUIRE(__VA_ARGS__)
+#    define CHECK(...)             SNITCH_CHECK(__VA_ARGS__)
+#    define REQUIRE_FALSE(...)     SNITCH_REQUIRE_FALSE(__VA_ARGS__)
+#    define CHECK_FALSE(...)       SNITCH_CHECK_FALSE(__VA_ARGS__)
+#    define REQUIRE_THAT(EXP, ...) SNITCH_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CHECK_THAT(EXP, ...)   SNITCH_CHECK_THAT(EXP, __VA_ARGS__)
+
+#    define CONSTEVAL_REQUIRE(...)           SNITCH_CONSTEVAL_REQUIRE(__VA_ARGS__)
+#    define CONSTEVAL_CHECK(...)             SNITCH_CONSTEVAL_CHECK(__VA_ARGS__)
+#    define CONSTEVAL_REQUIRE_FALSE(...)     SNITCH_CONSTEVAL_REQUIRE_FALSE(__VA_ARGS__)
+#    define CONSTEVAL_CHECK_FALSE(...)       SNITCH_CONSTEVAL_CHECK_FALSE(__VA_ARGS__)
+#    define CONSTEVAL_REQUIRE_THAT(EXP, ...) SNITCH_CONSTEVAL_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CONSTEVAL_CHECK_THAT(EXP, ...)   SNITCH_CONSTEVAL_CHECK_THAT(EXP, __VA_ARGS__)
+
+#    define CONSTEXPR_REQUIRE(...)           SNITCH_CONSTEXPR_REQUIRE(__VA_ARGS__)
+#    define CONSTEXPR_CHECK(...)             SNITCH_CONSTEXPR_CHECK(__VA_ARGS__)
+#    define CONSTEXPR_REQUIRE_FALSE(...)     SNITCH_CONSTEXPR_REQUIRE_FALSE(__VA_ARGS__)
+#    define CONSTEXPR_CHECK_FALSE(...)       SNITCH_CONSTEXPR_CHECK_FALSE(__VA_ARGS__)
+#    define CONSTEXPR_REQUIRE_THAT(EXP, ...) SNITCH_CONSTEXPR_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CONSTEXPR_CHECK_THAT(EXP, ...)   SNITCH_CONSTEXPR_CHECK_THAT(EXP, __VA_ARGS__)
 #endif
 // clang-format on
 
