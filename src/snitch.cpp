@@ -142,16 +142,6 @@ bool append(small_string_span ss, double d) noexcept {
     return impl::append_fast(ss, d);
 }
 
-void truncate_end(small_string_span ss) noexcept {
-    std::size_t num_dots     = 3;
-    std::size_t final_length = std::min(ss.capacity(), ss.size() + num_dots);
-    std::size_t offset       = final_length >= num_dots ? final_length - num_dots : 0;
-    num_dots                 = final_length - offset;
-
-    ss.resize(final_length);
-    std::memcpy(ss.begin() + offset, "...", num_dots);
-}
-
 bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept {
 
