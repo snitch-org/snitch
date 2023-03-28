@@ -137,24 +137,53 @@ struct append_result {
     constexpr bool operator==(const append_expected& o) const {
         return success == o.success && str == o.str;
     }
+};
+
+template<std::size_t N>
+struct append_result2 {
+    append_result<N>                append_auto;
+    std::optional<append_result<N>> append_constexpr;
+
+    constexpr bool operator==(const append_expected& o) const {
+        return append_auto == o &&
+               (append_constexpr.has_value() ? append_constexpr.value() == o : true);
+    }
+
     constexpr bool operator==(const append_expected2& o) const {
         if (std::is_constant_evaluated()) {
-            return *this == o.comptime;
+            return append_auto == o.comptime &&
+                   (append_constexpr.has_value() ? append_constexpr.value() == o.comptime : true);
         } else {
-            return *this == o.runtime;
+            return append_auto == o.runtime &&
+                   (append_constexpr.has_value() ? append_constexpr.value() == o.comptime : true);
         }
     }
 };
 
 template<std::size_t N, typename T>
-constexpr append_result<N> to_string_append_n(const T& value) {
-    snitch::small_string<N> str;
-    bool                    success = append(str, value);
-    return {str, success};
+constexpr append_result2<N> to_string_append_n(const T& value) {
+    if (std::is_constant_evaluated()) {
+        snitch::small_string<N> str;
+        bool                    success = append(str, value);
+        return {{str, success}, {}};
+    } else {
+        if constexpr (requires(snitch::small_string<N> s, T v) {
+                          (void)snitch::impl::append_constexpr(s, v);
+                      }) {
+            snitch::small_string<N> str1, str2;
+            bool                    success1 = append(str1, value);
+            bool                    success2 = snitch::impl::append_constexpr(str2, value);
+            return {{str1, success1}, {{str2, success2}}};
+        } else {
+            snitch::small_string<N> str;
+            bool                    success = append(str, value);
+            return {{str, success}, {}};
+        }
+    }
 }
 
 template<typename T>
-constexpr append_result<21> to_string_append(const T& value) {
+constexpr append_result2<21> to_string_append(const T& value) {
     return to_string_append_n<21>(value);
 }
 
@@ -163,22 +192,37 @@ template<std::size_t N>
 constexpr bool append(snitch::small_string_span s, const append_result<N>& r) {
     return append(s, "{", r.str, ",", r.success, "}");
 }
+
+template<std::size_t N>
+constexpr bool append(snitch::small_string_span s, const append_result2<N>& r) {
+    if (r.append_constexpr.has_value()) {
+        return append(s, "{", r.append_auto, ",", r.append_constexpr.value(), "}");
+    } else {
+        return append(s, r.append_auto);
+    }
+}
+
 constexpr bool append(snitch::small_string_span s, const append_expected& r) {
     return append(s, "{", r.str, ",", r.success, "}");
+}
+
+constexpr bool append(snitch::small_string_span s, const append_expected2& r) {
+    return append(s, "{", r.comptime, ",", r.runtime, "}");
 }
 #endif
 } // namespace
 
 TEST_CASE("constexpr append", "[utility]") {
     SECTION("strings do fit") {
-        CONSTEXPR_CHECK(to_string_append("") == append_expected{""sv, true});
-        CONSTEXPR_CHECK(to_string_append("a") == append_expected{"a"sv, true});
-        CONSTEXPR_CHECK(to_string_append("abcd") == append_expected{"abcd"sv, true});
+        CONSTEXPR_CHECK(to_string_append(""sv) == append_expected{""sv, true});
+        CONSTEXPR_CHECK(to_string_append("a"sv) == append_expected{"a"sv, true});
+        CONSTEXPR_CHECK(to_string_append("abcd"sv) == append_expected{"abcd"sv, true});
     }
 
     SECTION("strings don't fit") {
         CONSTEXPR_CHECK(
-            to_string_append_n<8>("abcdefghijklmnopqrst") == append_expected{"abcdefgh"sv, false});
+            to_string_append_n<8>("abcdefghijklmnopqrst"sv) ==
+            append_expected{"abcdefgh"sv, false});
     }
 
     SECTION("booleans do fit") {
