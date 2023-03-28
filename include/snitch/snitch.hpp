@@ -1698,7 +1698,7 @@ using data = std::variant<
     test_case_ended,
     assertion_failed,
     test_case_skipped>;
-}; // namespace event
+} // namespace event
 } // namespace snitch
 
 // Command line interface.
