@@ -673,12 +673,10 @@ template<typename T>
 
     const bits_full_t bits = std::bit_cast<bits_full_t>(f);
 
-    float_bits<T> b;
-    b.sign        = (bits & traits::sign_mask) != 0u;
-    b.exponent    = static_cast<bits_exp_t>((bits & traits::exp_mask) >> traits::exp_offset);
-    b.significand = static_cast<bits_sig_t>(bits & traits::sig_mask);
-
-    return b;
+    return float_bits<T>{
+        .significand = static_cast<bits_sig_t>(bits & traits::sig_mask),
+        .exponent    = static_cast<bits_exp_t>((bits & traits::exp_mask) >> traits::exp_offset),
+        .sign        = (bits & traits::sign_mask) != 0u};
 
 #else
 
@@ -687,17 +685,17 @@ template<typename T>
     if (f != f) {
         // NaN
         b.sign        = false;
-        b.exponent    = traits::exp_special;
-        b.significand = traits::sig_nan;
+        b.exponent    = traits::exp_bits_special;
+        b.significand = traits::sig_bits_nan;
     } else if (f == std::numeric_limits<T>::infinity()) {
         // +Inf
         b.sign        = false;
-        b.exponent    = traits::exp_special;
+        b.exponent    = traits::exp_bits_special;
         b.significand = traits::sig_bits_inf;
     } else if (f == -std::numeric_limits<T>::infinity()) {
         // -Inf
         b.sign        = true;
-        b.exponent    = traits::exp_special;
+        b.exponent    = traits::exp_bits_special;
         b.significand = traits::sig_bits_inf;
     } else {
         // General case
@@ -706,7 +704,8 @@ template<typename T>
             f      = -f;
         }
 
-        b.exponent = -traits::exp_origin;
+        b.exponent = static_cast<bits_exp_t>(-traits::exp_origin);
+
         if (f >= static_cast<T>(2.0)) {
             do {
                 f /= static_cast<T>(2.0);
