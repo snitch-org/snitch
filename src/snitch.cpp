@@ -55,9 +55,9 @@ constexpr const char* get_format_code() noexcept {
     } else if constexpr (std::is_same_v<T, std::ptrdiff_t>) {
         return "%td";
     } else if constexpr (std::is_same_v<T, float>) {
-        return "%e";
+        return "%.6e";
     } else if constexpr (std::is_same_v<T, double>) {
-        return "%e";
+        return "%.15e";
     } else {
         static_assert(!std::is_same_v<T, T>, "unsupported type");
     }
@@ -138,10 +138,6 @@ bool append_fast(small_string_span ss, double d) noexcept {
 } // namespace snitch::impl
 
 namespace snitch {
-bool append(small_string_span ss, double d) noexcept {
-    return impl::append_fast(ss, d);
-}
-
 bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept {
 

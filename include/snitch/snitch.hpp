@@ -537,6 +537,8 @@ class fixed {
         return r;
     }
 
+    constexpr fixed(fixed_data d) noexcept : data(d) {}
+
 public:
     constexpr fixed(std::int64_t digits_in, std::int32_t exponent_in) noexcept {
         // Normalise inputs so that we maximize the number of digits stored.
@@ -615,6 +617,10 @@ public:
     constexpr fixed& operator*=(const fixed f) noexcept {
         return *this = *this * f;
     }
+
+    constexpr fixed operator-() const noexcept {
+        return fixed(fixed_data{-data.digits, data.exponent});
+    }
 };
 
 template<typename T>
@@ -628,12 +634,12 @@ struct float_traits<float> {
 
     using int_exp_t = std::int32_t;
 
-    static constexpr bits_full_t bits       = 8 * sizeof(bits_full_t);
-    static constexpr bits_full_t exp_offset = 23u;
+    static constexpr bits_full_t bits     = 8 * sizeof(bits_full_t);
+    static constexpr bits_full_t sig_bits = 23u;
 
-    static constexpr bits_full_t sign_mask = 1u << (bits - 1u);
-    static constexpr bits_full_t sig_mask  = (1u << exp_offset) - 1u;
-    static constexpr bits_full_t exp_mask  = ((1u << (bits - 1u)) - 1u) & ~sig_mask;
+    static constexpr bits_full_t sign_mask = bits_full_t{1u} << (bits - 1u);
+    static constexpr bits_full_t sig_mask  = (bits_full_t{1u} << sig_bits) - 1u;
+    static constexpr bits_full_t exp_mask  = ((bits_full_t{1u} << (bits - 1u)) - 1u) & ~sig_mask;
 
     static constexpr int_exp_t exp_origin    = -127;
     static constexpr int_exp_t exp_subnormal = exp_origin + 1;
@@ -642,15 +648,70 @@ struct float_traits<float> {
     static constexpr bits_sig_t sig_bits_nan     = 0x400000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
 
-    static constexpr std::array<fixed, 23> sig_elems = {
-        {fixed(11920928955, -17), fixed(23841857910, -17), fixed(47683715820, -17),
-         fixed(95367431640, -17), fixed(19073486328, -16), fixed(38146972656, -16),
-         fixed(76293945313, -16), fixed(15258789063, -15), fixed(30517578125, -15),
-         fixed(61035156250, -15), fixed(12207031250, -14), fixed(24414062500, -14),
-         fixed(48828125000, -14), fixed(97656250000, -14), fixed(19531250000, -13),
-         fixed(39062500000, -13), fixed(78125000000, -13), fixed(15625000000, -12),
-         fixed(31250000000, -12), fixed(62500000000, -12), fixed(12500000000, -11),
-         fixed(25000000000, -11), fixed(50000000000, -11)}};
+    static constexpr std::array<fixed, sig_bits> sig_elems = {
+        {fixed(119209289550781250, -24), fixed(238418579101562500, -24),
+         fixed(476837158203125000, -24), fixed(953674316406250000, -24),
+         fixed(190734863281250000, -23), fixed(381469726562500000, -23),
+         fixed(762939453125000000, -23), fixed(152587890625000000, -22),
+         fixed(305175781250000000, -22), fixed(610351562500000000, -22),
+         fixed(122070312500000000, -21), fixed(244140625000000000, -21),
+         fixed(488281250000000000, -21), fixed(976562500000000000, -21),
+         fixed(195312500000000000, -20), fixed(390625000000000000, -20),
+         fixed(781250000000000000, -20), fixed(156250000000000000, -19),
+         fixed(312500000000000000, -19), fixed(625000000000000000, -19),
+         fixed(125000000000000000, -18), fixed(250000000000000000, -18),
+         fixed(500000000000000000, -18)}};
+};
+
+template<>
+struct float_traits<double> {
+    using bits_full_t = std::uint64_t;
+    using bits_sig_t  = std::uint64_t;
+    using bits_exp_t  = std::uint16_t;
+
+    using int_exp_t = std::int32_t;
+
+    static constexpr bits_full_t bits     = 8 * sizeof(bits_full_t);
+    static constexpr bits_full_t sig_bits = 52u;
+
+    static constexpr bits_full_t sign_mask = bits_full_t{1u} << (bits - 1u);
+    static constexpr bits_full_t sig_mask  = (bits_full_t{1u} << sig_bits) - 1u;
+    static constexpr bits_full_t exp_mask  = ((bits_full_t{1u} << (bits - 1u)) - 1u) & ~sig_mask;
+
+    static constexpr int_exp_t exp_origin    = -1023;
+    static constexpr int_exp_t exp_subnormal = exp_origin + 1;
+
+    static constexpr bits_exp_t exp_bits_special = 0x7ff;
+    static constexpr bits_sig_t sig_bits_nan     = 0x8000000000000;
+    static constexpr bits_sig_t sig_bits_inf     = 0x0;
+
+    static constexpr std::array<fixed, sig_bits> sig_elems = {
+        {fixed(222044604925031308, -33), fixed(444089209850062616, -33),
+         fixed(888178419700125232, -33), fixed(177635683940025046, -32),
+         fixed(355271367880050093, -32), fixed(710542735760100186, -32),
+         fixed(142108547152020037, -31), fixed(284217094304040074, -31),
+         fixed(568434188608080149, -31), fixed(113686837721616030, -30),
+         fixed(227373675443232059, -30), fixed(454747350886464119, -30),
+         fixed(909494701772928238, -30), fixed(181898940354585648, -29),
+         fixed(363797880709171295, -29), fixed(727595761418342590, -29),
+         fixed(145519152283668518, -28), fixed(291038304567337036, -28),
+         fixed(582076609134674072, -28), fixed(116415321826934814, -27),
+         fixed(232830643653869629, -27), fixed(465661287307739258, -27),
+         fixed(931322574615478516, -27), fixed(186264514923095703, -26),
+         fixed(372529029846191406, -26), fixed(745058059692382812, -26),
+         fixed(149011611938476562, -25), fixed(298023223876953125, -25),
+         fixed(596046447753906250, -25), fixed(119209289550781250, -24),
+         fixed(238418579101562500, -24), fixed(476837158203125000, -24),
+         fixed(953674316406250000, -24), fixed(190734863281250000, -23),
+         fixed(381469726562500000, -23), fixed(762939453125000000, -23),
+         fixed(152587890625000000, -22), fixed(305175781250000000, -22),
+         fixed(610351562500000000, -22), fixed(122070312500000000, -21),
+         fixed(244140625000000000, -21), fixed(488281250000000000, -21),
+         fixed(976562500000000000, -21), fixed(195312500000000000, -20),
+         fixed(390625000000000000, -20), fixed(781250000000000000, -20),
+         fixed(156250000000000000, -19), fixed(312500000000000000, -19),
+         fixed(625000000000000000, -19), fixed(125000000000000000, -18),
+         fixed(250000000000000000, -18), fixed(500000000000000000, -18)}};
 };
 
 template<typename T>
@@ -675,7 +736,7 @@ template<typename T>
 
     return float_bits<T>{
         .significand = static_cast<bits_sig_t>(bits & traits::sig_mask),
-        .exponent    = static_cast<bits_exp_t>((bits & traits::exp_mask) >> traits::exp_offset),
+        .exponent    = static_cast<bits_exp_t>((bits & traits::exp_mask) >> traits::sig_bits),
         .sign        = (bits & traits::sign_mask) != 0u};
 
 #else
@@ -720,10 +781,10 @@ template<typename T>
 
         if (b.exponent == 0u) {
             // Sub-normals
-            f *= static_cast<T>(2u << (traits::exp_offset - 2u));
+            f *= static_cast<T>(2u << (traits::sig_bits - 2u));
         } else {
             // Normals
-            f *= static_cast<T>(2u << (traits::exp_offset - 1u));
+            f *= static_cast<T>(2u << (traits::sig_bits - 1u));
         }
 
         b.significand = static_cast<bits_sig_t>(static_cast<bits_full_t>(f) & traits::sig_mask);
@@ -740,7 +801,7 @@ template<typename T>
     using int_exp_t = typename traits::int_exp_t;
 
     fixed fix(0, 0);
-    for (std::size_t i = 0; i < traits::exp_offset; ++i) {
+    for (std::size_t i = 0; i < traits::sig_bits; ++i) {
         if (((bits.significand >> i) & 1u) != 0u) {
             fix += traits::sig_elems[i];
         }
@@ -767,16 +828,29 @@ template<typename T>
         } while (exponent < 0);
     }
 
-    if (bits.sign) {
-        fix *= fixed(-1, 0);
-    }
-
-    return fix;
+    return bits.sign ? -fix : fix;
 }
 } // namespace snitch::impl
 
 // Public utilities: append.
 // -------------------------
+
+namespace snitch {
+template<typename T>
+concept signed_integral = std::is_signed_v<T>;
+
+template<typename T>
+concept unsigned_integral = std::is_unsigned_v<T>;
+
+template<typename T>
+concept floating_point = std::is_floating_point_v<T>;
+
+template<typename T, typename U>
+concept convertible_to = std::is_convertible_v<T, U>;
+
+template<typename T>
+concept enumeration = std::is_enum_v<T>;
+} // namespace snitch
 
 namespace snitch::impl {
 [[nodiscard]] bool append_fast(small_string_span ss, std::string_view str) noexcept;
@@ -784,6 +858,7 @@ namespace snitch::impl {
 [[nodiscard]] bool append_fast(small_string_span ss, std::size_t i) noexcept;
 [[nodiscard]] bool append_fast(small_string_span ss, std::ptrdiff_t i) noexcept;
 [[nodiscard]] bool append_fast(small_string_span ss, float f) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, double f) noexcept;
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::string_view str) noexcept {
     const bool        could_fit  = str.size() <= ss.available();
@@ -847,16 +922,24 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
     }
 }
 
+// Minimum number of digits in the exponent, set to 2 to match std::printf.
+constexpr std::size_t min_exp_digits = 2u;
+
+[[nodiscard]] constexpr std::size_t num_exp_digits(fixed_data x) {
+    const std::size_t exp_digits =
+        num_digits(static_cast<std::size_t>(x.exponent > 0 ? x.exponent : -x.exponent));
+    return exp_digits < min_exp_digits ? min_exp_digits : exp_digits;
+}
+
 [[nodiscard]] constexpr std::size_t num_digits(fixed_data x) {
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
-    // +2 for exponent (zero padded)
-    return num_digits(static_cast<std::ptrdiff_t>(x.digits)) + 5u;
+    return num_digits(static_cast<std::ptrdiff_t>(x.digits)) + num_exp_digits(x) + 3u;
 }
 
 constexpr std::size_t max_float_length =
-    num_digits(fixed_data{std::numeric_limits<std::int32_t>::max(), 27});
+    num_digits(fixed_data{std::numeric_limits<std::int32_t>::min(), -100});
 
 [[nodiscard]] constexpr fixed_data set_precision(fixed fp, std::size_t p) {
     fixed_data fd = {fp.digits(), fp.exponent()};
@@ -889,12 +972,16 @@ constexpr std::size_t max_float_length =
     small_string<max_float_length> tmp;
     tmp.resize(num_digits(fd));
 
+    const std::size_t exp_digits = num_exp_digits(fd);
+
     // The exponent has a fixed size, so we can start by writing the main digits.
     // We write the digits with always a single digit before the decimal separator,
     // and the rest as fractional part. This will require adjusting the value of
     // the exponent later.
-    std::size_t k = 5u;
-    for (std::int32_t j = fd.digits > 0 ? fd.digits : -fd.digits; j != 0; j /= 10, ++k) {
+    std::size_t  k            = 3u + exp_digits;
+    std::int32_t exponent_add = 0;
+    for (std::int32_t j = fd.digits > 0 ? fd.digits : -fd.digits; j != 0;
+         j /= 10, ++k, ++exponent_add) {
         if (j < 10) {
             tmp[tmp.size() - k] = '.';
             ++k;
@@ -909,15 +996,15 @@ constexpr std::size_t max_float_length =
 
     // Now write the exponent, adjusted for the chosen display (one digit before the decimal
     // separator).
-    const std::int32_t exponent = fd.exponent + static_cast<std::int32_t>(k - 7u);
+    const std::int32_t exponent = fd.exponent + exponent_add - 1;
 
     k = 1;
     for (std::int32_t j = exponent > 0 ? exponent : -exponent; j != 0; j /= 10, ++k) {
         tmp[tmp.size() - k] = digits[j % 10];
     }
 
-    // Pad exponent with zeros if it is shorter than the max (-45/+38).
-    for (; k < 3; ++k) {
+    // Pad exponent with zeros if it is shorter than the min number of digits.
+    for (; k <= min_exp_digits; ++k) {
         tmp[tmp.size() - k] = '0';
     }
 
@@ -931,11 +1018,12 @@ constexpr std::size_t max_float_length =
     return append_constexpr(ss, tmp);
 }
 
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, float f) noexcept {
-    if constexpr (sizeof(float) == 4 && std::numeric_limits<float>::is_iec559) {
-        using traits = typename float_bits<float>::traits;
+template<floating_point T>
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, T f) noexcept {
+    if constexpr (std::numeric_limits<T>::is_iec559) {
+        using traits = typename float_bits<T>::traits;
 
-        const float_bits<float> bits = to_bits(f);
+        const float_bits<T> bits = to_bits(f);
 
         // Handle special cases.
         if (bits.exponent == 0x0) {
@@ -1027,7 +1115,13 @@ namespace snitch {
     }
 }
 
-[[nodiscard]] bool append(small_string_span ss, double f) noexcept;
+[[nodiscard]] constexpr bool append(small_string_span ss, double f) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, f);
+    } else {
+        return impl::append_fast(ss, f);
+    }
+}
 
 [[nodiscard]] constexpr bool append(small_string_span ss, bool value) noexcept {
     constexpr std::string_view true_str  = "true";
@@ -1055,18 +1149,6 @@ template<std::size_t N>
 [[nodiscard]] constexpr bool append(small_string_span ss, const char str[N]) noexcept {
     return append(ss, std::string_view(str));
 }
-
-template<typename T>
-concept signed_integral = std::is_signed_v<T>;
-
-template<typename T>
-concept unsigned_integral = std::is_unsigned_v<T>;
-
-template<typename T, typename U>
-concept convertible_to = std::is_convertible_v<T, U>;
-
-template<typename T>
-concept enumeration = std::is_enum_v<T>;
 
 template<signed_integral T>
 [[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {

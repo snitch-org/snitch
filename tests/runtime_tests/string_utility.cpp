@@ -466,6 +466,83 @@ TEST_CASE("constexpr append", "[utility]") {
         std::cout << static_cast<double>(b) / static_cast<double>(k) << std::endl;
     }
 #endif
+
+    SECTION("doubles do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<35, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(0.0) == ae{"0.000000000000000e+00"sv, true});
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        CONSTEXPR_CHECK(a(-0.0) == ae{"-0.000000000000000e+00"sv, true});
+#else
+        // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
+        // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
+        CONSTEXPR_CHECK(
+            a(-0.0) == aed{{"0.000000000000000e+00"sv, true}, {"-0.000000000000000e+00"sv, true}});
+#endif
+        CONSTEXPR_CHECK(a(1.0) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5) == ae{"1.500000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.51) == ae{"1.510000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.501) == ae{"1.501000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5001) == ae{"1.500100000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50001) == ae{"1.500010000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500001) == ae{"1.500001000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000001) == ae{"1.500000100000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000001) == ae{"1.500000010000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000001) == ae{"1.500000001000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000000001) == ae{"1.500000000100000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000000001) == ae{"1.500000000010000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000000001) == ae{"1.500000000001000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000000000001) == ae{"1.500000000000100e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000000000001) == ae{"1.500000000000010e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000000000001) == ae{"1.500000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(-1.0) == ae{"-1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(10.0) == ae{"1.000000000000000e+01"sv, true});
+        CONSTEXPR_CHECK(a(1e4) == ae{"1.000000000000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e301) == ae{"2.345600000000000e+301"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e301) == ae{"-2.345600000000000e+301"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-301) == ae{"2.345600000000000e-301"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-301) == ae{"-2.345600000000000e-301"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-320) == ae{"2.345823686454239e-320"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-320) == ae{"-2.345823686454239e-320"sv, true});
+        CONSTEXPR_CHECK(a(std::numeric_limits<double>::infinity()) == ae{"inf"sv, true});
+        CONSTEXPR_CHECK(a(-std::numeric_limits<double>::infinity()) == ae{"-inf"sv, true});
+        CONSTEXPR_CHECK(a(std::numeric_limits<double>::quiet_NaN()) == ae{"nan"sv, true});
+
+        // Test that the rounding mode is the same as std::printf.
+        CONSTEXPR_CHECK(a(1.0000000000000001) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000002) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000003) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000004) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000005) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000006) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000007) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000008) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000009) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000010) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000011) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000012) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000013) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000014) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000015) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000016) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000017) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000018) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000019) == ae{"1.000000000000002e+00"sv, true});
+    }
+
+    SECTION("doubles don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<5, true>(value);
+        };
+
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(0.0) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
+        CONSTEXPR_CHECK(a(-1.0) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
+    }
 }
 
 TEST_CASE("append multiple", "[utility]") {
