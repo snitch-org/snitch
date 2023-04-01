@@ -839,7 +839,11 @@ constexpr std::size_t max_float_length =
         num_digits(static_cast<std::size_t>(fd.digits > 0 ? fd.digits : -fd.digits));
 
     while (base_digits > p) {
-        fd.digits = (fd.digits + (fd.digits < 0 ? -5 : 5)) / 10;
+        if (base_digits > p + 1) {
+            fd.digits = fd.digits / 10;
+        } else {
+            fd.digits = (fd.digits + (fd.digits < 0 ? -5 : 5)) / 10;
+        }
         fd.exponent += 1;
         base_digits -= 1u;
     }

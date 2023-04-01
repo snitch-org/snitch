@@ -403,13 +403,40 @@ TEST_CASE("constexpr append", "[utility]") {
         CONSTEXPR_CHECK(a(std::numeric_limits<float>::infinity()) == ae{"inf"sv, true});
         CONSTEXPR_CHECK(a(-std::numeric_limits<float>::infinity()) == ae{"-inf"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<float>::quiet_NaN()) == ae{"nan"sv, true});
+
+        // Test that the rounding mode is the same as std::printf.
+        CONSTEXPR_CHECK(a(1.0000001f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000002f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000003f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000004f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000005f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000006f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000007f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000008f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000009f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000010f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000011f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000012f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000013f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000014f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000015f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000016f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000017f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000018f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000019f) == ae{"1.000002e+00"sv, true});
     }
 
     SECTION("floats don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<5, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(0.0f) == ae{"0.000"sv, false});
+        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.00"sv, false});
     }
 
 #if 0
-    // This takes a long time, and a few floats don't match exactly.
+    // This takes a long time, and a few floats (0.05%) don't match exactly.
     SECTION("constexpr floats match printf(%e)") {
         const float mi = -std::numeric_limits<float>::max();
         const float ma = std::numeric_limits<float>::max();
@@ -428,7 +455,6 @@ TEST_CASE("constexpr append", "[utility]") {
 
             auto svc = std::string_view(ssc.begin(), ssc.end());
             auto svr = std::string_view(ssr.begin(), ssr.end());
-            // CHECK(svc == svr);
             if (svc != svr) {
                 ++b;
             }
