@@ -617,93 +617,32 @@ public:
     }
 };
 
-struct float_bits {
-    std::uint32_t significand = 0u;
-    std::uint8_t  exponent    = 0u;
-    bool          sign        = 0;
-};
+template<typename T>
+struct float_traits;
 
-[[nodiscard]] constexpr float_bits to_bits(float f) {
-#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+template<>
+struct float_traits<float> {
+    using bits_full_t = std::uint32_t;
+    using bits_sig_t  = std::uint32_t;
+    using bits_exp_t  = std::uint8_t;
 
-    constexpr std::uint32_t sign_mask  = 0b10000000000000000000000000000000;
-    constexpr std::uint32_t exp_mask   = 0b01111111100000000000000000000000;
-    constexpr std::uint32_t exp_offset = 23;
-    constexpr std::uint32_t sig_mask   = 0b00000000011111111111111111111111;
+    using int_exp_t = std::int32_t;
 
-    const std::uint32_t bits = std::bit_cast<std::uint32_t>(f);
+    static constexpr bits_full_t bits       = 8 * sizeof(bits_full_t);
+    static constexpr bits_full_t exp_offset = 23u;
 
-    float_bits b;
-    b.sign        = (bits & sign_mask) != 0u;
-    b.exponent    = static_cast<std::uint8_t>((bits & exp_mask) >> exp_offset);
-    b.significand = (bits & sig_mask);
+    static constexpr bits_full_t sign_mask = 1u << (bits - 1u);
+    static constexpr bits_full_t sig_mask  = (1u << exp_offset) - 1u;
+    static constexpr bits_full_t exp_mask  = ((1u << (bits - 1u)) - 1u) & ~sig_mask;
 
-    return b;
+    static constexpr int_exp_t exp_origin    = -127;
+    static constexpr int_exp_t exp_subnormal = exp_origin + 1;
 
-#else
+    static constexpr bits_exp_t exp_bits_special = 0xff;
+    static constexpr bits_sig_t sig_bits_nan     = 0x400000;
+    static constexpr bits_sig_t sig_bits_inf     = 0x0;
 
-    float_bits b;
-
-    if (f != f) {
-        // NaN
-        b.sign        = false;
-        b.exponent    = 0xff;
-        b.significand = 0x400000;
-    } else if (f == std::numeric_limits<float>::infinity()) {
-        // +Inf
-        b.sign        = false;
-        b.exponent    = 0xff;
-        b.significand = 0x0;
-    } else if (f == -std::numeric_limits<float>::infinity()) {
-        // -Inf
-        b.sign        = true;
-        b.exponent    = 0xff;
-        b.significand = 0x0;
-    } else {
-        // General case
-        constexpr std::uint32_t exp_offset = 23;
-        constexpr std::uint32_t sig_mask   = 0b00000000011111111111111111111111;
-
-        if (f < 0.0f) {
-            b.sign = true;
-            f      = -f;
-        }
-
-        b.exponent = 127u;
-        if (f >= 2.0f) {
-            do {
-                f /= 2.0f;
-                b.exponent += 1u;
-            } while (f >= 2.0f);
-        } else if (f < 1.0f) {
-            do {
-                f *= 2.0f;
-                b.exponent -= 1u;
-            } while (f < 1.0f && b.exponent > 0u);
-        }
-
-        if (b.exponent == 0u) {
-            // Sub-normals
-            f *= static_cast<float>(2u << (exp_offset - 2u));
-        } else {
-            // Normals
-            f *= static_cast<float>(2u << (exp_offset - 1u));
-        }
-
-        b.significand = static_cast<std::uint32_t>(f) & sig_mask;
-    }
-
-    return b;
-
-#endif
-}
-
-[[nodiscard]] constexpr fixed to_fixed(const float_bits& bits) {
-    constexpr std::uint32_t exp_offset    = 23;
-    constexpr std::int32_t  exp_origin    = -127;
-    constexpr std::int32_t  exp_subnormal = -126;
-
-    constexpr std::array<fixed, 23> sig_elems = {
+    static constexpr std::array<fixed, 23> sig_elems = {
         {fixed(11920928955, -17), fixed(23841857910, -17), fixed(47683715820, -17),
          fixed(95367431640, -17), fixed(19073486328, -16), fixed(38146972656, -16),
          fixed(76293945313, -16), fixed(15258789063, -15), fixed(30517578125, -15),
@@ -712,11 +651,99 @@ struct float_bits {
          fixed(39062500000, -13), fixed(78125000000, -13), fixed(15625000000, -12),
          fixed(31250000000, -12), fixed(62500000000, -12), fixed(12500000000, -11),
          fixed(25000000000, -11), fixed(50000000000, -11)}};
+};
+
+template<typename T>
+struct float_bits {
+    using traits = float_traits<T>;
+
+    typename traits::bits_sig_t significand = 0u;
+    typename traits::bits_exp_t exponent    = 0u;
+    bool                        sign        = 0;
+};
+
+template<typename T>
+[[nodiscard]] constexpr float_bits<T> to_bits(T f) {
+    using traits      = typename float_bits<T>::traits;
+    using bits_full_t = typename traits::bits_full_t;
+    using bits_sig_t  = typename traits::bits_sig_t;
+    using bits_exp_t  = typename traits::bits_exp_t;
+
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+
+    const bits_full_t bits = std::bit_cast<bits_full_t>(f);
+
+    float_bits<T> b;
+    b.sign        = (bits & traits::sign_mask) != 0u;
+    b.exponent    = static_cast<bits_exp_t>((bits & traits::exp_mask) >> traits::exp_offset);
+    b.significand = static_cast<bits_sig_t>(bits & traits::sig_mask);
+
+    return b;
+
+#else
+
+    float_bits<T> b;
+
+    if (f != f) {
+        // NaN
+        b.sign        = false;
+        b.exponent    = traits::exp_special;
+        b.significand = traits::sig_nan;
+    } else if (f == std::numeric_limits<T>::infinity()) {
+        // +Inf
+        b.sign        = false;
+        b.exponent    = traits::exp_special;
+        b.significand = traits::sig_bits_inf;
+    } else if (f == -std::numeric_limits<T>::infinity()) {
+        // -Inf
+        b.sign        = true;
+        b.exponent    = traits::exp_special;
+        b.significand = traits::sig_bits_inf;
+    } else {
+        // General case
+        if (f < static_cast<T>(0.0)) {
+            b.sign = true;
+            f      = -f;
+        }
+
+        b.exponent = -traits::exp_origin;
+        if (f >= static_cast<T>(2.0)) {
+            do {
+                f /= static_cast<T>(2.0);
+                b.exponent += 1u;
+            } while (f >= static_cast<T>(2.0));
+        } else if (f < static_cast<T>(1.0)) {
+            do {
+                f *= static_cast<T>(2.0);
+                b.exponent -= 1u;
+            } while (f < static_cast<T>(1.0) && b.exponent > 0u);
+        }
+
+        if (b.exponent == 0u) {
+            // Sub-normals
+            f *= static_cast<T>(2u << (traits::exp_offset - 2u));
+        } else {
+            // Normals
+            f *= static_cast<T>(2u << (traits::exp_offset - 1u));
+        }
+
+        b.significand = static_cast<bits_sig_t>(static_cast<bits_full_t>(f) & traits::sig_mask);
+    }
+
+    return b;
+
+#endif
+}
+
+template<typename T>
+[[nodiscard]] constexpr fixed to_fixed(const float_bits<T>& bits) {
+    using traits    = typename float_bits<T>::traits;
+    using int_exp_t = typename traits::int_exp_t;
 
     fixed fix(0, 0);
-    for (std::size_t i = 0; i < exp_offset; ++i) {
+    for (std::size_t i = 0; i < traits::exp_offset; ++i) {
         if (((bits.significand >> i) & 1u) != 0u) {
-            fix += sig_elems[i];
+            fix += traits::sig_elems[i];
         }
     }
 
@@ -726,8 +753,8 @@ struct float_bits {
         fix += fixed(1, 0);
     }
 
-    std::int32_t exponent =
-        subnormal ? exp_subnormal : static_cast<std::int32_t>(bits.exponent) + exp_origin;
+    int_exp_t exponent = subnormal ? traits::exp_subnormal
+                                   : static_cast<int_exp_t>(bits.exponent) + traits::exp_origin;
 
     if (exponent > 0) {
         do {
@@ -907,8 +934,11 @@ constexpr std::size_t max_float_length =
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, float f) noexcept {
     if constexpr (sizeof(float) == 4 && std::numeric_limits<float>::is_iec559) {
+        using traits = typename float_bits<float>::traits;
+
+        const float_bits<float> bits = to_bits(f);
+
         // Handle special cases.
-        const float_bits bits = to_bits(f);
         if (bits.exponent == 0x0) {
             if (bits.significand == 0x0) {
                 // Zero.
@@ -920,8 +950,8 @@ constexpr std::size_t max_float_length =
                 // Subnormals.
                 return append_constexpr(ss, to_fixed(bits));
             }
-        } else if (bits.exponent == 0xff) {
-            if (bits.significand == 0x0) {
+        } else if (bits.exponent == traits::exp_bits_special) {
+            if (bits.significand == traits::sig_bits_inf) {
                 // Infinity.
                 constexpr std::string_view plus_inf_str  = "inf";
                 constexpr std::string_view minus_inf_str = "-inf";
