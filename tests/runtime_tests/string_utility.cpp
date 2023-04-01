@@ -431,8 +431,11 @@ TEST_CASE("constexpr append", "[utility]") {
             return append_test::to_string<5, true>(value);
         };
 
-        CONSTEXPR_CHECK(a(0.0f) == ae{"0.000"sv, false});
-        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.00"sv, false});
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(0.0f) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
+        CONSTEXPR_CHECK(a(-1.0f) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
     }
 
 #if 0
