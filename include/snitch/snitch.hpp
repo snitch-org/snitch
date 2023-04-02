@@ -507,29 +507,38 @@ public:
 };
 } // namespace snitch
 
-// Internal utilities: fixed.
-// --------------------------
+// Internal utilities: fixed point types.
+// --------------------------------------
 
 namespace snitch::impl {
-struct fixed_data {
-    std::int32_t digits   = 0;
-    std::int32_t exponent = 0;
+using fixed_digits_t = std::uint32_t;
+using fixed_exp_t    = std::int32_t;
+
+struct unsigned_fixed_data {
+    fixed_digits_t digits   = 0;
+    fixed_exp_t    exponent = 0;
 };
 
-class fixed {
-    fixed_data data = {};
+struct signed_fixed_data {
+    fixed_digits_t digits   = 0;
+    fixed_exp_t    exponent = 0;
+    bool           sign     = false;
+};
 
-    constexpr fixed to_exponent(std::int32_t new_exponent) const noexcept {
-        fixed r = *this;
+class unsigned_fixed {
+    unsigned_fixed_data data = {};
+
+    constexpr unsigned_fixed to_exponent(fixed_exp_t new_exponent) const noexcept {
+        unsigned_fixed r = *this;
 
         if (r.data.exponent > new_exponent) {
             do {
-                r.data.digits *= 10;
+                r.data.digits *= 10u;
                 r.data.exponent -= 1;
             } while (r.data.exponent > new_exponent);
         } else if (r.data.exponent < new_exponent) {
             do {
-                r.data.digits = (r.data.digits + (r.data.digits < 0 ? -5 : 5)) / 10;
+                r.data.digits = (r.data.digits + 5u) / 10u;
                 r.data.exponent += 1;
             } while (r.data.exponent < new_exponent);
         }
@@ -537,89 +546,74 @@ class fixed {
         return r;
     }
 
-    constexpr fixed(fixed_data d) noexcept : data(d) {}
+    using high_precision_t = std::uint64_t;
+
+    constexpr unsigned_fixed(unsigned_fixed_data d) noexcept : data(d) {}
 
 public:
-    constexpr fixed(std::int64_t digits_in, std::int32_t exponent_in) noexcept {
+    constexpr unsigned_fixed(high_precision_t digits_in, fixed_exp_t exponent_in) noexcept {
         // Normalise inputs so that we maximize the number of digits stored.
         if (digits_in > 0) {
-            constexpr std::int64_t cap_up  = std::numeric_limits<std::int32_t>::max();
-            constexpr std::int64_t cap_low = cap_up / 10;
+            constexpr high_precision_t cap_up  = std::numeric_limits<fixed_digits_t>::max();
+            constexpr high_precision_t cap_low = cap_up / 10u;
 
             if (digits_in > cap_up) {
                 do {
-                    digits_in = (digits_in + 5) / 10;
+                    digits_in = (digits_in + 5u) / 10u;
                     exponent_in += 1;
                 } while (digits_in > cap_up);
             } else if (digits_in < cap_low) {
                 do {
-                    digits_in *= 10;
+                    digits_in *= 10u;
                     exponent_in -= 1;
                 } while (digits_in < cap_low);
-            }
-        } else if (digits_in < 0) {
-            constexpr std::int64_t cap_up  = std::numeric_limits<std::int32_t>::min();
-            constexpr std::int64_t cap_low = cap_up / 10;
-
-            if (digits_in < cap_up) {
-                do {
-                    digits_in = (digits_in - 5) / 10;
-                    exponent_in += 1;
-                } while (digits_in < cap_up);
-            } else if (digits_in > cap_low) {
-                do {
-                    digits_in *= 10;
-                    exponent_in -= 1;
-                } while (digits_in > cap_low);
             }
         } else {
             // Pick the smallest possible exponent for zero;
             // This guarantees that we will preserve precision for whatever number
             // gets added to this.
-            exponent_in = -127;
+            exponent_in = -1024;
         }
 
-        data.digits   = static_cast<std::int32_t>(digits_in);
+        data.digits   = static_cast<fixed_digits_t>(digits_in);
         data.exponent = exponent_in;
     }
 
-    constexpr std::int32_t digits() const {
+    constexpr fixed_digits_t digits() const {
         return data.digits;
     }
 
-    constexpr std::int32_t exponent() const {
+    constexpr fixed_exp_t exponent() const {
         return data.exponent;
     }
 
-    constexpr fixed operator+(const fixed f) const noexcept {
+    constexpr unsigned_fixed operator+(const unsigned_fixed f) const noexcept {
         if (data.exponent == f.data.exponent) {
-            return fixed(static_cast<std::int64_t>(data.digits) + f.data.digits, data.exponent);
+            return unsigned_fixed(
+                static_cast<high_precision_t>(data.digits) + f.data.digits, data.exponent);
         } else if (data.exponent > f.data.exponent) {
             const auto fn = f.to_exponent(data.exponent);
-            return fixed(static_cast<std::int64_t>(data.digits) + fn.data.digits, data.exponent);
+            return unsigned_fixed(
+                static_cast<high_precision_t>(data.digits) + fn.data.digits, data.exponent);
         } else {
             const auto fn = this->to_exponent(f.data.exponent);
-            return fixed(
-                static_cast<std::int64_t>(fn.data.digits) + f.data.digits, f.data.exponent);
+            return unsigned_fixed(
+                static_cast<high_precision_t>(fn.data.digits) + f.data.digits, f.data.exponent);
         }
     }
 
-    constexpr fixed& operator+=(const fixed f) noexcept {
+    constexpr unsigned_fixed& operator+=(const unsigned_fixed f) noexcept {
         return *this = *this + f;
     }
 
-    constexpr fixed operator*(const fixed f) const noexcept {
-        return fixed(
-            static_cast<std::int64_t>(data.digits) * f.data.digits,
+    constexpr unsigned_fixed operator*(const unsigned_fixed f) const noexcept {
+        return unsigned_fixed(
+            static_cast<high_precision_t>(data.digits) * f.data.digits,
             data.exponent + f.data.exponent);
     }
 
-    constexpr fixed& operator*=(const fixed f) noexcept {
+    constexpr unsigned_fixed& operator*=(const unsigned_fixed f) noexcept {
         return *this = *this * f;
-    }
-
-    constexpr fixed operator-() const noexcept {
-        return fixed(fixed_data{-data.digits, data.exponent});
     }
 };
 
@@ -648,19 +642,19 @@ struct float_traits<float> {
     static constexpr bits_sig_t sig_bits_nan     = 0x400000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
 
-    static constexpr std::array<fixed, sig_bits> sig_elems = {
-        {fixed(119209289550781250, -24), fixed(238418579101562500, -24),
-         fixed(476837158203125000, -24), fixed(953674316406250000, -24),
-         fixed(190734863281250000, -23), fixed(381469726562500000, -23),
-         fixed(762939453125000000, -23), fixed(152587890625000000, -22),
-         fixed(305175781250000000, -22), fixed(610351562500000000, -22),
-         fixed(122070312500000000, -21), fixed(244140625000000000, -21),
-         fixed(488281250000000000, -21), fixed(976562500000000000, -21),
-         fixed(195312500000000000, -20), fixed(390625000000000000, -20),
-         fixed(781250000000000000, -20), fixed(156250000000000000, -19),
-         fixed(312500000000000000, -19), fixed(625000000000000000, -19),
-         fixed(125000000000000000, -18), fixed(250000000000000000, -18),
-         fixed(500000000000000000, -18)}};
+    static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
+        {unsigned_fixed(119209289550781250, -24), unsigned_fixed(238418579101562500, -24),
+         unsigned_fixed(476837158203125000, -24), unsigned_fixed(953674316406250000, -24),
+         unsigned_fixed(190734863281250000, -23), unsigned_fixed(381469726562500000, -23),
+         unsigned_fixed(762939453125000000, -23), unsigned_fixed(152587890625000000, -22),
+         unsigned_fixed(305175781250000000, -22), unsigned_fixed(610351562500000000, -22),
+         unsigned_fixed(122070312500000000, -21), unsigned_fixed(244140625000000000, -21),
+         unsigned_fixed(488281250000000000, -21), unsigned_fixed(976562500000000000, -21),
+         unsigned_fixed(195312500000000000, -20), unsigned_fixed(390625000000000000, -20),
+         unsigned_fixed(781250000000000000, -20), unsigned_fixed(156250000000000000, -19),
+         unsigned_fixed(312500000000000000, -19), unsigned_fixed(625000000000000000, -19),
+         unsigned_fixed(125000000000000000, -18), unsigned_fixed(250000000000000000, -18),
+         unsigned_fixed(500000000000000000, -18)}};
 };
 
 template<>
@@ -685,33 +679,33 @@ struct float_traits<double> {
     static constexpr bits_sig_t sig_bits_nan     = 0x8000000000000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
 
-    static constexpr std::array<fixed, sig_bits> sig_elems = {
-        {fixed(222044604925031308, -33), fixed(444089209850062616, -33),
-         fixed(888178419700125232, -33), fixed(177635683940025046, -32),
-         fixed(355271367880050093, -32), fixed(710542735760100186, -32),
-         fixed(142108547152020037, -31), fixed(284217094304040074, -31),
-         fixed(568434188608080149, -31), fixed(113686837721616030, -30),
-         fixed(227373675443232059, -30), fixed(454747350886464119, -30),
-         fixed(909494701772928238, -30), fixed(181898940354585648, -29),
-         fixed(363797880709171295, -29), fixed(727595761418342590, -29),
-         fixed(145519152283668518, -28), fixed(291038304567337036, -28),
-         fixed(582076609134674072, -28), fixed(116415321826934814, -27),
-         fixed(232830643653869629, -27), fixed(465661287307739258, -27),
-         fixed(931322574615478516, -27), fixed(186264514923095703, -26),
-         fixed(372529029846191406, -26), fixed(745058059692382812, -26),
-         fixed(149011611938476562, -25), fixed(298023223876953125, -25),
-         fixed(596046447753906250, -25), fixed(119209289550781250, -24),
-         fixed(238418579101562500, -24), fixed(476837158203125000, -24),
-         fixed(953674316406250000, -24), fixed(190734863281250000, -23),
-         fixed(381469726562500000, -23), fixed(762939453125000000, -23),
-         fixed(152587890625000000, -22), fixed(305175781250000000, -22),
-         fixed(610351562500000000, -22), fixed(122070312500000000, -21),
-         fixed(244140625000000000, -21), fixed(488281250000000000, -21),
-         fixed(976562500000000000, -21), fixed(195312500000000000, -20),
-         fixed(390625000000000000, -20), fixed(781250000000000000, -20),
-         fixed(156250000000000000, -19), fixed(312500000000000000, -19),
-         fixed(625000000000000000, -19), fixed(125000000000000000, -18),
-         fixed(250000000000000000, -18), fixed(500000000000000000, -18)}};
+    static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
+        {unsigned_fixed(222044604925031308, -33), unsigned_fixed(444089209850062616, -33),
+         unsigned_fixed(888178419700125232, -33), unsigned_fixed(177635683940025046, -32),
+         unsigned_fixed(355271367880050093, -32), unsigned_fixed(710542735760100186, -32),
+         unsigned_fixed(142108547152020037, -31), unsigned_fixed(284217094304040074, -31),
+         unsigned_fixed(568434188608080149, -31), unsigned_fixed(113686837721616030, -30),
+         unsigned_fixed(227373675443232059, -30), unsigned_fixed(454747350886464119, -30),
+         unsigned_fixed(909494701772928238, -30), unsigned_fixed(181898940354585648, -29),
+         unsigned_fixed(363797880709171295, -29), unsigned_fixed(727595761418342590, -29),
+         unsigned_fixed(145519152283668518, -28), unsigned_fixed(291038304567337036, -28),
+         unsigned_fixed(582076609134674072, -28), unsigned_fixed(116415321826934814, -27),
+         unsigned_fixed(232830643653869629, -27), unsigned_fixed(465661287307739258, -27),
+         unsigned_fixed(931322574615478516, -27), unsigned_fixed(186264514923095703, -26),
+         unsigned_fixed(372529029846191406, -26), unsigned_fixed(745058059692382812, -26),
+         unsigned_fixed(149011611938476562, -25), unsigned_fixed(298023223876953125, -25),
+         unsigned_fixed(596046447753906250, -25), unsigned_fixed(119209289550781250, -24),
+         unsigned_fixed(238418579101562500, -24), unsigned_fixed(476837158203125000, -24),
+         unsigned_fixed(953674316406250000, -24), unsigned_fixed(190734863281250000, -23),
+         unsigned_fixed(381469726562500000, -23), unsigned_fixed(762939453125000000, -23),
+         unsigned_fixed(152587890625000000, -22), unsigned_fixed(305175781250000000, -22),
+         unsigned_fixed(610351562500000000, -22), unsigned_fixed(122070312500000000, -21),
+         unsigned_fixed(244140625000000000, -21), unsigned_fixed(488281250000000000, -21),
+         unsigned_fixed(976562500000000000, -21), unsigned_fixed(195312500000000000, -20),
+         unsigned_fixed(390625000000000000, -20), unsigned_fixed(781250000000000000, -20),
+         unsigned_fixed(156250000000000000, -19), unsigned_fixed(312500000000000000, -19),
+         unsigned_fixed(625000000000000000, -19), unsigned_fixed(125000000000000000, -18),
+         unsigned_fixed(250000000000000000, -18), unsigned_fixed(500000000000000000, -18)}};
 };
 
 template<typename T>
@@ -796,11 +790,11 @@ template<typename T>
 }
 
 template<typename T>
-[[nodiscard]] constexpr fixed to_fixed(const float_bits<T>& bits) {
+[[nodiscard]] constexpr signed_fixed_data to_fixed(const float_bits<T>& bits) {
     using traits    = typename float_bits<T>::traits;
     using int_exp_t = typename traits::int_exp_t;
 
-    fixed fix(0, 0);
+    unsigned_fixed fix(0, 0);
     for (std::size_t i = 0; i < traits::sig_bits; ++i) {
         if (((bits.significand >> i) & 1u) != 0u) {
             fix += traits::sig_elems[i];
@@ -810,7 +804,7 @@ template<typename T>
     const bool subnormal = bits.exponent == 0x0;
 
     if (!subnormal) {
-        fix += fixed(1, 0);
+        fix += unsigned_fixed(1, 0);
     }
 
     int_exp_t exponent = subnormal ? traits::exp_subnormal
@@ -818,17 +812,17 @@ template<typename T>
 
     if (exponent > 0) {
         do {
-            fix *= fixed(2, 0);
+            fix *= unsigned_fixed(2, 0);
             exponent -= 1;
         } while (exponent > 0);
     } else if (exponent < 0) {
         do {
-            fix *= fixed(5, -1);
+            fix *= unsigned_fixed(5, -1);
             exponent += 1;
         } while (exponent < 0);
     }
 
-    return bits.sign ? -fix : fix;
+    return {.digits = fix.digits(), .exponent = fix.exponent(), .sign = bits.sign};
 }
 } // namespace snitch::impl
 
@@ -925,34 +919,34 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
 // Minimum number of digits in the exponent, set to 2 to match std::printf.
 constexpr std::size_t min_exp_digits = 2u;
 
-[[nodiscard]] constexpr std::size_t num_exp_digits(fixed_data x) {
-    const std::size_t exp_digits =
-        num_digits(static_cast<std::size_t>(x.exponent > 0 ? x.exponent : -x.exponent));
+[[nodiscard]] constexpr std::size_t num_exp_digits(fixed_exp_t x) {
+    const std::size_t exp_digits = num_digits(static_cast<std::size_t>(x > 0 ? x : -x));
     return exp_digits < min_exp_digits ? min_exp_digits : exp_digits;
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(fixed_data x) {
+[[nodiscard]] constexpr std::size_t num_digits(const signed_fixed_data& x) {
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
-    return num_digits(static_cast<std::ptrdiff_t>(x.digits)) + num_exp_digits(x) + 3u;
+    return num_digits(static_cast<std::size_t>(x.digits)) + num_exp_digits(x.exponent) +
+           (x.sign ? 1u : 0u) + 3u;
 }
 
-constexpr std::size_t max_float_length =
-    num_digits(fixed_data{std::numeric_limits<std::int32_t>::min(), -100});
+constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
+    .digits   = std::numeric_limits<fixed_digits_t>::max(),
+    .exponent = float_traits<double>::exp_origin,
+    .sign     = true});
 
-[[nodiscard]] constexpr fixed_data set_precision(fixed fp, std::size_t p) {
-    fixed_data fd = {fp.digits(), fp.exponent()};
-
-    std::size_t base_digits =
-        num_digits(static_cast<std::size_t>(fd.digits > 0 ? fd.digits : -fd.digits));
+[[nodiscard]] constexpr signed_fixed_data set_precision(signed_fixed_data fd, std::size_t p) {
+    std::size_t base_digits = num_digits(static_cast<std::size_t>(fd.digits));
 
     while (base_digits > p) {
-        if (base_digits > p + 1) {
-            fd.digits = fd.digits / 10;
+        if (base_digits > p + 1u) {
+            fd.digits = fd.digits / 10u;
         } else {
-            fd.digits = (fd.digits + (fd.digits < 0 ? -5 : 5)) / 10;
+            fd.digits = (fd.digits + 5u) / 10u;
         }
+
         fd.exponent += 1;
         base_digits -= 1u;
     }
@@ -960,46 +954,45 @@ constexpr std::size_t max_float_length =
     return fd;
 }
 
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, fixed fp) noexcept {
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, signed_fixed_data fd) noexcept {
     // Truncate the digits of the input to the chosen precision (number of digits on both
     // sides of the decimal point). Precision must be less or equal to 9.
     constexpr std::size_t display_precision = 7u;
 
-    const fixed_data fd = set_precision(fp, display_precision);
+    fd = set_precision(fd, display_precision);
 
     // Statically allocate enough space for the biggest float,
     // then resize to the length of this particular float.
     small_string<max_float_length> tmp;
     tmp.resize(num_digits(fd));
 
-    const std::size_t exp_digits = num_exp_digits(fd);
+    const std::size_t exp_digits = num_exp_digits(fd.exponent);
 
-    // The exponent has a fixed size, so we can start by writing the main digits.
+    // The exponent has a unsigned_fixed size, so we can start by writing the main digits.
     // We write the digits with always a single digit before the decimal separator,
     // and the rest as fractional part. This will require adjusting the value of
     // the exponent later.
-    std::size_t  k            = 3u + exp_digits;
-    std::int32_t exponent_add = 0;
-    for (std::int32_t j = fd.digits > 0 ? fd.digits : -fd.digits; j != 0;
-         j /= 10, ++k, ++exponent_add) {
-        if (j < 10) {
+    std::size_t k            = 3u + exp_digits;
+    fixed_exp_t exponent_add = 0;
+    for (fixed_digits_t j = fd.digits; j != 0u; j /= 10u, ++k, ++exponent_add) {
+        if (j < 10u) {
             tmp[tmp.size() - k] = '.';
             ++k;
         }
-        tmp[tmp.size() - k] = digits[j % 10];
+        tmp[tmp.size() - k] = digits[j % 10u];
     }
 
     // Add a negative sign for negative floats.
-    if (fd.digits < 0) {
+    if (fd.sign) {
         tmp[0] = '-';
     }
 
     // Now write the exponent, adjusted for the chosen display (one digit before the decimal
     // separator).
-    const std::int32_t exponent = fd.exponent + exponent_add - 1;
+    const fixed_exp_t exponent = fd.exponent + exponent_add - 1;
 
     k = 1;
-    for (std::int32_t j = exponent > 0 ? exponent : -exponent; j != 0; j /= 10, ++k) {
+    for (fixed_exp_t j = exponent > 0 ? exponent : -exponent; j != 0; j /= 10, ++k) {
         tmp[tmp.size() - k] = digits[j % 10];
     }
 
