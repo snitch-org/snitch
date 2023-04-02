@@ -665,18 +665,18 @@ struct float_traits<float> {
     static constexpr std::size_t precision = 7u;
 
     static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
-        {unsigned_fixed(119209289550781250, -24), unsigned_fixed(238418579101562500, -24),
-         unsigned_fixed(476837158203125000, -24), unsigned_fixed(953674316406250000, -24),
-         unsigned_fixed(190734863281250000, -23), unsigned_fixed(381469726562500000, -23),
-         unsigned_fixed(762939453125000000, -23), unsigned_fixed(152587890625000000, -22),
-         unsigned_fixed(305175781250000000, -22), unsigned_fixed(610351562500000000, -22),
-         unsigned_fixed(122070312500000000, -21), unsigned_fixed(244140625000000000, -21),
-         unsigned_fixed(488281250000000000, -21), unsigned_fixed(976562500000000000, -21),
-         unsigned_fixed(195312500000000000, -20), unsigned_fixed(390625000000000000, -20),
-         unsigned_fixed(781250000000000000, -20), unsigned_fixed(156250000000000000, -19),
-         unsigned_fixed(312500000000000000, -19), unsigned_fixed(625000000000000000, -19),
-         unsigned_fixed(125000000000000000, -18), unsigned_fixed(250000000000000000, -18),
-         unsigned_fixed(500000000000000000, -18)}};
+        {unsigned_fixed(1192092895507812500u, -25), unsigned_fixed(2384185791015625000u, -25),
+         unsigned_fixed(4768371582031250000u, -25), unsigned_fixed(9536743164062500000u, -25),
+         unsigned_fixed(1907348632812500000u, -24), unsigned_fixed(3814697265625000000u, -24),
+         unsigned_fixed(7629394531250000000u, -24), unsigned_fixed(1525878906250000000u, -23),
+         unsigned_fixed(3051757812500000000u, -23), unsigned_fixed(6103515625000000000u, -23),
+         unsigned_fixed(1220703125000000000u, -22), unsigned_fixed(2441406250000000000u, -22),
+         unsigned_fixed(4882812500000000000u, -22), unsigned_fixed(9765625000000000000u, -22),
+         unsigned_fixed(1953125000000000000u, -21), unsigned_fixed(3906250000000000000u, -21),
+         unsigned_fixed(7812500000000000000u, -21), unsigned_fixed(1562500000000000000u, -20),
+         unsigned_fixed(3125000000000000000u, -20), unsigned_fixed(6250000000000000000u, -20),
+         unsigned_fixed(1250000000000000000u, -19), unsigned_fixed(2500000000000000000u, -19),
+         unsigned_fixed(5000000000000000000u, -19)}};
 };
 
 template<>
@@ -704,32 +704,32 @@ struct float_traits<double> {
     static constexpr std::size_t precision = 16u;
 
     static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
-        {unsigned_fixed(222044604925031308, -33), unsigned_fixed(444089209850062616, -33),
-         unsigned_fixed(888178419700125232, -33), unsigned_fixed(177635683940025046, -32),
-         unsigned_fixed(355271367880050093, -32), unsigned_fixed(710542735760100186, -32),
-         unsigned_fixed(142108547152020037, -31), unsigned_fixed(284217094304040074, -31),
-         unsigned_fixed(568434188608080149, -31), unsigned_fixed(113686837721616030, -30),
-         unsigned_fixed(227373675443232059, -30), unsigned_fixed(454747350886464119, -30),
-         unsigned_fixed(909494701772928238, -30), unsigned_fixed(181898940354585648, -29),
-         unsigned_fixed(363797880709171295, -29), unsigned_fixed(727595761418342590, -29),
-         unsigned_fixed(145519152283668518, -28), unsigned_fixed(291038304567337036, -28),
-         unsigned_fixed(582076609134674072, -28), unsigned_fixed(116415321826934814, -27),
-         unsigned_fixed(232830643653869629, -27), unsigned_fixed(465661287307739258, -27),
-         unsigned_fixed(931322574615478516, -27), unsigned_fixed(186264514923095703, -26),
-         unsigned_fixed(372529029846191406, -26), unsigned_fixed(745058059692382812, -26),
-         unsigned_fixed(149011611938476562, -25), unsigned_fixed(298023223876953125, -25),
-         unsigned_fixed(596046447753906250, -25), unsigned_fixed(119209289550781250, -24),
-         unsigned_fixed(238418579101562500, -24), unsigned_fixed(476837158203125000, -24),
-         unsigned_fixed(953674316406250000, -24), unsigned_fixed(190734863281250000, -23),
-         unsigned_fixed(381469726562500000, -23), unsigned_fixed(762939453125000000, -23),
-         unsigned_fixed(152587890625000000, -22), unsigned_fixed(305175781250000000, -22),
-         unsigned_fixed(610351562500000000, -22), unsigned_fixed(122070312500000000, -21),
-         unsigned_fixed(244140625000000000, -21), unsigned_fixed(488281250000000000, -21),
-         unsigned_fixed(976562500000000000, -21), unsigned_fixed(195312500000000000, -20),
-         unsigned_fixed(390625000000000000, -20), unsigned_fixed(781250000000000000, -20),
-         unsigned_fixed(156250000000000000, -19), unsigned_fixed(312500000000000000, -19),
-         unsigned_fixed(625000000000000000, -19), unsigned_fixed(125000000000000000, -18),
-         unsigned_fixed(250000000000000000, -18), unsigned_fixed(500000000000000000, -18)}};
+        {unsigned_fixed(2220446049250313081u, -34), unsigned_fixed(4440892098500626162u, -34),
+         unsigned_fixed(8881784197001252323u, -34), unsigned_fixed(1776356839400250465u, -33),
+         unsigned_fixed(3552713678800500929u, -33), unsigned_fixed(7105427357601001859u, -33),
+         unsigned_fixed(1421085471520200372u, -32), unsigned_fixed(2842170943040400743u, -32),
+         unsigned_fixed(5684341886080801487u, -32), unsigned_fixed(1136868377216160297u, -31),
+         unsigned_fixed(2273736754432320595u, -31), unsigned_fixed(4547473508864641190u, -31),
+         unsigned_fixed(9094947017729282379u, -31), unsigned_fixed(1818989403545856476u, -30),
+         unsigned_fixed(3637978807091712952u, -30), unsigned_fixed(7275957614183425903u, -30),
+         unsigned_fixed(1455191522836685181u, -29), unsigned_fixed(2910383045673370361u, -29),
+         unsigned_fixed(5820766091346740723u, -29), unsigned_fixed(1164153218269348145u, -28),
+         unsigned_fixed(2328306436538696289u, -28), unsigned_fixed(4656612873077392578u, -28),
+         unsigned_fixed(9313225746154785156u, -28), unsigned_fixed(1862645149230957031u, -27),
+         unsigned_fixed(3725290298461914062u, -27), unsigned_fixed(7450580596923828125u, -27),
+         unsigned_fixed(1490116119384765625u, -26), unsigned_fixed(2980232238769531250u, -26),
+         unsigned_fixed(5960464477539062500u, -26), unsigned_fixed(1192092895507812500u, -25),
+         unsigned_fixed(2384185791015625000u, -25), unsigned_fixed(4768371582031250000u, -25),
+         unsigned_fixed(9536743164062500000u, -25), unsigned_fixed(1907348632812500000u, -24),
+         unsigned_fixed(3814697265625000000u, -24), unsigned_fixed(7629394531250000000u, -24),
+         unsigned_fixed(1525878906250000000u, -23), unsigned_fixed(3051757812500000000u, -23),
+         unsigned_fixed(6103515625000000000u, -23), unsigned_fixed(1220703125000000000u, -22),
+         unsigned_fixed(2441406250000000000u, -22), unsigned_fixed(4882812500000000000u, -22),
+         unsigned_fixed(9765625000000000000u, -22), unsigned_fixed(1953125000000000000u, -21),
+         unsigned_fixed(3906250000000000000u, -21), unsigned_fixed(7812500000000000000u, -21),
+         unsigned_fixed(1562500000000000000u, -20), unsigned_fixed(3125000000000000000u, -20),
+         unsigned_fixed(6250000000000000000u, -20), unsigned_fixed(1250000000000000000u, -19),
+         unsigned_fixed(2500000000000000000u, -19), unsigned_fixed(5000000000000000000u, -19)}};
 };
 
 template<typename T>
