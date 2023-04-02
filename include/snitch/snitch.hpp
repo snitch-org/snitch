@@ -537,9 +537,13 @@ constexpr unpacked64 unpack10(std::uint64_t v) noexcept {
 class unsigned_fixed {
     unsigned_fixed_data data = {};
 
-    constexpr void raise_exponent(fixed_exp_t new_exponent) noexcept {
+    constexpr void raise_exponent_to(fixed_exp_t new_exponent) noexcept {
         do {
-            data.digits = (data.digits + 5u) / 10u;
+            if (data.exponent < new_exponent - 1) {
+                data.digits = data.digits / 10u;
+            } else {
+                data.digits = (data.digits + 5u) / 10u;
+            }
             data.exponent += 1;
         } while (data.exponent < new_exponent);
     }
@@ -584,14 +588,18 @@ public:
     }
 
     friend constexpr unsigned_fixed operator+(unsigned_fixed f1, unsigned_fixed f2) noexcept {
+        // Bring both numbers to the same exponent before summing.
+        // To prevent overflow: add one to the exponent.
         if (f1.data.exponent > f2.data.exponent) {
-            f2.raise_exponent(f1.data.exponent);
+            f1.raise_exponent();
+            f2.raise_exponent_to(f1.data.exponent + 1);
         } else if (f1.data.exponent < f2.data.exponent) {
-            f1.raise_exponent(f2.data.exponent);
+            f1.raise_exponent_to(f2.data.exponent + 1);
+            f2.raise_exponent();
+        } else {
+            f1.raise_exponent();
+            f2.raise_exponent();
         }
-
-        f1.raise_exponent();
-        f2.raise_exponent();
 
         return unsigned_fixed(f1.data.digits + f2.data.digits, f1.data.exponent);
     }
@@ -602,13 +610,26 @@ public:
 
     friend constexpr unsigned_fixed
     operator*(const unsigned_fixed f1, const unsigned_fixed f2) noexcept {
+        // To prevent overflow: split each number as f = l + u * 1e10, with l and u < 1e10,
+        // then develop the multiplication of each component, rounding the least significant
+        // components.
         const auto [l1, u1] = unpack10(f1.data.digits);
         const auto [l2, u2] = unpack10(f2.data.digits);
 
-        const fixed_digits_t l =
-            l1 * u2 / 10u + l2 * u1 / 10u + (l1 * l2 / 10u + 500'000'000) / 10'000'000'000;
-        return unsigned_fixed(
-            u1 * u2 + (l + 500'000'000) / 1'000'000'000, f1.data.exponent + f2.data.exponent + 20);
+        // For simplicity, we ignore the term (l1*l2), since it would at most
+        // contribute to changing the last digit of the output integer.
+
+        // For the (l1*u2 + l2*u1) term, divide by 10 and round each component,
+        // since the addition may overflow.
+        fixed_digits_t l = (l1 * u2 + 5u) / 10u + (l2 * u1 + 5u) / 10u;
+        // Then shift the digits to the right, with rounding.
+        l = (l + 500'000'000) / 1'000'000'000;
+
+        // u1*u2 is straightforward.
+        const fixed_digits_t u = u1 * u2;
+
+        // Adding back the lower part cannot overflow.
+        return unsigned_fixed(u + l, f1.data.exponent + f2.data.exponent + 20);
     }
 
     constexpr unsigned_fixed& operator*=(const unsigned_fixed f) noexcept {
