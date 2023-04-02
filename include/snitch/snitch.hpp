@@ -511,7 +511,7 @@ public:
 // --------------------------------------
 
 namespace snitch::impl {
-using fixed_digits_t = std::uint32_t;
+using fixed_digits_t = std::uint64_t;
 using fixed_exp_t    = std::int32_t;
 
 struct unsigned_fixed_data {
@@ -525,44 +525,40 @@ struct signed_fixed_data {
     bool           sign     = false;
 };
 
+struct unpacked64 {
+    std::uint64_t l;
+    std::uint64_t u;
+};
+
+constexpr unpacked64 unpack10(std::uint64_t v) noexcept {
+    return {v % 10'000'000'000, v / 10'000'000'000};
+}
+
 class unsigned_fixed {
     unsigned_fixed_data data = {};
 
-    constexpr unsigned_fixed to_exponent(fixed_exp_t new_exponent) const noexcept {
-        unsigned_fixed r = *this;
+    constexpr void raise_exponent(fixed_exp_t new_exponent) noexcept {
+        do {
+            data.digits = (data.digits + 5u) / 10u;
+            data.exponent += 1;
+        } while (data.exponent < new_exponent);
+    }
 
-        if (r.data.exponent > new_exponent) {
-            do {
-                r.data.digits *= 10u;
-                r.data.exponent -= 1;
-            } while (r.data.exponent > new_exponent);
-        } else if (r.data.exponent < new_exponent) {
-            do {
-                r.data.digits = (r.data.digits + 5u) / 10u;
-                r.data.exponent += 1;
-            } while (r.data.exponent < new_exponent);
-        }
-
-        return r;
+    constexpr void raise_exponent() noexcept {
+        data.digits = (data.digits + 5u) / 10u;
+        data.exponent += 1;
     }
 
     using high_precision_t = std::uint64_t;
 
-    constexpr unsigned_fixed(unsigned_fixed_data d) noexcept : data(d) {}
-
 public:
-    constexpr unsigned_fixed(high_precision_t digits_in, fixed_exp_t exponent_in) noexcept {
+    constexpr unsigned_fixed(fixed_digits_t digits_in, fixed_exp_t exponent_in) noexcept {
         // Normalise inputs so that we maximize the number of digits stored.
         if (digits_in > 0) {
             constexpr high_precision_t cap_up  = std::numeric_limits<fixed_digits_t>::max();
             constexpr high_precision_t cap_low = cap_up / 10u;
 
-            if (digits_in > cap_up) {
-                do {
-                    digits_in = (digits_in + 5u) / 10u;
-                    exponent_in += 1;
-                } while (digits_in > cap_up);
-            } else if (digits_in < cap_low) {
+            if (digits_in < cap_low) {
                 do {
                     digits_in *= 10u;
                     exponent_in -= 1;
@@ -575,7 +571,7 @@ public:
             exponent_in = -1024;
         }
 
-        data.digits   = static_cast<fixed_digits_t>(digits_in);
+        data.digits   = digits_in;
         data.exponent = exponent_in;
     }
 
@@ -587,29 +583,32 @@ public:
         return data.exponent;
     }
 
-    constexpr unsigned_fixed operator+(const unsigned_fixed f) const noexcept {
-        if (data.exponent == f.data.exponent) {
-            return unsigned_fixed(
-                static_cast<high_precision_t>(data.digits) + f.data.digits, data.exponent);
-        } else if (data.exponent > f.data.exponent) {
-            const auto fn = f.to_exponent(data.exponent);
-            return unsigned_fixed(
-                static_cast<high_precision_t>(data.digits) + fn.data.digits, data.exponent);
-        } else {
-            const auto fn = this->to_exponent(f.data.exponent);
-            return unsigned_fixed(
-                static_cast<high_precision_t>(fn.data.digits) + f.data.digits, f.data.exponent);
+    friend constexpr unsigned_fixed operator+(unsigned_fixed f1, unsigned_fixed f2) noexcept {
+        if (f1.data.exponent > f2.data.exponent) {
+            f2.raise_exponent(f1.data.exponent);
+        } else if (f1.data.exponent < f2.data.exponent) {
+            f1.raise_exponent(f2.data.exponent);
         }
+
+        f1.raise_exponent();
+        f2.raise_exponent();
+
+        return unsigned_fixed(f1.data.digits + f2.data.digits, f1.data.exponent);
     }
 
     constexpr unsigned_fixed& operator+=(const unsigned_fixed f) noexcept {
         return *this = *this + f;
     }
 
-    constexpr unsigned_fixed operator*(const unsigned_fixed f) const noexcept {
+    friend constexpr unsigned_fixed
+    operator*(const unsigned_fixed f1, const unsigned_fixed f2) noexcept {
+        const auto [l1, u1] = unpack10(f1.data.digits);
+        const auto [l2, u2] = unpack10(f2.data.digits);
+
+        const fixed_digits_t l =
+            l1 * u2 / 10u + l2 * u1 / 10u + (l1 * l2 / 10u + 500'000'000) / 10'000'000'000;
         return unsigned_fixed(
-            static_cast<high_precision_t>(data.digits) * f.data.digits,
-            data.exponent + f.data.exponent);
+            u1 * u2 + (l + 500'000'000) / 1'000'000'000, f1.data.exponent + f2.data.exponent + 20);
     }
 
     constexpr unsigned_fixed& operator*=(const unsigned_fixed f) noexcept {
@@ -641,6 +640,8 @@ struct float_traits<float> {
     static constexpr bits_exp_t exp_bits_special = 0xff;
     static constexpr bits_sig_t sig_bits_nan     = 0x400000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
+
+    static constexpr std::size_t precision = 7u;
 
     static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
         {unsigned_fixed(119209289550781250, -24), unsigned_fixed(238418579101562500, -24),
@@ -678,6 +679,8 @@ struct float_traits<double> {
     static constexpr bits_exp_t exp_bits_special = 0x7ff;
     static constexpr bits_sig_t sig_bits_nan     = 0x8000000000000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
+
+    static constexpr std::size_t precision = 16u;
 
     static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
         {unsigned_fixed(222044604925031308, -33), unsigned_fixed(444089209850062616, -33),
@@ -938,6 +941,9 @@ constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
     .sign     = true});
 
 [[nodiscard]] constexpr signed_fixed_data set_precision(signed_fixed_data fd, std::size_t p) {
+    // Truncate the digits of the input to the chosen precision (number of digits on both
+    // sides of the decimal point). Precision must be less or equal to 19.
+
     std::size_t base_digits = num_digits(static_cast<std::size_t>(fd.digits));
 
     while (base_digits > p) {
@@ -955,12 +961,6 @@ constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
 }
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, signed_fixed_data fd) noexcept {
-    // Truncate the digits of the input to the chosen precision (number of digits on both
-    // sides of the decimal point). Precision must be less or equal to 9.
-    constexpr std::size_t display_precision = 7u;
-
-    fd = set_precision(fd, display_precision);
-
     // Statically allocate enough space for the biggest float,
     // then resize to the length of this particular float.
     small_string<max_float_length> tmp;
@@ -1022,13 +1022,13 @@ template<floating_point T>
         if (bits.exponent == 0x0) {
             if (bits.significand == 0x0) {
                 // Zero.
-                constexpr std::string_view plus_zero_str  = "0.000000e+00";
-                constexpr std::string_view minus_zero_str = "-0.000000e+00";
-                return bits.sign ? append_constexpr(ss, minus_zero_str)
-                                 : append_constexpr(ss, plus_zero_str);
+                constexpr std::string_view zeros = "000000000000000000";
+                return append_constexpr(ss, bits.sign ? "-0." : "0.") &&
+                       append_constexpr(ss, zeros.substr(0, traits::precision - 1)) &&
+                       append_constexpr(ss, "e+00");
             } else {
                 // Subnormals.
-                return append_constexpr(ss, to_fixed(bits));
+                return append_constexpr(ss, set_precision(to_fixed(bits), traits::precision));
             }
         } else if (bits.exponent == traits::exp_bits_special) {
             if (bits.significand == traits::sig_bits_inf) {
@@ -1044,7 +1044,7 @@ template<floating_point T>
             }
         } else {
             // Normal number.
-            return append_constexpr(ss, to_fixed(bits));
+            return append_constexpr(ss, set_precision(to_fixed(bits), traits::precision));
         }
     } else {
         constexpr std::string_view unknown_str = "?";
