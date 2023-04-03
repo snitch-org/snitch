@@ -648,8 +648,9 @@ struct float_traits<float> {
 
     using int_exp_t = std::int32_t;
 
-    static constexpr bits_full_t bits     = 8 * sizeof(bits_full_t);
+    static constexpr bits_full_t bits     = 8u * sizeof(bits_full_t);
     static constexpr bits_full_t sig_bits = 23u;
+    static constexpr bits_full_t exp_bits = bits - sig_bits - 1u;
 
     static constexpr bits_full_t sign_mask = bits_full_t{1u} << (bits - 1u);
     static constexpr bits_full_t sig_mask  = (bits_full_t{1u} << sig_bits) - 1u;
@@ -687,8 +688,9 @@ struct float_traits<double> {
 
     using int_exp_t = std::int32_t;
 
-    static constexpr bits_full_t bits     = 8 * sizeof(bits_full_t);
+    static constexpr bits_full_t bits     = 8u * sizeof(bits_full_t);
     static constexpr bits_full_t sig_bits = 52u;
+    static constexpr bits_full_t exp_bits = bits - sig_bits - 1u;
 
     static constexpr bits_full_t sign_mask = bits_full_t{1u} << (bits - 1u);
     static constexpr bits_full_t sig_mask  = (bits_full_t{1u} << sig_bits) - 1u;
@@ -829,49 +831,25 @@ template<typename T>
 constexpr void apply_binary_exponent(
     unsigned_fixed& fix, std::size_t mul_div, typename float_bits<T>::traits::int_exp_t exponent) {
 
-    do {
-        if (exponent >= 512) {
-            fix *= binary_table[mul_div][9u];
-            exponent -= 512;
-        } else if (exponent >= 256) {
-            fix *= binary_table[mul_div][8u];
-            exponent -= 256;
-        } else if (exponent >= 128) {
-            fix *= binary_table[mul_div][7u];
-            exponent -= 128;
-        } else if (exponent >= 64) {
-            fix *= binary_table[mul_div][6u];
-            exponent -= 64;
-        } else if (exponent >= 32) {
-            fix *= binary_table[mul_div][5u];
-            exponent -= 32;
-        } else if (exponent >= 16) {
-            fix *= binary_table[mul_div][4u];
-            exponent -= 16;
-        } else if (exponent >= 8) {
-            fix *= binary_table[mul_div][3u];
-            exponent -= 8;
-        } else if (exponent >= 4) {
-            fix *= binary_table[mul_div][2u];
-            exponent -= 4;
-        } else if (exponent >= 2) {
-            fix *= binary_table[mul_div][1u];
-            exponent -= 2;
-        } else {
-            fix *= binary_table[mul_div][0u];
-            exponent -= 1;
+    using traits    = typename float_bits<T>::traits;
+    using int_exp_t = typename traits::int_exp_t;
+
+    for (std::size_t i = 0; i < traits::exp_bits - 1; ++i) {
+        if ((exponent & (static_cast<int_exp_t>(1) << i)) != 0u) {
+            fix *= binary_table[mul_div][i];
         }
-    } while (exponent > 0);
+    }
 }
 
 template<typename T>
 [[nodiscard]] constexpr signed_fixed_data to_fixed(const float_bits<T>& bits) {
-    using traits    = typename float_bits<T>::traits;
-    using int_exp_t = typename traits::int_exp_t;
+    using traits     = typename float_bits<T>::traits;
+    using bits_sig_t = typename traits::bits_sig_t;
+    using int_exp_t  = typename traits::int_exp_t;
 
     unsigned_fixed fix(0, 0);
-    for (std::size_t i = 0; i < traits::sig_bits; ++i) {
-        if (((bits.significand >> i) & 1u) != 0u) {
+    for (bits_sig_t i = 0; i < traits::sig_bits; ++i) {
+        if ((bits.significand & (static_cast<bits_sig_t>(1u) << i)) != 0u) {
             fix += traits::sig_elems[i];
         }
     }
