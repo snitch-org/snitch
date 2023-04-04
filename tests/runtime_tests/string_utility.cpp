@@ -35,7 +35,7 @@ struct append_result {
 
     constexpr bool operator==(const append_expected& o) const {
         return success == o.success &&
-               (o.start_with ? std::string_view(str.begin(), str.end()).starts_with(o.str)
+               (o.start_with ? std::string_view(str.data(), str.size()).starts_with(o.str)
                              : str == o.str);
     }
 };
