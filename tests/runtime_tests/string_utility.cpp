@@ -9,114 +9,12 @@ constexpr std::size_t max_length = 20u;
 
 using string_type = snitch::small_string<max_length>;
 
-enum class enum_type { value1 = 0, value2 = 12 };
+enum class enum_type { value1 = 0, value2 = 12, value3 = 123456 };
 
-using function_ptr_type1 = void (*)();
-using function_ptr_type2 = void (*)(int);
+using function_ptr_type = void (*)();
 
 void foo() {}
 } // namespace
-
-TEMPLATE_TEST_CASE(
-    "append",
-    "[utility]",
-    int,
-    unsigned int,
-    std::ptrdiff_t,
-    std::size_t,
-    float,
-    double,
-    bool,
-    void*,
-    const void*,
-    std::nullptr_t,
-    std::string_view,
-    enum_type,
-    function_ptr_type1,
-    function_ptr_type2) {
-
-    auto create_value = []() -> std::pair<TestType, std::string_view> {
-        if constexpr (std::is_same_v<TestType, int>) {
-            return {-112, "-112"sv};
-        } else if constexpr (std::is_same_v<TestType, unsigned int>) {
-            return {203u, "203"sv};
-        } else if constexpr (std::is_same_v<TestType, std::ptrdiff_t>) {
-            return {-546876, "-546876"sv};
-        } else if constexpr (std::is_same_v<TestType, std::size_t>) {
-            return {26545u, "26545"sv};
-        } else if constexpr (std::is_same_v<TestType, float>) {
-            return {3.1415f, "3.141500e+00"sv};
-        } else if constexpr (std::is_same_v<TestType, double>) {
-            return {-0.0001, "-1.000000e-04"sv};
-        } else if constexpr (std::is_same_v<TestType, bool>) {
-            return {true, "true"sv};
-        } else if constexpr (std::is_same_v<TestType, void*>) {
-            static int i = 0;
-            return {&i, "0x"sv};
-        } else if constexpr (std::is_same_v<TestType, const void*>) {
-            static const int i = 0;
-            return {&i, "0x"sv};
-        } else if constexpr (std::is_same_v<TestType, std::nullptr_t>) {
-            return {{}, "nullptr"};
-        } else if constexpr (std::is_same_v<TestType, std::string_view>) {
-            return {"hello"sv, "hello"sv};
-        } else if constexpr (std::is_same_v<TestType, enum_type>) {
-            return {enum_type::value2, "12"sv};
-        } else if constexpr (std::is_same_v<TestType, function_ptr_type1>) {
-            return {&foo, "0x????????"sv};
-        } else if constexpr (std::is_same_v<TestType, function_ptr_type2>) {
-            return {nullptr, "nullptr"sv};
-        }
-    };
-
-    SECTION("on empty") {
-        string_type s;
-
-        auto [value, expected] = create_value();
-        CHECK(append(s, value));
-
-        if constexpr (
-            !std::is_pointer_v<TestType> || std::is_function_v<std::remove_pointer_t<TestType>>) {
-            CHECK(std::string_view(s) == expected);
-        } else {
-#if defined(SNITCH_COMPILER_MSVC)
-            CHECK(std::string_view(s).size() > 0u);
-#else
-            CHECK(std::string_view(s).starts_with(expected));
-#endif
-        }
-    }
-
-    SECTION("on partially full") {
-        std::string_view initial = "abcdefghijklmnopqr"sv;
-        string_type      s       = initial;
-
-        auto [value, expected] = create_value();
-        CHECK(!append(s, value));
-        CHECK(std::string_view(s).starts_with(initial));
-        if constexpr (
-            (std::is_arithmetic_v<TestType> && !std::is_same_v<TestType, bool>) ||
-            (std::is_pointer_v<TestType> && !std::is_function_v<std::remove_pointer_t<TestType>>) ||
-            std::is_enum_v<TestType>) {
-            // We are stuck with snprintf, which insists on writing a null-terminator character,
-            // therefore we loose one character at the end.
-            CHECK(s.size() == max_length - 1u);
-            CHECK(expected.substr(0, 1) == std::string_view(s).substr(s.size() - 1, 1));
-        } else {
-            CHECK(s.size() == max_length);
-            CHECK(expected.substr(0, 2) == std::string_view(s).substr(s.size() - 2, 2));
-        }
-    }
-
-    SECTION("on full") {
-        std::string_view initial = "abcdefghijklmnopqrst"sv;
-        string_type      s       = initial;
-
-        auto [value, expected] = create_value();
-        CHECK(!append(s, value));
-        CHECK(std::string_view(s) == initial);
-    }
-}
 
 namespace append_test {
 struct append_expected {
@@ -207,7 +105,7 @@ constexpr bool append(snitch::small_string_span s, const append_expected_diff& r
 #endif
 } // namespace append_test
 
-TEST_CASE("constexpr append", "[utility]") {
+TEST_CASE("append", "[utility]") {
     using ae  = append_test::append_expected;
     using aed = append_test::append_expected_diff;
 
@@ -277,6 +175,13 @@ TEST_CASE("constexpr append", "[utility]") {
 
         CONSTEXPR_CHECK(a(nullptr) == ae{"nullptr"sv, true});
         CONSTEXPR_CHECK(a(b{}.get()) == aed{{"0x????????"sv, true}, {"0x"sv, true, true}});
+
+        constexpr auto b = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
+
+        CONSTEXPR_CHECK(b(static_cast<function_ptr_type>(nullptr)) == ae{"nullptr"sv, true});
+        CONSTEXPR_CHECK(b(&foo) == ae{"0x????????"sv, true});
     }
 
     SECTION("pointers don't fit") {
@@ -371,6 +276,27 @@ TEST_CASE("constexpr append", "[utility]") {
         CONSTEXPR_CHECK(a(12345678u) == aed{{"12345"sv, false}, {"1234"sv, false}});
     }
 
+    SECTION("enums do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
+
+        CONSTEXPR_CHECK(a(enum_type::value1) == ae{"0", true});
+        CONSTEXPR_CHECK(a(enum_type::value2) == ae{"12", true});
+        CONSTEXPR_CHECK(a(enum_type::value3) == ae{"123456", true});
+    }
+
+    SECTION("enums don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<3, false>(value);
+        };
+
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(enum_type::value3) == aed{{"123", false}, {"12", false}});
+    }
+
     SECTION("floats do fit") {
         constexpr auto a = [](const auto& value) constexpr {
             return append_test::to_string<21, true>(value);
@@ -439,7 +365,7 @@ TEST_CASE("constexpr append", "[utility]") {
     }
 
 #if 0
-    // This takes a long time, and a few floats (0.05%) don't match exactly.
+    // This takes a long time, and a few floats (0.2%) don't match exactly.
     SECTION("constexpr floats match printf(%e)") {
         const float mi = -std::numeric_limits<float>::max();
         const float ma = std::numeric_limits<float>::max();
