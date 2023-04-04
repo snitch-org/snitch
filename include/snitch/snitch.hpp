@@ -801,10 +801,10 @@ template<typename T>
 
         if (b.exponent == 0u) {
             // Sub-normals
-            f *= static_cast<T>(2u << (traits::sig_bits - 2u));
+            f *= static_cast<T>(static_cast<bits_sig_t>(2u) << (traits::sig_bits - 2u));
         } else {
             // Normals
-            f *= static_cast<T>(2u << (traits::sig_bits - 1u));
+            f *= static_cast<T>(static_cast<bits_sig_t>(2u) << (traits::sig_bits - 1u));
         }
 
         b.significand = static_cast<bits_sig_t>(static_cast<bits_full_t>(f) & traits::sig_mask);
