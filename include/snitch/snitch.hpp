@@ -834,6 +834,9 @@ constexpr void apply_binary_exponent(
     using traits    = typename float_bits<T>::traits;
     using int_exp_t = typename traits::int_exp_t;
 
+    // MB: We skip the last bit of the exponent. One bit was lost to generate the sign.
+    // In other words, for float binary32, although the exponent is encoded on 8 bits, the value
+    // can range from -126 to +127, hence the maximum absolute value is 127, which fits on 7 bits.
     for (std::size_t i = 0; i < traits::exp_bits - 1; ++i) {
         if ((exponent & (static_cast<int_exp_t>(1) << i)) != 0u) {
             fix *= binary_table[mul_div][i];
