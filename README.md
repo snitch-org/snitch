@@ -390,7 +390,7 @@ Same as `CHECK_THAT(EXPR)` but with operands evaluated at compile-time.
 
 The macros in this section evaluate their operands both are compile-time and at run-time. To benefit from the run-time infrastructure of _snitch_ (allowed failures, custom reporter, etc.), the test report is still generated at run-time regardless of the above. However, if the operands cannot be evaluated at compile-time, a compiler error will be generated.
 
-These macros are recommended for testing `constexpr` functions, which can be evaluated both at compile-time and at run-time. Since the operands are also evaluated at run-time, the test will contribute to the coverage analysis (if any), which is impossible for purely compile-time tests (e.g., `CONSTEVAL_*` macros above).
+These macros are recommended for testing `constexpr` functions, which can be evaluated both at compile-time and at run-time. Since the operands are also evaluated at run-time, the test will contribute to the coverage analysis (if any), which is otherwise impossible for purely compile-time tests (e.g., `CONSTEVAL_*` macros above).
 
 `CONSTEXPR_REQUIRE(EXPR);`
 
