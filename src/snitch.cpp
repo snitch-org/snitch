@@ -1,6 +1,7 @@
 #include "snitch/snitch.hpp"
 
 #include <algorithm> // for std::sort
+#include <cinttypes> // for format strings
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
@@ -50,10 +51,10 @@ template<typename T>
 constexpr const char* get_format_code() noexcept {
     if constexpr (std::is_same_v<T, const void*>) {
         return "%p";
-    } else if constexpr (std::is_same_v<T, std::size_t>) {
-        return "%zu";
-    } else if constexpr (std::is_same_v<T, std::ptrdiff_t>) {
-        return "%td";
+    } else if constexpr (std::is_same_v<T, std::uintmax_t>) {
+        return "%" PRIuMAX;
+    } else if constexpr (std::is_same_v<T, std::intmax_t>) {
+        return "%" PRIdMAX;
     } else if constexpr (std::is_same_v<T, float>) {
         return "%.6e";
     } else if constexpr (std::is_same_v<T, double>) {
@@ -120,11 +121,11 @@ bool append_fast(small_string_span ss, const void* ptr) noexcept {
     }
 }
 
-bool append_fast(small_string_span ss, std::size_t i) noexcept {
+bool append_fast(small_string_span ss, large_uint_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append_fast(small_string_span ss, std::ptrdiff_t i) noexcept {
+bool append_fast(small_string_span ss, large_int_t i) noexcept {
     return append_fmt(ss, i);
 }
 

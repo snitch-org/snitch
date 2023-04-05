@@ -853,7 +853,7 @@ template<typename T>
     unsigned_fixed fix(0, 0);
     for (bits_sig_t i = 0; i < traits::sig_bits; ++i) {
         if ((bits.significand & (static_cast<bits_sig_t>(1u) << i)) != 0u) {
-            fix += traits::sig_elems[i];
+            fix += traits::sig_elems[static_cast<std::size_t>(i)];
         }
     }
 
@@ -894,13 +894,24 @@ concept convertible_to = std::is_convertible_v<T, U>;
 
 template<typename T>
 concept enumeration = std::is_enum_v<T>;
+
+// These types are used to define the largest printable integer types.
+// In C++, integer literals must fit on uintmax_t/intmax_t, so these are good candidates.
+// They aren't perfect though. On most 64 bit platforms they are defined as 64 bit integers,
+// even though those platforms usually support 128 bit integers.
+using large_uint_t = std::uintmax_t;
+using large_int_t  = std::intmax_t;
+
+static_assert(
+    sizeof(large_uint_t) >= sizeof(impl::fixed_digits_t),
+    "large_uint_t is too small to support the float-to-fixed-point conversion implementation");
 } // namespace snitch
 
 namespace snitch::impl {
 [[nodiscard]] bool append_fast(small_string_span ss, std::string_view str) noexcept;
 [[nodiscard]] bool append_fast(small_string_span ss, const void* ptr) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, std::size_t i) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, std::ptrdiff_t i) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, large_uint_t i) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, large_int_t i) noexcept;
 [[nodiscard]] bool append_fast(small_string_span ss, float f) noexcept;
 [[nodiscard]] bool append_fast(small_string_span ss, double f) noexcept;
 
@@ -917,24 +928,24 @@ namespace snitch::impl {
     return could_fit;
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(std::size_t x) {
+[[nodiscard]] constexpr std::size_t num_digits(large_uint_t x) {
     return x >= 10u ? 1u + num_digits(x / 10u) : 1u;
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(std::ptrdiff_t x) {
+[[nodiscard]] constexpr std::size_t num_digits(large_int_t x) {
     return x >= 10 ? 1u + num_digits(x / 10) : x <= -10 ? 1u + num_digits(x / 10) : x > 0 ? 1u : 2u;
 }
 
 constexpr std::array<char, 10> digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-constexpr std::size_t max_uint_length = num_digits(std::numeric_limits<std::size_t>::max());
+constexpr std::size_t max_uint_length = num_digits(std::numeric_limits<large_uint_t>::max());
 constexpr std::size_t max_int_length  = max_uint_length + 1;
 
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::size_t i) noexcept {
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_uint_t i) noexcept {
     if (i != 0u) {
         small_string<max_uint_length> tmp;
         tmp.resize(num_digits(i));
         std::size_t k = 1;
-        for (std::size_t j = i; j != 0u; j /= 10u, ++k) {
+        for (large_uint_t j = i; j != 0u; j /= 10u, ++k) {
             tmp[tmp.size() - k] = digits[j % 10u];
         }
         return append_constexpr(ss, tmp);
@@ -943,12 +954,12 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
     }
 }
 
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::ptrdiff_t i) noexcept {
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_int_t i) noexcept {
     if (i > 0) {
         small_string<max_int_length> tmp;
         tmp.resize(num_digits(i));
         std::size_t k = 1;
-        for (std::ptrdiff_t j = i; j != 0; j /= 10, ++k) {
+        for (large_int_t j = i; j != 0; j /= 10, ++k) {
             tmp[tmp.size() - k] = digits[j % 10];
         }
         return append_constexpr(ss, tmp);
@@ -956,7 +967,7 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
         small_string<max_int_length> tmp;
         tmp.resize(num_digits(i));
         std::size_t k = 1;
-        for (std::ptrdiff_t j = i; j != 0; j /= 10, ++k) {
+        for (large_int_t j = i; j != 0; j /= 10, ++k) {
             tmp[tmp.size() - k] = digits[-(j % 10)];
         }
         tmp[0] = '-';
@@ -970,7 +981,7 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
 constexpr std::size_t min_exp_digits = 2u;
 
 [[nodiscard]] constexpr std::size_t num_exp_digits(fixed_exp_t x) {
-    const std::size_t exp_digits = num_digits(static_cast<std::size_t>(x > 0 ? x : -x));
+    const std::size_t exp_digits = num_digits(static_cast<large_uint_t>(x > 0 ? x : -x));
     return exp_digits < min_exp_digits ? min_exp_digits : exp_digits;
 }
 
@@ -978,7 +989,7 @@ constexpr std::size_t min_exp_digits = 2u;
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
-    return num_digits(static_cast<std::size_t>(x.digits)) + num_exp_digits(x.exponent) +
+    return num_digits(static_cast<large_uint_t>(x.digits)) + num_exp_digits(x.exponent) +
            (x.sign ? 1u : 0u) + 3u;
 }
 
@@ -991,7 +1002,7 @@ constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
     // Truncate the digits of the input to the chosen precision (number of digits on both
     // sides of the decimal point). Precision must be less or equal to 19.
 
-    std::size_t base_digits = num_digits(static_cast<std::size_t>(fd.digits));
+    std::size_t base_digits = num_digits(static_cast<large_uint_t>(fd.digits));
 
     while (base_digits > p) {
         if (base_digits > p + 1u) {
@@ -1132,14 +1143,14 @@ namespace snitch {
     return append(ss, nullptr_str);
 }
 
-[[nodiscard]] constexpr bool append(small_string_span ss, std::size_t i) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, large_uint_t i) noexcept {
     if (std::is_constant_evaluated()) {
         return impl::append_constexpr(ss, i);
     } else {
         return impl::append_fast(ss, i);
     }
 }
-[[nodiscard]] constexpr bool append(small_string_span ss, std::ptrdiff_t i) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, large_int_t i) noexcept {
     if (std::is_constant_evaluated()) {
         return impl::append_constexpr(ss, i);
     } else {
@@ -1192,12 +1203,12 @@ template<std::size_t N>
 
 template<signed_integral T>
 [[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
-    return append(ss, static_cast<std::ptrdiff_t>(value));
+    return append(ss, static_cast<large_int_t>(value));
 }
 
 template<unsigned_integral T>
 [[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
-    return append(ss, static_cast<std::size_t>(value));
+    return append(ss, static_cast<large_uint_t>(value));
 }
 
 template<enumeration T>

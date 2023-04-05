@@ -203,9 +203,9 @@ TEST_CASE("append", "[utility]") {
     SECTION("integers do fit") {
         constexpr auto a = [](const auto& value) constexpr {
             if constexpr (std::is_signed_v<std::decay_t<decltype(value)>>) {
-                return append_test::to_string<21, true>(static_cast<std::ptrdiff_t>(value));
+                return append_test::to_string<21, true>(static_cast<snitch::large_int_t>(value));
             } else {
-                return append_test::to_string<21, true>(static_cast<std::size_t>(value));
+                return append_test::to_string<21, true>(static_cast<snitch::large_uint_t>(value));
             }
         };
 
@@ -256,9 +256,9 @@ TEST_CASE("append", "[utility]") {
     SECTION("integers don't fit") {
         constexpr auto a = [](const auto& value) constexpr {
             if constexpr (std::is_signed_v<std::decay_t<decltype(value)>>) {
-                return append_test::to_string<5, true>(static_cast<std::ptrdiff_t>(value));
+                return append_test::to_string<5, true>(static_cast<snitch::large_int_t>(value));
             } else {
-                return append_test::to_string<5, true>(static_cast<std::size_t>(value));
+                return append_test::to_string<5, true>(static_cast<snitch::large_uint_t>(value));
             }
         };
 
