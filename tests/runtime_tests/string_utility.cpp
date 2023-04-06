@@ -57,7 +57,7 @@ struct append_result2 {
 };
 
 template<std::size_t N, bool TestConstexpr, typename T>
-constexpr append_result2<N> to_string(const T& value) {
+constexpr append_result2<N> to_string(T value) {
     if (std::is_constant_evaluated()) {
         snitch::small_string<N> str;
         bool                    success = append(str, value);
