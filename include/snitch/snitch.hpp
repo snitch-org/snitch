@@ -553,20 +553,17 @@ class unsigned_fixed {
         data.exponent += 1;
     }
 
-    using high_precision_t = std::uint64_t;
-
 public:
     constexpr unsigned_fixed(fixed_digits_t digits_in, fixed_exp_t exponent_in) noexcept {
         // Normalise inputs so that we maximize the number of digits stored.
         if (digits_in > 0) {
-            constexpr high_precision_t cap_up  = std::numeric_limits<fixed_digits_t>::max();
-            constexpr high_precision_t cap_low = cap_up / 10u;
+            constexpr fixed_digits_t cap = std::numeric_limits<fixed_digits_t>::max() / 10u;
 
-            if (digits_in < cap_low) {
+            if (digits_in < cap) {
                 do {
                     digits_in *= 10u;
                     exponent_in -= 1;
-                } while (digits_in < cap_low);
+                } while (digits_in < cap);
             }
         } else {
             // Pick the smallest possible exponent for zero;
@@ -579,11 +576,11 @@ public:
         data.exponent = exponent_in;
     }
 
-    constexpr fixed_digits_t digits() const {
+    constexpr fixed_digits_t digits() const noexcept {
         return data.digits;
     }
 
-    constexpr fixed_exp_t exponent() const {
+    constexpr fixed_exp_t exponent() const noexcept {
         return data.exponent;
     }
 
