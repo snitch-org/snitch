@@ -539,12 +539,15 @@ class unsigned_fixed {
 
     constexpr void raise_exponent_to(fixed_exp_t new_exponent) noexcept {
         do {
-            if (data.exponent < new_exponent - 1) {
+            if (data.digits == 0u) {
+                data.exponent = new_exponent;
+            } else if (data.exponent < new_exponent - 1) {
                 data.digits = data.digits / 10u;
+                data.exponent += 1;
             } else {
                 data.digits = (data.digits + 5u) / 10u;
+                data.exponent += 1;
             }
-            data.exponent += 1;
         } while (data.exponent < new_exponent);
     }
 
@@ -569,7 +572,7 @@ public:
             // Pick the smallest possible exponent for zero;
             // This guarantees that we will preserve precision for whatever number
             // gets added to this.
-            exponent_in = -1024;
+            exponent_in = std::numeric_limits<fixed_exp_t>::min();
         }
 
         data.digits   = digits_in;
