@@ -610,26 +610,31 @@ public:
 
     friend constexpr unsigned_fixed
     operator*(const unsigned_fixed f1, const unsigned_fixed f2) noexcept {
-        // To prevent overflow: split each number as f = l + u * 1e10, with l and u < 1e10,
-        // then develop the multiplication of each component, rounding the least significant
-        // components.
+        // To prevent overflow: split each number as f_i = u_i*1e10 + l_i,
+        // with l_i and u_i < 1e10, then develop the multiplication of each component:
+        //   r = f1*f2 = u1*u2*1e20 + (l1*u2 + l2*u1)*1e10 + l1*l2
+        // The resulting integer would overflow, so insted of storing the digits of r, we
+        // store the digits of r/1e20:
+        //   r/1e20 = u1*u2 + (l1*u2 + l2*u1)/1e10 + l1*l2/1e20 = u + l/1e10 + ll/1e20.
+        // For simplicity, we ignore the term ll/1e20 since it is < 0.2 and would at most
+        // contribute to changing the last digit of the output integer.
+
         const auto [l1, u1] = unpack10(f1.data.digits);
         const auto [l2, u2] = unpack10(f2.data.digits);
 
-        // For simplicity, we ignore the term (l1*l2), since it would at most
-        // contribute to changing the last digit of the output integer.
-
-        // For the (l1*u2 + l2*u1) term, divide by 10 and round each component,
-        // since the addition may overflow.
-        fixed_digits_t l = (l1 * u2 + 5u) / 10u + (l2 * u1 + 5u) / 10u;
+        // For the (l1*u2 + l2*u1) term, divide by 10 and round each component before summing,
+        // since the addition may overflow. Note: although l < 1e10, and l*l can overflow, u < 2e9
+        // so l*u cannot overflow.
+        const fixed_digits_t l_over_10 = (l1 * u2 + 5u) / 10u + (l2 * u1 + 5u) / 10u;
         // Then shift the digits to the right, with rounding.
-        l = (l + 500'000'000) / 1'000'000'000;
+        const fixed_digits_t l_over_1e10 = (l_over_10 + 500'000'000) / 1'000'000'000;
 
         // u1*u2 is straightforward.
         const fixed_digits_t u = u1 * u2;
 
-        // Adding back the lower part cannot overflow.
-        return unsigned_fixed(u + l, f1.data.exponent + f2.data.exponent + 20);
+        // Adding back the lower part cannot overflow, by construction. The exponent
+        // is increased by 20 because we computed the digits of (f1*f2)/1e20.
+        return unsigned_fixed(u + l_over_1e10, f1.data.exponent + f2.data.exponent + 20);
     }
 
     constexpr unsigned_fixed& operator*=(const unsigned_fixed f) noexcept {
@@ -745,7 +750,7 @@ struct float_bits {
 
 template<typename T>
 [[nodiscard]] constexpr float_bits<T> to_bits(T f) {
-    using traits      = typename float_bits<T>::traits;
+    using traits      = float_traits<T>;
     using bits_full_t = typename traits::bits_full_t;
     using bits_sig_t  = typename traits::bits_sig_t;
     using bits_exp_t  = typename traits::bits_exp_t;
@@ -829,27 +834,37 @@ static constexpr unsigned_fixed binary_table[2][10] = {
 
 template<typename T>
 constexpr void apply_binary_exponent(
-    unsigned_fixed& fix, std::size_t mul_div, typename float_bits<T>::traits::int_exp_t exponent) {
+    unsigned_fixed&                           fix,
+    std::size_t                               mul_div,
+    typename float_bits<T>::traits::int_exp_t exponent) noexcept {
 
-    using traits    = typename float_bits<T>::traits;
+    using traits    = float_traits<T>;
     using int_exp_t = typename traits::int_exp_t;
 
-    // MB: We skip the last bit of the exponent. One bit was lost to generate the sign.
+    // NB: We skip the last bit of the exponent. One bit was lost to generate the sign.
     // In other words, for float binary32, although the exponent is encoded on 8 bits, the value
     // can range from -126 to +127, hence the maximum absolute value is 127, which fits on 7 bits.
+    // NB2: To preserve as much accuracy as possible, we multiply the powers of two together
+    // from smallest to largest (since multiplying small powers can be done without any loss of
+    // precision), and finally multiply the combined powers to the input number.
+    unsigned_fixed power(1, 0);
     for (std::size_t i = 0; i < traits::exp_bits - 1; ++i) {
         if ((exponent & (static_cast<int_exp_t>(1) << i)) != 0u) {
-            fix *= binary_table[mul_div][i];
+            power *= binary_table[mul_div][i];
         }
     }
+
+    fix *= power;
 }
 
 template<typename T>
-[[nodiscard]] constexpr signed_fixed_data to_fixed(const float_bits<T>& bits) {
-    using traits     = typename float_bits<T>::traits;
+[[nodiscard]] constexpr signed_fixed_data to_fixed(const float_bits<T>& bits) noexcept {
+    using traits     = float_traits<T>;
     using bits_sig_t = typename traits::bits_sig_t;
     using int_exp_t  = typename traits::int_exp_t;
 
+    // NB: To preserve as much accuracy as possible, we accumulate the significand components from
+    // smallest to largest.
     unsigned_fixed fix(0, 0);
     for (bits_sig_t i = 0; i < traits::sig_bits; ++i) {
         if ((bits.significand & (static_cast<bits_sig_t>(1u) << i)) != 0u) {
@@ -928,11 +943,11 @@ namespace snitch::impl {
     return could_fit;
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(large_uint_t x) {
+[[nodiscard]] constexpr std::size_t num_digits(large_uint_t x) noexcept {
     return x >= 10u ? 1u + num_digits(x / 10u) : 1u;
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(large_int_t x) {
+[[nodiscard]] constexpr std::size_t num_digits(large_int_t x) noexcept {
     return x >= 10 ? 1u + num_digits(x / 10) : x <= -10 ? 1u + num_digits(x / 10) : x > 0 ? 1u : 2u;
 }
 
@@ -980,12 +995,12 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
 // Minimum number of digits in the exponent, set to 2 to match std::printf.
 constexpr std::size_t min_exp_digits = 2u;
 
-[[nodiscard]] constexpr std::size_t num_exp_digits(fixed_exp_t x) {
+[[nodiscard]] constexpr std::size_t num_exp_digits(fixed_exp_t x) noexcept {
     const std::size_t exp_digits = num_digits(static_cast<large_uint_t>(x > 0 ? x : -x));
     return exp_digits < min_exp_digits ? min_exp_digits : exp_digits;
 }
 
-[[nodiscard]] constexpr std::size_t num_digits(const signed_fixed_data& x) {
+[[nodiscard]] constexpr std::size_t num_digits(const signed_fixed_data& x) noexcept {
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
@@ -998,17 +1013,37 @@ constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
     .exponent = float_traits<double>::exp_origin,
     .sign     = true});
 
-[[nodiscard]] constexpr signed_fixed_data set_precision(signed_fixed_data fd, std::size_t p) {
+[[nodiscard]] constexpr fixed_digits_t
+round_half_to_even(fixed_digits_t i, bool only_zero) noexcept {
+    fixed_digits_t r = (i + 5u) / 10u;
+    if (only_zero && i % 10u == 5u) {
+        // Exact tie detected, correct the rounded value to the nearest even integer.
+        r -= 1u - (i / 10u) % 2u;
+    }
+    return r;
+}
+
+[[nodiscard]] constexpr signed_fixed_data
+set_precision(signed_fixed_data fd, std::size_t p) noexcept {
     // Truncate the digits of the input to the chosen precision (number of digits on both
     // sides of the decimal point). Precision must be less or equal to 19.
+    // We have a choice of the rounding mode here; to stay as close as possible to the
+    // std::printf() behavior, we use round-half-to-even (i.e., round to nearest, and break ties
+    // to nearest even integer). std::printf() is supposed to follow the current rounding mode,
+    // and round-half-to-even is the default rounding mode for IEEE 754 floats. We don't follow
+    // the current rounding mode, but we can at least follow the default.
 
     std::size_t base_digits = num_digits(static_cast<large_uint_t>(fd.digits));
 
+    bool only_zero = true;
     while (base_digits > p) {
         if (base_digits > p + 1u) {
+            if (fd.digits % 10u > 0u) {
+                only_zero = false;
+            }
             fd.digits = fd.digits / 10u;
         } else {
-            fd.digits = (fd.digits + 5u) / 10u;
+            fd.digits = round_half_to_even(fd.digits, only_zero);
         }
 
         fd.exponent += 1;
@@ -1070,9 +1105,13 @@ constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
 }
 
 template<floating_point T>
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, T f) noexcept {
+[[nodiscard]] constexpr bool append_constexpr(
+    small_string_span ss, T f, std::size_t precision = float_traits<T>::precision) noexcept {
     if constexpr (std::numeric_limits<T>::is_iec559) {
-        using traits = typename float_bits<T>::traits;
+        using traits = float_traits<T>;
+
+        // Float/double precision cannot be greater than 19 digits.
+        precision = precision <= 19u ? precision : 19u;
 
         const float_bits<T> bits = to_bits(f);
 
@@ -1082,11 +1121,11 @@ template<floating_point T>
                 // Zero.
                 constexpr std::string_view zeros = "000000000000000000";
                 return append_constexpr(ss, bits.sign ? "-0." : "0.") &&
-                       append_constexpr(ss, zeros.substr(0, traits::precision - 1)) &&
+                       append_constexpr(ss, zeros.substr(0, precision - 1)) &&
                        append_constexpr(ss, "e+00");
             } else {
                 // Subnormals.
-                return append_constexpr(ss, set_precision(to_fixed(bits), traits::precision));
+                return append_constexpr(ss, set_precision(to_fixed(bits), precision));
             }
         } else if (bits.exponent == traits::exp_bits_special) {
             if (bits.significand == traits::sig_bits_inf) {
@@ -1102,7 +1141,7 @@ template<floating_point T>
             }
         } else {
             // Normal number.
-            return append_constexpr(ss, set_precision(to_fixed(bits), traits::precision));
+            return append_constexpr(ss, set_precision(to_fixed(bits), precision));
         }
     } else {
         constexpr std::string_view unknown_str = "?";

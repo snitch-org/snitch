@@ -320,6 +320,10 @@ TEST_CASE("append", "[utility]") {
         CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.000000e+00"sv, true});
         CONSTEXPR_CHECK(a(10.0f) == ae{"1.000000e+01"sv, true});
         CONSTEXPR_CHECK(a(1e4f) == ae{"1.000000e+04"sv, true});
+        // The number below is a tricky one: it is exactly representable, but intermediate
+        // calculations requires more digits than can be stored on fixed-point 64 bits.
+        // Furthermore, rounding is an exact tie, and exposes the round-half-to-even behavior.
+        CONSTEXPR_CHECK(a(4.0970845e+06f) == ae{"4.097084e+06"sv, true});
         CONSTEXPR_CHECK(a(2.3456e28f) == ae{"2.345600e+28"sv, true});
         CONSTEXPR_CHECK(a(-2.3456e28f) == ae{"-2.345600e+28"sv, true});
         CONSTEXPR_CHECK(a(3.402823e38f) == ae{"3.402823e+38"sv, true});
@@ -371,7 +375,7 @@ TEST_CASE("append", "[utility]") {
     }
 
 #if 0
-    // This takes a long time, and a few floats (0.2%) don't match exactly.
+    // This takes a long time, but 99.995% of floats match exactly (with 6 digits precision).
     SECTION("constexpr floats match printf(%e)") {
         const float mi = -std::numeric_limits<float>::max();
         const float ma = std::numeric_limits<float>::max();
