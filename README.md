@@ -239,23 +239,23 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
-| Build tests     | 65s      | 79s      | 73s       | 118s       |
-| Build all       | 67s      | 120s     | 75s       | 118s       |
-| Run tests       | 31ms     | 76ms     | 63ms      | 20ms       |
-| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 33.4MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Build framework | 1.9s     | 41s      | 2.0s      | 0s         |
+| Build tests     | 63s      | 79s      | 73s       | 118s       |
+| Build all       | 65s      | 120s     | 75s       | 118s       |
+| Run tests       | 38ms     | 76ms     | 63ms      | 20ms       |
+| Library size    | 3.4MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
-| Build tests     | 137s     | 254s     | 207s      | 289s       |
-| Build all       | 140s     | 301s     | 210s      | 289s       |
-| Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
+| Build tests     | 134s     | 254s     | 207s      | 289s       |
+| Build all       | 136s     | 301s     | 210s      | 289s       |
+| Run tests       | 26ms     | 46ms     | 44ms      | 5ms        |
 | Library size    | 0.65MB   | 2.6MB    | 0.39MB    | 0MB        |
-| Executable size | 9.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
+| Executable size | 8.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
@@ -267,7 +267,7 @@ Notes:
 
 See [the dedicated page in the docs folder](doc/comparison_catch2.md) for a break down of _Catch2_ features and their implementation status in _snitch_.
 
-Given that _snitch_ only offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
+Given that _snitch_ mostly offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
 
  - _snitch_ does not do any heap allocation, ever. This is important if the tests need to monitor the global heap usage, to ensure that the tested code only allocates what it is supposed to (or not at all). This is tricky to do with _Catch2_, since some check macros will trigger heap allocations by using `std::string` and other heap-allocated data structures. To add to the confusion, some `std::string` instances used by _Catch2_ will fall under the small-string-optimization threshold, and won't generate heap allocations on some implementations of the C++ STL. This makes any measurement of heap usage not only noisy, but platform-dependent. If this is a concern to you, then _snitch_ is a better choice.
 
@@ -276,6 +276,8 @@ Given that _snitch_ only offers a subset of the _Catch2_ API, why would anyone w
  - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use one of the supported build systems.
 
  - _snitch_ has better reporting of typed tests (template test cases). While _Catch2_ will only report the type index in the test type list, _snitch_ will actually report the type name. This makes it easier to find which type generated a failure.
+
+ - _snitch_ is able to test and decompose expressions both at run-time and compile-time in the same build (see `CONSTEXPR_CHECK`). _Catch2_ on the other hand is only able to test at compile-time (but not decompose) in one build, and test and decompose at run-time in a different build (using `STATIC_CHECK`).
 
 If none of the above applies, then _Catch2_ will generally offer more value.
 
