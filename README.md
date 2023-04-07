@@ -25,7 +25,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Compile-time](#compile-time)
         - [Run-time and compile-time](#run-time-and-compile-time)
         - [Exception checks](#exception-checks)
-        - [Miscelaneous](#miscelaneous)
+        - [Miscellaneous](#miscellaneous)
     - [Tags](#tags)
     - [Matchers](#matchers)
     - [Sections](#sections)
@@ -381,11 +381,11 @@ Same as `CHECK_FALSE(EXPR)` but with operands evaluated at compile-time.
 
 `CONSTEVAL_REQUIRE_THAT(EXPR, MATCHER);`
 
-Same as `REQUIRE_THAT(EXPR)` but with operands evaluated at compile-time.
+Same as `REQUIRE_THAT(EXPR, MATCHER)` but with operands evaluated at compile-time.
 
 `CONSTEVAL_CHECK_THAT(EXPR, MATCHER);`
 
-Same as `CHECK_THAT(EXPR)` but with operands evaluated at compile-time.
+Same as `CHECK_THAT(EXPR, MATCHER)` but with operands evaluated at compile-time.
 
 
 #### Run-time and compile-time
@@ -396,27 +396,27 @@ These macros are recommended for testing `constexpr` functions, which can be eva
 
 `CONSTEXPR_REQUIRE(EXPR);`
 
-Same as `REQUIRE(EXPR)` but with operands evaluated at compile-time.
+Same as `REQUIRE(EXPR)` but with operands evaluated both at compile-time and run-time.
 
 `CONSTEXPR_CHECK(EXPR);`
 
-Same as `CHECK(EXPR)` but with operands evaluated at compile-time.
+Same as `CHECK(EXPR)` but with operands evaluated both at compile-time and run-time.
 
 `CONSTEXPR_REQUIRE_FALSE(EXPR);`
 
-Same as `REQUIRE_FALSE(EXPR)` but with operands evaluated at compile-time.
+Same as `REQUIRE_FALSE(EXPR)` but with operands evaluated both at compile-time and run-time.
 
 `CONSTEXPR_CHECK_FALSE(EXPR);`
 
-Same as `CHECK_FALSE(EXPR)` but with operands evaluated at compile-time.
+Same as `CHECK_FALSE(EXPR)` but with operands evaluated both at compile-time and run-time.
 
 `CONSTEXPR_REQUIRE_THAT(EXPR, MATCHER);`
 
-Same as `REQUIRE_THAT(EXPR)` but with operands evaluated at compile-time.
+Same as `REQUIRE_THAT(EXPR, MATCHER)` but with operands evaluated both at compile-time and run-time.
 
 `CONSTEXPR_CHECK_THAT(EXPR, MATCHER);`
 
-Same as `CHECK_THAT(EXPR)` but with operands evaluated at compile-time.
+Same as `CHECK_THAT(EXPR, MATCHER)` but with operands evaluated both at compile-time and run-time.
 
 
 #### Exception checks
@@ -441,7 +441,7 @@ This is similar to `REQUIRE_THROWS_AS`, but further checks the content of the ex
 This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test case continues. Further failures may be reported in the same test case.
 
 
-#### Miscelaneous
+#### Miscellaneous
 
 `FAIL(MSG);`
 
