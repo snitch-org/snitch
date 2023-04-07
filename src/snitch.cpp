@@ -50,7 +50,11 @@ using snitch::small_string_span;
 template<typename T>
 constexpr const char* get_format_code() noexcept {
     if constexpr (std::is_same_v<T, const void*>) {
+#if defined(_MSC_VER)
+        return "0x%p";
+#else
         return "%p";
+#endif
     } else if constexpr (std::is_same_v<T, std::uintmax_t>) {
         return "%" PRIuMAX;
     } else if constexpr (std::is_same_v<T, std::intmax_t>) {
