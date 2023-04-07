@@ -27,7 +27,7 @@ conf_data = configuration_data({
   'SNITCH_WITH_EXCEPTIONS'             : get_option('with_exceptions').to_int(),
   'SNITCH_WITH_TIMINGS'                : get_option('with_timings').to_int(),
   'SNITCH_WITH_SHORTHAND_MACROS'       : get_option('with_shorthand_macros').to_int(),
-  'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST' : get_option('constexpr_float_use_bicast').to_int(),
+  'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST' : get_option('constexpr_float_use_bitcast').to_int(),
   'SNITCH_DEFAULT_WITH_COLOR'          : get_option('default_with_color').to_int(),
   'SNITCH_CREATE_HEADER_ONLY'          : get_option('create_header_only').to_int(),
   'SNITCH_CREATE_LIBRARY'              : get_option('create_library').to_int(),
