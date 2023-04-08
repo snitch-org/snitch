@@ -1,5 +1,6 @@
 compile_commands.json
 build/
 build_clang/
+build_wasm/
 doc/html/
 snitch.sublime-workspace

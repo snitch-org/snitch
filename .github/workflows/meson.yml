@@ -10,10 +10,10 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Linux GCC 12,   os: ubuntu-latest,  compiler: g++12,    cxx: "g++-12",      backend: "ninja", build: "linux-libstdc++"}
-        - { name: Linux Clang 14, os: ubuntu-latest,  compiler: clang-14, cxx: "clang++-14", backend: "ninja", build: "linux-libc++"}
+        - { name: Linux GCC 12,   os: ubuntu-latest,  compiler: g++12,    cxx: "g++-12",     backend: "ninja",          build: "linux-libstdc++"}
+        - { name: Linux Clang 14, os: ubuntu-latest,  compiler: clang-14, cxx: "clang++-14", backend: "ninja",          build: "linux-libc++"}
         - { name: Windows 64,     os: windows-latest, compiler: msvc,     cxx: "cl",         backend: "vs2022 --vsenv", build: "win64-vs2022"}
-        - { name: MacOS,          os: macos-latest,   compiler: clang++,  cxx: "clang++",    backend: "ninja", build: "osx-libc++"}
+        - { name: MacOS,          os: macos-latest,   compiler: clang++,  cxx: "clang++",    backend: "ninja",          build: "osx-libc++"}
         build-type:
         - release
 

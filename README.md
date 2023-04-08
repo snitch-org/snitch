@@ -21,6 +21,11 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Standalone test cases](#standalone-test-cases)
         - [Test cases with fixtures](#test-cases-with-fixtures)
     - [Test check macros](#test-check-macros)
+        - [Run-time](#run-time)
+        - [Compile-time](#compile-time)
+        - [Run-time and compile-time](#run-time-and-compile-time)
+        - [Exception checks](#exception-checks)
+        - [Miscellaneous](#miscellaneous)
     - [Tags](#tags)
     - [Matchers](#matchers)
     - [Sections](#sections)
@@ -46,12 +51,19 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Matchers use a different API (see [Matchers](#matchers) below).
+   - Additional macros for testing [`constexpr`](#run-time-and-compile-time) and [`consteval`](#compile-time) expressions.
 
 If you need features that are not in the list above, please use _Catch2_ or _doctest_.
 
 Notable current limitations:
 
  - No multi-threaded test execution yet; the code is thread-friendly, this is just not implemented.
+
+Supported compilers:
+
+ - Mininum: GCC 10, recommended: GCC 11.
+ - Minimum: Clang 10, recommended: Clang 13.
+ - Minimum: MSVC 14.30 (compiler 19.29).
 
 
 ## Example
@@ -228,22 +240,22 @@ Results for Debug builds:
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
-| Build tests     | 65s      | 79s      | 73s       | 118s       |
-| Build all       | 67s      | 120s     | 75s       | 118s       |
+| Build tests     | 64s      | 79s      | 73s       | 118s       |
+| Build all       | 66s      | 120s     | 75s       | 118s       |
 | Run tests       | 31ms     | 76ms     | 63ms      | 20ms       |
-| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 33.4MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Library size    | 3.4MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
-| Build tests     | 137s     | 254s     | 207s      | 289s       |
-| Build all       | 140s     | 301s     | 210s      | 289s       |
+| Build tests     | 134s     | 254s     | 207s      | 289s       |
+| Build all       | 136s     | 301s     | 210s      | 289s       |
 | Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
 | Library size    | 0.65MB   | 2.6MB    | 0.39MB    | 0MB        |
-| Executable size | 9.8MB    | 17.4MB   | 15.2MB    | 11.3MB     |
+| Executable size | 8.9MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
@@ -255,7 +267,7 @@ Notes:
 
 See [the dedicated page in the docs folder](doc/comparison_catch2.md) for a break down of _Catch2_ features and their implementation status in _snitch_.
 
-Given that _snitch_ only offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
+Given that _snitch_ mostly offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
 
  - _snitch_ does not do any heap allocation, ever. This is important if the tests need to monitor the global heap usage, to ensure that the tested code only allocates what it is supposed to (or not at all). This is tricky to do with _Catch2_, since some check macros will trigger heap allocations by using `std::string` and other heap-allocated data structures. To add to the confusion, some `std::string` instances used by _Catch2_ will fall under the small-string-optimization threshold, and won't generate heap allocations on some implementations of the C++ STL. This makes any measurement of heap usage not only noisy, but platform-dependent. If this is a concern to you, then _snitch_ is a better choice.
 
@@ -264,6 +276,8 @@ Given that _snitch_ only offers a subset of the _Catch2_ API, why would anyone w
  - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use one of the supported build systems.
 
  - _snitch_ has better reporting of typed tests (template test cases). While _Catch2_ will only report the type index in the test type list, _snitch_ will actually report the type name. This makes it easier to find which type generated a failure.
+
+ - _snitch_ is able to test and decompose expressions both at run-time and compile-time in the same build (see `CONSTEXPR_CHECK`). _Catch2_ on the other hand is only able to test at compile-time (but not decompose) in one build, and test and decompose at run-time in a different build (using `STATIC_CHECK`).
 
 If none of the above applies, then _Catch2_ will generally offer more value.
 
@@ -306,8 +320,12 @@ This is equivalent to `TEMPLATE_TEST_CASE_METHOD`, except that `TYPES` must be a
 
 ### Test check macros
 
-The following macros can be used inside a test body, either immediately in the body itself, or inside a lambda function defined inside the body (if the lambda uses automatic by-reference capture, `[&]`). They _cannot_ be used inside other functions.
+The following macros can only be used inside a test body, either immediately in the body itself, or inside a function called by the test. They _cannot_ be used if a test is not running (e.g.,  they cannot be used as generic assertion macros).
 
+
+#### Run-time
+
+The macros in this section evaluate their operands are run-time exclusively.
 
 `REQUIRE(EXPR);`
 
@@ -339,20 +357,69 @@ This is equivalent to `REQUIRE(EXPR == MATCHER)`, and is provided for compatibil
 This is equivalent to `CHECK(EXPR == MATCHER)`, and is provided for compatibility with _Catch2_.
 
 
-`FAIL(MSG);`
+#### Compile-time
 
-This reports a test failure with the message `MSG`. The current test case is stopped. Execution then continues with the next test case, if any.
+The macros in this section evaluate their operands are compile-time exclusively. To benefit from the run-time infrastructure of _snitch_ (allowed failures, custom reporter, etc.), the test report is still generated at run-time. However, if the operands cannot be evaluated at compile-time, a compiler error will be generated.
+
+These macros are recommended for testing `consteval` functions, which are always evaluated at compile-time. For `constexpr` functions, which can be evaluated both at compile-time and run-time, prefer the `CONSTEXPR_*` macros described below.
+
+`CONSTEVAL_REQUIRE(EXPR);`
+
+Same as `REQUIRE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_CHECK(EXPR);`
+
+Same as `CHECK(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_REQUIRE_FALSE(EXPR);`
+
+Same as `REQUIRE_FALSE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_CHECK_FALSE(EXPR);`
+
+Same as `CHECK_FALSE(EXPR)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_REQUIRE_THAT(EXPR, MATCHER);`
+
+Same as `REQUIRE_THAT(EXPR, MATCHER)` but with operands evaluated at compile-time.
+
+`CONSTEVAL_CHECK_THAT(EXPR, MATCHER);`
+
+Same as `CHECK_THAT(EXPR, MATCHER)` but with operands evaluated at compile-time.
 
 
-`FAIL_CHECK(MSG);`
+#### Run-time and compile-time
 
-This is similar to `FAIL`, except that the test case continues. Further failures may be reported in the same test case.
+The macros in this section evaluate their operands both are compile-time and at run-time. To benefit from the run-time infrastructure of _snitch_ (allowed failures, custom reporter, etc.), the test report is still generated at run-time regardless of the above. However, if the operands cannot be evaluated at compile-time, a compiler error will be generated.
+
+These macros are recommended for testing `constexpr` functions, which can be evaluated both at compile-time and at run-time. Since the operands are also evaluated at run-time, the test will contribute to the coverage analysis (if any), which is otherwise impossible for purely compile-time tests (e.g., `CONSTEVAL_*` macros above).
+
+`CONSTEXPR_REQUIRE(EXPR);`
+
+Same as `REQUIRE(EXPR)` but with operands evaluated both at compile-time and run-time.
+
+`CONSTEXPR_CHECK(EXPR);`
+
+Same as `CHECK(EXPR)` but with operands evaluated both at compile-time and run-time.
+
+`CONSTEXPR_REQUIRE_FALSE(EXPR);`
+
+Same as `REQUIRE_FALSE(EXPR)` but with operands evaluated both at compile-time and run-time.
+
+`CONSTEXPR_CHECK_FALSE(EXPR);`
+
+Same as `CHECK_FALSE(EXPR)` but with operands evaluated both at compile-time and run-time.
+
+`CONSTEXPR_REQUIRE_THAT(EXPR, MATCHER);`
+
+Same as `REQUIRE_THAT(EXPR, MATCHER)` but with operands evaluated both at compile-time and run-time.
+
+`CONSTEXPR_CHECK_THAT(EXPR, MATCHER);`
+
+Same as `CHECK_THAT(EXPR, MATCHER)` but with operands evaluated both at compile-time and run-time.
 
 
-`SKIP(MSG);`
-
-This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
-
+#### Exception checks
 
 `REQUIRE_THROWS_AS(EXPR, EXCEPT);`
 
@@ -372,6 +439,23 @@ This is similar to `REQUIRE_THROWS_AS`, but further checks the content of the ex
 `CHECK_THROWS_MATCHES(EXPR, EXCEPT, MATCHER);`
 
 This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test case continues. Further failures may be reported in the same test case.
+
+
+#### Miscellaneous
+
+`FAIL(MSG);`
+
+This reports a test failure with the message `MSG`. The current test case is stopped. Execution then continues with the next test case, if any.
+
+
+`FAIL_CHECK(MSG);`
+
+This is similar to `FAIL`, except that the test case continues. Further failures may be reported in the same test case.
+
+
+`SKIP(MSG);`
+
+This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
 
 
 ### Tags

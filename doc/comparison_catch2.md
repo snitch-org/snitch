@@ -33,7 +33,7 @@
 | - `REQUIRE_THROWS_WITH` / `CHECK_THROWS_WITH`       | No            | Maybe        |
 | - `REQUIRE_THROWS_MATCHES` / `CHECK_THROWS_MATCHES` | Yes           | Done         |
 | - `REQUIRE_NOTHROW` / `CHECK_NOTHROW`               | No            | Maybe        |
-| - `STATIC_REQUIRE` / `STATIC_CHECK`                 | No            | Maybe        |
+| - `STATIC_REQUIRE` / `STATIC_CHECK`                 | Sort of (8)   | Done         |
 | - `CHECK_NOFAIL`                                    | No            | Maybe        |
 | - `SUCCEED`                                         | No            | Maybe        |
 | - `FAIL` / `FAIL_CHECK`                             | Yes (2)       | Done         |
@@ -58,7 +58,7 @@
 | **String matchers**                                 |               |              |
 | - `StartsWith`                                      | No            | Maybe        |
 | - `EndsWith`                                        | No            | Maybe        |
-| - `ContainsSubstring`                               | Yes (4)       | Done         |
+| - `ContainsSubstring`                               | Sort of (4)   | Done         |
 | - `Equals`                                          | No            | Maybe        |
 | - `Matches`                                         | No            | Unlikely     |
 | **Vector matchers**                                 |               |              |
@@ -79,12 +79,12 @@
 | - `AnyTrue`                                         | No            | Maybe        |
 | **Other matchers**                                  |               |              |
 | - `Predicate`                                       | No            | Unlikely     |
-| - `Message`                                         | Yes (5)       | Done         |
+| - `Message`                                         | Sort of (5)   | Done         |
 | **Miscellaneous**                                   |               |              |
 | - `BENCHMARK`                                       | No            | No           |
 | - `BENCHMARK_ADVANCED`                              | No            | No           |
 | - `GENERATE`                                        | No            | No           |
-| - `REGISTER_LISTENER`                               | Yes (6)       | Done         |
+| - `REGISTER_LISTENER`                               | Sort of (6)   | Done         |
 | - `SKIP`                                            | Yes (2)       | Done         |
 
 **Notes:**
@@ -95,6 +95,7 @@
  5. Spelled `snitch::matchers::with_what_contains`, and does substring matching (not exact matching). It does not require the exception type to inherit from `std::exception`, just to have a member function `what()` that returns an object convertible to `std::string_view`.
  6. Supported only in a limited form; use `registry::report_callback` and set it up to call all your event listeners, as needed. Improving this is not on the roadmap.
  7. If supported, it will not use the streaming syntax.
+ 8. Superseeded by `CONSTEXPR_REQUIRE` / `CONSTEXPR_CHECK` and `CONSTEVAL_REQUIRE` / `CONSTEVAL_CHECK`, which are not in _Catch2_.
 
 **Roadmap:**
  - "Yes" is something that we want to eventually support in _snitch_, even if it comes at a cost (at run time or compile time). Contributions are welcome.

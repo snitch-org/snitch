@@ -8,8 +8,11 @@
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception> // for std::exception
 #endif
-#include <compare> // for std::partial_ordering
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+#    include <bit> // for compile-time float to string
+#endif
 #include <initializer_list> // for std::initializer_list
+#include <limits> // for compile-time integer to string
 #include <optional> // for cli
 #include <string_view> // for all strings
 #include <type_traits> // for std::is_nothrow_*
@@ -141,14 +144,14 @@ public:
         *data_size = 0;
     }
     constexpr void resize(std::size_t size) noexcept {
-        if (size > buffer_size) {
+        if (!std::is_constant_evaluated() && size > buffer_size) {
             terminate_with("small vector is full");
         }
 
         *data_size = size;
     }
     constexpr void grow(std::size_t elem) noexcept {
-        if (*data_size + elem > buffer_size) {
+        if (!std::is_constant_evaluated() && *data_size + elem > buffer_size) {
             terminate_with("small vector is full");
         }
 
@@ -156,7 +159,7 @@ public:
     }
     constexpr ElemType&
     push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
-        if (*data_size == buffer_size) {
+        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
             terminate_with("small vector is full");
         }
 
@@ -169,7 +172,7 @@ public:
     }
     constexpr ElemType&
     push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
-        if (*data_size == buffer_size) {
+        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
             terminate_with("small vector is full");
         }
 
@@ -180,21 +183,21 @@ public:
         return elem;
     }
     constexpr void pop_back() noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("pop_back() called on empty vector");
         }
 
         --*data_size;
     }
     constexpr ElemType& back() noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
     constexpr const ElemType& back() const noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("back() called on empty vector");
         }
 
@@ -225,13 +228,13 @@ public:
         return begin() + size();
     }
     constexpr ElemType& operator[](std::size_t i) noexcept {
-        if (i >= size()) {
+        if (!std::is_constant_evaluated() && i >= size()) {
             terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (i >= size()) {
+        if (!std::is_constant_evaluated() && i >= size()) {
             terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
@@ -264,7 +267,7 @@ public:
         return *data_size == 0;
     }
     constexpr const ElemType& back() const noexcept {
-        if (*data_size == 0) {
+        if (!std::is_constant_evaluated() && *data_size == 0) {
             terminate_with("back() called on empty vector");
         }
 
@@ -286,7 +289,7 @@ public:
         return begin() + size();
     }
     constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (i >= size()) {
+        if (!std::is_constant_evaluated() && i >= size()) {
             terminate_with("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
@@ -331,8 +334,12 @@ public:
     constexpr void grow(std::size_t elem) noexcept {
         span().grow(elem);
     }
-    template<typename U = const ElemType&>
-    constexpr ElemType& push_back(U&& t) noexcept(noexcept(this->span().push_back(t))) {
+    constexpr ElemType&
+    push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
+        return this->span().push_back(t);
+    }
+    constexpr ElemType&
+    push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
         return this->span().push_back(t);
     }
     constexpr void pop_back() noexcept {
@@ -498,40 +505,404 @@ public:
         return std::string_view(data(), length());
     }
 };
+} // namespace snitch
 
-[[nodiscard]] bool append(small_string_span ss, std::string_view value) noexcept;
+// Internal utilities: fixed point types.
+// --------------------------------------
 
-[[nodiscard]] bool append(small_string_span ss, const void* ptr) noexcept;
-[[nodiscard]] bool append(small_string_span ss, std::nullptr_t) noexcept;
-[[nodiscard]] bool append(small_string_span ss, std::size_t i) noexcept;
-[[nodiscard]] bool append(small_string_span ss, std::ptrdiff_t i) noexcept;
-[[nodiscard]] bool append(small_string_span ss, float f) noexcept;
-[[nodiscard]] bool append(small_string_span ss, double f) noexcept;
-[[nodiscard]] bool append(small_string_span ss, bool value) noexcept;
-template<typename T>
-[[nodiscard]] bool append(small_string_span ss, T* ptr) noexcept {
-    if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
-        return append(ss, std::string_view(ptr));
-    } else if constexpr (std::is_function_v<T>) {
-        if (ptr != nullptr) {
-            return append(ss, std::string_view("0x????????"));
-        } else {
-            return append(ss, std::string_view("nullptr"));
-        }
-    } else {
-        return append(ss, static_cast<const void*>(ptr));
+namespace snitch::impl {
+using fixed_digits_t = std::uint64_t;
+using fixed_exp_t    = std::int32_t;
+
+struct unsigned_fixed_data {
+    fixed_digits_t digits   = 0;
+    fixed_exp_t    exponent = 0;
+};
+
+struct signed_fixed_data {
+    fixed_digits_t digits   = 0;
+    fixed_exp_t    exponent = 0;
+    bool           sign     = false;
+};
+
+struct unpacked64 {
+    std::uint64_t l;
+    std::uint64_t u;
+};
+
+constexpr unpacked64 unpack10(std::uint64_t v) noexcept {
+    return {v % 10'000'000'000, v / 10'000'000'000};
+}
+
+class unsigned_fixed {
+    unsigned_fixed_data data = {};
+
+    constexpr void raise_exponent_to(fixed_exp_t new_exponent) noexcept {
+        do {
+            if (data.digits == 0u) {
+                data.exponent = new_exponent;
+            } else if (data.exponent < new_exponent - 1) {
+                data.digits = data.digits / 10u;
+                data.exponent += 1;
+            } else {
+                data.digits = (data.digits + 5u) / 10u;
+                data.exponent += 1;
+            }
+        } while (data.exponent < new_exponent);
     }
-}
-template<std::size_t N>
-[[nodiscard]] bool append(small_string_span ss, const char str[N]) noexcept {
-    return append(ss, std::string_view(str));
+
+    constexpr void raise_exponent() noexcept {
+        data.digits = (data.digits + 5u) / 10u;
+        data.exponent += 1;
+    }
+
+public:
+    constexpr unsigned_fixed(fixed_digits_t digits_in, fixed_exp_t exponent_in) noexcept {
+        // Normalise inputs so that we maximize the number of digits stored.
+        if (digits_in > 0) {
+            constexpr fixed_digits_t cap = std::numeric_limits<fixed_digits_t>::max() / 10u;
+
+            if (digits_in < cap) {
+                do {
+                    digits_in *= 10u;
+                    exponent_in -= 1;
+                } while (digits_in < cap);
+            }
+        } else {
+            // Pick the smallest possible exponent for zero;
+            // This guarantees that we will preserve precision for whatever number
+            // gets added to this.
+            exponent_in = std::numeric_limits<fixed_exp_t>::min();
+        }
+
+        data.digits   = digits_in;
+        data.exponent = exponent_in;
+    }
+
+    constexpr fixed_digits_t digits() const noexcept {
+        return data.digits;
+    }
+
+    constexpr fixed_exp_t exponent() const noexcept {
+        return data.exponent;
+    }
+
+    friend constexpr unsigned_fixed operator+(unsigned_fixed f1, unsigned_fixed f2) noexcept {
+        // Bring both numbers to the same exponent before summing.
+        // To prevent overflow: add one to the exponent.
+        if (f1.data.exponent > f2.data.exponent) {
+            f1.raise_exponent();
+            f2.raise_exponent_to(f1.data.exponent + 1);
+        } else if (f1.data.exponent < f2.data.exponent) {
+            f1.raise_exponent_to(f2.data.exponent + 1);
+            f2.raise_exponent();
+        } else {
+            f1.raise_exponent();
+            f2.raise_exponent();
+        }
+
+        return unsigned_fixed(f1.data.digits + f2.data.digits, f1.data.exponent);
+    }
+
+    constexpr unsigned_fixed& operator+=(const unsigned_fixed f) noexcept {
+        return *this = *this + f;
+    }
+
+    friend constexpr unsigned_fixed
+    operator*(const unsigned_fixed f1, const unsigned_fixed f2) noexcept {
+        // To prevent overflow: split each number as f_i = u_i*1e10 + l_i,
+        // with l_i and u_i < 1e10, then develop the multiplication of each component:
+        //   r = f1*f2 = u1*u2*1e20 + (l1*u2 + l2*u1)*1e10 + l1*l2
+        // The resulting integer would overflow, so insted of storing the digits of r, we
+        // store the digits of r/1e20:
+        //   r/1e20 = u1*u2 + (l1*u2 + l2*u1)/1e10 + l1*l2/1e20 = u + l/1e10 + ll/1e20.
+        // For simplicity, we ignore the term ll/1e20 since it is < 0.2 and would at most
+        // contribute to changing the last digit of the output integer.
+
+        const auto [l1, u1] = unpack10(f1.data.digits);
+        const auto [l2, u2] = unpack10(f2.data.digits);
+
+        // For the (l1*u2 + l2*u1) term, divide by 10 and round each component before summing,
+        // since the addition may overflow. Note: although l < 1e10, and l*l can overflow, u < 2e9
+        // so l*u cannot overflow.
+        const fixed_digits_t l_over_10 = (l1 * u2 + 5u) / 10u + (l2 * u1 + 5u) / 10u;
+        // Then shift the digits to the right, with rounding.
+        const fixed_digits_t l_over_1e10 = (l_over_10 + 500'000'000) / 1'000'000'000;
+
+        // u1*u2 is straightforward.
+        const fixed_digits_t u = u1 * u2;
+
+        // Adding back the lower part cannot overflow, by construction. The exponent
+        // is increased by 20 because we computed the digits of (f1*f2)/1e20.
+        return unsigned_fixed(u + l_over_1e10, f1.data.exponent + f2.data.exponent + 20);
+    }
+
+    constexpr unsigned_fixed& operator*=(const unsigned_fixed f) noexcept {
+        return *this = *this * f;
+    }
+};
+
+template<typename T>
+struct float_traits;
+
+template<>
+struct float_traits<float> {
+    using bits_full_t = std::uint32_t;
+    using bits_sig_t  = std::uint32_t;
+    using bits_exp_t  = std::uint8_t;
+
+    using int_exp_t = std::int32_t;
+
+    static constexpr bits_full_t bits     = 8u * sizeof(bits_full_t);
+    static constexpr bits_full_t sig_bits = 23u;
+    static constexpr bits_full_t exp_bits = bits - sig_bits - 1u;
+
+    static constexpr bits_full_t sign_mask = bits_full_t{1u} << (bits - 1u);
+    static constexpr bits_full_t sig_mask  = (bits_full_t{1u} << sig_bits) - 1u;
+    static constexpr bits_full_t exp_mask  = ((bits_full_t{1u} << (bits - 1u)) - 1u) & ~sig_mask;
+
+    static constexpr int_exp_t exp_origin    = -127;
+    static constexpr int_exp_t exp_subnormal = exp_origin + 1;
+
+    static constexpr bits_exp_t exp_bits_special = 0xff;
+    static constexpr bits_sig_t sig_bits_nan     = 0x400000;
+    static constexpr bits_sig_t sig_bits_inf     = 0x0;
+
+    static constexpr std::size_t precision = 7u;
+
+    static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
+        {unsigned_fixed(1192092895507812500u, -25), unsigned_fixed(2384185791015625000u, -25),
+         unsigned_fixed(4768371582031250000u, -25), unsigned_fixed(9536743164062500000u, -25),
+         unsigned_fixed(1907348632812500000u, -24), unsigned_fixed(3814697265625000000u, -24),
+         unsigned_fixed(7629394531250000000u, -24), unsigned_fixed(1525878906250000000u, -23),
+         unsigned_fixed(3051757812500000000u, -23), unsigned_fixed(6103515625000000000u, -23),
+         unsigned_fixed(1220703125000000000u, -22), unsigned_fixed(2441406250000000000u, -22),
+         unsigned_fixed(4882812500000000000u, -22), unsigned_fixed(9765625000000000000u, -22),
+         unsigned_fixed(1953125000000000000u, -21), unsigned_fixed(3906250000000000000u, -21),
+         unsigned_fixed(7812500000000000000u, -21), unsigned_fixed(1562500000000000000u, -20),
+         unsigned_fixed(3125000000000000000u, -20), unsigned_fixed(6250000000000000000u, -20),
+         unsigned_fixed(1250000000000000000u, -19), unsigned_fixed(2500000000000000000u, -19),
+         unsigned_fixed(5000000000000000000u, -19)}};
+};
+
+template<>
+struct float_traits<double> {
+    using bits_full_t = std::uint64_t;
+    using bits_sig_t  = std::uint64_t;
+    using bits_exp_t  = std::uint16_t;
+
+    using int_exp_t = std::int32_t;
+
+    static constexpr bits_full_t bits     = 8u * sizeof(bits_full_t);
+    static constexpr bits_full_t sig_bits = 52u;
+    static constexpr bits_full_t exp_bits = bits - sig_bits - 1u;
+
+    static constexpr bits_full_t sign_mask = bits_full_t{1u} << (bits - 1u);
+    static constexpr bits_full_t sig_mask  = (bits_full_t{1u} << sig_bits) - 1u;
+    static constexpr bits_full_t exp_mask  = ((bits_full_t{1u} << (bits - 1u)) - 1u) & ~sig_mask;
+
+    static constexpr int_exp_t exp_origin    = -1023;
+    static constexpr int_exp_t exp_subnormal = exp_origin + 1;
+
+    static constexpr bits_exp_t exp_bits_special = 0x7ff;
+    static constexpr bits_sig_t sig_bits_nan     = 0x8000000000000;
+    static constexpr bits_sig_t sig_bits_inf     = 0x0;
+
+    static constexpr std::size_t precision = 16u;
+
+    static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
+        {unsigned_fixed(2220446049250313081u, -34), unsigned_fixed(4440892098500626162u, -34),
+         unsigned_fixed(8881784197001252323u, -34), unsigned_fixed(1776356839400250465u, -33),
+         unsigned_fixed(3552713678800500929u, -33), unsigned_fixed(7105427357601001859u, -33),
+         unsigned_fixed(1421085471520200372u, -32), unsigned_fixed(2842170943040400743u, -32),
+         unsigned_fixed(5684341886080801487u, -32), unsigned_fixed(1136868377216160297u, -31),
+         unsigned_fixed(2273736754432320595u, -31), unsigned_fixed(4547473508864641190u, -31),
+         unsigned_fixed(9094947017729282379u, -31), unsigned_fixed(1818989403545856476u, -30),
+         unsigned_fixed(3637978807091712952u, -30), unsigned_fixed(7275957614183425903u, -30),
+         unsigned_fixed(1455191522836685181u, -29), unsigned_fixed(2910383045673370361u, -29),
+         unsigned_fixed(5820766091346740723u, -29), unsigned_fixed(1164153218269348145u, -28),
+         unsigned_fixed(2328306436538696289u, -28), unsigned_fixed(4656612873077392578u, -28),
+         unsigned_fixed(9313225746154785156u, -28), unsigned_fixed(1862645149230957031u, -27),
+         unsigned_fixed(3725290298461914062u, -27), unsigned_fixed(7450580596923828125u, -27),
+         unsigned_fixed(1490116119384765625u, -26), unsigned_fixed(2980232238769531250u, -26),
+         unsigned_fixed(5960464477539062500u, -26), unsigned_fixed(1192092895507812500u, -25),
+         unsigned_fixed(2384185791015625000u, -25), unsigned_fixed(4768371582031250000u, -25),
+         unsigned_fixed(9536743164062500000u, -25), unsigned_fixed(1907348632812500000u, -24),
+         unsigned_fixed(3814697265625000000u, -24), unsigned_fixed(7629394531250000000u, -24),
+         unsigned_fixed(1525878906250000000u, -23), unsigned_fixed(3051757812500000000u, -23),
+         unsigned_fixed(6103515625000000000u, -23), unsigned_fixed(1220703125000000000u, -22),
+         unsigned_fixed(2441406250000000000u, -22), unsigned_fixed(4882812500000000000u, -22),
+         unsigned_fixed(9765625000000000000u, -22), unsigned_fixed(1953125000000000000u, -21),
+         unsigned_fixed(3906250000000000000u, -21), unsigned_fixed(7812500000000000000u, -21),
+         unsigned_fixed(1562500000000000000u, -20), unsigned_fixed(3125000000000000000u, -20),
+         unsigned_fixed(6250000000000000000u, -20), unsigned_fixed(1250000000000000000u, -19),
+         unsigned_fixed(2500000000000000000u, -19), unsigned_fixed(5000000000000000000u, -19)}};
+};
+
+template<typename T>
+struct float_bits {
+    using traits = float_traits<T>;
+
+    typename traits::bits_sig_t significand = 0u;
+    typename traits::bits_exp_t exponent    = 0u;
+    bool                        sign        = 0;
+};
+
+template<typename T>
+[[nodiscard]] constexpr float_bits<T> to_bits(T f) {
+    using traits      = float_traits<T>;
+    using bits_full_t = typename traits::bits_full_t;
+    using bits_sig_t  = typename traits::bits_sig_t;
+    using bits_exp_t  = typename traits::bits_exp_t;
+
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+
+    const bits_full_t bits = std::bit_cast<bits_full_t>(f);
+
+    return float_bits<T>{
+        .significand = static_cast<bits_sig_t>(bits & traits::sig_mask),
+        .exponent    = static_cast<bits_exp_t>((bits & traits::exp_mask) >> traits::sig_bits),
+        .sign        = (bits & traits::sign_mask) != 0u};
+
+#else
+
+    float_bits<T> b;
+
+    if (f != f) {
+        // NaN
+        b.sign        = false;
+        b.exponent    = traits::exp_bits_special;
+        b.significand = traits::sig_bits_nan;
+    } else if (f == std::numeric_limits<T>::infinity()) {
+        // +Inf
+        b.sign        = false;
+        b.exponent    = traits::exp_bits_special;
+        b.significand = traits::sig_bits_inf;
+    } else if (f == -std::numeric_limits<T>::infinity()) {
+        // -Inf
+        b.sign        = true;
+        b.exponent    = traits::exp_bits_special;
+        b.significand = traits::sig_bits_inf;
+    } else {
+        // General case
+        if (f < static_cast<T>(0.0)) {
+            b.sign = true;
+            f      = -f;
+        }
+
+        b.exponent = static_cast<bits_exp_t>(-traits::exp_origin);
+
+        if (f >= static_cast<T>(2.0)) {
+            do {
+                f /= static_cast<T>(2.0);
+                b.exponent += 1u;
+            } while (f >= static_cast<T>(2.0));
+        } else if (f < static_cast<T>(1.0)) {
+            do {
+                f *= static_cast<T>(2.0);
+                b.exponent -= 1u;
+            } while (f < static_cast<T>(1.0) && b.exponent > 0u);
+        }
+
+        if (b.exponent == 0u) {
+            // Sub-normals
+            f *= static_cast<T>(static_cast<bits_sig_t>(2u) << (traits::sig_bits - 2u));
+        } else {
+            // Normals
+            f *= static_cast<T>(static_cast<bits_sig_t>(2u) << (traits::sig_bits - 1u));
+        }
+
+        b.significand = static_cast<bits_sig_t>(static_cast<bits_full_t>(f) & traits::sig_mask);
+    }
+
+    return b;
+
+#endif
 }
 
+static constexpr unsigned_fixed binary_table[2][10] = {
+    {unsigned_fixed(2000000000000000000u, -18), unsigned_fixed(4000000000000000000u, -18),
+     unsigned_fixed(1600000000000000000u, -17), unsigned_fixed(2560000000000000000u, -16),
+     unsigned_fixed(6553600000000000000u, -14), unsigned_fixed(4294967296000000000u, -9),
+     unsigned_fixed(1844674407370955162u, 1), unsigned_fixed(3402823669209384635u, 20),
+     unsigned_fixed(1157920892373161954u, 59), unsigned_fixed(1340780792994259710u, 136)},
+    {unsigned_fixed(5000000000000000000u, -19), unsigned_fixed(2500000000000000000u, -19),
+     unsigned_fixed(6250000000000000000u, -20), unsigned_fixed(3906250000000000000u, -21),
+     unsigned_fixed(1525878906250000000u, -23), unsigned_fixed(2328306436538696289u, -28),
+     unsigned_fixed(5421010862427522170u, -38), unsigned_fixed(2938735877055718770u, -57),
+     unsigned_fixed(8636168555094444625u, -96), unsigned_fixed(7458340731200206743u, -173)}};
+
+template<typename T>
+constexpr void apply_binary_exponent(
+    unsigned_fixed&                           fix,
+    std::size_t                               mul_div,
+    typename float_bits<T>::traits::int_exp_t exponent) noexcept {
+
+    using traits    = float_traits<T>;
+    using int_exp_t = typename traits::int_exp_t;
+
+    // NB: We skip the last bit of the exponent. One bit was lost to generate the sign.
+    // In other words, for float binary32, although the exponent is encoded on 8 bits, the value
+    // can range from -126 to +127, hence the maximum absolute value is 127, which fits on 7 bits.
+    // NB2: To preserve as much accuracy as possible, we multiply the powers of two together
+    // from smallest to largest (since multiplying small powers can be done without any loss of
+    // precision), and finally multiply the combined powers to the input number.
+    unsigned_fixed power(1, 0);
+    for (std::size_t i = 0; i < traits::exp_bits - 1; ++i) {
+        if ((exponent & (static_cast<int_exp_t>(1) << i)) != 0u) {
+            power *= binary_table[mul_div][i];
+        }
+    }
+
+    fix *= power;
+}
+
+template<typename T>
+[[nodiscard]] constexpr signed_fixed_data to_fixed(const float_bits<T>& bits) noexcept {
+    using traits     = float_traits<T>;
+    using bits_sig_t = typename traits::bits_sig_t;
+    using int_exp_t  = typename traits::int_exp_t;
+
+    // NB: To preserve as much accuracy as possible, we accumulate the significand components from
+    // smallest to largest.
+    unsigned_fixed fix(0, 0);
+    for (bits_sig_t i = 0; i < traits::sig_bits; ++i) {
+        if ((bits.significand & (static_cast<bits_sig_t>(1u) << i)) != 0u) {
+            fix += traits::sig_elems[static_cast<std::size_t>(i)];
+        }
+    }
+
+    const bool subnormal = bits.exponent == 0x0;
+
+    if (!subnormal) {
+        fix += unsigned_fixed(1, 0);
+    }
+
+    int_exp_t exponent = subnormal ? traits::exp_subnormal
+                                   : static_cast<int_exp_t>(bits.exponent) + traits::exp_origin;
+
+    if (exponent > 0) {
+        apply_binary_exponent<T>(fix, 0u, exponent);
+    } else if (exponent < 0) {
+        apply_binary_exponent<T>(fix, 1u, -exponent);
+    }
+
+    return {.digits = fix.digits(), .exponent = fix.exponent(), .sign = bits.sign};
+}
+} // namespace snitch::impl
+
+// Public utilities: append.
+// -------------------------
+
+namespace snitch {
 template<typename T>
 concept signed_integral = std::is_signed_v<T>;
 
 template<typename T>
 concept unsigned_integral = std::is_unsigned_v<T>;
+
+template<typename T>
+concept floating_point = std::is_floating_point_v<T>;
 
 template<typename T, typename U>
 concept convertible_to = std::is_convertible_v<T, U>;
@@ -539,39 +910,388 @@ concept convertible_to = std::is_convertible_v<T, U>;
 template<typename T>
 concept enumeration = std::is_enum_v<T>;
 
+// These types are used to define the largest printable integer types.
+// In C++, integer literals must fit on uintmax_t/intmax_t, so these are good candidates.
+// They aren't perfect though. On most 64 bit platforms they are defined as 64 bit integers,
+// even though those platforms usually support 128 bit integers.
+using large_uint_t = std::uintmax_t;
+using large_int_t  = std::intmax_t;
+
+static_assert(
+    sizeof(large_uint_t) >= sizeof(impl::fixed_digits_t),
+    "large_uint_t is too small to support the float-to-fixed-point conversion implementation");
+} // namespace snitch
+
+namespace snitch::impl {
+[[nodiscard]] bool append_fast(small_string_span ss, std::string_view str) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, const void* ptr) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, large_uint_t i) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, large_int_t i) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, float f) noexcept;
+[[nodiscard]] bool append_fast(small_string_span ss, double f) noexcept;
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::string_view str) noexcept {
+    const bool        could_fit  = str.size() <= ss.available();
+    const std::size_t copy_count = std::min(str.size(), ss.available());
+
+    const std::size_t offset = ss.size();
+    ss.grow(copy_count);
+    for (std::size_t i = 0; i < copy_count; ++i) {
+        ss[offset + i] = str[i];
+    }
+
+    return could_fit;
+}
+
+[[nodiscard]] constexpr std::size_t num_digits(large_uint_t x) noexcept {
+    return x >= 10u ? 1u + num_digits(x / 10u) : 1u;
+}
+
+[[nodiscard]] constexpr std::size_t num_digits(large_int_t x) noexcept {
+    return x >= 10 ? 1u + num_digits(x / 10) : x <= -10 ? 1u + num_digits(x / 10) : x > 0 ? 1u : 2u;
+}
+
+constexpr std::array<char, 10> digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+constexpr std::size_t max_uint_length = num_digits(std::numeric_limits<large_uint_t>::max());
+constexpr std::size_t max_int_length  = max_uint_length + 1;
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_uint_t i) noexcept {
+    if (i != 0u) {
+        small_string<max_uint_length> tmp;
+        tmp.resize(num_digits(i));
+        std::size_t k = 1;
+        for (large_uint_t j = i; j != 0u; j /= 10u, ++k) {
+            tmp[tmp.size() - k] = digits[j % 10u];
+        }
+        return append_constexpr(ss, tmp);
+    } else {
+        return append_constexpr(ss, "0");
+    }
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_int_t i) noexcept {
+    if (i > 0) {
+        small_string<max_int_length> tmp;
+        tmp.resize(num_digits(i));
+        std::size_t k = 1;
+        for (large_int_t j = i; j != 0; j /= 10, ++k) {
+            tmp[tmp.size() - k] = digits[j % 10];
+        }
+        return append_constexpr(ss, tmp);
+    } else if (i < 0) {
+        small_string<max_int_length> tmp;
+        tmp.resize(num_digits(i));
+        std::size_t k = 1;
+        for (large_int_t j = i; j != 0; j /= 10, ++k) {
+            tmp[tmp.size() - k] = digits[-(j % 10)];
+        }
+        tmp[0] = '-';
+        return append_constexpr(ss, tmp);
+    } else {
+        return append_constexpr(ss, "0");
+    }
+}
+
+// Minimum number of digits in the exponent, set to 2 to match std::printf.
+constexpr std::size_t min_exp_digits = 2u;
+
+[[nodiscard]] constexpr std::size_t num_exp_digits(fixed_exp_t x) noexcept {
+    const std::size_t exp_digits = num_digits(static_cast<large_uint_t>(x > 0 ? x : -x));
+    return exp_digits < min_exp_digits ? min_exp_digits : exp_digits;
+}
+
+[[nodiscard]] constexpr std::size_t num_digits(const signed_fixed_data& x) noexcept {
+    // +1 for fractional separator '.'
+    // +1 for exponent separator 'e'
+    // +1 for exponent sign
+    return num_digits(static_cast<large_uint_t>(x.digits)) + num_exp_digits(x.exponent) +
+           (x.sign ? 1u : 0u) + 3u;
+}
+
+constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
+    .digits   = std::numeric_limits<fixed_digits_t>::max(),
+    .exponent = float_traits<double>::exp_origin,
+    .sign     = true});
+
+[[nodiscard]] constexpr fixed_digits_t
+round_half_to_even(fixed_digits_t i, bool only_zero) noexcept {
+    fixed_digits_t r = (i + 5u) / 10u;
+    if (only_zero && i % 10u == 5u) {
+        // Exact tie detected, correct the rounded value to the nearest even integer.
+        r -= 1u - (i / 10u) % 2u;
+    }
+    return r;
+}
+
+[[nodiscard]] constexpr signed_fixed_data
+set_precision(signed_fixed_data fd, std::size_t p) noexcept {
+    // Truncate the digits of the input to the chosen precision (number of digits on both
+    // sides of the decimal point). Precision must be less or equal to 19.
+    // We have a choice of the rounding mode here; to stay as close as possible to the
+    // std::printf() behavior, we use round-half-to-even (i.e., round to nearest, and break ties
+    // to nearest even integer). std::printf() is supposed to follow the current rounding mode,
+    // and round-half-to-even is the default rounding mode for IEEE 754 floats. We don't follow
+    // the current rounding mode, but we can at least follow the default.
+
+    std::size_t base_digits = num_digits(static_cast<large_uint_t>(fd.digits));
+
+    bool only_zero = true;
+    while (base_digits > p) {
+        if (base_digits > p + 1u) {
+            if (fd.digits % 10u > 0u) {
+                only_zero = false;
+            }
+            fd.digits = fd.digits / 10u;
+        } else {
+            fd.digits = round_half_to_even(fd.digits, only_zero);
+        }
+
+        fd.exponent += 1;
+        base_digits -= 1u;
+    }
+
+    return fd;
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, signed_fixed_data fd) noexcept {
+    // Statically allocate enough space for the biggest float,
+    // then resize to the length of this particular float.
+    small_string<max_float_length> tmp;
+    tmp.resize(num_digits(fd));
+
+    const std::size_t exp_digits = num_exp_digits(fd.exponent);
+
+    // The exponent has a unsigned_fixed size, so we can start by writing the main digits.
+    // We write the digits with always a single digit before the decimal separator,
+    // and the rest as fractional part. This will require adjusting the value of
+    // the exponent later.
+    std::size_t k            = 3u + exp_digits;
+    fixed_exp_t exponent_add = 0;
+    for (fixed_digits_t j = fd.digits; j != 0u; j /= 10u, ++k, ++exponent_add) {
+        if (j < 10u) {
+            tmp[tmp.size() - k] = '.';
+            ++k;
+        }
+        tmp[tmp.size() - k] = digits[j % 10u];
+    }
+
+    // Add a negative sign for negative floats.
+    if (fd.sign) {
+        tmp[0] = '-';
+    }
+
+    // Now write the exponent, adjusted for the chosen display (one digit before the decimal
+    // separator).
+    const fixed_exp_t exponent = fd.exponent + exponent_add - 1;
+
+    k = 1;
+    for (fixed_exp_t j = exponent > 0 ? exponent : -exponent; j != 0; j /= 10, ++k) {
+        tmp[tmp.size() - k] = digits[j % 10];
+    }
+
+    // Pad exponent with zeros if it is shorter than the min number of digits.
+    for (; k <= min_exp_digits; ++k) {
+        tmp[tmp.size() - k] = '0';
+    }
+
+    // Write the sign, and exponent delimitation character.
+    tmp[tmp.size() - k] = exponent >= 0 ? '+' : '-';
+    ++k;
+    tmp[tmp.size() - k] = 'e';
+    ++k;
+
+    // Finally write as much of the string as we can to the chosen destination.
+    return append_constexpr(ss, tmp);
+}
+
+template<floating_point T>
+[[nodiscard]] constexpr bool append_constexpr(
+    small_string_span ss, T f, std::size_t precision = float_traits<T>::precision) noexcept {
+    if constexpr (std::numeric_limits<T>::is_iec559) {
+        using traits = float_traits<T>;
+
+        // Float/double precision cannot be greater than 19 digits.
+        precision = precision <= 19u ? precision : 19u;
+
+        const float_bits<T> bits = to_bits(f);
+
+        // Handle special cases.
+        if (bits.exponent == 0x0) {
+            if (bits.significand == 0x0) {
+                // Zero.
+                constexpr std::string_view zeros = "000000000000000000";
+                return append_constexpr(ss, bits.sign ? "-0." : "0.") &&
+                       append_constexpr(ss, zeros.substr(0, precision - 1)) &&
+                       append_constexpr(ss, "e+00");
+            } else {
+                // Subnormals.
+                return append_constexpr(ss, set_precision(to_fixed(bits), precision));
+            }
+        } else if (bits.exponent == traits::exp_bits_special) {
+            if (bits.significand == traits::sig_bits_inf) {
+                // Infinity.
+                constexpr std::string_view plus_inf_str  = "inf";
+                constexpr std::string_view minus_inf_str = "-inf";
+                return bits.sign ? append_constexpr(ss, minus_inf_str)
+                                 : append_constexpr(ss, plus_inf_str);
+            } else {
+                // NaN.
+                constexpr std::string_view nan_str = "nan";
+                return append_constexpr(ss, nan_str);
+            }
+        } else {
+            // Normal number.
+            return append_constexpr(ss, set_precision(to_fixed(bits), precision));
+        }
+    } else {
+        constexpr std::string_view unknown_str = "?";
+        return append_constexpr(ss, unknown_str);
+    }
+}
+
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, const void* p) noexcept {
+    if (p == nullptr) {
+        constexpr std::string_view nullptr_str = "nullptr";
+        return append_constexpr(ss, nullptr_str);
+    } else {
+        constexpr std::string_view unknown_ptr_str = "0x????????";
+        return append_constexpr(ss, unknown_ptr_str);
+    }
+}
+} // namespace snitch::impl
+
+namespace snitch {
+[[nodiscard]] constexpr bool append(small_string_span ss, std::string_view str) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, str);
+    } else {
+        return impl::append_fast(ss, str);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, const void* ptr) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, ptr);
+    } else {
+        return impl::append_fast(ss, ptr);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, std::nullptr_t) noexcept {
+    constexpr std::string_view nullptr_str = "nullptr";
+    return append(ss, nullptr_str);
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, large_uint_t i) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, i);
+    } else {
+        return impl::append_fast(ss, i);
+    }
+}
+[[nodiscard]] constexpr bool append(small_string_span ss, large_int_t i) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, i);
+    } else {
+        return impl::append_fast(ss, i);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, float f) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, f);
+    } else {
+        return impl::append_fast(ss, f);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, double f) noexcept {
+    if (std::is_constant_evaluated()) {
+        return impl::append_constexpr(ss, f);
+    } else {
+        return impl::append_fast(ss, f);
+    }
+}
+
+[[nodiscard]] constexpr bool append(small_string_span ss, bool value) noexcept {
+    constexpr std::string_view true_str  = "true";
+    constexpr std::string_view false_str = "false";
+    return append(ss, value ? true_str : false_str);
+}
+
+template<typename T>
+[[nodiscard]] constexpr bool append(small_string_span ss, T* ptr) noexcept {
+    if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
+        return append(ss, std::string_view(ptr));
+    } else if constexpr (std::is_function_v<T>) {
+        if (ptr != nullptr) {
+            constexpr std::string_view function_ptr_str = "0x????????";
+            return append(ss, function_ptr_str);
+        } else {
+            return append(ss, nullptr);
+        }
+    } else {
+        return append(ss, static_cast<const void*>(ptr));
+    }
+}
+
+template<std::size_t N>
+[[nodiscard]] constexpr bool append(small_string_span ss, const char str[N]) noexcept {
+    return append(ss, std::string_view(str));
+}
+
 template<signed_integral T>
-[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
-    return snitch::append(ss, static_cast<std::ptrdiff_t>(value));
+[[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
+    return append(ss, static_cast<large_int_t>(value));
 }
 
 template<unsigned_integral T>
-[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
-    return snitch::append(ss, static_cast<std::size_t>(value));
+[[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
+    return append(ss, static_cast<large_uint_t>(value));
 }
 
 template<enumeration T>
-[[nodiscard]] bool append(small_string_span ss, T value) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
     return append(ss, static_cast<std::underlying_type_t<T>>(value));
 }
 
 template<convertible_to<std::string_view> T>
-[[nodiscard]] bool append(small_string_span ss, const T& value) noexcept {
-    return snitch::append(ss, std::string_view(value));
+[[nodiscard]] constexpr bool append(small_string_span ss, const T& value) noexcept {
+    return append(ss, std::string_view(value));
 }
 
 template<typename T>
 concept string_appendable = requires(small_string_span ss, T value) { append(ss, value); };
 
 template<string_appendable T, string_appendable U, string_appendable... Args>
-[[nodiscard]] bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
+[[nodiscard]] constexpr bool append(small_string_span ss, T&& t, U&& u, Args&&... args) noexcept {
     return append(ss, std::forward<T>(t)) && append(ss, std::forward<U>(u)) &&
            (append(ss, std::forward<Args>(args)) && ...);
 }
+} // namespace snitch
 
-void truncate_end(small_string_span ss) noexcept;
+// Public utilities: string utilities.
+// -----------------------------------
+
+namespace snitch {
+constexpr void truncate_end(small_string_span ss) noexcept {
+    std::size_t num_dots     = 3;
+    std::size_t final_length = ss.size() + num_dots;
+    if (final_length > ss.capacity()) {
+        final_length = ss.capacity();
+    }
+
+    const std::size_t offset = final_length >= num_dots ? final_length - num_dots : 0;
+    num_dots                 = final_length - offset;
+
+    ss.resize(final_length);
+    for (std::size_t i = 0; i < num_dots; ++i) {
+        ss[offset + i] = '.';
+    }
+}
 
 template<string_appendable... Args>
-bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
+constexpr bool append_or_truncate(small_string_span ss, Args&&... args) noexcept {
     if (!append(ss, std::forward<Args>(args)...)) {
         truncate_end(ss);
         return false;
@@ -819,26 +1539,30 @@ DEFINE_OPERATOR(!=, not_equal, " != ", " == ");
 struct expression {
     std::string_view              expected = {};
     small_string<max_expr_length> actual   = {};
+    bool                          success  = true;
 
     template<string_appendable T>
-    [[nodiscard]] bool append_value(T&& value) noexcept {
+    [[nodiscard]] constexpr bool append_value(T&& value) noexcept {
         return append(actual, std::forward<T>(value));
     }
 
     template<typename T>
-    [[nodiscard]] bool append_value(T&&) noexcept {
-        return append(actual, "?");
+    [[nodiscard]] constexpr bool append_value(T&&) noexcept {
+        constexpr std::string_view unknown_value = "?";
+        return append(actual, unknown_value);
     }
 };
 
-template<bool CheckMode>
+struct nondecomposable_expression : expression {};
+
 struct invalid_expression {
     // This is an invalid expression; any further operator should produce another invalid
     // expression. We don't want to decompose these operators, but we need to declare them
-    // so the expression compiles until cast to bool. This enable conditional decomposition.
+    // so the expression compiles until calling to_expression(). This enable conditional
+    // decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+    constexpr invalid_expression operator OP(const V&) noexcept {                                  \
         return {};                                                                                 \
     }
 
@@ -867,21 +1591,19 @@ struct invalid_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    explicit operator bool() const noexcept
-        requires(!CheckMode)
-    {
+    constexpr nondecomposable_expression to_expression() const noexcept {
         // This should be unreachable, because we check if an expression is decomposable
-        // before calling the decomposed expression, but just in case:
-        static_assert(CheckMode != CheckMode, "snitch bug: cannot decompose chained expression");
-        return false;
+        // before calling the decomposed expression. But the code will be instantiated in
+        // constexpr expressions, so don't static_assert.
+        return nondecomposable_expression{};
     }
 };
 
-template<bool CheckMode, bool Expected, typename T, typename O, typename U>
+template<bool Expected, typename T, typename O, typename U>
 struct extracted_binary_expression {
-    expression& expr;
-    const T&    lhs;
-    const U&    rhs;
+    std::string_view expected;
+    const T&         lhs;
+    const U&         rhs;
 
     // This is a binary expression; any further operator should produce an invalid
     // expression, since we can't/won't decompose complex expressions. We don't want to decompose
@@ -889,7 +1611,7 @@ struct extracted_binary_expression {
     // This enable conditional decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+    constexpr invalid_expression operator OP(const V&) noexcept {                                  \
         return {};                                                                                 \
     }
 
@@ -916,11 +1638,17 @@ struct extracted_binary_expression {
     EXPR_OPERATOR_INVALID(|)
     EXPR_OPERATOR_INVALID(&)
 
+#define EXPR_COMMA ,
+    EXPR_OPERATOR_INVALID(EXPR_COMMA)
+#undef EXPR_COMMA
+
 #undef EXPR_OPERATOR_INVALID
 
-    explicit operator bool() const noexcept
-        requires(!CheckMode || requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
+    constexpr expression to_expression() const noexcept
+        requires(requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
     {
+        expression expr{expected};
+
         if (O{}(lhs, rhs) != Expected) {
             if constexpr (matcher_for<T, U>) {
                 using namespace snitch::matchers;
@@ -946,24 +1674,35 @@ struct extracted_binary_expression {
                 }
             }
 
-            return true;
+            expr.success = false;
+        } else {
+            expr.success = true;
         }
 
-        return false;
+        return expr;
+    }
+
+    constexpr nondecomposable_expression to_expression() const noexcept
+        requires(!requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
+    {
+        // This should be unreachable, because we check if an expression is decomposable
+        // before calling the decomposed expression. But the code will be instantiated in
+        // constexpr expressions, so don't static_assert.
+        return nondecomposable_expression{};
     }
 };
 
-template<bool CheckMode, bool Expected, typename T>
+template<bool Expected, typename T>
 struct extracted_unary_expression {
-    expression& expr;
-    const T&    lhs;
+    std::string_view expected;
+    const T&         lhs;
 
     // Operators we want to decompose.
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
-    constexpr extracted_binary_expression<CheckMode, Expected, T, OP_TYPE, U> operator OP(         \
-        const U& rhs) const noexcept {                                                             \
-        return {expr, lhs, rhs};                                                                   \
+    constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U& rhs)       \
+        const noexcept {                                                                           \
+        return {expected, lhs, rhs};                                                               \
     }
 
     EXPR_OPERATOR(<, operator_less)
@@ -979,7 +1718,7 @@ struct extracted_unary_expression {
     // expression compiles until cast to bool. This enable conditional decomposition.
 #define EXPR_OPERATOR_INVALID(OP)                                                                  \
     template<typename V>                                                                           \
-    invalid_expression<CheckMode> operator OP(const V&) noexcept {                                 \
+    constexpr invalid_expression operator OP(const V&) noexcept {                                  \
         return {};                                                                                 \
     }
 
@@ -1000,36 +1739,52 @@ struct extracted_unary_expression {
     EXPR_OPERATOR_INVALID(|)
     EXPR_OPERATOR_INVALID(&)
 
+#define EXPR_COMMA ,
+    EXPR_OPERATOR_INVALID(EXPR_COMMA)
+#undef EXPR_COMMA
+
 #undef EXPR_OPERATOR_INVALID
 
-    explicit operator bool() const noexcept
-        requires(!CheckMode || requires(const T& lhs) { static_cast<bool>(lhs); })
+    constexpr expression to_expression() const noexcept
+        requires(requires(const T& lhs) { static_cast<bool>(lhs); })
     {
+        expression expr{expected};
+
         if (static_cast<bool>(lhs) != Expected) {
             if (!expr.append_value(lhs)) {
                 expr.actual.clear();
             }
 
-            return true;
+            expr.success = false;
+        } else {
+            expr.success = true;
         }
 
-        return false;
+        return expr;
+    }
+
+    constexpr nondecomposable_expression to_expression() const noexcept
+        requires(!requires(const T& lhs) { static_cast<bool>(lhs); })
+    {
+        // This should be unreachable, because we check if an expression is decomposable
+        // before calling the decomposed expression. But the code will be instantiated in
+        // constexpr expressions, so don't static_assert.
+        return nondecomposable_expression{};
     }
 };
 
-template<bool CheckMode, bool Expected>
+template<bool Expected>
 struct expression_extractor {
-    expression& expr;
+    std::string_view expected;
 
     template<typename T>
-    constexpr extracted_unary_expression<CheckMode, Expected, T>
-    operator<=(const T& lhs) const noexcept {
-        return {expr, lhs};
+    constexpr extracted_unary_expression<Expected, T> operator<=(const T& lhs) const noexcept {
+        return {expected, lhs};
     }
 };
 
 template<typename T>
-constexpr bool is_decomposable = requires(const T& t) { static_cast<bool>(t); };
+constexpr bool is_decomposable = !std::is_same_v<T, nondecomposable_expression>;
 
 struct scoped_capture {
     capture_state& captures;
@@ -1148,7 +1903,7 @@ using data = std::variant<
     test_case_ended,
     assertion_failed,
     test_case_skipped>;
-}; // namespace event
+} // namespace event
 } // namespace snitch
 
 // Command line interface.
@@ -1284,6 +2039,19 @@ extern constinit registry tests;
 // Matchers.
 // ---------
 
+namespace snitch::impl {
+template<typename T, typename M>
+[[nodiscard]] constexpr auto constexpr_match(T&& value, M&& matcher) {
+    using result_type = decltype(matcher.describe_match(value, matchers::match_status::failed));
+    if (!matcher.match(value)) {
+        return std::optional<result_type>(
+            matcher.describe_match(value, matchers::match_status::failed));
+    } else {
+        return std::optional<result_type>{};
+    }
+}
+} // namespace snitch::impl
+
 namespace snitch::matchers {
 struct contains_substring {
     std::string_view substring_pattern;
@@ -1404,17 +2172,22 @@ bool operator==(const M& m, const T& value) noexcept {
 #define SNITCH_CONCAT_IMPL(x, y) x##y
 #define SNITCH_MACRO_CONCAT(x, y) SNITCH_CONCAT_IMPL(x, y)
 
-#define SNITCH_EXPR_TRUE(TYPE, ...)                                                                \
-    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
-    snitch::impl::expression_extractor<false, true>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
+#define SNITCH_EXPR_IS_FALSE(TYPE, ...)                                                            \
+    auto SNITCH_CURRENT_EXPRESSION =                                                               \
+        (snitch::impl::expression_extractor<true>{TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)       \
+            .to_expression();                                                                      \
+    !SNITCH_CURRENT_EXPRESSION.success
 
-#define SNITCH_EXPR_FALSE(TYPE, ...)                                                               \
-    auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{TYPE "(" #__VA_ARGS__ ")"};          \
-    snitch::impl::expression_extractor<false, false>{SNITCH_CURRENT_EXPRESSION} <= __VA_ARGS__
+#define SNITCH_EXPR_IS_TRUE(TYPE, ...)                                                             \
+    auto SNITCH_CURRENT_EXPRESSION =                                                               \
+        (snitch::impl::expression_extractor<false>{TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)      \
+            .to_expression();                                                                      \
+    !SNITCH_CURRENT_EXPRESSION.success
 
-#define SNITCH_DECOMPOSABLE(...)                                                                   \
-    snitch::impl::is_decomposable<                                                                 \
-        decltype(snitch::impl::expression_extractor<true, true>{std::declval<snitch::impl::expression&>()} <= __VA_ARGS__)>
+#define SNITCH_IS_DECOMPOSABLE(...)                                                                \
+    snitch::impl::is_decomposable<decltype((snitch::impl::expression_extractor<true>{              \
+                                                std::declval<std::string_view>()} <= __VA_ARGS__)  \
+                                               .to_expression())>
 
 // Public test macros: test cases.
 // -------------------------------
@@ -1527,8 +2300,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_TRUE("REQUIRE", __VA_ARGS__)) {                                        \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_FALSE("REQUIRE", __VA_ARGS__)) {                                    \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
@@ -1550,8 +2323,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_TRUE("CHECK", __VA_ARGS__)) {                                          \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_FALSE("CHECK", __VA_ARGS__)) {                                      \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
@@ -1571,8 +2344,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_FALSE("REQUIRE_FALSE", __VA_ARGS__)) {                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_TRUE("REQUIRE_FALSE", __VA_ARGS__)) {                               \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
@@ -1594,8 +2367,8 @@ bool operator==(const M& m, const T& value) noexcept {
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_DECOMPOSABLE(__VA_ARGS__)) {                                          \
-            if (SNITCH_EXPR_FALSE("CHECK_FALSE", __VA_ARGS__)) {                                   \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if (SNITCH_EXPR_IS_TRUE("CHECK_FALSE", __VA_ARGS__)) {                                 \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
@@ -1642,6 +2415,7 @@ bool operator==(const M& m, const T& value) noexcept {
         if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
             SNITCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                 \
                 SNITCH_TEMP_MATCHER.describe_match(                                                \
                     SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
             SNITCH_TESTING_ABORT;                                                                  \
@@ -1657,8 +2431,330 @@ bool operator==(const M& m, const T& value) noexcept {
         if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
             SNITCH_CURRENT_TEST.reg.report_failure(                                                \
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                   \
                 SNITCH_TEMP_MATCHER.describe_match(                                                \
                     SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
+        }                                                                                          \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_REQUIRE(...)                                                              \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE("CONSTEVAL_REQUIRE", __VA_ARGS__)) {      \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_REQUIRE(" #__VA_ARGS__ ")");                                        \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_CHECK(...)                                                                \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE("CONSTEVAL_CHECK", __VA_ARGS__)) {        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_CHECK(" #__VA_ARGS__ ")");                                          \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_REQUIRE_FALSE(...)                                                        \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE("CONSTEVAL_REQUIRE_FALSE", __VA_ARGS__)) { \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_REQUIRE_FALSE(" #__VA_ARGS__ ")");                                  \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_CHECK_FALSE(...)                                                          \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE("CONSTEVAL_CHECK_FALSE", __VA_ARGS__)) {   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_CHECK_FALSE(" #__VA_ARGS__ ")");                                    \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_REQUIRE_THAT(EXPR, ...)                                                   \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEVAL_REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                       \
+                SNITCH_TEMP_ERROR.value());                                                        \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+    } while (0)
+
+#define SNITCH_CONSTEVAL_CHECK_THAT(EXPR, ...)                                                     \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        ++SNITCH_CURRENT_TEST.asserts;                                                             \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEVAL_CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                         \
+                SNITCH_TEMP_ERROR.value());                                                        \
+        }                                                                                          \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_REQUIRE(...)                                                              \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        bool SNITCH_CURRENT_ASSERTION_FAILED = false;                                              \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE(                                          \
+                              "CONSTEXPR_REQUIRE[compile-time]", __VA_ARGS__)) {                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_REQUIRE[run-time]", __VA_ARGS__)) {                \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE[compile-time](" #__VA_ARGS__ ")");                          \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+            if (!(__VA_ARGS__)) {                                                                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE[run-time](" #__VA_ARGS__ ")");                              \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        }                                                                                          \
+        if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_CHECK(...)                                                                \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_FALSE(                                          \
+                              "CONSTEXPR_CHECK[compile-time]", __VA_ARGS__)) {                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_CHECK[run-time]", __VA_ARGS__)) {                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (!(__VA_ARGS__)) {                                                        \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                            \
+            }                                                                                      \
+            if (!(__VA_ARGS__)) {                                                                  \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[run-time](" #__VA_ARGS__ ")");                                \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_REQUIRE_FALSE(...)                                                        \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        bool SNITCH_CURRENT_ASSERTION_FAILED = false;                                              \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE(                                           \
+                              "CONSTEXPR_REQUIRE_FALSE[compile-time]", __VA_ARGS__)) {             \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_TRUE("CONSTEXPR_REQUIRE_FALSE[run-time]", __VA_ARGS__)) {           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_FALSE[compile-time](" #__VA_ARGS__ ")");                    \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+            if (__VA_ARGS__) {                                                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_FALSE[run-time](" #__VA_ARGS__ ")");                        \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        }                                                                                          \
+        if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_CHECK_FALSE(...)                                                          \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        SNITCH_WARNING_PUSH                                                                        \
+        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
+        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
+        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
+            if constexpr (constexpr SNITCH_EXPR_IS_TRUE(                                           \
+                              "CONSTEXPR_CHECK_FALSE[compile-time]", __VA_ARGS__)) {               \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+            if (SNITCH_EXPR_IS_TRUE("CONSTEXPR_CHECK_FALSE[run-time]", __VA_ARGS__)) {             \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            }                                                                                      \
+        } else {                                                                                   \
+            if constexpr (__VA_ARGS__) {                                                           \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_FALSE[compile-time](" #__VA_ARGS__ ")");                      \
+            }                                                                                      \
+            if (__VA_ARGS__) {                                                                     \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_FALSE[run-time](" #__VA_ARGS__ ")");                          \
+            }                                                                                      \
+        }                                                                                          \
+        SNITCH_WARNING_POP                                                                         \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_REQUIRE_THAT(EXPR, ...)                                                   \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        bool SNITCH_CURRENT_ASSERTION_FAILED = false;                                              \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEXPR_REQUIRE_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",         \
+                SNITCH_TEMP_ERROR.value());                                                        \
+            SNITCH_CURRENT_ASSERTION_FAILED = true;                                                \
+        }                                                                                          \
+        {                                                                                          \
+            auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                   \
+            auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                              \
+            if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",         \
+                    SNITCH_TEMP_MATCHER.describe_match(                                            \
+                        SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));               \
+                SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            }                                                                                      \
+        }                                                                                          \
+        if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
+            SNITCH_TESTING_ABORT;                                                                  \
+        }                                                                                          \
+    } while (0)
+
+#define SNITCH_CONSTEXPR_CHECK_THAT(EXPR, ...)                                                     \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.asserts += 2u;                                                         \
+        if constexpr (constexpr auto SNITCH_TEMP_ERROR =                                           \
+                          snitch::impl::constexpr_match(EXPR, __VA_ARGS__);                        \
+                      SNITCH_TEMP_ERROR.has_value()) {                                             \
+            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEXPR_CHECK_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
+                SNITCH_TEMP_ERROR.value());                                                        \
+        }                                                                                          \
+        {                                                                                          \
+            auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                   \
+            auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                              \
+            if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                   \
+                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
+                    SNITCH_TEMP_MATCHER.describe_match(                                            \
+                        SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));               \
+            }                                                                                      \
         }                                                                                          \
     } while (0)
 
@@ -1673,18 +2769,33 @@ bool operator==(const M& m, const T& value) noexcept {
 #    define TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, ...)        SNITCH_TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, __VA_ARGS__)
 
 #    define SECTION(NAME, ...) SNITCH_SECTION(NAME, __VA_ARGS__)
-#    define CAPTURE(...) SNITCH_CAPTURE(__VA_ARGS__)
-#    define INFO(...)    SNITCH_INFO(__VA_ARGS__)
+#    define CAPTURE(...)       SNITCH_CAPTURE(__VA_ARGS__)
+#    define INFO(...)          SNITCH_INFO(__VA_ARGS__)
 
-#    define REQUIRE(...)               SNITCH_REQUIRE(__VA_ARGS__)
-#    define CHECK(...)                 SNITCH_CHECK(__VA_ARGS__)
-#    define REQUIRE_FALSE(...)         SNITCH_REQUIRE_FALSE(__VA_ARGS__)
-#    define CHECK_FALSE(...)           SNITCH_CHECK_FALSE(__VA_ARGS__)
-#    define FAIL(MESSAGE)              SNITCH_FAIL(MESSAGE)
-#    define FAIL_CHECK(MESSAGE)        SNITCH_FAIL_CHECK(MESSAGE)
-#    define SKIP(MESSAGE)              SNITCH_SKIP(MESSAGE)
-#    define REQUIRE_THAT(EXP, ...)     SNITCH_REQUIRE_THAT(EXP, __VA_ARGS__)
-#    define CHECK_THAT(EXP, ...)       SNITCH_CHECK_THAT(EXP, __VA_ARGS__)
+#    define FAIL(MESSAGE)       SNITCH_FAIL(MESSAGE)
+#    define FAIL_CHECK(MESSAGE) SNITCH_FAIL_CHECK(MESSAGE)
+#    define SKIP(MESSAGE)       SNITCH_SKIP(MESSAGE)
+
+#    define REQUIRE(...)           SNITCH_REQUIRE(__VA_ARGS__)
+#    define CHECK(...)             SNITCH_CHECK(__VA_ARGS__)
+#    define REQUIRE_FALSE(...)     SNITCH_REQUIRE_FALSE(__VA_ARGS__)
+#    define CHECK_FALSE(...)       SNITCH_CHECK_FALSE(__VA_ARGS__)
+#    define REQUIRE_THAT(EXP, ...) SNITCH_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CHECK_THAT(EXP, ...)   SNITCH_CHECK_THAT(EXP, __VA_ARGS__)
+
+#    define CONSTEVAL_REQUIRE(...)           SNITCH_CONSTEVAL_REQUIRE(__VA_ARGS__)
+#    define CONSTEVAL_CHECK(...)             SNITCH_CONSTEVAL_CHECK(__VA_ARGS__)
+#    define CONSTEVAL_REQUIRE_FALSE(...)     SNITCH_CONSTEVAL_REQUIRE_FALSE(__VA_ARGS__)
+#    define CONSTEVAL_CHECK_FALSE(...)       SNITCH_CONSTEVAL_CHECK_FALSE(__VA_ARGS__)
+#    define CONSTEVAL_REQUIRE_THAT(EXP, ...) SNITCH_CONSTEVAL_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CONSTEVAL_CHECK_THAT(EXP, ...)   SNITCH_CONSTEVAL_CHECK_THAT(EXP, __VA_ARGS__)
+
+#    define CONSTEXPR_REQUIRE(...)           SNITCH_CONSTEXPR_REQUIRE(__VA_ARGS__)
+#    define CONSTEXPR_CHECK(...)             SNITCH_CONSTEXPR_CHECK(__VA_ARGS__)
+#    define CONSTEXPR_REQUIRE_FALSE(...)     SNITCH_CONSTEXPR_REQUIRE_FALSE(__VA_ARGS__)
+#    define CONSTEXPR_CHECK_FALSE(...)       SNITCH_CONSTEXPR_CHECK_FALSE(__VA_ARGS__)
+#    define CONSTEXPR_REQUIRE_THAT(EXP, ...) SNITCH_CONSTEXPR_REQUIRE_THAT(EXP, __VA_ARGS__)
+#    define CONSTEXPR_CHECK_THAT(EXP, ...)   SNITCH_CONSTEXPR_CHECK_THAT(EXP, __VA_ARGS__)
 #endif
 // clang-format on
 

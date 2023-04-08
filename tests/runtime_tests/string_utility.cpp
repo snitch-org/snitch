@@ -1,5 +1,7 @@
 #include "testing.hpp"
 
+#include <cmath>
+
 using namespace std::literals;
 
 namespace {
@@ -7,112 +9,481 @@ constexpr std::size_t max_length = 20u;
 
 using string_type = snitch::small_string<max_length>;
 
-enum class enum_type { value1 = 0, value2 = 12 };
+enum class enum_type { value1 = 0, value2 = 12, value3 = 123456 };
 
-using function_ptr_type1 = void (*)();
-using function_ptr_type2 = void (*)(int);
+using function_ptr_type = void (*)();
 
 void foo() {}
 } // namespace
 
-TEMPLATE_TEST_CASE(
-    "append",
-    "[utility]",
-    int,
-    unsigned int,
-    std::ptrdiff_t,
-    std::size_t,
-    float,
-    double,
-    bool,
-    void*,
-    const void*,
-    std::nullptr_t,
-    std::string_view,
-    enum_type,
-    function_ptr_type1,
-    function_ptr_type2) {
+namespace append_test {
+struct append_expected {
+    std::string_view str;
+    bool             success    = true;
+    bool             start_with = false;
+};
 
-    auto create_value = []() -> std::pair<TestType, std::string_view> {
-        if constexpr (std::is_same_v<TestType, int>) {
-            return {-112, "-112"sv};
-        } else if constexpr (std::is_same_v<TestType, unsigned int>) {
-            return {203u, "203"sv};
-        } else if constexpr (std::is_same_v<TestType, std::ptrdiff_t>) {
-            return {-546876, "-546876"sv};
-        } else if constexpr (std::is_same_v<TestType, std::size_t>) {
-            return {26545u, "26545"sv};
-        } else if constexpr (std::is_same_v<TestType, float>) {
-            return {3.1415f, "3.141500"sv};
-        } else if constexpr (std::is_same_v<TestType, double>) {
-            return {-0.0001, "-0.000100"sv};
-        } else if constexpr (std::is_same_v<TestType, bool>) {
-            return {true, "true"sv};
-        } else if constexpr (std::is_same_v<TestType, void*>) {
-            static int i = 0;
-            return {&i, "0x"sv};
-        } else if constexpr (std::is_same_v<TestType, const void*>) {
-            static const int i = 0;
-            return {&i, "0x"sv};
-        } else if constexpr (std::is_same_v<TestType, std::nullptr_t>) {
-            return {{}, "nullptr"};
-        } else if constexpr (std::is_same_v<TestType, std::string_view>) {
-            return {"hello"sv, "hello"sv};
-        } else if constexpr (std::is_same_v<TestType, enum_type>) {
-            return {enum_type::value2, "12"sv};
-        } else if constexpr (std::is_same_v<TestType, function_ptr_type1>) {
-            return {&foo, "0x????????"sv};
-        } else if constexpr (std::is_same_v<TestType, function_ptr_type2>) {
-            return {nullptr, "nullptr"sv};
-        }
-    };
+struct append_expected_diff {
+    append_expected str_constexpr;
+    append_expected str_fast;
+};
 
-    SECTION("on empty") {
-        string_type s;
+template<std::size_t N>
+struct append_result {
+    snitch::small_string<N> str;
+    bool                    success = true;
 
-        auto [value, expected] = create_value();
-        CHECK(append(s, value));
+    constexpr bool operator==(const append_expected& o) const {
+        return success == o.success &&
+               (o.start_with ? std::string_view(str.data(), str.size()).starts_with(o.str)
+                             : str == o.str);
+    }
+};
 
-        if constexpr (
-            !std::is_pointer_v<TestType> || std::is_function_v<std::remove_pointer_t<TestType>>) {
-            CHECK(std::string_view(s) == expected);
+template<std::size_t N>
+struct append_result2 {
+    std::optional<append_result<N>> str_constexpr;
+    std::optional<append_result<N>> str_fast;
+
+    constexpr bool operator==(const append_expected& o) const {
+        return (str_constexpr.has_value() ? str_constexpr.value() == o : true) &&
+               (str_fast.has_value() ? str_fast.value() == o : true);
+    }
+
+    constexpr bool operator==(const append_expected_diff& o) const {
+        return (str_constexpr.has_value() ? str_constexpr.value() == o.str_constexpr : true) &&
+               (str_fast.has_value() ? str_fast.value() == o.str_fast : true);
+    }
+};
+
+template<std::size_t N, bool TestConstexpr, typename T>
+constexpr append_result2<N> to_string(T value) {
+    if (std::is_constant_evaluated()) {
+        snitch::small_string<N> str;
+        bool                    success = append(str, value);
+        return {{{str, success}}, {}};
+    } else {
+        if constexpr (TestConstexpr) {
+            snitch::small_string<N> str1, str2;
+            bool                    success1 = append(str1, value);
+            bool                    success2 = snitch::impl::append_constexpr(str2, value);
+            return {{{str2, success2}}, {{str1, success1}}};
         } else {
-#if defined(SNITCH_COMPILER_MSVC)
-            CHECK(std::string_view(s).size() > 0u);
-#else
-            CHECK(std::string_view(s).starts_with(expected));
+            snitch::small_string<N> str;
+            bool                    success = append(str, value);
+            return {{}, {{str, success}}};
+        }
+    }
+}
+
+#if defined(SNITCH_TEST_WITH_SNITCH)
+template<std::size_t N>
+constexpr bool append(snitch::small_string_span s, const append_result<N>& r) {
+    return append(s, "{", r.str, ",", r.success, "}");
+}
+
+template<std::size_t N>
+constexpr bool append(snitch::small_string_span s, const append_result2<N>& r) {
+    if (r.str_constexpr.has_value() && r.str_fast.has_value()) {
+        return append(s, "{", r.str_constexpr.value(), ",", r.str_fast.value(), "}");
+    } else if (r.str_constexpr.has_value()) {
+        return append(s, r.str_constexpr.value());
+    } else if (r.str_fast.has_value()) {
+        return append(s, r.str_fast.value());
+    } else {
+        return append(s, "{}");
+    }
+}
+
+constexpr bool append(snitch::small_string_span s, const append_expected& r) {
+    return append(s, "{", r.str, ",", r.success, "}");
+}
+
+constexpr bool append(snitch::small_string_span s, const append_expected_diff& r) {
+    return append(s, "{", r.str_constexpr, ",", r.str_fast, "}");
+}
 #endif
+} // namespace append_test
+
+TEST_CASE("append", "[utility]") {
+    using ae  = append_test::append_expected;
+    using aed = append_test::append_expected_diff;
+
+    SECTION("strings do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(""sv) == ae{""sv, true});
+        CONSTEXPR_CHECK(a("a"sv) == ae{"a"sv, true});
+        CONSTEXPR_CHECK(a("abcd"sv) == ae{"abcd"sv, true});
+    }
+
+    SECTION("strings don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<5, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a("abcdefghijklmnopqrst"sv) == ae{"abcde"sv, false});
+    }
+
+    SECTION("booleans do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
+
+        CONSTEXPR_CHECK(a(true) == ae{"true"sv, true});
+        CONSTEXPR_CHECK(a(false) == ae{"false"sv, true});
+    }
+
+    SECTION("booleans don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<3, false>(value);
+        };
+
+        CONSTEXPR_CHECK(a(true) == ae{"tru"sv, false});
+        CONSTEXPR_CHECK(a(false) == ae{"fal"sv, false});
+    }
+
+    SECTION("nullptr do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(nullptr) == ae{"nullptr"sv, true});
+    }
+
+    SECTION("nullptr don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<3, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(nullptr) == ae{"nul"sv, false});
+    }
+
+    SECTION("pointers do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, true>(static_cast<void*>(value));
+        };
+
+        struct b {
+            int            i = 0;
+            constexpr int* get() {
+                return &i;
+            }
+        };
+
+        CONSTEXPR_CHECK(a(nullptr) == ae{"nullptr"sv, true});
+        CONSTEXPR_CHECK(a(b{}.get()) == aed{{"0x????????"sv, true}, {"0x"sv, true, true}});
+
+        constexpr auto b = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
+
+        CONSTEXPR_CHECK(b(static_cast<function_ptr_type>(nullptr)) == ae{"nullptr"sv, true});
+        CONSTEXPR_CHECK(b(&foo) == ae{"0x????????"sv, true});
+    }
+
+    SECTION("pointers don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<5, true>(value);
+        };
+
+        struct b {
+            int            i = 0;
+            constexpr int* get() {
+                return &i;
+            }
+        };
+
+        CONSTEXPR_CHECK(a(nullptr) == ae{"nullp"sv, false});
+        CONSTEXPR_CHECK(a(b{}.get()) == aed{{"0x???"sv, false}, {"0x"sv, false, true}});
+    }
+
+    SECTION("integers do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            if constexpr (std::is_signed_v<std::decay_t<decltype(value)>>) {
+                return append_test::to_string<21, true>(static_cast<snitch::large_int_t>(value));
+            } else {
+                return append_test::to_string<21, true>(static_cast<snitch::large_uint_t>(value));
+            }
+        };
+
+        CONSTEXPR_CHECK(a(0) == ae{"0"sv, true});
+        CONSTEXPR_CHECK(a(0u) == ae{"0"sv, true});
+        CONSTEXPR_CHECK(a(1) == ae{"1"sv, true});
+        CONSTEXPR_CHECK(a(-1) == ae{"-1"sv, true});
+        CONSTEXPR_CHECK(a(1u) == ae{"1"sv, true});
+        CONSTEXPR_CHECK(a(9) == ae{"9"sv, true});
+        CONSTEXPR_CHECK(a(-9) == ae{"-9"sv, true});
+        CONSTEXPR_CHECK(a(9u) == ae{"9"sv, true});
+        CONSTEXPR_CHECK(a(10) == ae{"10"sv, true});
+        CONSTEXPR_CHECK(a(-10) == ae{"-10"sv, true});
+        CONSTEXPR_CHECK(a(10u) == ae{"10"sv, true});
+        CONSTEXPR_CHECK(a(15) == ae{"15"sv, true});
+        CONSTEXPR_CHECK(a(-15) == ae{"-15"sv, true});
+        CONSTEXPR_CHECK(a(15u) == ae{"15"sv, true});
+        CONSTEXPR_CHECK(a(115) == ae{"115"sv, true});
+        CONSTEXPR_CHECK(a(-115) == ae{"-115"sv, true});
+        CONSTEXPR_CHECK(a(115u) == ae{"115"sv, true});
+        CONSTEXPR_CHECK(a(10005) == ae{"10005"sv, true});
+        CONSTEXPR_CHECK(a(-10005) == ae{"-10005"sv, true});
+        CONSTEXPR_CHECK(a(10005u) == ae{"10005"sv, true});
+
+        // Limits 32bit
+        if constexpr (sizeof(std::size_t) >= 4) {
+            CONSTEXPR_CHECK(a(4294967295u) == ae{"4294967295"sv, true});
+            CONSTEXPR_CHECK(a(2147483647) == ae{"2147483647"sv, true});
+            // NB: "-2147483648" does not work as an integer literal even though it is
+            // representable, because "-" and "2147483648" are treated as two tokens,
+            // and the latter (as positive integer) isn't representable. Hence the trick below.
+            // https://stackoverflow.com/a/65008288/1565581
+            CONSTEXPR_CHECK(a(-2147483647 - 1) == ae{"-2147483648"sv, true});
+        }
+
+        // Limits 64bit
+        if constexpr (sizeof(std::size_t) >= 8) {
+            CONSTEXPR_CHECK(a(18446744073709551615u) == ae{"18446744073709551615"sv, true});
+            CONSTEXPR_CHECK(a(9223372036854775807) == ae{"9223372036854775807"sv, true});
+            // NB: "-9223372036854775808" does not work as an integer literal even though it is
+            // representable, because "-" and "9223372036854775808" are treated as two tokens,
+            // and the latter (as positive integer) isn't representable. Hence the trick below.
+            // https://stackoverflow.com/a/65008288/1565581
+            CONSTEXPR_CHECK(a(-9223372036854775807 - 1) == ae{"-9223372036854775808"sv, true});
         }
     }
 
-    SECTION("on partially full") {
-        std::string_view initial = "abcdefghijklmnopqr"sv;
-        string_type      s       = initial;
+    SECTION("integers don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            if constexpr (std::is_signed_v<std::decay_t<decltype(value)>>) {
+                return append_test::to_string<5, true>(static_cast<snitch::large_int_t>(value));
+            } else {
+                return append_test::to_string<5, true>(static_cast<snitch::large_uint_t>(value));
+            }
+        };
 
-        auto [value, expected] = create_value();
-        CHECK(!append(s, value));
-        CHECK(std::string_view(s).starts_with(initial));
-        if constexpr (
-            (std::is_arithmetic_v<TestType> && !std::is_same_v<TestType, bool>) ||
-            (std::is_pointer_v<TestType> && !std::is_function_v<std::remove_pointer_t<TestType>>) ||
-            std::is_enum_v<TestType>) {
-            // We are stuck with snprintf, which insists on writing a null-terminator character,
-            // therefore we loose one character at the end.
-            CHECK(s.size() == max_length - 1u);
-            CHECK(expected.substr(0, 1) == std::string_view(s).substr(s.size() - 1, 1));
-        } else {
-            CHECK(s.size() == max_length);
-            CHECK(expected.substr(0, 2) == std::string_view(s).substr(s.size() - 2, 2));
-        }
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(123456) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(1234567) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(12345678) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(-12345) == aed{{"-1234"sv, false}, {"-123"sv, false}});
+        CONSTEXPR_CHECK(a(-123456) == aed{{"-1234"sv, false}, {"-123"sv, false}});
+        CONSTEXPR_CHECK(a(-1234567) == aed{{"-1234"sv, false}, {"-123"sv, false}});
+        CONSTEXPR_CHECK(a(123456u) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(1234567u) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(12345678u) == aed{{"12345"sv, false}, {"1234"sv, false}});
     }
 
-    SECTION("on full") {
-        std::string_view initial = "abcdefghijklmnopqrst"sv;
-        string_type      s       = initial;
+    SECTION("enums do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
 
-        auto [value, expected] = create_value();
-        CHECK(!append(s, value));
-        CHECK(std::string_view(s) == initial);
+        CONSTEXPR_CHECK(a(enum_type::value1) == ae{"0", true});
+        CONSTEXPR_CHECK(a(enum_type::value2) == ae{"12", true});
+        CONSTEXPR_CHECK(a(enum_type::value3) == ae{"123456", true});
+    }
+
+    SECTION("enums don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<3, false>(value);
+        };
+
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(enum_type::value3) == aed{{"123", false}, {"12", false}});
+    }
+
+    SECTION("floats do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(0.0f) == ae{"0.000000e+00"sv, true});
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        CONSTEXPR_CHECK(a(-0.0f) == ae{"-0.000000e+00"sv, true});
+#else
+        // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
+        // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
+        CONSTEXPR_CHECK(a(-0.0f) == aed{{"0.000000e+00"sv, true}, {"-0.000000e+00"sv, true}});
+#endif
+        CONSTEXPR_CHECK(a(1.0f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5f) == ae{"1.500000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.51f) == ae{"1.510000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.501f) == ae{"1.501000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5001f) == ae{"1.500100e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50001f) == ae{"1.500010e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500001f) == ae{"1.500001e+00"sv, true});
+        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(10.0f) == ae{"1.000000e+01"sv, true});
+        CONSTEXPR_CHECK(a(1e4f) == ae{"1.000000e+04"sv, true});
+        // The number below is a tricky one: it is exactly representable, but intermediate
+        // calculations requires more digits than can be stored on fixed-point 64 bits.
+        // Furthermore, rounding is an exact tie, and exposes the round-half-to-even behavior.
+        CONSTEXPR_CHECK(a(4.0970845e+06f) == ae{"4.097084e+06"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e28f) == ae{"2.345600e+28"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e28f) == ae{"-2.345600e+28"sv, true});
+        CONSTEXPR_CHECK(a(3.402823e38f) == ae{"3.402823e+38"sv, true});
+        CONSTEXPR_CHECK(a(-3.402823e38f) == ae{"-3.402823e+38"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-28f) == ae{"2.345600e-28"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-28f) == ae{"-2.345600e-28"sv, true});
+        CONSTEXPR_CHECK(a(1.175494e-38f) == ae{"1.175494e-38"sv, true});
+        CONSTEXPR_CHECK(a(-1.175494e-38f) == ae{"-1.175494e-38"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-42f) == ae{"2.345774e-42"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-42f) == ae{"-2.345774e-42"sv, true});
+        CONSTEXPR_CHECK(a(1.401298e-45f) == ae{"1.401298e-45"sv, true});
+        CONSTEXPR_CHECK(a(-1.401298e-45f) == ae{"-1.401298e-45"sv, true});
+        CONSTEXPR_CHECK(a(std::numeric_limits<float>::infinity()) == ae{"inf"sv, true});
+        CONSTEXPR_CHECK(a(-std::numeric_limits<float>::infinity()) == ae{"-inf"sv, true});
+        CONSTEXPR_CHECK(a(std::numeric_limits<float>::quiet_NaN()) == ae{"nan"sv, true});
+
+        // Test that the rounding mode is the same as std::printf.
+        CONSTEXPR_CHECK(a(1.0000001f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000002f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000003f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000004f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000005f) == ae{"1.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000006f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000007f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000008f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000009f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000010f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000011f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000012f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000013f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000014f) == ae{"1.000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000015f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000016f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000017f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000018f) == ae{"1.000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000019f) == ae{"1.000002e+00"sv, true});
+    }
+
+    SECTION("floats don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<5, true>(value);
+        };
+
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(0.0f) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
+        CONSTEXPR_CHECK(a(-1.0f) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
+    }
+
+#if 0
+    // This takes a long time, but 99.995% of floats match exactly (with 6 digits precision).
+    SECTION("constexpr floats match printf(%e)") {
+        const float mi = -std::numeric_limits<float>::max();
+        const float ma = std::numeric_limits<float>::max();
+
+        snitch::small_string<21> ssc;
+        snitch::small_string<21> ssr;
+
+        // Iterate over all float point values between 'mi' and 'ma'
+        std::size_t k = 0, b = 0;
+        for (float f = mi; f < ma; f = std::nextafter(f, ma), ++k) {
+            ssc.clear();
+            ssr.clear();
+
+            (void)snitch::impl::append_constexpr(ssc, f);
+            (void)snitch::impl::append_fast(ssr, f);
+
+            auto svc = std::string_view(ssc.begin(), ssc.end());
+            auto svr = std::string_view(ssr.begin(), ssr.end());
+            if (svc != svr) {
+                ++b;
+            }
+        }
+
+        std::cout << static_cast<double>(b) / static_cast<double>(k) << std::endl;
+    }
+#endif
+
+    SECTION("doubles do fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<35, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(0.0) == ae{"0.000000000000000e+00"sv, true});
+#if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        CONSTEXPR_CHECK(a(-0.0) == ae{"-0.000000000000000e+00"sv, true});
+#else
+        // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
+        // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
+        CONSTEXPR_CHECK(
+            a(-0.0) == aed{{"0.000000000000000e+00"sv, true}, {"-0.000000000000000e+00"sv, true}});
+#endif
+        CONSTEXPR_CHECK(a(1.0) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5) == ae{"1.500000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.51) == ae{"1.510000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.501) == ae{"1.501000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5001) == ae{"1.500100000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50001) == ae{"1.500010000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500001) == ae{"1.500001000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000001) == ae{"1.500000100000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000001) == ae{"1.500000010000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000001) == ae{"1.500000001000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000000001) == ae{"1.500000000100000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000000001) == ae{"1.500000000010000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000000001) == ae{"1.500000000001000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000000000001) == ae{"1.500000000000100e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000000000001) == ae{"1.500000000000010e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000000000001) == ae{"1.500000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(-1.0) == ae{"-1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(10.0) == ae{"1.000000000000000e+01"sv, true});
+        CONSTEXPR_CHECK(a(1e4) == ae{"1.000000000000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e301) == ae{"2.345600000000000e+301"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e301) == ae{"-2.345600000000000e+301"sv, true});
+        CONSTEXPR_CHECK(a(1.797693134862315e308) == ae{"1.797693134862315e+308"sv, true});
+        CONSTEXPR_CHECK(a(-1.797693134862315e308) == ae{"-1.797693134862315e+308"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-301) == ae{"2.345600000000000e-301"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-301) == ae{"-2.345600000000000e-301"sv, true});
+        CONSTEXPR_CHECK(a(2.225073858507201e-308) == ae{"2.225073858507201e-308"sv, true});
+        CONSTEXPR_CHECK(a(-2.225073858507201e-308) == ae{"-2.225073858507201e-308"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-320) == ae{"2.345823686454239e-320"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-320) == ae{"-2.345823686454239e-320"sv, true});
+        CONSTEXPR_CHECK(a(4.940656458412465e-324) == ae{"4.940656458412465e-324"sv, true});
+        CONSTEXPR_CHECK(a(-4.940656458412465e-324) == ae{"-4.940656458412465e-324"sv, true});
+        CONSTEXPR_CHECK(a(std::numeric_limits<double>::infinity()) == ae{"inf"sv, true});
+        CONSTEXPR_CHECK(a(-std::numeric_limits<double>::infinity()) == ae{"-inf"sv, true});
+        CONSTEXPR_CHECK(a(std::numeric_limits<double>::quiet_NaN()) == ae{"nan"sv, true});
+
+        // Test that the rounding mode is the same as std::printf.
+        CONSTEXPR_CHECK(a(1.0000000000000001) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000002) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000003) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000004) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000005) == ae{"1.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000006) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000007) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000008) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000009) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000010) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000011) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000012) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000013) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000014) == ae{"1.000000000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000015) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000016) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000017) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000018) == ae{"1.000000000000002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.0000000000000019) == ae{"1.000000000000002e+00"sv, true});
+    }
+
+    SECTION("doubles don't fit") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<5, true>(value);
+        };
+
+        // Different expectation at runtime and compile-time. At runtime,
+        // we are stuck with snprintf, which insists on writing a null-terminator character,
+        // therefore we loose one character at the end.
+        CONSTEXPR_CHECK(a(0.0) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
+        CONSTEXPR_CHECK(a(-1.0) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
     }
 }
 

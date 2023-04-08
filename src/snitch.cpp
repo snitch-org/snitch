@@ -1,6 +1,7 @@
 #include "snitch/snitch.hpp"
 
 #include <algorithm> // for std::sort
+#include <cinttypes> // for format strings
 #include <cstdio> // for std::printf, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
@@ -49,15 +50,19 @@ using snitch::small_string_span;
 template<typename T>
 constexpr const char* get_format_code() noexcept {
     if constexpr (std::is_same_v<T, const void*>) {
+#if defined(_MSC_VER)
+        return "0x%p";
+#else
         return "%p";
-    } else if constexpr (std::is_same_v<T, std::size_t>) {
-        return "%zu";
-    } else if constexpr (std::is_same_v<T, std::ptrdiff_t>) {
-        return "%td";
+#endif
+    } else if constexpr (std::is_same_v<T, std::uintmax_t>) {
+        return "%" PRIuMAX;
+    } else if constexpr (std::is_same_v<T, std::intmax_t>) {
+        return "%" PRIdMAX;
     } else if constexpr (std::is_same_v<T, float>) {
-        return "%f";
+        return "%.6e";
     } else if constexpr (std::is_same_v<T, double>) {
-        return "%lf";
+        return "%.15e";
     } else {
         static_assert(!std::is_same_v<T, T>, "unsupported type");
     }
@@ -96,8 +101,8 @@ bool append_fmt(small_string_span ss, T value) noexcept {
 }
 } // namespace
 
-namespace snitch {
-bool append(small_string_span ss, std::string_view str) noexcept {
+namespace snitch::impl {
+bool append_fast(small_string_span ss, std::string_view str) noexcept {
     if (str.empty()) {
         return true;
     }
@@ -112,44 +117,32 @@ bool append(small_string_span ss, std::string_view str) noexcept {
     return could_fit;
 }
 
-bool append(small_string_span ss, const void* ptr) noexcept {
-    return append_fmt(ss, ptr);
+bool append_fast(small_string_span ss, const void* ptr) noexcept {
+    if (ptr == nullptr) {
+        return append(ss, nullptr);
+    } else {
+        return append_fmt(ss, ptr);
+    }
 }
 
-bool append(small_string_span ss, std::nullptr_t) noexcept {
-    return append(ss, "nullptr");
-}
-
-bool append(small_string_span ss, std::size_t i) noexcept {
+bool append_fast(small_string_span ss, large_uint_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(small_string_span ss, std::ptrdiff_t i) noexcept {
+bool append_fast(small_string_span ss, large_int_t i) noexcept {
     return append_fmt(ss, i);
 }
 
-bool append(small_string_span ss, float f) noexcept {
+bool append_fast(small_string_span ss, float f) noexcept {
     return append_fmt(ss, f);
 }
 
-bool append(small_string_span ss, double d) noexcept {
+bool append_fast(small_string_span ss, double d) noexcept {
     return append_fmt(ss, d);
 }
+} // namespace snitch::impl
 
-bool append(small_string_span ss, bool value) noexcept {
-    return append(ss, value ? "true" : "false");
-}
-
-void truncate_end(small_string_span ss) noexcept {
-    std::size_t num_dots     = 3;
-    std::size_t final_length = std::min(ss.capacity(), ss.size() + num_dots);
-    std::size_t offset       = final_length >= num_dots ? final_length - num_dots : 0;
-    num_dots                 = final_length - offset;
-
-    ss.resize(final_length);
-    std::memcpy(ss.begin() + offset, "...", num_dots);
-}
-
+namespace snitch {
 bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept {
 

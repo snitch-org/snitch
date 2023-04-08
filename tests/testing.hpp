@@ -24,6 +24,18 @@
         DOCTEST_TEST_CASE_TEMPLATE(tags " " name, TestType, __VA_ARGS__)
 #    define SKIP(message) return
 #    define TEST_CASE_METHOD(fixture, name, ...) DOCTEST_TEST_CASE_FIXTURE(fixture, name)
+#    define CONSTEXPR_CHECK(...)                                                                   \
+        if constexpr (__VA_ARGS__) {                                                               \
+            CHECK(__VA_ARGS__);                                                                    \
+        } else {                                                                                   \
+            CHECK(__VA_ARGS__);                                                                    \
+        }
+#    define CONSTEXPR_REQUIRE(...)                                                                 \
+        if constexpr (__VA_ARGS__) {                                                               \
+            REQUIRE(__VA_ARGS__);                                                                  \
+        } else {                                                                                   \
+            REQUIRE(__VA_ARGS__);                                                                  \
+        }
 
 #    include <ostream>
 

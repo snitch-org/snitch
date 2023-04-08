@@ -25,8 +25,8 @@ jobs:
         - Release
         - Debug
         config:
-        - { name: Default, run-tests: true, flags: ""}
-        - { name: No timings, run-tests: false, flags: "-DSNITCH_WITH_TIMINGS=0"}
+        - { name: Default,       run-tests: true,  flags: ""}
+        - { name: No timings,    run-tests: false, flags: "-DSNITCH_WITH_TIMINGS=0"}
         - { name: No exceptions, run-tests: false, flags: "-DSNITCH_WITH_EXCEPTIONS=0"}
 
     name: ${{matrix.platform.name}} ${{matrix.build-type}} ${{matrix.config.name}}
@@ -57,13 +57,12 @@ jobs:
         version: ${{env.EM_VERSION}}
         actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
 
-      # GCC 9 has a bug which prevents compilation of the testing framework, so switch to GCC 10.
     - name: Setup GCC
       if: matrix.platform.compiler == 'g++'
       run: |
-        sudo apt install g++-10
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
-        sudo update-alternatives --set gcc /usr/bin/gcc-10
+        sudo apt install g++-11
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+        sudo update-alternatives --set gcc /usr/bin/gcc-11
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{github.workspace}}/build
