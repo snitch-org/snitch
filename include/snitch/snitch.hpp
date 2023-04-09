@@ -1939,21 +1939,13 @@ void for_each_positional_argument(
 // Test registry.
 // --------------
 
+namespace snitch::impl {
+void default_reporter(const registry& r, const event::data& event) noexcept;
+}
+
 namespace snitch {
 class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
-
-    void print_location(
-        const impl::test_case&     current_case,
-        const impl::section_state& sections,
-        const impl::capture_state& captures,
-        const assertion_location&  location) const noexcept;
-
-    void print_failure() const noexcept;
-    void print_expected_failure() const noexcept;
-    void print_skip() const noexcept;
-    void print_details(std::string_view message) const noexcept;
-    void print_details_expr(const impl::expression& exp) const noexcept;
 
 public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
@@ -1962,8 +1954,8 @@ public:
     using print_function  = small_function<void(std::string_view) noexcept>;
     using report_function = small_function<void(const registry&, const event::data&) noexcept>;
 
-    print_function  print_callback = &snitch::impl::stdout_print;
-    report_function report_callback;
+    print_function  print_callback  = &snitch::impl::stdout_print;
+    report_function report_callback = &snitch::impl::default_reporter;
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
