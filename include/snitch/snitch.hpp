@@ -1362,14 +1362,12 @@ class small_function<Ret(Args...) noexcept> {
         function_const_data_ptr ptr;
     };
 
-    using data_type = std::
-        variant<std::monostate, function_ptr, function_and_data_ptr, function_and_const_data_ptr>;
+    using data_type =
+        std::variant<function_ptr, function_and_data_ptr, function_and_const_data_ptr>;
 
     data_type data;
 
 public:
-    constexpr small_function() = default;
-
     constexpr small_function(function_ptr ptr) noexcept : data{ptr} {}
 
     template<convertible_to<function_ptr> T>
@@ -1417,9 +1415,6 @@ public:
         if constexpr (std::is_same_v<Ret, void>) {
             std::visit(
                 overload{
-                    [](std::monostate) {
-                        terminate_with("small_function called without an implementation");
-                    },
                     [&](function_ptr f) { (*f)(std::forward<CArgs>(args)...); },
                     [&](const function_and_data_ptr& f) {
                         (*f.ptr)(f.data, std::forward<CArgs>(args)...);
@@ -1431,9 +1426,6 @@ public:
         } else {
             return std::visit(
                 overload{
-                    [](std::monostate) -> Ret {
-                        terminate_with("small_function called without an implementation");
-                    },
                     [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
                     [&](const function_and_data_ptr& f) {
                         return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
@@ -1443,10 +1435,6 @@ public:
                     }},
                 data);
         }
-    }
-
-    constexpr bool empty() const noexcept {
-        return std::holds_alternative<std::monostate>(data);
     }
 };
 } // namespace snitch

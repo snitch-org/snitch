@@ -81,18 +81,13 @@ TEMPLATE_TEST_CASE(
     function_2_int) {
 
     [&]<typename R, typename... Args>(type_holder<R(Args...) noexcept>) {
-        snitch::small_function<TestType> f;
-
         test_object_instances                    = 0u;
         return_value                             = 0u;
         function_called                          = false;
         constexpr std::size_t expected_instances = sizeof...(Args) > 0 ? 3u : 0u;
 
-        CHECK(f.empty());
-
         SECTION("from free function") {
-            f = &test_class<TestType>::method_static;
-            CHECK(!f.empty());
+            snitch::small_function<TestType> f = &test_class<TestType>::method_static;
 
             call_function(f);
 
@@ -104,9 +99,9 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from non-const member function") {
-            test_class<TestType> obj;
-            f = {obj, snitch::constant<&test_class<TestType>::method>{}};
-            CHECK(!f.empty());
+            test_class<TestType>             obj;
+            snitch::small_function<TestType> f = {
+                obj, snitch::constant<&test_class<TestType>::method>{}};
 
             call_function(f);
 
@@ -118,9 +113,9 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from const member function") {
-            const test_class<TestType> obj;
-            f = {obj, snitch::constant<&test_class<TestType>::method_const>{}};
-            CHECK(!f.empty());
+            const test_class<TestType>       obj;
+            snitch::small_function<TestType> f = {
+                obj, snitch::constant<&test_class<TestType>::method_const>{}};
 
             call_function(f);
 
@@ -132,13 +127,13 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from stateless lambda") {
-            f = snitch::small_function<TestType>{[](Args...) noexcept -> R {
-                function_called = true;
-                if constexpr (!std::is_same_v<R, void>) {
-                    return 45;
-                }
-            }};
-            CHECK(!f.empty());
+            snitch::small_function<TestType> f =
+                snitch::small_function<TestType>{[](Args...) noexcept -> R {
+                    function_called = true;
+                    if constexpr (!std::is_same_v<R, void>) {
+                        return 45;
+                    }
+                }};
 
             call_function(f);
 
@@ -158,8 +153,7 @@ TEMPLATE_TEST_CASE(
                 }
             };
 
-            f = snitch::small_function<TestType>{lambda};
-            CHECK(!f.empty());
+            snitch::small_function<TestType> f = snitch::small_function<TestType>{lambda};
 
             call_function(f);
 

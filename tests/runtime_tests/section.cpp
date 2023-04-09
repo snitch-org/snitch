@@ -235,7 +235,7 @@ TEST_CASE("section readme example", "[test macros]") {
     };
 
     framework.registry.print_callback  = print;
-    framework.registry.report_callback = {};
+    framework.registry.report_callback = &snitch::impl::default_reporter;
 
     framework.test_case.func = []() {
         auto& reg = snitch::impl::get_current_test().reg;
