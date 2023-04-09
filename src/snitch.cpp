@@ -37,7 +37,7 @@ struct colored {
 };
 
 template<typename T>
-colored<T> make_colored(const T& t, bool with_color, color_t start) {
+colored<T> make_colored(const T& t, bool with_color, color_t start) noexcept {
     return {t, with_color ? start : "", with_color ? color::reset : ""};
 }
 
@@ -322,7 +322,8 @@ void console_print(Args&&... args) noexcept {
     snitch::cli::console_print(message);
 }
 
-bool is_at_least(snitch::registry::verbosity verbose, snitch::registry::verbosity required) {
+bool is_at_least(
+    snitch::registry::verbosity verbose, snitch::registry::verbosity required) noexcept {
     using underlying_type = std::underlying_type_t<snitch::registry::verbosity>;
     return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
 }
@@ -371,11 +372,9 @@ section_entry_checker::~section_entry_checker() noexcept {
     --state.sections.depth;
 }
 
-section_entry_checker::operator bool() noexcept {
-    ++state.sections.depth;
-
-    if (state.sections.depth > state.sections.levels.size()) {
-        if (state.sections.depth > max_nested_sections) {
+section_entry_checker::operator bool() {
+    if (state.sections.depth >= state.sections.levels.size()) {
+        if (state.sections.depth >= max_nested_sections) {
             state.reg.print(
                 make_colored("error:", state.reg.with_color, color::fail),
                 " max number of nested sections reached; "
@@ -386,6 +385,8 @@ section_entry_checker::operator bool() noexcept {
 
         state.sections.levels.push_back({});
     }
+
+    ++state.sections.depth;
 
     auto& level = state.sections.levels[state.sections.depth - 1];
 
@@ -461,7 +462,7 @@ std::string_view extract_next_name(std::string_view& names) noexcept {
     return result;
 }
 
-small_string<max_capture_length>& add_capture(test_state& state) noexcept {
+small_string<max_capture_length>& add_capture(test_state& state) {
     if (state.captures.available() == 0) {
         state.reg.print(
             make_colored("error:", state.reg.with_color, color::fail),
@@ -508,8 +509,9 @@ namespace {
 using namespace snitch;
 using namespace snitch::impl;
 
+// Requires: s contains a well-formed list of tags.
 template<typename F>
-void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
+void for_each_raw_tag(std::string_view s, F&& callback) {
     if (s.empty()) {
         return;
     }
@@ -543,8 +545,9 @@ struct should_fail {};
 using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail>;
 } // namespace tags
 
+// Requires: s contains a well-formed list of tags, each of length <= max_tag_length.
 template<typename F>
-void for_each_tag(std::string_view s, F&& callback) noexcept {
+void for_each_tag(std::string_view s, F&& callback) {
     small_string<max_tag_length> buffer;
 
     for_each_raw_tag(s, [&](std::string_view t) {
@@ -623,7 +626,8 @@ snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcep
     }
 }
 
-small_vector<std::string_view, max_captures> make_capture_buffer(const capture_state& captures) {
+small_vector<std::string_view, max_captures>
+make_capture_buffer(const capture_state& captures) noexcept {
     small_vector<std::string_view, max_captures> captures_buffer;
     for (const auto& c : captures) {
         captures_buffer.push_back(c);
@@ -793,7 +797,7 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
 } // namespace snitch::impl
 
 namespace snitch {
-const char* registry::add(const test_id& id, test_ptr func) noexcept {
+const char* registry::add(const test_id& id, test_ptr func) {
     if (test_list.available() == 0u) {
         print(
             make_colored("error:", with_color, color::fail),
@@ -1083,7 +1087,7 @@ bool registry::run_tests(std::string_view run_name) noexcept {
     return run_selected_tests(run_name, filter);
 }
 
-void registry::list_all_tags() const noexcept {
+void registry::list_all_tags() const {
     small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
         for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
@@ -1170,7 +1174,7 @@ struct parser_settings {
     bool with_color = true;
 };
 
-std::string_view extract_executable(std::string_view path) {
+std::string_view extract_executable(std::string_view path) noexcept {
     if (auto folder_end = path.find_last_of("\\/"); folder_end != path.npos) {
         path.remove_prefix(folder_end + 1);
     }
@@ -1181,23 +1185,23 @@ std::string_view extract_executable(std::string_view path) {
     return path;
 }
 
-bool is_option(const expected_argument& e) {
+bool is_option(const expected_argument& e) noexcept {
     return !e.names.empty();
 }
 
-bool is_option(const cli::argument& a) {
+bool is_option(const cli::argument& a) noexcept {
     return !a.name.empty();
 }
 
-bool has_value(const expected_argument& e) {
+bool has_value(const expected_argument& e) noexcept {
     return e.value_name.has_value();
 }
 
-bool is_mandatory(const expected_argument& e) {
+bool is_mandatory(const expected_argument& e) noexcept {
     return (e.type & argument_type::mandatory) != 0;
 }
 
-bool is_repeatable(const expected_argument& e) {
+bool is_repeatable(const expected_argument& e) noexcept {
     return (e.type & argument_type::repeatable) != 0;
 }
 
@@ -1205,7 +1209,7 @@ std::optional<cli::input> parse_arguments(
     int                       argc,
     const char* const         argv[],
     const expected_arguments& expected,
-    const parser_settings&    settings = parser_settings{}) noexcept {
+    const parser_settings&    settings = parser_settings{}) {
 
     std::optional<cli::input> ret(std::in_place);
     ret->executable = extract_executable(argv[0]);
@@ -1353,7 +1357,7 @@ void print_help(
     std::string_view           program_name,
     std::string_view           program_description,
     const expected_arguments&  expected,
-    const print_help_settings& settings = print_help_settings{}) {
+    const print_help_settings& settings = print_help_settings{}) noexcept {
 
     // Print program description
     console_print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
@@ -1408,7 +1412,7 @@ void print_help(
         }
 
         if (!success) {
-            terminate_with("argument name is too long");
+            truncate_end(heading);
         }
 
         console_print(

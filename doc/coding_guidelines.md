@@ -5,10 +5,10 @@ Unless otherwise stated, follow the [C++ Code Guidelines](https://isocpp.github.
 
 ## `noexcept`
 
-Follow the [Lakos Rule](https://quuxplusone.github.io/blog/2018/04/25/the-lakos-rule/):
+Follow the [Lakos Rule](https://quuxplusone.github.io/blog/2018/04/25/the-lakos-rule/) (with some tweaks):
  - Functions with a wide contract (i.e., with no precondition) should be marked as unconditionally `noexcept`.
  - Functions with a narrow contract (i.e., with preconditions), should not be marked as `noexcept`.
- - If a templated swap function, move-constructor, or move-assignment operator is conditionally-wide (i.e., only throws for some template parameters), then it should be marked as conditionally `noexcept`. No other function should use a conditional `noexcept` specification.
+ - If a template function is conditionally-wide, (e.g., its purpose is only to be a wrapper or adapter over another function), then it may be marked conditionally `noexcept`.
 
 In particular:
  - Do not mark a function `noexcept` just because it happens not to throw. The decision should be based on the *interface* of the function (which includes its pre-condition), and not its implementation.
