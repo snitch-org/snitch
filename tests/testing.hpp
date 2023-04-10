@@ -5,6 +5,8 @@
 #    else
 #        include "snitch/snitch.hpp"
 #    endif
+#    define CHECK_THROWS_WHAT(EXPR, EXCEPT, MESSAGE)                                               \
+        CHECK_THROWS_MATCHES(EXPR, EXCEPT, snitch::matchers::with_what_contains{(MESSAGE)})
 
 #else
 
@@ -36,6 +38,7 @@
         } else {                                                                                   \
             REQUIRE(__VA_ARGS__);                                                                  \
         }
+#    define CHECK_THROWS_WHAT(EXPR, EXCEPT, MESSAGE) CHECK_THROWS_WITH_AS(EXPR, MESSAGE, EXCEPT)
 
 #    include <ostream>
 
