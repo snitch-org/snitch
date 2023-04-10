@@ -241,21 +241,21 @@ Results for Debug builds:
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
-| Build tests     | 66s      | 79s      | 73s       | 118s       |
-| Build all       | 68s      | 120s     | 75s       | 118s       |
-| Run tests       | 38ms     | 76ms     | 63ms      | 20ms       |
-| Library size    | 3.2MB    | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 32.4MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Build tests     | 65s      | 79s      | 73s       | 118s       |
+| Build all       | 67s      | 120s     | 75s       | 118s       |
+| Run tests       | 34ms     | 76ms     | 63ms      | 20ms       |
+| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
-| Build tests     | 136s     | 254s     | 207s      | 289s       |
-| Build all       | 139s     | 301s     | 210s      | 289s       |
+| Build tests     | 134s     | 254s     | 207s      | 289s       |
+| Build all       | 137s     | 301s     | 210s      | 289s       |
 | Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
-| Library size    | 0.62MB   | 2.6MB    | 0.39MB    | 0MB        |
+| Library size    | 0.63MB   | 2.6MB    | 0.39MB    | 0MB        |
 | Executable size | 8.9MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
