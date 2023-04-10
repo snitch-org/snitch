@@ -314,6 +314,10 @@ template<typename... Args>
 struct type_list {};
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
+
+extern small_function<void(std::string_view)> assertion_failed_handler;
+
+[[noreturn]] void assertion_failed(std::string_view msg);
 } // namespace snitch
 
 // Public utilities: small_vector.
@@ -348,8 +352,8 @@ public:
 
     // Requires: new_size <= capacity().
     constexpr void resize(std::size_t new_size) {
-        if (!std::is_constant_evaluated() && new_size > buffer_size) {
-            terminate_with("small vector is full");
+        if (new_size > buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         *data_size = new_size;
@@ -357,8 +361,8 @@ public:
 
     // Requires: size() + elem <= capacity().
     constexpr void grow(std::size_t elem) {
-        if (!std::is_constant_evaluated() && *data_size + elem > buffer_size) {
-            terminate_with("small vector is full");
+        if (*data_size + elem > buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         *data_size += elem;
@@ -366,8 +370,8 @@ public:
 
     // Requires: size() < capacity().
     constexpr ElemType& push_back(const ElemType& t) {
-        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
-            terminate_with("small vector is full");
+        if (*data_size == buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         ++*data_size;
@@ -380,8 +384,8 @@ public:
 
     // Requires: size() < capacity().
     constexpr ElemType& push_back(ElemType&& t) {
-        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
-            terminate_with("small vector is full");
+        if (*data_size == buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         ++*data_size;
@@ -393,8 +397,8 @@ public:
 
     // Requires: !empty().
     constexpr void pop_back() {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("pop_back() called on empty vector");
+        if (*data_size == 0) {
+            assertion_failed("pop_back() called on empty vector");
         }
 
         --*data_size;
@@ -402,8 +406,8 @@ public:
 
     // Requires: !empty().
     constexpr ElemType& back() {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("back() called on empty vector");
+        if (*data_size == 0) {
+            assertion_failed("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
@@ -411,8 +415,8 @@ public:
 
     // Requires: !empty().
     constexpr const ElemType& back() const {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("back() called on empty vector");
+        if (*data_size == 0) {
+            assertion_failed("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
@@ -445,16 +449,16 @@ public:
 
     // Requires: i < size().
     constexpr ElemType& operator[](std::size_t i) {
-        if (!std::is_constant_evaluated() && i >= size()) {
-            terminate_with("operator[] called with incorrect index");
+        if (i >= size()) {
+            assertion_failed("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
 
     // Requires: i < size().
     constexpr const ElemType& operator[](std::size_t i) const {
-        if (!std::is_constant_evaluated() && i >= size()) {
-            terminate_with("operator[] called with incorrect index");
+        if (i >= size()) {
+            assertion_failed("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
@@ -488,8 +492,8 @@ public:
 
     // Requires: !empty().
     constexpr const ElemType& back() const {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("back() called on empty vector");
+        if (*data_size == 0) {
+            assertion_failed("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
@@ -513,8 +517,8 @@ public:
 
     // Requires: i < size().
     constexpr const ElemType& operator[](std::size_t i) const {
-        if (!std::is_constant_evaluated() && i >= size()) {
-            terminate_with("operator[] called with incorrect index");
+        if (i >= size()) {
+            assertion_failed("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }

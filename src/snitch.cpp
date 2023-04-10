@@ -330,14 +330,16 @@ bool is_at_least(
 
 void trim(std::string_view& str, std::string_view patterns) noexcept {
     std::size_t start = str.find_first_not_of(patterns);
-    if (start == str.npos)
+    if (start == str.npos) {
         return;
+    }
 
     str.remove_prefix(start);
 
     std::size_t end = str.find_last_not_of(patterns);
-    if (end != str.npos)
+    if (end != str.npos) {
         str.remove_suffix(str.size() - end - 1);
+    }
 }
 } // namespace
 
@@ -349,6 +351,17 @@ namespace snitch {
 
     std::terminate();
 }
+
+[[noreturn]] void assertion_failed(std::string_view msg) {
+    assertion_failed_handler(msg);
+
+    // The assertion handler should either spin, throw, or terminate, but never return.
+    // We cannot enforce [[noreturn]] through the small_function wrapper. So just in case
+    // it accidentally returns, we terminate.
+    std::terminate();
+}
+
+small_function<void(std::string_view)> assertion_failed_handler = &terminate_with;
 } // namespace snitch
 
 // Sections implementation.
@@ -380,7 +393,7 @@ section_entry_checker::operator bool() {
                 " max number of nested sections reached; "
                 "please increase 'SNITCH_MAX_NESTED_SECTIONS' (currently ",
                 max_nested_sections, ")\n.");
-            std::terminate();
+            assertion_failed("max number of nested sections reached");
         }
 
         state.sections.levels.push_back({});
@@ -469,7 +482,7 @@ small_string<max_capture_length>& add_capture(test_state& state) {
             " max number of captures reached; "
             "please increase 'SNITCH_MAX_CAPTURES' (currently ",
             max_captures, ")\n.");
-        std::terminate();
+        assertion_failed("max number of captures reached");
     }
 
     state.captures.grow(1);
@@ -518,7 +531,7 @@ void for_each_raw_tag(std::string_view s, F&& callback) {
 
     if (s.find_first_of("[") == std::string_view::npos ||
         s.find_first_of("]") == std::string_view::npos) {
-        terminate_with("incorrectly formatted tag; please use \"[tag1][tag2][...]\"");
+        assertion_failed("incorrectly formatted tag; please use \"[tag1][tag2][...]\"");
     }
 
     std::string_view delim    = "][";
@@ -564,7 +577,7 @@ void for_each_tag(std::string_view s, F&& callback) {
 
             buffer.clear();
             if (!append(buffer, "[", t.substr(2u))) {
-                terminate_with("tag is too long");
+                assertion_failed("tag is too long");
             }
 
             t = buffer;
@@ -804,7 +817,7 @@ const char* registry::add(const test_id& id, test_ptr func) {
             " max number of test cases reached; "
             "please increase 'SNITCH_MAX_TEST_CASES' (currently ",
             max_test_cases, ")\n.");
-        std::terminate();
+        assertion_failed("max number of test cases reached");
     }
 
     test_list.push_back(test_case{id, func});
@@ -816,7 +829,7 @@ const char* registry::add(const test_id& id, test_ptr func) {
             " max length of test name reached; "
             "please increase 'SNITCH_MAX_TEST_NAME_LENGTH' (currently ",
             max_test_name_length, ")\n.");
-        std::terminate();
+        assertion_failed("test case name exceeds max length");
     }
 
     return id.name.data();
@@ -1099,7 +1112,7 @@ void registry::list_all_tags() const {
                             " max number of tags reached; "
                             "please increase 'SNITCH_MAX_UNIQUE_TAGS' (currently ",
                             max_unique_tags, ")\n.");
-                        std::terminate();
+                        assertion_failed("max number of unique tags reached");
                     }
 
                     tags.push_back(*vs);
@@ -1209,7 +1222,7 @@ std::optional<cli::input> parse_arguments(
     int                       argc,
     const char* const         argv[],
     const expected_arguments& expected,
-    const parser_settings&    settings = parser_settings{}) {
+    const parser_settings&    settings = parser_settings{}) noexcept {
 
     std::optional<cli::input> ret(std::in_place);
     ret->executable = extract_executable(argv[0]);
