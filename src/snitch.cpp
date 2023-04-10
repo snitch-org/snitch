@@ -368,7 +368,7 @@ small_function<void(std::string_view)> assertion_failed_handler = &terminate_wit
 // ------------------------
 
 namespace snitch::impl {
-section_entry_checker::~section_entry_checker() noexcept {
+section_entry_checker::~section_entry_checker() {
     if (entered) {
         if (state.sections.levels.size() == state.sections.depth) {
             state.sections.leaf_executed = true;
