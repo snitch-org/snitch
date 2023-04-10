@@ -427,8 +427,9 @@ TEST_CASE("error cases") {
             CHECK_THROWS_WHAT(v.push_back(s), assertion_exception, "small vector is full");
         }
         SECTION("T&&") {
+            test_struct s;
             CHECK_THROWS_WHAT(
-                v.push_back(test_struct{}), assertion_exception, "small vector is full");
+                v.push_back(std::move(s)), assertion_exception, "small vector is full");
         }
     }
 
@@ -446,6 +447,11 @@ TEST_CASE("error cases") {
             TestType v;
             CHECK_THROWS_WHAT(v.back(), assertion_exception, "back() called on empty vector");
         }
+        SECTION("T& const") {
+            TestType    v;
+            const auto& s = v.span();
+            CHECK_THROWS_WHAT(s.back(), assertion_exception, "back() called on empty vector");
+        }
     }
 
     SECTION("operator[]") {
@@ -459,6 +465,12 @@ TEST_CASE("error cases") {
                 TestType v;
                 CHECK_THROWS_WHAT(
                     v[0], assertion_exception, "operator[] called with incorrect index");
+            }
+            SECTION("T& const") {
+                TestType    v;
+                const auto& s = v.span();
+                CHECK_THROWS_WHAT(
+                    s[0], assertion_exception, "operator[] called with incorrect index");
             }
         }
 
@@ -475,6 +487,13 @@ TEST_CASE("error cases") {
                 v.resize(2);
                 CHECK_THROWS_WHAT(
                     v[3], assertion_exception, "operator[] called with incorrect index");
+            }
+            SECTION("T& const") {
+                TestType v;
+                v.resize(2);
+                const auto& s = v.span();
+                CHECK_THROWS_WHAT(
+                    s[3], assertion_exception, "operator[] called with incorrect index");
             }
         }
     }
