@@ -792,8 +792,8 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
             [&](const snitch::event::test_case_skipped& e) {
                 r.print(make_colored("skipped: ", r.with_color, color::skipped));
                 print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print(
-                    "          ", make_colored(e.message, r.with_color, color::highlight2), "\n");
+                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+                r.print("\n");
             },
             [&](const snitch::event::assertion_failed& e) {
                 if (e.expected) {
@@ -802,8 +802,8 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
                     r.print(make_colored("failed: ", r.with_color, color::fail));
                 }
                 print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print(
-                    "          ", make_colored(e.message, r.with_color, color::highlight2), "\n");
+                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+                r.print("\n");
             }},
         event);
 }
