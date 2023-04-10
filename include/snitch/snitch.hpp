@@ -590,7 +590,7 @@ public:
 
     // Requires: !empty().
     constexpr const ElemType& back() const {
-        return const_cast<small_vector*>(this)->span().back();
+        return span().back();
     }
 
     constexpr ElemType* data() noexcept {
@@ -641,7 +641,7 @@ public:
 
     // Requires: i < size().
     constexpr const ElemType& operator[](std::size_t i) const {
-        return const_cast<small_vector*>(this)->span()[i];
+        return span()[i];
     }
 };
 } // namespace snitch
