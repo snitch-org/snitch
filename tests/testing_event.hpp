@@ -1,6 +1,3 @@
-#include <algorithm>
-#include <vector>
-
 struct event_deep_copy {
     enum class type {
         unknown,
