@@ -942,21 +942,22 @@ SpaceBeforeParens: ControlStatementsExceptControlMacros
 
 ## Contributing
 
-Contributions to the source code are always welcome! Simply follow the rules laid out below. If you are not familiar with contributing to an open-source project, feel free to open a [Dicussion](https://github.com/cschreib/snitch/discussions/categories/ideas) and ask for guidance. Regardless, you will receive help all the way, and particularly during the code review.
+Contributions to the source code are always welcome! Simply follow the rules laid out below. If you are not familiar with contributing to an open-source project, feel free to open a [Discussion](https://github.com/cschreib/snitch/discussions/categories/ideas) and ask for guidance. Regardless, you will receive help all the way, and particularly during the code review.
 
 The process:
  - If you are considering adding a feature from *Catch2* that *snitch* currently does not support, please check the [*Catch2* support roadmap](doc/comparison_catch2.md) first.
  - Please check the [Issue Tracker](https://github.com/cschreib/snitch/issues) for any issue (open or closed) related to the feature you would like to add, or the problem you would like to solve. Read the discussion that has taken place there, if any, and check if any decision was taken that would be incompatible with your planned contribution.
  - If the path is clear, fork this repository and commit your changes to your own fork.
- - Use "atomic" commits (check that the code compiles before comitting) and reasonably clear commit messages (no "WIP"). Linear history is preferred (i.e., avoid merge commits), but will not be enforced.
+ - Use "atomic" commits (check that the code compiles before committing) and reasonably clear commit messages (no "WIP"). Linear history is preferred (i.e., avoid merge commits), but will not be enforced.
  - Check your code mostly follows the [*snitch* C++ Coding Guidelines](doc/coding_guidelines.md).
- - Run `clang-format` on your code before comitting.
- - Add tests to cover your new code if applicable.
- - Run the *snitch* tests and fix any failure if you can.
+ - Run `clang-format` on your code before committing. The `.clang-format` file at the root of this repository contains all the formatting rules, and will be used automatically.
+ - Add tests to cover your new code if applicable (see the `tests` sub-folder).
+ - Run the *snitch* tests and fix any failure if you can (CMake can run them for you if you ask it to "build" the `snitch_runtime_tests_run` target, otherwise just run manually `build/tests/snitch_runtime_tests`).
  - Open a [Pull Request](https://github.com/cschreib/snitch/pulls), with a description of what you are trying to do.
  - If there are issues you were unable to solve on your own (e.g., tests failing for reasons you do not understand, or high-impact design decisions), please feel free to open the pull request as a "draft", and highlight the areas that you need help with in the description. Once the issues are addressed, you can take your Pull Request out of draft mode.
  - Your code will then be reviewed, and the reviewer(s) may leave comments and suggestions. It is up to you to act on these comments and suggestions, and commit any required code changes. It's OK to push back on a suggestion if you have a good reason; don't always assume the reviewer is right.
  - When all comments are addressed, the reviewer(s) should mark the Pull Request as "approved", at which point anyone involved can merge it into the main branch.
+ - Job done! Congratulations.
 
 
 ## Why _snitch_?

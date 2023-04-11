@@ -1,6 +1,6 @@
 # Guidelines for writing C++ code for *snitch*
 
-Unless otherwise stated, follow the [C++ Code Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines). Below are exceptions to these guidelines, or more opinionated choices.
+Unless otherwise stated, follow the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines). Below are exceptions to these guidelines, or more opinionated choices.
 
 
 ## `noexcept`
@@ -23,7 +23,7 @@ Rationale:
 *snitch* code must not directly allocate heap (or "free store") memory. This means that a number of common C++ STL classes cannot be used (at least not with the default allocator):
  - `std::string`: use `std::string_view` (for constant strings) or `snitch::small_string` (for variable strings) instead.
  - `std::vector`, `std::map`, `std::set`, and their variants: use `std::array` (for fixed size arrays) or `snitch::small_vector` (for variable size arrays) instead.
- - `std::function`, use `snitch::small_function` instead.
+ - `std::function`: use `snitch::small_function` instead.
  - `std::unique_ptr`, `std::shared_ptr`: use values on the stack, and raw pointers for non-owning references.
 
 Unfortunately, the standard does not generally specify if a function or class allocates heap memory or not. We can make reasonable guesses for simple cases; in particular the following are fine to use:
@@ -39,6 +39,11 @@ Unfortunately, the standard does not generally specify if a function or class al
 Any type or function not listed above *should* be assumed to use heap memory unless demonstrated otherwise.
 
 
-## Heaver headers and compilation time
+## Heavy headers and compilation time
 
-One of the advantages of *snitch* over competing testing framework is fast compilation of tests. To preserve this advantage, ["heavy" STL headers](https://artificial-mind.net/projects/compile-health/) should not be included in *snitch* headers unless absolutely necessary. However, they can be included in the *snitch* implementation `*.cpp` files. To enable this, as much code as possible should be placed in the `*.cpp` files rather than in headers.
+One of the advantages of *snitch* over competing testing framework is fast compilation of tests. To preserve this advantage, ["heavy" STL headers](https://artificial-mind.net/projects/compile-health/) should not be included in *snitch* headers unless absolutely necessary. However, they can be included in the *snitch* implementation `*.cpp` files.
+
+Therefore:
+ - Place as much code as possible in the `*.cpp` files rather than in headers.
+ - When not possible (templates, constexpr, etc.), consider if you can use a short and clear hand-written alternative instead. For example, `std::max(a, b)` requires `<algorithm>`, but can also be written as `a > b ? a : b`. Some of the simplest algorithms in `<algorithm>`, like `std::copy`, can also be written with an explicit loop.
+ - Finally, consider if you really need the full feature from the STL, or just a small subset. For example, if you need a metaprogramming type list and don't need to instanciate the types, don't use `std::tuple<...>`: use a custom `template<typename ... Args> struct type_list {}` instead.
