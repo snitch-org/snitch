@@ -949,7 +949,7 @@ The process:
  - Please check the [Issue Tracker](https://github.com/cschreib/snitch/issues) for any issue (open or closed) related to the feature you would like to add, or the problem you would like to solve. Read the discussion that has taken place there, if any, and check if any decision was taken that would be incompatible with your planned contribution.
  - If the path is clear, fork this repository and commit your changes to your own fork.
  - Use "atomic" commits (check that the code compiles before comitting) and reasonably clear commit messages (no "WIP"). Linear history is preferred (i.e., avoid merge commits), but will not be enforced.
- - Check your code mostly follows the [*snitch* C++ Coding Guidelines](dep/coding_guidelines.md).
+ - Check your code mostly follows the [*snitch* C++ Coding Guidelines](doc/coding_guidelines.md).
  - Run `clang-format` on your code before comitting.
  - Add tests to cover your new code if applicable.
  - Run the *snitch* tests and fix any failure if you can.
