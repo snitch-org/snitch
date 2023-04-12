@@ -2,7 +2,7 @@
 
 #include <algorithm> // for std::sort
 #include <cinttypes> // for format strings
-#include <cstdio> // for std::printf, std::snprintf
+#include <cstdio> // for std::fwrite, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
 
@@ -279,8 +279,7 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
 
 namespace snitch::impl {
 void stdout_print(std::string_view message) noexcept {
-    // TODO: replace this with std::print?
-    std::printf("%.*s", static_cast<int>(message.length()), message.data());
+    std::fwrite(message.data(), sizeof(char), message.length(), stdout);
 }
 
 test_state& get_current_test() noexcept {
