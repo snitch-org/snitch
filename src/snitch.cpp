@@ -15,7 +15,7 @@
 
 namespace {
 using namespace std::literals;
-using color_t = const char*;
+using color_t = std::string_view;
 
 namespace color {
 constexpr color_t error [[maybe_unused]]      = "\x1b[1;31m";
@@ -312,7 +312,17 @@ using snitch::small_string;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
-    return append(ss, colored_value.color_start, colored_value.value, colored_value.color_end);
+    if (ss.available() <= colored_value.color_start.size() + colored_value.color_end.size()) {
+        return false;
+    }
+
+    bool could_fit = true;
+    if (!append(ss, colored_value.color_start, colored_value.value)) {
+        ss.resize(ss.capacity() - colored_value.color_end.size());
+        could_fit = false;
+    }
+
+    return append(ss, colored_value.color_end) && could_fit;
 }
 
 template<typename... Args>

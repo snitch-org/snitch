@@ -2102,8 +2102,11 @@ public:
     template<typename... Args>
     void print(Args&&... args) const noexcept {
         small_string<max_message_length> message;
-        append_or_truncate(message, std::forward<Args>(args)...);
+        const bool                       could_fit = append(message, std::forward<Args>(args)...);
         this->print_callback(message);
+        if (!could_fit) {
+            this->print_callback("...");
+        }
     }
 
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
