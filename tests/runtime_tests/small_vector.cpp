@@ -393,7 +393,7 @@ TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_sp
 }
 
 #if SNITCH_WITH_EXCEPTIONS
-TEST_CASE("error cases") {
+TEST_CASE("small vector error cases", "[utility]") {
     using TestType = vector_type;
     assertion_exception_enabler enabler;
 
