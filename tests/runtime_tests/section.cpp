@@ -170,6 +170,48 @@ TEST_CASE("section", "[test macros]") {
         CHECK_CASE(snitch::test_case_state::failed, 11u);
     }
 
+    SECTION("nested sections multiple leaves") {
+        framework.test_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                SNITCH_SECTION("section 1.1") {
+                    SNITCH_SECTION("section 1.1.1") {
+                        SNITCH_FAIL_CHECK("trigger");
+                    }
+                    SNITCH_SECTION("section 1.1.2") {
+                        SNITCH_FAIL_CHECK("trigger");
+                    }
+                    SNITCH_SECTION("section 1.1.3") {
+                        SNITCH_FAIL_CHECK("trigger");
+                    }
+                }
+            }
+            SNITCH_SECTION("section 2") {
+                SNITCH_SECTION("section 2.1") {
+                    SNITCH_SECTION("section 2.1.1") {
+                        SNITCH_FAIL_CHECK("trigger");
+                    }
+                    SNITCH_SECTION("section 2.1.2") {
+                        SNITCH_FAIL_CHECK("trigger");
+                    }
+                    SNITCH_SECTION("section 2.1.3") {
+                        SNITCH_FAIL_CHECK("trigger");
+                    }
+                }
+            }
+        };
+
+        framework.run_test();
+
+        REQUIRE(framework.get_num_failures() == 6u);
+        CHECK_SECTIONS_FOR_FAILURE(0u, "section 1", "section 1.1", "section 1.1.1");
+        CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.1", "section 1.1.2");
+        CHECK_SECTIONS_FOR_FAILURE(2u, "section 1", "section 1.1", "section 1.1.3");
+        CHECK_SECTIONS_FOR_FAILURE(3u, "section 2", "section 2.1", "section 2.1.1");
+        CHECK_SECTIONS_FOR_FAILURE(4u, "section 2", "section 2.1", "section 2.1.2");
+        CHECK_SECTIONS_FOR_FAILURE(5u, "section 2", "section 2.1", "section 2.1.3");
+        CHECK_CASE(snitch::test_case_state::failed, 6u);
+    }
+
     SECTION("one section in a loop") {
         framework.test_case.func = []() {
             for (std::size_t i = 0u; i < 5u; ++i) {
