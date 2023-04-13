@@ -15,7 +15,6 @@
 #include <limits> // for compile-time integer to string
 #include <optional> // for cli
 #include <string_view> // for all strings
-#include <type_traits> // for std::is_nothrow_*
 #include <utility> // for std::forward, std::move
 #include <variant> // for events and small_function
 
@@ -65,6 +64,34 @@ struct section_id {
     std::string_view name        = {};
     std::string_view description = {};
 };
+
+template<typename T>
+concept signed_integral = std::is_signed_v<T>;
+
+template<typename T>
+concept unsigned_integral = std::is_unsigned_v<T>;
+
+template<typename T>
+concept floating_point = std::is_floating_point_v<T>;
+
+template<typename T, typename U>
+concept convertible_to = std::is_convertible_v<T, U>;
+
+template<typename T>
+concept enumeration = std::is_enum_v<T>;
+
+template<typename... Args>
+struct overload : Args... {
+    using Args::operator()...;
+};
+
+template<typename... Args>
+overload(Args...) -> overload<Args...>;
+
+template<auto T>
+struct constant {
+    static constexpr auto value = T;
+};
 } // namespace snitch
 
 namespace snitch::matchers {
@@ -101,6 +128,181 @@ constexpr std::string_view get_type_name() noexcept {
 }
 } // namespace snitch::impl
 
+// Public utilities: small_function.
+// ---------------------------------
+
+namespace snitch::impl {
+template<typename T>
+struct function_traits {
+    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
+};
+
+template<typename T, bool Noexcept>
+struct function_traits_base {
+    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
+};
+
+template<typename Ret, typename... Args>
+struct function_traits<Ret(Args...) noexcept> {
+    using return_type             = Ret;
+    using function_ptr            = Ret (*)(Args...) noexcept;
+    using function_data_ptr       = Ret (*)(void*, Args...) noexcept;
+    using function_const_data_ptr = Ret (*)(const void*, Args...) noexcept;
+
+    static constexpr bool is_noexcept = true;
+
+    template<typename ObjectType, auto MemberFunction>
+    static constexpr function_data_ptr to_free_function() noexcept {
+        return [](void* ptr, Args... args) noexcept {
+            if constexpr (std::is_same_v<return_type, void>) {
+                (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            } else {
+                return (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            }
+        };
+    }
+
+    template<typename ObjectType, auto MemberFunction>
+    static constexpr function_const_data_ptr to_const_free_function() noexcept {
+        return [](const void* ptr, Args... args) noexcept {
+            if constexpr (std::is_same_v<return_type, void>) {
+                (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            } else {
+                return (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            }
+        };
+    }
+};
+
+template<typename Ret, typename... Args>
+struct function_traits<Ret(Args...)> {
+    using return_type             = Ret;
+    using function_ptr            = Ret (*)(Args...);
+    using function_data_ptr       = Ret (*)(void*, Args...);
+    using function_const_data_ptr = Ret (*)(const void*, Args...);
+
+    static constexpr bool is_noexcept = false;
+
+    template<typename ObjectType, auto MemberFunction>
+    static constexpr function_data_ptr to_free_function() noexcept {
+        return [](void* ptr, Args... args) {
+            if constexpr (std::is_same_v<return_type, void>) {
+                (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            } else {
+                return (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            }
+        };
+    }
+
+    template<typename ObjectType, auto MemberFunction>
+    static constexpr function_const_data_ptr to_const_free_function() noexcept {
+        return [](const void* ptr, Args... args) {
+            if constexpr (std::is_same_v<return_type, void>) {
+                (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            } else {
+                return (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
+                    std::move(args)...);
+            }
+        };
+    }
+};
+} // namespace snitch::impl
+
+namespace snitch {
+template<typename T>
+class small_function {
+    using traits = impl::function_traits<T>;
+
+public:
+    using return_type             = typename traits::return_type;
+    using function_ptr            = typename traits::function_ptr;
+    using function_data_ptr       = typename traits::function_data_ptr;
+    using function_const_data_ptr = typename traits::function_const_data_ptr;
+
+private:
+    struct function_and_data_ptr {
+        void*             data = nullptr;
+        function_data_ptr ptr;
+    };
+
+    struct function_and_const_data_ptr {
+        const void*             data = nullptr;
+        function_const_data_ptr ptr;
+    };
+
+    using data_type =
+        std::variant<function_ptr, function_and_data_ptr, function_and_const_data_ptr>;
+
+    data_type data;
+
+public:
+    constexpr small_function(function_ptr ptr) noexcept : data{ptr} {}
+
+    template<convertible_to<function_ptr> FunctionType>
+    constexpr small_function(FunctionType&& obj) noexcept : data{static_cast<function_ptr>(obj)} {}
+
+    template<typename ObjectType, auto MemberFunction>
+    constexpr small_function(ObjectType& obj, constant<MemberFunction>) noexcept :
+        data{function_and_data_ptr{
+            &obj, traits::template to_free_function<ObjectType, MemberFunction>()}} {}
+
+    template<typename ObjectType, auto MemberFunction>
+    constexpr small_function(const ObjectType& obj, constant<MemberFunction>) noexcept :
+        data{function_and_const_data_ptr{
+            &obj, traits::template to_const_free_function<ObjectType, MemberFunction>()}} {}
+
+    template<typename FunctorType>
+    constexpr small_function(FunctorType& obj) noexcept :
+        small_function(obj, constant<&FunctorType::operator()>{}) {}
+
+    template<typename FunctorType>
+    constexpr small_function(const FunctorType& obj) noexcept :
+        small_function(obj, constant<&FunctorType::operator()>{}) {}
+
+    // Prevent inadvertently using temporary stateful lambda; not supported at the moment.
+    template<typename FunctorType>
+    constexpr small_function(FunctorType&& obj) noexcept = delete;
+
+    // Prevent inadvertently using temporary object; not supported at the moment.
+    template<typename FunctorType, auto M>
+    constexpr small_function(FunctorType&& obj, constant<M>) noexcept = delete;
+
+    template<typename... CArgs>
+    constexpr return_type operator()(CArgs&&... args) const noexcept(traits::is_noexcept) {
+        if constexpr (std::is_same_v<return_type, void>) {
+            std::visit(
+                overload{
+                    [&](function_ptr f) { (*f)(std::forward<CArgs>(args)...); },
+                    [&](const function_and_data_ptr& f) {
+                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    },
+                    [&](const function_and_const_data_ptr& f) {
+                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    }},
+                data);
+        } else {
+            return std::visit(
+                overload{
+                    [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
+                    [&](const function_and_data_ptr& f) {
+                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    },
+                    [&](const function_and_const_data_ptr& f) {
+                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
+                    }},
+                data);
+        }
+    }
+};
+} // namespace snitch
+
 // Public utilities.
 // ------------------------------------------------
 
@@ -112,6 +314,10 @@ template<typename... Args>
 struct type_list {};
 
 [[noreturn]] void terminate_with(std::string_view msg) noexcept;
+
+extern small_function<void(std::string_view)> assertion_failed_handler;
+
+[[noreturn]] void assertion_failed(std::string_view msg);
 } // namespace snitch
 
 // Public utilities: small_vector.
@@ -143,24 +349,29 @@ public:
     constexpr void clear() noexcept {
         *data_size = 0;
     }
-    constexpr void resize(std::size_t size) noexcept {
-        if (!std::is_constant_evaluated() && size > buffer_size) {
-            terminate_with("small vector is full");
+
+    // Requires: new_size <= capacity().
+    constexpr void resize(std::size_t new_size) {
+        if (new_size > buffer_size) {
+            assertion_failed("small vector is full");
         }
 
-        *data_size = size;
+        *data_size = new_size;
     }
-    constexpr void grow(std::size_t elem) noexcept {
-        if (!std::is_constant_evaluated() && *data_size + elem > buffer_size) {
-            terminate_with("small vector is full");
+
+    // Requires: size() + elem <= capacity().
+    constexpr void grow(std::size_t elem) {
+        if (*data_size + elem > buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         *data_size += elem;
     }
-    constexpr ElemType&
-    push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
-        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
-            terminate_with("small vector is full");
+
+    // Requires: size() < capacity().
+    constexpr ElemType& push_back(const ElemType& t) {
+        if (*data_size == buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         ++*data_size;
@@ -170,10 +381,11 @@ public:
 
         return elem;
     }
-    constexpr ElemType&
-    push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
-        if (!std::is_constant_evaluated() && *data_size == buffer_size) {
-            terminate_with("small vector is full");
+
+    // Requires: size() < capacity().
+    constexpr ElemType& push_back(ElemType&& t) {
+        if (*data_size == buffer_size) {
+            assertion_failed("small vector is full");
         }
 
         ++*data_size;
@@ -182,27 +394,34 @@ public:
 
         return elem;
     }
-    constexpr void pop_back() noexcept {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("pop_back() called on empty vector");
+
+    // Requires: !empty().
+    constexpr void pop_back() {
+        if (*data_size == 0) {
+            assertion_failed("pop_back() called on empty vector");
         }
 
         --*data_size;
     }
-    constexpr ElemType& back() noexcept {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("back() called on empty vector");
+
+    // Requires: !empty().
+    constexpr ElemType& back() {
+        if (*data_size == 0) {
+            assertion_failed("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
-    constexpr const ElemType& back() const noexcept {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("back() called on empty vector");
+
+    // Requires: !empty().
+    constexpr const ElemType& back() const {
+        if (*data_size == 0) {
+            assertion_failed("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
+
     constexpr ElemType* data() noexcept {
         return buffer_ptr;
     }
@@ -227,15 +446,19 @@ public:
     constexpr const ElemType* cend() const noexcept {
         return begin() + size();
     }
-    constexpr ElemType& operator[](std::size_t i) noexcept {
-        if (!std::is_constant_evaluated() && i >= size()) {
-            terminate_with("operator[] called with incorrect index");
+
+    // Requires: i < size().
+    constexpr ElemType& operator[](std::size_t i) {
+        if (i >= size()) {
+            assertion_failed("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
-    constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (!std::is_constant_evaluated() && i >= size()) {
-            terminate_with("operator[] called with incorrect index");
+
+    // Requires: i < size().
+    constexpr const ElemType& operator[](std::size_t i) const {
+        if (i >= size()) {
+            assertion_failed("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
@@ -266,13 +489,16 @@ public:
     constexpr bool empty() const noexcept {
         return *data_size == 0;
     }
-    constexpr const ElemType& back() const noexcept {
-        if (!std::is_constant_evaluated() && *data_size == 0) {
-            terminate_with("back() called on empty vector");
+
+    // Requires: !empty().
+    constexpr const ElemType& back() const {
+        if (*data_size == 0) {
+            assertion_failed("back() called on empty vector");
         }
 
         return buffer_ptr[*data_size - 1];
     }
+
     constexpr const ElemType* data() const noexcept {
         return buffer_ptr;
     }
@@ -288,9 +514,11 @@ public:
     constexpr const ElemType* cend() const noexcept {
         return begin() + size();
     }
-    constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        if (!std::is_constant_evaluated() && i >= size()) {
-            terminate_with("operator[] called with incorrect index");
+
+    // Requires: i < size().
+    constexpr const ElemType& operator[](std::size_t i) const {
+        if (i >= size()) {
+            assertion_failed("operator[] called with incorrect index");
         }
         return buffer_ptr[i];
     }
@@ -305,15 +533,16 @@ public:
     constexpr small_vector() noexcept                          = default;
     constexpr small_vector(const small_vector& other) noexcept = default;
     constexpr small_vector(small_vector&& other) noexcept      = default;
-    constexpr small_vector(std::initializer_list<ElemType> list) noexcept(
-        noexcept(span().push_back(std::declval<ElemType>()))) {
+    constexpr small_vector(std::initializer_list<ElemType> list) {
         for (const auto& e : list) {
             span().push_back(e);
         }
     }
+
     constexpr small_vector& operator=(const small_vector& other) noexcept = default;
     constexpr small_vector& operator=(small_vector&& other) noexcept      = default;
-    constexpr std::size_t   capacity() const noexcept {
+
+    constexpr std::size_t capacity() const noexcept {
         return MaxLength;
     }
     constexpr std::size_t available() const noexcept {
@@ -328,29 +557,42 @@ public:
     constexpr void clear() noexcept {
         span().clear();
     }
-    constexpr void resize(std::size_t size) noexcept {
+
+    // Requires: new_size <= capacity().
+    constexpr void resize(std::size_t size) {
         span().resize(size);
     }
-    constexpr void grow(std::size_t elem) noexcept {
+
+    // Requires: size() + elem <= capacity().
+    constexpr void grow(std::size_t elem) {
         span().grow(elem);
     }
-    constexpr ElemType&
-    push_back(const ElemType& t) noexcept(std::is_nothrow_copy_assignable_v<ElemType>) {
+
+    // Requires: size() < capacity().
+    constexpr ElemType& push_back(const ElemType& t) {
         return this->span().push_back(t);
     }
-    constexpr ElemType&
-    push_back(ElemType&& t) noexcept(std::is_nothrow_move_assignable_v<ElemType>) {
+
+    // Requires: size() < capacity().
+    constexpr ElemType& push_back(ElemType&& t) {
         return this->span().push_back(t);
     }
-    constexpr void pop_back() noexcept {
+
+    // Requires: !empty().
+    constexpr void pop_back() {
         return span().pop_back();
     }
-    constexpr ElemType& back() noexcept {
+
+    // Requires: !empty().
+    constexpr ElemType& back() {
         return span().back();
     }
-    constexpr const ElemType& back() const noexcept {
-        return const_cast<small_vector*>(this)->span().back();
+
+    // Requires: !empty().
+    constexpr const ElemType& back() const {
+        return span().back();
     }
+
     constexpr ElemType* data() noexcept {
         return data_buffer.data();
     }
@@ -375,23 +617,31 @@ public:
     constexpr const ElemType* cend() const noexcept {
         return begin() + size();
     }
+
     constexpr small_vector_span<ElemType> span() noexcept {
         return small_vector_span<ElemType>(data_buffer.data(), MaxLength, &data_size);
     }
+
     constexpr small_vector_span<const ElemType> span() const noexcept {
         return small_vector_span<const ElemType>(data_buffer.data(), MaxLength, &data_size);
     }
+
     constexpr operator small_vector_span<ElemType>() noexcept {
         return span();
     }
+
     constexpr operator small_vector_span<const ElemType>() const noexcept {
         return span();
     }
-    constexpr ElemType& operator[](std::size_t i) noexcept {
+
+    // Requires: i < size().
+    constexpr ElemType& operator[](std::size_t i) {
         return span()[i];
     }
-    constexpr const ElemType& operator[](std::size_t i) const noexcept {
-        return const_cast<small_vector*>(this)->span()[i];
+
+    // Requires: i < size().
+    constexpr const ElemType& operator[](std::size_t i) const {
+        return span()[i];
     }
 };
 } // namespace snitch
@@ -412,17 +662,22 @@ public:
     constexpr small_string() noexcept                          = default;
     constexpr small_string(const small_string& other) noexcept = default;
     constexpr small_string(small_string&& other) noexcept      = default;
-    constexpr small_string(std::string_view str) noexcept {
+
+    // Requires: str.size() <= MaxLength.
+    constexpr small_string(std::string_view str) {
         resize(str.size());
         for (std::size_t i = 0; i < str.size(); ++i) {
             data_buffer[i] = str[i];
         }
     }
-    constexpr small_string&    operator=(const small_string& other) noexcept = default;
-    constexpr small_string&    operator=(small_string&& other) noexcept      = default;
+
+    constexpr small_string& operator=(const small_string& other) noexcept = default;
+    constexpr small_string& operator=(small_string&& other) noexcept      = default;
+
     constexpr std::string_view str() const noexcept {
         return std::string_view(data(), length());
     }
+
     constexpr std::size_t capacity() const noexcept {
         return MaxLength;
     }
@@ -441,24 +696,37 @@ public:
     constexpr void clear() noexcept {
         span().clear();
     }
-    constexpr void resize(std::size_t length) noexcept {
+
+    // Requires: new_size <= capacity().
+    constexpr void resize(std::size_t length) {
         span().resize(length);
     }
-    constexpr void grow(std::size_t chars) noexcept {
+
+    // Requires: size() + elem <= capacity().
+    constexpr void grow(std::size_t chars) {
         span().grow(chars);
     }
-    constexpr char& push_back(char t) noexcept {
+
+    // Requires: size() < capacity().
+    constexpr char& push_back(char t) {
         return span().push_back(t);
     }
-    constexpr void pop_back() noexcept {
+
+    // Requires: !empty().
+    constexpr void pop_back() {
         return span().pop_back();
     }
-    constexpr char& back() noexcept {
+
+    // Requires: !empty().
+    constexpr char& back() {
         return span().back();
     }
-    constexpr const char& back() const noexcept {
+
+    // Requires: !empty().
+    constexpr const char& back() const {
         return span().back();
     }
+
     constexpr char* data() noexcept {
         return data_buffer.data();
     }
@@ -483,26 +751,35 @@ public:
     constexpr const char* cend() const noexcept {
         return begin() + length();
     }
+
     constexpr small_string_span span() noexcept {
         return small_string_span(data_buffer.data(), MaxLength, &data_size);
     }
+
     constexpr small_string_view span() const noexcept {
         return small_string_view(data_buffer.data(), MaxLength, &data_size);
     }
+
     constexpr operator small_string_span() noexcept {
         return span();
     }
+
     constexpr operator small_string_view() const noexcept {
         return span();
     }
-    constexpr char& operator[](std::size_t i) noexcept {
-        return span()[i];
-    }
-    constexpr char operator[](std::size_t i) const noexcept {
-        return const_cast<small_string*>(this)->span()[i];
-    }
+
     constexpr operator std::string_view() const noexcept {
         return std::string_view(data(), length());
+    }
+
+    // Requires: i < size().
+    constexpr char& operator[](std::size_t i) {
+        return span()[i];
+    }
+
+    // Requires: i < size().
+    constexpr char operator[](std::size_t i) const {
+        return const_cast<small_string*>(this)->span()[i];
     }
 };
 } // namespace snitch
@@ -749,7 +1026,7 @@ struct float_bits {
 };
 
 template<typename T>
-[[nodiscard]] constexpr float_bits<T> to_bits(T f) {
+[[nodiscard]] constexpr float_bits<T> to_bits(T f) noexcept {
     using traits      = float_traits<T>;
     using bits_full_t = typename traits::bits_full_t;
     using bits_sig_t  = typename traits::bits_sig_t;
@@ -895,21 +1172,6 @@ template<typename T>
 // -------------------------
 
 namespace snitch {
-template<typename T>
-concept signed_integral = std::is_signed_v<T>;
-
-template<typename T>
-concept unsigned_integral = std::is_unsigned_v<T>;
-
-template<typename T>
-concept floating_point = std::is_floating_point_v<T>;
-
-template<typename T, typename U>
-concept convertible_to = std::is_convertible_v<T, U>;
-
-template<typename T>
-concept enumeration = std::is_enum_v<T>;
-
 // These types are used to define the largest printable integer types.
 // In C++, integer literals must fit on uintmax_t/intmax_t, so these are good candidates.
 // They aren't perfect though. On most 64 bit platforms they are defined as 64 bit integers,
@@ -1324,133 +1586,6 @@ concept matcher_for = requires(const T& m, const U& value) {
                       };
 } // namespace snitch
 
-// Public utilities: small_function.
-// ---------------------------------
-
-namespace snitch {
-template<typename... Args>
-struct overload : Args... {
-    using Args::operator()...;
-};
-
-template<typename... Args>
-overload(Args...) -> overload<Args...>;
-
-template<auto T>
-struct constant {
-    static constexpr auto value = T;
-};
-
-template<typename T>
-class small_function {
-    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
-};
-
-template<typename Ret, typename... Args>
-class small_function<Ret(Args...) noexcept> {
-    using function_ptr            = Ret (*)(Args...) noexcept;
-    using function_data_ptr       = Ret (*)(void*, Args...) noexcept;
-    using function_const_data_ptr = Ret (*)(const void*, Args...) noexcept;
-
-    struct function_and_data_ptr {
-        void*             data = nullptr;
-        function_data_ptr ptr;
-    };
-
-    struct function_and_const_data_ptr {
-        const void*             data = nullptr;
-        function_const_data_ptr ptr;
-    };
-
-    using data_type = std::
-        variant<std::monostate, function_ptr, function_and_data_ptr, function_and_const_data_ptr>;
-
-    data_type data;
-
-public:
-    constexpr small_function() = default;
-
-    constexpr small_function(function_ptr ptr) noexcept : data{ptr} {}
-
-    template<convertible_to<function_ptr> T>
-    constexpr small_function(T&& obj) noexcept : data{static_cast<function_ptr>(obj)} {}
-
-    template<typename T, auto M>
-    constexpr small_function(T& obj, constant<M>) noexcept :
-        data{function_and_data_ptr{
-            &obj, [](void* ptr, Args... args) noexcept {
-                if constexpr (std::is_same_v<Ret, void>) {
-                    (static_cast<T*>(ptr)->*constant<M>::value)(std::move(args)...);
-                } else {
-                    return (static_cast<T*>(ptr)->*constant<M>::value)(std::move(args)...);
-                }
-            }}} {}
-
-    template<typename T, auto M>
-    constexpr small_function(const T& obj, constant<M>) noexcept :
-        data{function_and_const_data_ptr{
-            &obj, [](const void* ptr, Args... args) noexcept {
-                if constexpr (std::is_same_v<Ret, void>) {
-                    (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
-                } else {
-                    return (static_cast<const T*>(ptr)->*constant<M>::value)(std::move(args)...);
-                }
-            }}} {}
-
-    template<typename T>
-    constexpr small_function(T& obj) noexcept : small_function(obj, constant<&T::operator()>{}) {}
-
-    template<typename T>
-    constexpr small_function(const T& obj) noexcept :
-        small_function(obj, constant<&T::operator()>{}) {}
-
-    // Prevent inadvertently using temporary stateful lambda; not supported at the moment.
-    template<typename T>
-    constexpr small_function(T&& obj) noexcept = delete;
-
-    // Prevent inadvertently using temporary object; not supported at the moment.
-    template<typename T, auto M>
-    constexpr small_function(T&& obj, constant<M>) noexcept = delete;
-
-    template<typename... CArgs>
-    constexpr Ret operator()(CArgs&&... args) const noexcept {
-        if constexpr (std::is_same_v<Ret, void>) {
-            std::visit(
-                overload{
-                    [](std::monostate) {
-                        terminate_with("small_function called without an implementation");
-                    },
-                    [&](function_ptr f) { (*f)(std::forward<CArgs>(args)...); },
-                    [&](const function_and_data_ptr& f) {
-                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                    },
-                    [&](const function_and_const_data_ptr& f) {
-                        (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                    }},
-                data);
-        } else {
-            return std::visit(
-                overload{
-                    [](std::monostate) -> Ret {
-                        terminate_with("small_function called without an implementation");
-                    },
-                    [&](function_ptr f) { return (*f)(std::forward<CArgs>(args)...); },
-                    [&](const function_and_data_ptr& f) {
-                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                    },
-                    [&](const function_and_const_data_ptr& f) {
-                        return (*f.ptr)(f.data, std::forward<CArgs>(args)...);
-                    }},
-                data);
-        }
-    }
-
-    constexpr bool empty() const noexcept {
-        return std::holds_alternative<std::monostate>(data);
-    }
-};
-} // namespace snitch
-
 // Implementation details.
 // -----------------------
 
@@ -1501,17 +1636,20 @@ struct test_state {
 };
 
 test_state& get_current_test() noexcept;
+
 test_state* try_get_current_test() noexcept;
-void        set_current_test(test_state* current) noexcept;
+
+void set_current_test(test_state* current) noexcept;
 
 struct section_entry_checker {
     section_id  section = {};
     test_state& state;
     bool        entered = false;
 
-    ~section_entry_checker() noexcept;
+    ~section_entry_checker();
 
-    explicit operator bool() noexcept;
+    // Requires: number of sections < max_nested_sections.
+    explicit operator bool();
 };
 
 #define DEFINE_OPERATOR(OP, NAME, DISP, DISP_INV)                                                  \
@@ -1520,8 +1658,8 @@ struct section_entry_checker {
         static constexpr std::string_view inverse = DISP_INV;                                      \
                                                                                                    \
         template<typename T, typename U>                                                           \
-        constexpr bool operator()(const T& lhs, const U& rhs) const noexcept                       \
-            requires requires(const T& lhs, const U& rhs) { lhs OP rhs; }                          \
+        constexpr bool operator()(const T& lhs, const U& rhs) const noexcept(noexcept(lhs OP rhs)) \
+            requires(requires(const T& lhs, const U& rhs) { lhs OP rhs; })                         \
         {                                                                                          \
             return lhs OP rhs;                                                                     \
         }                                                                                          \
@@ -1644,7 +1782,8 @@ struct extracted_binary_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    constexpr expression to_expression() const noexcept
+    // NB: Cannot make this noexcept since user operators may throw.
+    constexpr expression to_expression() const noexcept(noexcept(static_cast<bool>(O{}(lhs, rhs))))
         requires(requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
     {
         expression expr{expected};
@@ -1745,7 +1884,7 @@ struct extracted_unary_expression {
 
 #undef EXPR_OPERATOR_INVALID
 
-    constexpr expression to_expression() const noexcept
+    constexpr expression to_expression() const noexcept(noexcept(static_cast<bool>(lhs)))
         requires(requires(const T& lhs) { static_cast<bool>(lhs); })
     {
         expression expr{expected};
@@ -1790,30 +1929,33 @@ struct scoped_capture {
     capture_state& captures;
     std::size_t    count = 0;
 
-    ~scoped_capture() noexcept {
+    ~scoped_capture() {
         captures.resize(captures.size() - count);
     }
 };
 
 std::string_view extract_next_name(std::string_view& names) noexcept;
 
-small_string<max_capture_length>& add_capture(test_state& state) noexcept;
+// Requires: number of captures < max_captures.
+small_string<max_capture_length>& add_capture(test_state& state);
 
+// Requires: number of captures < max_captures.
 template<string_appendable T>
-void add_capture(test_state& state, std::string_view& names, const T& arg) noexcept {
+void add_capture(test_state& state, std::string_view& names, const T& arg) {
     auto& capture = add_capture(state);
     append_or_truncate(capture, extract_next_name(names), " := ", arg);
 }
 
+// Requires: number of captures < max_captures.
 template<string_appendable... Args>
-scoped_capture
-add_captures(test_state& state, std::string_view names, const Args&... args) noexcept {
+scoped_capture add_captures(test_state& state, std::string_view names, const Args&... args) {
     (add_capture(state, names, args), ...);
     return {state.captures, sizeof...(args)};
 }
 
+// Requires: number of captures < max_captures.
 template<string_appendable... Args>
-scoped_capture add_info(test_state& state, const Args&... args) noexcept {
+scoped_capture add_info(test_state& state, const Args&... args) {
     auto& capture = add_capture(state);
     append_or_truncate(capture, args...);
     return {state.captures, 1};
@@ -1939,21 +2081,13 @@ void for_each_positional_argument(
 // Test registry.
 // --------------
 
+namespace snitch::impl {
+void default_reporter(const registry& r, const event::data& event) noexcept;
+}
+
 namespace snitch {
 class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
-
-    void print_location(
-        const impl::test_case&     current_case,
-        const impl::section_state& sections,
-        const impl::capture_state& captures,
-        const assertion_location&  location) const noexcept;
-
-    void print_failure() const noexcept;
-    void print_expected_failure() const noexcept;
-    void print_skip() const noexcept;
-    void print_details(std::string_view message) const noexcept;
-    void print_details_expr(const impl::expression& exp) const noexcept;
 
 public:
     enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
@@ -1962,29 +2096,33 @@ public:
     using print_function  = small_function<void(std::string_view) noexcept>;
     using report_function = small_function<void(const registry&, const event::data&) noexcept>;
 
-    print_function  print_callback = &snitch::impl::stdout_print;
-    report_function report_callback;
+    print_function  print_callback  = &snitch::impl::stdout_print;
+    report_function report_callback = &snitch::impl::default_reporter;
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
         small_string<max_message_length> message;
-        append_or_truncate(message, std::forward<Args>(args)...);
+        const bool                       could_fit = append(message, std::forward<Args>(args)...);
         this->print_callback(message);
+        if (!could_fit) {
+            this->print_callback("...");
+        }
     }
 
-    const char* add(const test_id& id, impl::test_ptr func) noexcept;
+    // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
+    const char* add(const test_id& id, impl::test_ptr func);
 
+    // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    const char*
-    add_with_types(std::string_view name, std::string_view tags, const F& func) noexcept {
+    const char* add_with_types(std::string_view name, std::string_view tags, const F& func) {
         return (
             add({name, tags, impl::get_type_name<Args>()}, impl::to_test_case_ptr<Args>(func)),
             ...);
     }
 
+    // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
-    const char*
-    add_with_type_list(std::string_view name, std::string_view tags, const F& func) noexcept {
+    const char* add_with_type_list(std::string_view name, std::string_view tags, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
             return this->add_with_types<Args...>(name, tags, func);
         }(type_list<T>{});
@@ -2024,7 +2162,10 @@ public:
     void configure(const cli::input& args) noexcept;
 
     void list_all_tests() const noexcept;
-    void list_all_tags() const noexcept;
+
+    // Requires: number unique tags <= max_unique_tags.
+    void list_all_tags() const;
+
     void list_tests_with_tag(std::string_view tag) const noexcept;
 
     impl::test_case*       begin() noexcept;
@@ -2041,7 +2182,7 @@ extern constinit registry tests;
 
 namespace snitch::impl {
 template<typename T, typename M>
-[[nodiscard]] constexpr auto constexpr_match(T&& value, M&& matcher) {
+[[nodiscard]] constexpr auto constexpr_match(T&& value, M&& matcher) noexcept {
     using result_type = decltype(matcher.describe_match(value, matchers::match_status::failed));
     if (!matcher.match(value)) {
         return std::optional<result_type>(

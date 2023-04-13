@@ -37,7 +37,8 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Exceptions](#exceptions)
     - [Header-only build](#header-only-build)
     - [`clang-format` support](#clang-format-support)
-    - [Why _snitch_?](#why-_snitch_)
+- [Contributing](#contributing)
+- [Why _snitch_?](#why-_snitch_)
 
 <!-- /MarkdownTOC -->
 
@@ -240,10 +241,10 @@ Results for Debug builds:
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
-| Build tests     | 64s      | 79s      | 73s       | 118s       |
-| Build all       | 66s      | 120s     | 75s       | 118s       |
-| Run tests       | 31ms     | 76ms     | 63ms      | 20ms       |
-| Library size    | 3.4MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Build tests     | 65s      | 79s      | 73s       | 118s       |
+| Build all       | 67s      | 120s     | 75s       | 118s       |
+| Run tests       | 34ms     | 76ms     | 63ms      | 20ms       |
+| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
 | Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
@@ -252,9 +253,9 @@ Results for Release builds:
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
 | Build tests     | 134s     | 254s     | 207s      | 289s       |
-| Build all       | 136s     | 301s     | 210s      | 289s       |
+| Build all       | 137s     | 301s     | 210s      | 289s       |
 | Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
-| Library size    | 0.65MB   | 2.6MB    | 0.39MB    | 0MB        |
+| Library size    | 0.63MB   | 2.6MB    | 0.39MB    | 0MB        |
 | Executable size | 8.9MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
@@ -939,7 +940,26 @@ IfMacros: ['SECTION', 'SNITCH_SECTION']
 SpaceBeforeParens: ControlStatementsExceptControlMacros
 ```
 
+## Contributing
 
-### Why _snitch_?
+Contributions to the source code are always welcome! Simply follow the rules laid out below. If you are not familiar with contributing to an open-source project, feel free to open a [Discussion](https://github.com/cschreib/snitch/discussions/categories/ideas) and ask for guidance. Regardless, you will receive help all the way, and particularly during the code review.
+
+The process:
+ - If you are considering adding a feature from *Catch2* that *snitch* currently does not support, please check the [*Catch2* support roadmap](doc/comparison_catch2.md) first.
+ - Please check the [Issue Tracker](https://github.com/cschreib/snitch/issues) for any issue (open or closed) related to the feature you would like to add, or the problem you would like to solve. Read the discussion that has taken place there, if any, and check if any decision was taken that would be incompatible with your planned contribution.
+ - If the path is clear, fork this repository and commit your changes to your own fork.
+ - Use "atomic" commits (check that the code compiles before committing) and reasonably clear commit messages (no "WIP"). Linear history is preferred (i.e., avoid merge commits), but will not be enforced.
+ - Check your code mostly follows the [*snitch* C++ Coding Guidelines](doc/coding_guidelines.md).
+ - Run `clang-format` on your code before committing. The `.clang-format` file at the root of this repository contains all the formatting rules, and will be used automatically.
+ - Add tests to cover your new code if applicable (see the `tests` sub-folder).
+ - Run the *snitch* tests and fix any failure if you can (CMake can run them for you if you ask it to "build" the `snitch_runtime_tests_run` target, otherwise just run manually `build/tests/snitch_runtime_tests`).
+ - Open a [Pull Request](https://github.com/cschreib/snitch/pulls), with a description of what you are trying to do.
+ - If there are issues you were unable to solve on your own (e.g., tests failing for reasons you do not understand, or high-impact design decisions), please feel free to open the pull request as a "draft", and highlight the areas that you need help with in the description. Once the issues are addressed, you can take your Pull Request out of draft mode.
+ - Your code will then be reviewed, and the reviewer(s) may leave comments and suggestions. It is up to you to act on these comments and suggestions, and commit any required code changes. It's OK to push back on a suggestion if you have a good reason; don't always assume the reviewer is right.
+ - When all comments are addressed, the reviewer(s) should mark the Pull Request as "approved", at which point anyone involved can merge it into the main branch.
+ - Job done! Congratulations.
+
+
+## Why _snitch_?
 
 Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.

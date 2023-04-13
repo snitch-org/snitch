@@ -1,4 +1,5 @@
 #include "testing.hpp"
+#include "testing_assertions.hpp"
 
 namespace {
 constexpr std::size_t max_test_elements = 5u;
@@ -390,6 +391,114 @@ TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_sp
         CHECK(v[2].b == false);
     }
 }
+
+#if SNITCH_WITH_EXCEPTIONS
+TEST_CASE("small vector error cases", "[utility]") {
+    using TestType = vector_type;
+    assertion_exception_enabler enabler;
+
+    SECTION("resize") {
+        TestType v;
+        SECTION("from empty") {
+            CHECK_THROWS_WHAT(v.resize(100u), assertion_exception, "small vector is full");
+        }
+        SECTION("from full") {
+            v.resize(v.capacity());
+            CHECK_THROWS_WHAT(v.resize(100u), assertion_exception, "small vector is full");
+        }
+    }
+
+    SECTION("grow") {
+        TestType v;
+        SECTION("from empty") {
+            CHECK_THROWS_WHAT(v.grow(100u), assertion_exception, "small vector is full");
+        }
+        SECTION("from full") {
+            v.resize(v.capacity());
+            CHECK_THROWS_WHAT(v.grow(1u), assertion_exception, "small vector is full");
+        }
+    }
+
+    SECTION("push_back") {
+        TestType v;
+        v.resize(v.capacity());
+        SECTION("const T&") {
+            test_struct s;
+            CHECK_THROWS_WHAT(v.push_back(s), assertion_exception, "small vector is full");
+        }
+        SECTION("T&&") {
+            test_struct s;
+            CHECK_THROWS_WHAT(
+                v.push_back(std::move(s)), assertion_exception, "small vector is full");
+        }
+    }
+
+    SECTION("pop_back") {
+        TestType v;
+        CHECK_THROWS_WHAT(v.pop_back(), assertion_exception, "pop_back() called on empty vector");
+    }
+
+    SECTION("back") {
+        SECTION("const T&") {
+            const TestType v;
+            CHECK_THROWS_WHAT(v.back(), assertion_exception, "back() called on empty vector");
+        }
+        SECTION("T&") {
+            TestType v;
+            CHECK_THROWS_WHAT(v.back(), assertion_exception, "back() called on empty vector");
+        }
+        SECTION("T& const") {
+            TestType    v;
+            const auto& s = v.span();
+            CHECK_THROWS_WHAT(s.back(), assertion_exception, "back() called on empty vector");
+        }
+    }
+
+    SECTION("operator[]") {
+        SECTION("from empty") {
+            SECTION("const T&") {
+                const TestType v;
+                CHECK_THROWS_WHAT(
+                    v[0], assertion_exception, "operator[] called with incorrect index");
+            }
+            SECTION("T&") {
+                TestType v;
+                CHECK_THROWS_WHAT(
+                    v[0], assertion_exception, "operator[] called with incorrect index");
+            }
+            SECTION("T& const") {
+                TestType    v;
+                const auto& s = v.span();
+                CHECK_THROWS_WHAT(
+                    s[0], assertion_exception, "operator[] called with incorrect index");
+            }
+        }
+
+        SECTION("from non-empty") {
+            SECTION("const T&") {
+                TestType v0;
+                v0.resize(2);
+                const TestType& v = v0;
+                CHECK_THROWS_WHAT(
+                    v[3], assertion_exception, "operator[] called with incorrect index");
+            }
+            SECTION("T&") {
+                TestType v;
+                v.resize(2);
+                CHECK_THROWS_WHAT(
+                    v[3], assertion_exception, "operator[] called with incorrect index");
+            }
+            SECTION("T& const") {
+                TestType v;
+                v.resize(2);
+                const auto& s = v.span();
+                CHECK_THROWS_WHAT(
+                    s[3], assertion_exception, "operator[] called with incorrect index");
+            }
+        }
+    }
+}
+#endif
 
 TEST_CASE("constexpr small vector test_struct", "[utility]") {
     using TestType = vector_type;

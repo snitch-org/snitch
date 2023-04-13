@@ -1,6 +1,3 @@
-#include <algorithm>
-#include <vector>
-
 struct event_deep_copy {
     enum class type {
         unknown,
@@ -72,11 +69,10 @@ struct mock_framework {
 };
 
 struct console_output_catcher {
-    snitch::small_string<4086>                              messages   = {};
-    snitch::small_function<void(std::string_view) noexcept> prev_print = {};
+    snitch::small_string<4086>                              messages = {};
+    snitch::small_function<void(std::string_view) noexcept> prev_print;
 
-    console_output_catcher() {
-        prev_print                 = snitch::cli::console_print;
+    console_output_catcher() : prev_print(&snitch::impl::stdout_print) {
         snitch::cli::console_print = {*this, snitch::constant<&console_output_catcher::print>{}};
     }
 

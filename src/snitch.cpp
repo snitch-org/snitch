@@ -2,7 +2,7 @@
 
 #include <algorithm> // for std::sort
 #include <cinttypes> // for format strings
-#include <cstdio> // for std::printf, std::snprintf
+#include <cstdio> // for std::fwrite, std::snprintf
 #include <cstring> // for std::memcpy
 #include <optional> // for std::optional
 
@@ -15,7 +15,7 @@
 
 namespace {
 using namespace std::literals;
-using color_t = const char*;
+using color_t = std::string_view;
 
 namespace color {
 constexpr color_t error [[maybe_unused]]      = "\x1b[1;31m";
@@ -37,7 +37,7 @@ struct colored {
 };
 
 template<typename T>
-colored<T> make_colored(const T& t, bool with_color, color_t start) {
+colored<T> make_colored(const T& t, bool with_color, color_t start) noexcept {
     return {t, with_color ? start : "", with_color ? color::reset : ""};
 }
 
@@ -279,8 +279,7 @@ bool is_match(std::string_view string, std::string_view regex) noexcept {
 
 namespace snitch::impl {
 void stdout_print(std::string_view message) noexcept {
-    // TODO: replace this with std::print?
-    std::printf("%.*s", static_cast<int>(message.length()), message.data());
+    std::fwrite(message.data(), sizeof(char), message.length(), stdout);
 }
 
 test_state& get_current_test() noexcept {
@@ -312,7 +311,17 @@ using snitch::small_string;
 
 template<typename T>
 bool append(small_string_span ss, const colored<T>& colored_value) noexcept {
-    return append(ss, colored_value.color_start, colored_value.value, colored_value.color_end);
+    if (ss.available() <= colored_value.color_start.size() + colored_value.color_end.size()) {
+        return false;
+    }
+
+    bool could_fit = true;
+    if (!append(ss, colored_value.color_start, colored_value.value)) {
+        ss.resize(ss.capacity() - colored_value.color_end.size());
+        could_fit = false;
+    }
+
+    return append(ss, colored_value.color_end) && could_fit;
 }
 
 template<typename... Args>
@@ -322,21 +331,24 @@ void console_print(Args&&... args) noexcept {
     snitch::cli::console_print(message);
 }
 
-bool is_at_least(snitch::registry::verbosity verbose, snitch::registry::verbosity required) {
+bool is_at_least(
+    snitch::registry::verbosity verbose, snitch::registry::verbosity required) noexcept {
     using underlying_type = std::underlying_type_t<snitch::registry::verbosity>;
     return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
 }
 
 void trim(std::string_view& str, std::string_view patterns) noexcept {
     std::size_t start = str.find_first_not_of(patterns);
-    if (start == str.npos)
+    if (start == str.npos) {
         return;
+    }
 
     str.remove_prefix(start);
 
     std::size_t end = str.find_last_not_of(patterns);
-    if (end != str.npos)
+    if (end != str.npos) {
         str.remove_suffix(str.size() - end - 1);
+    }
 }
 } // namespace
 
@@ -348,19 +360,46 @@ namespace snitch {
 
     std::terminate();
 }
+
+[[noreturn]] void assertion_failed(std::string_view msg) {
+    assertion_failed_handler(msg);
+
+    // The assertion handler should either spin, throw, or terminate, but never return.
+    // We cannot enforce [[noreturn]] through the small_function wrapper. So just in case
+    // it accidentally returns, we terminate.
+    std::terminate();
+}
+
+small_function<void(std::string_view)> assertion_failed_handler = &terminate_with;
 } // namespace snitch
 
 // Sections implementation.
 // ------------------------
 
 namespace snitch::impl {
-section_entry_checker::~section_entry_checker() noexcept {
+section_entry_checker::~section_entry_checker() {
     if (entered) {
-        if (state.sections.levels.size() == state.sections.depth) {
+        if (state.sections.depth == state.sections.levels.size()) {
+            // We just entered this section, and there was no child section in it.
+            // This is a leaf; flag that a leaf has been executed so that no other leaf
+            // is executed in this run.
+            // Note: don't pop this level from the section state yet, it may have siblings
+            // that we don't know about yet. Popping will be done when we exit from the parent,
+            // since then we will know if there is any sibling.
             state.sections.leaf_executed = true;
         } else {
-            auto& child = state.sections.levels[state.sections.depth];
-            if (child.previous_section_id == child.max_section_id) {
+            // Check if there is any child section left to execute, at any depth below this one.
+            bool no_child_section_left = true;
+            for (std::size_t c = state.sections.depth; c < state.sections.levels.size(); ++c) {
+                auto& child = state.sections.levels[c];
+                if (child.previous_section_id != child.max_section_id) {
+                    no_child_section_left = false;
+                    break;
+                }
+            }
+
+            if (no_child_section_left) {
+                // No more children, we can pop this level and never go back.
                 state.sections.levels.pop_back();
             }
         }
@@ -371,33 +410,41 @@ section_entry_checker::~section_entry_checker() noexcept {
     --state.sections.depth;
 }
 
-section_entry_checker::operator bool() noexcept {
-    ++state.sections.depth;
-
-    if (state.sections.depth > state.sections.levels.size()) {
-        if (state.sections.depth > max_nested_sections) {
+section_entry_checker::operator bool() {
+    if (state.sections.depth >= state.sections.levels.size()) {
+        if (state.sections.depth >= max_nested_sections) {
             state.reg.print(
                 make_colored("error:", state.reg.with_color, color::fail),
                 " max number of nested sections reached; "
                 "please increase 'SNITCH_MAX_NESTED_SECTIONS' (currently ",
                 max_nested_sections, ")\n.");
-            std::terminate();
+            assertion_failed("max number of nested sections reached");
         }
 
         state.sections.levels.push_back({});
     }
 
+    ++state.sections.depth;
+
     auto& level = state.sections.levels[state.sections.depth - 1];
 
     ++level.current_section_id;
-    if (level.max_section_id < level.current_section_id) {
+    if (level.current_section_id > level.max_section_id) {
         level.max_section_id = level.current_section_id;
     }
 
-    if (!state.sections.leaf_executed &&
-        (level.previous_section_id + 1 == level.current_section_id ||
-         (level.previous_section_id == level.current_section_id &&
-          state.sections.levels.size() > state.sections.depth))) {
+    if (state.sections.leaf_executed) {
+        // We have already executed another leaf section; can't execute more
+        // on this run, so don't bother going inside this one now.
+        return false;
+    }
+
+    // Only enter this section if:
+    //  - The section entered in the previous run was its immediate previous sibling, or
+    //  - This section was already entered in the previous run, and child sections exist in it.
+    if (level.current_section_id == level.previous_section_id + 1 ||
+        (level.current_section_id == level.previous_section_id &&
+         state.sections.depth < state.sections.levels.size())) {
 
         level.previous_section_id = level.current_section_id;
         state.sections.current_section.push_back(section);
@@ -461,14 +508,14 @@ std::string_view extract_next_name(std::string_view& names) noexcept {
     return result;
 }
 
-small_string<max_capture_length>& add_capture(test_state& state) noexcept {
+small_string<max_capture_length>& add_capture(test_state& state) {
     if (state.captures.available() == 0) {
         state.reg.print(
             make_colored("error:", state.reg.with_color, color::fail),
             " max number of captures reached; "
             "please increase 'SNITCH_MAX_CAPTURES' (currently ",
             max_captures, ")\n.");
-        std::terminate();
+        assertion_failed("max number of captures reached");
     }
 
     state.captures.grow(1);
@@ -508,15 +555,16 @@ namespace {
 using namespace snitch;
 using namespace snitch::impl;
 
+// Requires: s contains a well-formed list of tags.
 template<typename F>
-void for_each_raw_tag(std::string_view s, F&& callback) noexcept {
+void for_each_raw_tag(std::string_view s, F&& callback) {
     if (s.empty()) {
         return;
     }
 
     if (s.find_first_of("[") == std::string_view::npos ||
         s.find_first_of("]") == std::string_view::npos) {
-        terminate_with("incorrectly formatted tag; please use \"[tag1][tag2][...]\"");
+        assertion_failed("incorrectly formatted tag; please use \"[tag1][tag2][...]\"");
     }
 
     std::string_view delim    = "][";
@@ -543,8 +591,9 @@ struct should_fail {};
 using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail>;
 } // namespace tags
 
+// Requires: s contains a well-formed list of tags, each of length <= max_tag_length.
 template<typename F>
-void for_each_tag(std::string_view s, F&& callback) noexcept {
+void for_each_tag(std::string_view s, F&& callback) {
     small_string<max_tag_length> buffer;
 
     for_each_raw_tag(s, [&](std::string_view t) {
@@ -561,7 +610,7 @@ void for_each_tag(std::string_view s, F&& callback) noexcept {
 
             buffer.clear();
             if (!append(buffer, "[", t.substr(2u))) {
-                terminate_with("tag is too long");
+                assertion_failed("tag is too long");
             }
 
             t = buffer;
@@ -623,7 +672,8 @@ snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcep
     }
 }
 
-small_vector<std::string_view, max_captures> make_capture_buffer(const capture_state& captures) {
+small_vector<std::string_view, max_captures>
+make_capture_buffer(const capture_state& captures) noexcept {
     small_vector<std::string_view, max_captures> captures_buffer;
     for (const auto& c : captures) {
         captures_buffer.push_back(c);
@@ -672,15 +722,135 @@ filter_result is_filter_match_id(const test_id& id, std::string_view filter) noe
         return is_filter_match_name(id.name, filter);
     }
 }
+} // namespace snitch
 
-const char* registry::add(const test_id& id, test_ptr func) noexcept {
-    if (test_list.size() == test_list.capacity()) {
+namespace {
+void print_location(
+    const registry&           r,
+    const test_id&            id,
+    const section_info&       sections,
+    const capture_info&       captures,
+    const assertion_location& location) noexcept {
+
+    r.print("running test case \"", make_colored(id.name, r.with_color, color::highlight1), "\"\n");
+
+    for (auto& section : sections) {
+        r.print(
+            "          in section \"", make_colored(section.name, r.with_color, color::highlight1),
+            "\"\n");
+    }
+
+    r.print("          at ", location.file, ":", location.line, "\n");
+
+    if (!id.type.empty()) {
+        r.print(
+            "          for type ", make_colored(id.type, r.with_color, color::highlight1), "\n");
+    }
+
+    for (auto& capture : captures) {
+        r.print("          with ", make_colored(capture, r.with_color, color::highlight1), "\n");
+    }
+}
+} // namespace
+
+namespace snitch::impl {
+void default_reporter(const registry& r, const event::data& event) noexcept {
+    std::visit(
+        snitch::overload{
+            [&](const snitch::event::test_run_started& e) {
+                if (is_at_least(r.verbose, registry::verbosity::normal)) {
+                    r.print(
+                        make_colored("starting ", r.with_color, color::highlight2),
+                        make_colored(e.name, r.with_color, color::highlight1),
+                        make_colored(" with ", r.with_color, color::highlight2),
+                        make_colored(
+                            "snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
+                    r.print("==========================================\n");
+                }
+            },
+            [&](const snitch::event::test_run_ended& e) {
+                if (is_at_least(r.verbose, registry::verbosity::normal)) {
+                    r.print("==========================================\n");
+
+                    if (e.success) {
+                        r.print(
+                            make_colored("success:", r.with_color, color::pass),
+                            " all tests passed (", e.run_count, " test cases, ", e.assertion_count,
+                            " assertions");
+                    } else {
+                        r.print(
+                            make_colored("error:", r.with_color, color::fail),
+                            " some tests failed (", e.fail_count, " out of ", e.run_count,
+                            " test cases, ", e.assertion_count, " assertions");
+                    }
+
+                    if (e.skip_count > 0) {
+                        r.print(", ", e.skip_count, " test cases skipped");
+                    }
+
+#if SNITCH_WITH_TIMINGS
+                    r.print(", ", e.duration, " seconds");
+#endif
+
+                    r.print(")\n");
+                }
+            },
+            [&](const snitch::event::test_case_started& e) {
+                if (is_at_least(r.verbose, registry::verbosity::high)) {
+                    small_string<max_test_name_length> full_name;
+                    make_full_name(full_name, e.id);
+
+                    r.print(
+                        make_colored("starting:", r.with_color, color::status), " ",
+                        make_colored(full_name, r.with_color, color::highlight1), "\n");
+                }
+            },
+            [&](const snitch::event::test_case_ended& e) {
+                if (is_at_least(r.verbose, registry::verbosity::high)) {
+                    small_string<max_test_name_length> full_name;
+                    make_full_name(full_name, e.id);
+
+#if SNITCH_WITH_TIMINGS
+                    r.print(
+                        make_colored("finished:", r.with_color, color::status), " ",
+                        make_colored(full_name, r.with_color, color::highlight1), " (", e.duration,
+                        "s)\n");
+#else
+                    r.print(
+                        make_colored("finished:", r.with_color, color::status), " ",
+                        make_colored(full_name, r.with_color, color::highlight1), "\n");
+#endif
+                }
+            },
+            [&](const snitch::event::test_case_skipped& e) {
+                r.print(make_colored("skipped: ", r.with_color, color::skipped));
+                print_location(r, e.id, e.sections, e.captures, e.location);
+                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+                r.print("\n");
+            },
+            [&](const snitch::event::assertion_failed& e) {
+                if (e.expected) {
+                    r.print(make_colored("expected failure: ", r.with_color, color::pass));
+                } else {
+                    r.print(make_colored("failed: ", r.with_color, color::fail));
+                }
+                print_location(r, e.id, e.sections, e.captures, e.location);
+                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+                r.print("\n");
+            }},
+        event);
+}
+} // namespace snitch::impl
+
+namespace snitch {
+const char* registry::add(const test_id& id, test_ptr func) {
+    if (test_list.available() == 0u) {
         print(
             make_colored("error:", with_color, color::fail),
             " max number of test cases reached; "
             "please increase 'SNITCH_MAX_TEST_CASES' (currently ",
             max_test_cases, ")\n.");
-        std::terminate();
+        assertion_failed("max number of test cases reached");
     }
 
     test_list.push_back(test_case{id, func});
@@ -692,65 +862,10 @@ const char* registry::add(const test_id& id, test_ptr func) noexcept {
             " max length of test name reached; "
             "please increase 'SNITCH_MAX_TEST_NAME_LENGTH' (currently ",
             max_test_name_length, ")\n.");
-        std::terminate();
+        assertion_failed("test case name exceeds max length");
     }
 
     return id.name.data();
-}
-
-void registry::print_location(
-    const impl::test_case&     current_case,
-    const impl::section_state& sections,
-    const impl::capture_state& captures,
-    const assertion_location&  location) const noexcept {
-
-    print(
-        "running test case \"", make_colored(current_case.id.name, with_color, color::highlight1),
-        "\"\n");
-
-    for (auto& section : sections.current_section) {
-        print(
-            "          in section \"", make_colored(section.name, with_color, color::highlight1),
-            "\"\n");
-    }
-
-    print("          at ", location.file, ":", location.line, "\n");
-
-    if (!current_case.id.type.empty()) {
-        print(
-            "          for type ",
-            make_colored(current_case.id.type, with_color, color::highlight1), "\n");
-    }
-
-    for (auto& capture : captures) {
-        print("          with ", make_colored(capture, with_color, color::highlight1), "\n");
-    }
-}
-
-void registry::print_failure() const noexcept {
-    print(make_colored("failed: ", with_color, color::fail));
-}
-
-void registry::print_expected_failure() const noexcept {
-    print(make_colored("expected failure: ", with_color, color::pass));
-}
-
-void registry::print_skip() const noexcept {
-    print(make_colored("skipped: ", with_color, color::skipped));
-}
-
-void registry::print_details(std::string_view message) const noexcept {
-    print("          ", make_colored(message, with_color, color::highlight2), "\n");
-}
-
-void registry::print_details_expr(const expression& exp) const noexcept {
-    print("          ", make_colored(exp.expected, with_color, color::highlight2));
-
-    if (!exp.actual.empty()) {
-        print(", got ", make_colored(exp.actual, with_color, color::highlight2));
-    }
-
-    print("\n");
 }
 
 void registry::report_failure(
@@ -762,21 +877,12 @@ void registry::report_failure(
         set_state(state.test, impl::test_case_state::failed);
     }
 
-    if (!report_callback.empty()) {
-        const auto captures_buffer = make_capture_buffer(state.captures);
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    } else {
-        if (state.should_fail) {
-            print_expected_failure();
-        } else {
-            print_failure();
-        }
-        print_location(state.test, state.sections, state.captures, location);
-        print_details(message);
-    }
+    const auto captures_buffer = make_capture_buffer(state.captures);
+
+    report_callback(
+        *this, event::assertion_failed{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   message, state.should_fail, state.may_fail});
 }
 
 void registry::report_failure(
@@ -792,21 +898,12 @@ void registry::report_failure(
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
 
-    if (!report_callback.empty()) {
-        const auto captures_buffer = make_capture_buffer(state.captures);
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    } else {
-        if (state.should_fail) {
-            print_expected_failure();
-        } else {
-            print_failure();
-        }
-        print_location(state.test, state.sections, state.captures, location);
-        print_details(message);
-    }
+    const auto captures_buffer = make_capture_buffer(state.captures);
+
+    report_callback(
+        *this, event::assertion_failed{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   message, state.should_fail, state.may_fail});
 }
 
 void registry::report_failure(
@@ -818,29 +915,20 @@ void registry::report_failure(
         set_state(state.test, impl::test_case_state::failed);
     }
 
-    if (!report_callback.empty()) {
-        const auto captures_buffer = make_capture_buffer(state.captures);
-        if (!exp.actual.empty()) {
-            small_string<max_message_length> message;
-            append_or_truncate(message, exp.expected, ", got ", exp.actual);
-            report_callback(
-                *this, event::assertion_failed{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message, state.should_fail, state.may_fail});
-        } else {
-            report_callback(
-                *this, event::assertion_failed{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, exp.expected, state.should_fail, state.may_fail});
-        }
+    const auto captures_buffer = make_capture_buffer(state.captures);
+
+    if (!exp.actual.empty()) {
+        small_string<max_message_length> message;
+        append_or_truncate(message, exp.expected, ", got ", exp.actual);
+        report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message, state.should_fail, state.may_fail});
     } else {
-        if (state.should_fail) {
-            print_expected_failure();
-        } else {
-            print_failure();
-        }
-        print_location(state.test, state.sections, state.captures, location);
-        print_details_expr(exp);
+        report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, exp.expected, state.should_fail, state.may_fail});
     }
 }
 
@@ -851,33 +939,20 @@ void registry::report_skipped(
 
     set_state(state.test, impl::test_case_state::skipped);
 
-    if (!report_callback.empty()) {
-        const auto captures_buffer = make_capture_buffer(state.captures);
-        report_callback(
-            *this, event::test_case_skipped{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message});
-    } else {
-        print_skip();
-        print_location(state.test, state.sections, state.captures, location);
-        print_details(message);
-    }
+    const auto captures_buffer = make_capture_buffer(state.captures);
+
+    report_callback(
+        *this, event::test_case_skipped{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   message});
 }
 
 test_state registry::run(test_case& test) noexcept {
-    small_string<max_test_name_length> full_name;
-
-    if (!report_callback.empty()) {
-        report_callback(*this, event::test_case_started{test.id});
-    } else if (is_at_least(verbose, verbosity::high)) {
-        make_full_name(full_name, test.id);
-        print(
-            make_colored("starting:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), "\n");
-    }
+    report_callback(*this, event::test_case_started{test.id});
 
     test.state = impl::test_case_state::success;
 
+    // Fetch special tags for this test case.
     bool may_fail    = false;
     bool should_fail = false;
     for_each_tag(test.id.tags, [&](const tags::parsed_tag& v) {
@@ -901,12 +976,13 @@ test_state registry::run(test_case& test) noexcept {
 #endif
 
     do {
+        // Reset section state.
+        state.sections.leaf_executed = false;
         for (std::size_t i = 0; i < state.sections.levels.size(); ++i) {
             state.sections.levels[i].current_section_id = 0;
         }
 
-        state.sections.leaf_executed = false;
-
+        // Run the test case.
 #if SNITCH_WITH_EXCEPTIONS
         try {
             test.func();
@@ -924,8 +1000,10 @@ test_state registry::run(test_case& test) noexcept {
 #endif
 
         if (state.sections.levels.size() == 1) {
+            // This test case contained sections; check if there are any more left to evaluate.
             auto& child = state.sections.levels[0];
             if (child.previous_section_id == child.max_section_id) {
+                // No more; clear the section state.
                 state.sections.levels.clear();
                 state.sections.current_section.clear();
             }
@@ -947,32 +1025,20 @@ test_state registry::run(test_case& test) noexcept {
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
-    if (!report_callback.empty()) {
 #if SNITCH_WITH_TIMINGS
-        report_callback(
-            *this, event::test_case_ended{
-                       .id              = test.id,
-                       .state           = convert_to_public_state(state.test.state),
-                       .assertion_count = state.asserts,
-                       .duration        = state.duration});
+    report_callback(
+        *this, event::test_case_ended{
+                   .id              = test.id,
+                   .state           = convert_to_public_state(state.test.state),
+                   .assertion_count = state.asserts,
+                   .duration        = state.duration});
 #else
-        report_callback(
-            *this, event::test_case_ended{
-                       .id              = test.id,
-                       .state           = convert_to_public_state(state.test.state),
-                       .assertion_count = state.asserts});
+    report_callback(
+        *this, event::test_case_ended{
+                   .id = test.id,
+                   .state = convert_to_public_state(state.test.state),
+                   .assertion_count = state.asserts});
 #endif
-    } else if (is_at_least(verbose, verbosity::high)) {
-#if SNITCH_WITH_TIMINGS
-        print(
-            make_colored("finished:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), " (", state.duration, "s)\n");
-#else
-        print(
-            make_colored("finished:", with_color, color::status), " ",
-            make_colored(full_name, with_color, color::highlight1), "\n");
-#endif
-    }
 
     thread_current_test = previous_run;
 
@@ -983,14 +1049,7 @@ bool registry::run_selected_tests(
     std::string_view                                     run_name,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
 
-    if (!report_callback.empty()) {
-        report_callback(*this, event::test_run_started{run_name});
-    } else if (is_at_least(verbose, registry::verbosity::normal)) {
-        print(
-            make_colored("starting tests with ", with_color, color::highlight2),
-            make_colored("snitch v" SNITCH_FULL_VERSION "\n", with_color, color::highlight1));
-        print("==========================================\n");
-    }
+    report_callback(*this, event::test_run_started{run_name});
 
     bool        success         = true;
     std::size_t run_count       = 0;
@@ -1039,50 +1098,26 @@ bool registry::run_selected_tests(
     float duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
-    if (!report_callback.empty()) {
 #if SNITCH_WITH_TIMINGS
-        report_callback(
-            *this, event::test_run_ended{
-                       .name            = run_name,
-                       .success         = success,
-                       .run_count       = run_count,
-                       .fail_count      = fail_count,
-                       .skip_count      = skip_count,
-                       .assertion_count = assertion_count,
-                       .duration        = duration});
+    report_callback(
+        *this, event::test_run_ended{
+                   .name            = run_name,
+                   .success         = success,
+                   .run_count       = run_count,
+                   .fail_count      = fail_count,
+                   .skip_count      = skip_count,
+                   .assertion_count = assertion_count,
+                   .duration        = duration});
 #else
-        report_callback(
-            *this, event::test_run_ended{
-                       .name            = run_name,
-                       .success         = success,
-                       .run_count       = run_count,
-                       .fail_count      = fail_count,
-                       .skip_count      = skip_count,
-                       .assertion_count = assertion_count});
+    report_callback(
+        *this, event::test_run_ended{
+                   .name = run_name,
+                   .success = success,
+                   .run_count = run_count,
+                   .fail_count = fail_count,
+                   .skip_count = skip_count,
+                   .assertion_count = assertion_count});
 #endif
-    } else if (is_at_least(verbose, registry::verbosity::normal)) {
-        print("==========================================\n");
-
-        if (success) {
-            print(
-                make_colored("success:", with_color, color::pass), " all tests passed (", run_count,
-                " test cases, ", assertion_count, " assertions");
-        } else {
-            print(
-                make_colored("error:", with_color, color::fail), " some tests failed (", fail_count,
-                " out of ", run_count, " test cases, ", assertion_count, " assertions");
-        }
-
-        if (skip_count > 0) {
-            print(", ", skip_count, " test cases skipped");
-        }
-
-#if SNITCH_WITH_TIMINGS
-        print(", ", duration, " seconds");
-#endif
-
-        print(")\n");
-    }
 
     return success;
 }
@@ -1102,7 +1137,7 @@ bool registry::run_tests(std::string_view run_name) noexcept {
     return run_selected_tests(run_name, filter);
 }
 
-void registry::list_all_tags() const noexcept {
+void registry::list_all_tags() const {
     small_vector<std::string_view, max_unique_tags> tags;
     for (const auto& t : test_list) {
         for_each_tag(t.id.tags, [&](const tags::parsed_tag& v) {
@@ -1114,7 +1149,7 @@ void registry::list_all_tags() const noexcept {
                             " max number of tags reached; "
                             "please increase 'SNITCH_MAX_UNIQUE_TAGS' (currently ",
                             max_unique_tags, ")\n.");
-                        std::terminate();
+                        assertion_failed("max number of unique tags reached");
                     }
 
                     tags.push_back(*vs);
@@ -1189,7 +1224,7 @@ struct parser_settings {
     bool with_color = true;
 };
 
-std::string_view extract_executable(std::string_view path) {
+std::string_view extract_executable(std::string_view path) noexcept {
     if (auto folder_end = path.find_last_of("\\/"); folder_end != path.npos) {
         path.remove_prefix(folder_end + 1);
     }
@@ -1200,23 +1235,23 @@ std::string_view extract_executable(std::string_view path) {
     return path;
 }
 
-bool is_option(const expected_argument& e) {
+bool is_option(const expected_argument& e) noexcept {
     return !e.names.empty();
 }
 
-bool is_option(const cli::argument& a) {
+bool is_option(const cli::argument& a) noexcept {
     return !a.name.empty();
 }
 
-bool has_value(const expected_argument& e) {
+bool has_value(const expected_argument& e) noexcept {
     return e.value_name.has_value();
 }
 
-bool is_mandatory(const expected_argument& e) {
+bool is_mandatory(const expected_argument& e) noexcept {
     return (e.type & argument_type::mandatory) != 0;
 }
 
-bool is_repeatable(const expected_argument& e) {
+bool is_repeatable(const expected_argument& e) noexcept {
     return (e.type & argument_type::repeatable) != 0;
 }
 
@@ -1372,7 +1407,7 @@ void print_help(
     std::string_view           program_name,
     std::string_view           program_description,
     const expected_arguments&  expected,
-    const print_help_settings& settings = print_help_settings{}) {
+    const print_help_settings& settings = print_help_settings{}) noexcept {
 
     // Print program description
     console_print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
@@ -1427,7 +1462,7 @@ void print_help(
         }
 
         if (!success) {
-            terminate_with("argument name is too long");
+            truncate_end(heading);
         }
 
         console_print(
