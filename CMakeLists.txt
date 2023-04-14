@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.19)
 
 project(snitch LANGUAGES CXX VERSION 1.0.0)
 
@@ -37,12 +37,39 @@ endif()
 configure_file("${PROJECT_SOURCE_DIR}/include/snitch/snitch_config.hpp.config"
                "${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp")
 
+set(SNITCH_INCLUDES
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_append.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_capture.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_cli.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_concepts.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_error_handling.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_expression.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_fixed_point.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_function.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_check.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_check_base.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_consteval.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_constexpr.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_exceptions.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_misc.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_test_case.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_utility.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_warnings.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_matcher.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_section.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_test_data.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_name.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
+    ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)
+
 if (SNITCH_CREATE_LIBRARY)
     # Build as a standard library (static or dynamic) with header.
     add_library(snitch
-        ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
-        ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
-        ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp
+        ${SNITCH_INCLUDES}
         ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 
     add_library(snitch::snitch ALIAS snitch)
@@ -70,15 +97,11 @@ if (SNITCH_CREATE_HEADER_ONLY)
         VERBATIM
         OUTPUT ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
         DEPENDS
-            ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
-            ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp
+            ${SNITCH_INCLUDES}
             ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 
-    add_custom_target(snitch-header-only-impl ALL DEPENDS ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
-
-    add_library(snitch-header-only INTERFACE)
+    add_library(snitch-header-only INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
     add_library(snitch::snitch-header-only ALIAS snitch-header-only)
-    add_dependencies(snitch-header-only snitch-header-only-impl)
     set_target_properties(snitch-header-only PROPERTIES EXPORT_NAME snitch::snitch-header-only)
 
     target_sources(snitch-header-only INTERFACE

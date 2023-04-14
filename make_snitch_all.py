@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 
 if len(sys.argv) != 3:
     print('error: expected two command line arguments: <root_dir> <binary_dir>')
@@ -11,14 +12,45 @@ binary_dir = sys.argv[2]
 output_dir = os.path.join(binary_dir, 'snitch')
 output_filename = 'snitch_all.hpp'
 
-# Files to concatenate, in order
-input_filenames = [os.path.join(binary_dir, 'snitch/snitch_config.hpp'),
-               os.path.join(root_dir, 'include/snitch/snitch.hpp'),
-               os.path.join(root_dir, 'src/snitch.cpp')]
-
 # Make sure the output directory exists; should always be true since we read
 # 'snitch_config.hpp' from there, but in case this changes in the future:
 os.makedirs(output_dir, exist_ok=True)
+
+# Gather header inclusion structure.
+header_map = {}
+def add_headers(filename):
+    headers = []
+    with open(filename) as header:
+        for line in header.readlines():
+            include = re.search(r'#\s*include "(snitch/snitch_[^"]+)"', line)
+            if not include:
+                continue
+
+            include = include.group(1)
+            if 'snitch_config.hpp' in include:
+                include_dir = 'build'
+            else:
+                include_dir  = 'include'
+
+            child_header = os.path.join(root_dir, include_dir, include)
+            headers.append(child_header)
+
+            if include not in header_map:
+                header_map[child_header] = add_headers(child_header)
+
+    return headers
+
+add_headers(os.path.join(root_dir, 'include/snitch/snitch.hpp'))
+
+# Add leaf headers that don't include any other.
+input_filenames = list(include for include, children in header_map.items() if len(children) == 0)
+
+while len(input_filenames) < len(header_map):
+    for include, children in header_map.items():
+        if not include in input_filenames and all(child in input_filenames for child in children):
+            input_filenames.append(include)
+
+input_filenames.append(os.path.join(root_dir, 'src/snitch.cpp'))
 
 with open(os.path.join(output_dir, output_filename), 'w') as output_file:
     file_count = 0
@@ -31,7 +63,7 @@ with open(os.path.join(output_dir, output_filename), 'w') as output_file:
         with open(input_filename, 'r') as input_file:
             for line in input_file.readlines():
                 # Remove includes to snitch/*.hpp; it's all one header now
-                if '#include "snitch' in line:
+                if re.match(r'#\s*include "snitch', line):
                     continue
                 output_file.write(line)
 

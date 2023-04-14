@@ -1,7 +1,15 @@
 #ifndef SNITCH_TEAMCITY_HPP
 #define SNITCH_TEAMCITY_HPP
 
-#include "snitch/snitch.hpp"
+#include "snitch/snitch_config.hpp"
+#include "snitch/snitch_registry.hpp"
+#include "snitch/snitch_string.hpp"
+#include "snitch/snitch_string_utility.hpp"
+#include "snitch/snitch_test_data.hpp"
+
+#include <cstddef>
+#include <initializer_list>
+#include <string_view>
 
 namespace snitch::teamcity {
 struct key_value {
