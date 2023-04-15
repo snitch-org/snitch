@@ -4,6 +4,7 @@
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_function.hpp"
 #include "snitch/snitch_string.hpp"
+#include "snitch/snitch_string_utility.hpp"
 #include "snitch/snitch_vector.hpp"
 
 #include <cstddef>
@@ -31,6 +32,15 @@ struct input {
 };
 
 extern small_function<void(std::string_view) noexcept> console_print;
+
+template<typename... Args>
+void print(Args&&... args) noexcept {
+    small_string<max_message_length> message;
+    append_or_truncate(message, std::forward<Args>(args)...);
+    console_print(message);
+}
+
+void print_help(std::string_view program_name) noexcept;
 
 std::optional<input> parse_arguments(int argc, const char* const argv[]) noexcept;
 

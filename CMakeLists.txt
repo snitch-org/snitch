@@ -20,6 +20,8 @@ set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST ON   CACHE BOOL   "Use std::bit_cast if a
 set(SNITCH_DEFAULT_WITH_COLOR          ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
 set(SNITCH_CREATE_HEADER_ONLY          ON   CACHE BOOL   "Create a single-header header-only version of snitch.")
 set(SNITCH_CREATE_LIBRARY              ON   CACHE BOOL   "Build a compiled library version of snitch.")
+set(SNITCH_UNITY_BUILD                 ON   CACHE BOOL   "Build sources as single file instead of separate files (faster full build).")
+set(SNITCH_DO_TEST                     OFF  CACHE BOOL   "Build tests.")
 
 # Figure out git hash, if any
 execute_process(
@@ -43,6 +45,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_capture.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_cli.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_concepts.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_console.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_error_handling.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_expression.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_fixed_point.hpp
@@ -66,11 +69,28 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
     ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)
 
+if (SNITCH_UNITY_BUILD)
+    set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+else()
+    set(SNITCH_SOURCES
+        ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
+        ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
+endif()
+
 if (SNITCH_CREATE_LIBRARY)
     # Build as a standard library (static or dynamic) with header.
     add_library(snitch
         ${SNITCH_INCLUDES}
-        ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+        ${SNITCH_SOURCES})
 
     add_library(snitch::snitch ALIAS snitch)
     set_target_properties(snitch PROPERTIES EXPORT_NAME snitch::snitch)
@@ -81,10 +101,8 @@ if (SNITCH_CREATE_LIBRARY)
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-    install(FILES
-        ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
-        ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
-        ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp
+    install(
+        FILES ${SNITCH_INCLUDES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 endif()
 
@@ -98,7 +116,8 @@ if (SNITCH_CREATE_HEADER_ONLY)
         OUTPUT ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
         DEPENDS
             ${SNITCH_INCLUDES}
-            ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+            ${PROJECT_SOURCE_DIR}/src/snitch.cpp
+            ${PROJECT_SOURCE_DIR}/make_snitch_all.py)
 
     add_library(snitch-header-only INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
     add_library(snitch::snitch-header-only ALIAS snitch-header-only)
@@ -112,8 +131,8 @@ if (SNITCH_CREATE_HEADER_ONLY)
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
     target_compile_features(snitch-header-only INTERFACE cxx_std_20)
 
-    install(FILES
-        ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
+    install(
+        FILES ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 endif()
 

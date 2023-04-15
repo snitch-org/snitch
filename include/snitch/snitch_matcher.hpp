@@ -3,13 +3,11 @@
 
 #include "snitch/snitch_append.hpp"
 #include "snitch/snitch_config.hpp"
+#include "snitch/snitch_error_handling.hpp"
 #include "snitch/snitch_string.hpp"
 #include "snitch/snitch_string_utility.hpp"
 
-namespace snitch {
-// Maximum length of error messages.
-constexpr std::size_t max_message_length = SNITCH_MAX_MESSAGE_LENGTH;
-} // namespace snitch
+#include <optional>
 
 namespace snitch::matchers {
 enum class match_status { failed, matched };

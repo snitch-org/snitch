@@ -6,6 +6,7 @@
 #include "snitch/snitch_cli.hpp"
 #include "snitch/snitch_concepts.hpp"
 #include "snitch/snitch_config.hpp"
+#include "snitch/snitch_console.hpp"
 #include "snitch/snitch_error_handling.hpp"
 #include "snitch/snitch_expression.hpp"
 #include "snitch/snitch_fixed_point.hpp"

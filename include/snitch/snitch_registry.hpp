@@ -4,6 +4,7 @@
 #include "snitch/snitch_append.hpp"
 #include "snitch/snitch_cli.hpp"
 #include "snitch/snitch_config.hpp"
+#include "snitch/snitch_console.hpp"
 #include "snitch/snitch_error_handling.hpp"
 #include "snitch/snitch_expression.hpp"
 #include "snitch/snitch_function.hpp"
@@ -32,8 +33,6 @@ constexpr std::size_t max_unique_tags = SNITCH_MAX_UNIQUE_TAGS;
 } // namespace snitch
 
 namespace snitch::impl {
-void stdout_print(std::string_view message) noexcept;
-
 void default_reporter(const registry& r, const event::data& event) noexcept;
 
 template<typename T, typename F>

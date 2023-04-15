@@ -22,7 +22,7 @@ def add_headers(filename):
     headers = []
     with open(filename) as header:
         for line in header.readlines():
-            include = re.search(r'#\s*include "(snitch/snitch_[^"]+)"', line)
+            include = re.search(r'#\s*include "(snitch/snitch_[^"]+hpp)"', line)
             if not include:
                 continue
 
@@ -40,17 +40,24 @@ def add_headers(filename):
 
     return headers
 
-add_headers(os.path.join(root_dir, 'include/snitch/snitch.hpp'))
+add_headers(os.path.join(root_dir, 'include', 'snitch', 'snitch.hpp'))
 
 # Add leaf headers that don't include any other.
 input_filenames = list(include for include, children in header_map.items() if len(children) == 0)
 
+# Add other headers iteratively.
 while len(input_filenames) < len(header_map):
     for include, children in header_map.items():
         if not include in input_filenames and all(child in input_filenames for child in children):
             input_filenames.append(include)
 
-input_filenames.append(os.path.join(root_dir, 'src/snitch.cpp'))
+# Add implementation.
+main_source = os.path.join(root_dir, 'src', 'snitch.cpp')
+with open(main_source) as src:
+    for line in src.readlines():
+        file = re.search(r'#\s*include "(snitch_[^"]+cpp)"', line)
+        if file:
+            input_filenames.append(os.path.join(root_dir, 'src', file.group(1)))
 
 with open(os.path.join(output_dir, output_filename), 'w') as output_file:
     file_count = 0
@@ -69,7 +76,7 @@ with open(os.path.join(output_dir, output_filename), 'w') as output_file:
 
         # Close guard for implementation files
         if '.cpp' in input_filename:
-            output_file.write('#endif\n')
+            output_file.write('\n#endif\n')
 
         file_count += 1
         if file_count != len(input_filenames):
