@@ -92,12 +92,11 @@ set_target_properties(snitch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
 # Test snitch with itself
 add_executable(snitch_runtime_tests_self
-    ${PROJECT_SOURCE_DIR}/src/snitch.cpp
     ${RUNTIME_TEST_FILES})
 target_include_directories(snitch_runtime_tests_self PRIVATE
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/tests)
+target_link_libraries(snitch_runtime_tests_self PRIVATE
+    snitch::snitch)
 add_platform_definitions(snitch_runtime_tests_self)
 configure_snitch_for_tests(snitch_runtime_tests_self)
 target_compile_features(snitch_runtime_tests_self PUBLIC cxx_std_20)
@@ -111,10 +110,13 @@ add_custom_target(snitch_runtime_tests_self_run
 set_target_properties(snitch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
 
 # Test header-only snitch with itself
-add_executable(snitch_runtime_tests_self_header_only ${PROJECT_SOURCE_DIR}/tests/testing.cpp ${RUNTIME_TEST_FILES})
+add_executable(snitch_runtime_tests_self_header_only
+    ${PROJECT_SOURCE_DIR}/tests/testing.cpp
+    ${RUNTIME_TEST_FILES})
 target_include_directories(snitch_runtime_tests_self_header_only PRIVATE
-    ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/tests)
+target_link_libraries(snitch_runtime_tests_self_header_only PRIVATE
+    snitch::snitch-header-only)
 add_platform_definitions(snitch_runtime_tests_self_header_only)
 configure_snitch_for_tests(snitch_runtime_tests_self_header_only)
 target_compile_features(snitch_runtime_tests_self_header_only PUBLIC cxx_std_20)
