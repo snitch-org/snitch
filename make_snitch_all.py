@@ -28,11 +28,11 @@ def add_headers(filename):
 
             include = include.group(1)
             if 'snitch_config.hpp' in include:
-                include_dir = 'build'
+                include_dir = binary_dir
             else:
-                include_dir  = 'include'
+                include_dir = os.path.join(root_dir, 'include')
 
-            child_header = os.path.join(root_dir, include_dir, include)
+            child_header = os.path.join(include_dir, include)
             headers.append(child_header)
 
             if include not in header_map:
