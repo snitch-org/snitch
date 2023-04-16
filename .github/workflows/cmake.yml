@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  EM_VERSION: 2.0.34
+  EM_VERSION: 3.1.35
   EM_CACHE_FOLDER: 'emsdk-cache'
   CODECOV_TOKEN: 'f8197851-e753-4291-a835-2d76090f2c92'
 
