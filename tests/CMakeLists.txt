@@ -90,13 +90,20 @@ add_custom_target(snitch_runtime_tests_run
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
-# Test snitch with itself
+# Test snitch with itself.
+# Note: DO NOT target_link_libraries(snitch::snitch)!
+# The pre-built library won't be built with configure_snitch_for_tests().
+# Use add_dependencies() to ensure the proper build order, and include the
+# sources directly in this project so they can be built with the wanted
+# configuration.
 add_executable(snitch_runtime_tests_self
-    ${RUNTIME_TEST_FILES})
+    ${RUNTIME_TEST_FILES}
+    ${SNITCH_SOURCES})
 target_include_directories(snitch_runtime_tests_self PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/tests)
-target_link_libraries(snitch_runtime_tests_self PRIVATE
-    snitch::snitch)
+add_dependencies(snitch_runtime_tests_self snitch::snitch)
 add_platform_definitions(snitch_runtime_tests_self)
 configure_snitch_for_tests(snitch_runtime_tests_self)
 target_compile_features(snitch_runtime_tests_self PUBLIC cxx_std_20)
@@ -109,7 +116,9 @@ add_custom_target(snitch_runtime_tests_self_run
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
 
-# Test header-only snitch with itself
+# Test header-only snitch with itself.
+# Note: Fine to use target_link_libraries(snitch::snitch-header-only);
+# nothing is pre-built in this target, the configuration can be changed.
 add_executable(snitch_runtime_tests_self_header_only
     ${PROJECT_SOURCE_DIR}/tests/testing.cpp
     ${RUNTIME_TEST_FILES})
