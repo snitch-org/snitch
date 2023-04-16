@@ -123,9 +123,6 @@ if (SNITCH_CREATE_HEADER_ONLY)
     add_library(snitch::snitch-header-only ALIAS snitch-header-only)
     set_target_properties(snitch-header-only PROPERTIES EXPORT_NAME snitch::snitch-header-only)
 
-    target_sources(snitch-header-only INTERFACE
-        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
     target_include_directories(snitch-header-only INTERFACE
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
