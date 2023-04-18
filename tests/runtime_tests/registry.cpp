@@ -194,12 +194,12 @@ TEST_CASE("add template test", "[registry]") {
 SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_UNREACHABLE
 
-TEST_CASE("report FAIL regular", "[registry]") {
+TEST_CASE("report FAIL_CHECK regular", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         // clang-format off
-        failure_line = __LINE__; SNITCH_FAIL("there are four lights");
+        failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
         // clang-format on
     });
 
@@ -228,12 +228,12 @@ TEST_CASE("report FAIL regular", "[registry]") {
     }
 }
 
-TEST_CASE("report FAIL template", "[registry]") {
+TEST_CASE("report FAIL_CHECK template", "[registry]") {
     mock_framework framework;
 
     framework.registry.add_with_types<int>("how many lights", "[tag]", []<typename TestType>() {
         // clang-format off
-        failure_line = __LINE__; SNITCH_FAIL("there are four lights");
+        failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
         // clang-format on
     });
 
@@ -263,13 +263,13 @@ TEST_CASE("report FAIL template", "[registry]") {
     }
 }
 
-TEST_CASE("report FAIL section", "[registry]") {
+TEST_CASE("report FAIL_CHECK section", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         SNITCH_SECTION("ask nicely") {
             // clang-format off
-            failure_line = __LINE__; SNITCH_FAIL("there are four lights");
+            failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
             // clang-format on
         }
     });
@@ -302,14 +302,14 @@ TEST_CASE("report FAIL section", "[registry]") {
     }
 }
 
-TEST_CASE("report FAIL capture", "[registry]") {
+TEST_CASE("report FAIL_CHECK capture", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         int number_of_lights = 3;
         SNITCH_CAPTURE(number_of_lights);
         // clang-format off
-        failure_line = __LINE__; SNITCH_FAIL("there are four lights");
+        failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
         // clang-format on
     });
 
@@ -341,13 +341,13 @@ TEST_CASE("report FAIL capture", "[registry]") {
     }
 }
 
-TEST_CASE("report REQUIRE", "[registry]") {
+TEST_CASE("report CHECK", "[registry]") {
     mock_framework framework;
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         int number_of_lights = 4;
         // clang-format off
-        failure_line = __LINE__; SNITCH_REQUIRE(number_of_lights == 3);
+        failure_line = __LINE__; SNITCH_CHECK(number_of_lights == 3);
         // clang-format on
     });
 
@@ -491,7 +491,7 @@ TEST_CASE("report SKIP", "[registry]") {
 
     framework.registry.add({"how many lights", "[tag]"}, []() {
         // clang-format off
-        failure_line = __LINE__; SNITCH_SKIP("there are four lights");
+        failure_line = __LINE__; SNITCH_SKIP_CHECK("there are four lights");
         // clang-format on
     });
 
@@ -541,7 +541,7 @@ void register_tests(mock_framework& framework) {
 
     framework.registry.add({"drink from the cup", "[tag][skipped]"}, []() {
         test_called_skipped = true;
-        SNITCH_SKIP("not thirsty");
+        SNITCH_SKIP_CHECK("not thirsty");
     });
 
     framework.registry.add_with_types<int, float>(
@@ -563,14 +563,14 @@ void register_tests(mock_framework& framework) {
     framework.registry.add({"may fail that does not fail", "[.][may fail][!mayfail]"}, []() {});
 
     framework.registry.add({"may fail that does fail", "[.][may fail][!mayfail]"}, []() {
-        SNITCH_FAIL("it did fail");
+        SNITCH_FAIL_CHECK("it did fail");
     });
 
     framework.registry.add(
         {"should fail that does not fail", "[.][should fail][!shouldfail]"}, []() {});
 
     framework.registry.add({"should fail that does fail", "[.][should fail][!shouldfail]"}, []() {
-        SNITCH_FAIL("it did fail");
+        SNITCH_FAIL_CHECK("it did fail");
     });
 
     framework.registry.add(
@@ -579,7 +579,7 @@ void register_tests(mock_framework& framework) {
 
     framework.registry.add(
         {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
-        []() { SNITCH_FAIL("it did fail"); });
+        []() { SNITCH_FAIL_CHECK("it did fail"); });
 }
 } // namespace
 

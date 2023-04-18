@@ -121,6 +121,13 @@
         SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
+#define SNITCH_SKIP_CHECK(MESSAGE)                                                                 \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
+            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+    } while (0)
+
 #define SNITCH_REQUIRE_THAT(EXPR, ...)                                                             \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \

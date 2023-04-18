@@ -338,6 +338,10 @@ void registry::report_failure(
     const assertion_location& location,
     std::string_view          message) const noexcept {
 
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
     if (!state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
     }
@@ -356,14 +360,18 @@ void registry::report_failure(
     std::string_view          message1,
     std::string_view          message2) const noexcept {
 
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
     if (!state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
     }
 
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
     report_callback(
         *this, event::assertion_failed{
@@ -375,6 +383,10 @@ void registry::report_failure(
     impl::test_state&         state,
     const assertion_location& location,
     const impl::expression&   exp) const noexcept {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
 
     if (!state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
@@ -474,7 +486,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
                 state.sections.current_section.clear();
             }
         }
-    } while (!state.sections.levels.empty());
+    } while (!state.sections.levels.empty() && state.test.state != impl::test_case_state::skipped);
 
     if (state.should_fail) {
         if (state.test.state == impl::test_case_state::success) {
