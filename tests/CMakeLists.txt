@@ -46,16 +46,6 @@ function(configure_snitch_for_tests TARGET)
         SNITCH_MAX_CAPTURE_LENGTH=128)
 endfunction()
 
-include(FetchContent)
-
-set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
-set(DOCTEST_NO_INSTALL ON)
-
-FetchContent_Declare(doctest
-                     GIT_REPOSITORY https://github.com/doctest/doctest.git
-                     GIT_TAG        v2.4.9)
-FetchContent_MakeAvailable(doctest)
-
 set(RUNTIME_TEST_FILES
     ${PROJECT_SOURCE_DIR}/tests/testing_event.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp
@@ -73,13 +63,25 @@ set(RUNTIME_TEST_FILES
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/macros.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/regressions.cpp)
 
+include(FetchContent)
+
+set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
+set(DOCTEST_NO_INSTALL ON)
+
+FetchContent_Declare(doctest
+                     GIT_REPOSITORY https://github.com/doctest/doctest.git
+                     GIT_TAG        v2.4.9)
+FetchContent_MakeAvailable(doctest)
+
 # Test snitch with doctest.
 # Note: DO NOT target_link_libraries(snitch::snitch)!
 # The pre-built library won't be built with configure_snitch_for_tests().
 # Use add_dependencies() to ensure the proper build order, and include the
 # sources directly in this project so they can be built with the wanted
 # configuration.
-add_executable(snitch_runtime_tests ${PROJECT_SOURCE_DIR}/src/snitch.cpp ${RUNTIME_TEST_FILES})
+add_executable(snitch_runtime_tests
+    ${RUNTIME_TEST_FILES}
+    ${SNITCH_SOURCES})
 target_include_directories(snitch_runtime_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}
