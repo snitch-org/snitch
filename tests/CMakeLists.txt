@@ -30,6 +30,11 @@ function(add_platform_definitions TARGET)
         # Increase default stack size to match default for Linux
         target_compile_options(${TARGET} PRIVATE "/F 8388608")
     endif()
+
+    if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+        # Increase default stack size to match default for Linux
+        target_link_options(${TARGET} PRIVATE "SHELL:-s STACK_SIZE=8388608")
+    endif()
 endfunction()
 
 function(configure_snitch_for_tests TARGET)
