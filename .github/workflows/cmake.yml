@@ -31,7 +31,7 @@ jobs:
         - Release
         - Debug
 
-    name: ${{matrix.platform.name}} ${{matrix.build-type}} ${{matrix.config.name}}
+    name: ${{matrix.platform.name}} ${{matrix.build-type}}
     runs-on: ${{matrix.platform.os}}
 
     steps:
@@ -72,7 +72,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} ${{matrix.config.flags}} -DSNITCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNITCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install
 
     - name: Build
       shell: bash
@@ -101,7 +101,7 @@ jobs:
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_self_header_only_run
 
     - name: Compute code coverage
-      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug' && matrix.config.name == 'Default'
+      if: runner.os == 'Linux' && matrix.platform.compiler == 'g++' && matrix.build-type == 'Debug' && matrix.platform.name == 'Ubuntu GCC'
       run: |
         gcov ${{github.workspace}}/build/tests/CMakeFiles/snitch_runtime_tests.dir/runtime_tests/*.gcda ${{github.workspace}}/build/tests/CMakeFiles/snitch_runtime_tests_self.dir/runtime_tests/*.gcda
         ls | grep '.gcov' | grep -v snitch | xargs -d"\n" rm
