@@ -45,7 +45,7 @@ jobs:
     - name: Setup Emscripten cache
       if: matrix.platform.compiler == 'em++'
       id: cache-system-libraries
-      uses: actions/cache@v3.0.4
+      uses: actions/cache@v3.3.1
       with:
         path: ${{env.EM_CACHE_FOLDER}}
         key: ${{env.EM_VERSION}}-${{matrix.platform.name}}-${{matrix.build-type}}
