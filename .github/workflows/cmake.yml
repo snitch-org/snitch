@@ -82,22 +82,16 @@ jobs:
     - name: Test (with doctest)
       shell: bash
       working-directory: ${{github.workspace}}/build
-      # Run even if previous tests failed
-      if: always() && matrix.config.run-tests
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_run
 
     - name: Test (with snitch)
       shell: bash
       working-directory: ${{github.workspace}}/build
-      # Run even if previous tests failed
-      if: always() && matrix.config.run-tests
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_self_run
 
     - name: Test header-only (with snitch)
       shell: bash
       working-directory: ${{github.workspace}}/build
-      # Run even if previous tests failed
-      if: always() && matrix.config.run-tests
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_self_header_only_run
 
     - name: Compute code coverage
