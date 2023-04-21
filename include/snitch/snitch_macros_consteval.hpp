@@ -20,6 +20,9 @@
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if constexpr (!(__VA_ARGS__)) {                                                        \
@@ -27,6 +30,10 @@
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEVAL_REQUIRE(" #__VA_ARGS__ ")");                                        \
                 SNITCH_TESTING_ABORT;                                                              \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_REQUIRE(" #__VA_ARGS__ ")");                                        \
             }                                                                                      \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
@@ -43,10 +50,17 @@
             if constexpr (constexpr SNITCH_EXPR_IS_FALSE("CONSTEVAL_CHECK", __VA_ARGS__)) {        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if constexpr (!(__VA_ARGS__)) {                                                        \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_CHECK(" #__VA_ARGS__ ")");                                          \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEVAL_CHECK(" #__VA_ARGS__ ")");                                          \
             }                                                                                      \
@@ -66,6 +80,9 @@
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_TESTING_ABORT;                                                              \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if constexpr (__VA_ARGS__) {                                                           \
@@ -73,6 +90,10 @@
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEVAL_REQUIRE_FALSE(" #__VA_ARGS__ ")");                                  \
                 SNITCH_TESTING_ABORT;                                                              \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_REQUIRE_FALSE(" #__VA_ARGS__ ")");                                  \
             }                                                                                      \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
@@ -89,10 +110,17 @@
             if constexpr (constexpr SNITCH_EXPR_IS_TRUE("CONSTEVAL_CHECK_FALSE", __VA_ARGS__)) {   \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if constexpr (__VA_ARGS__) {                                                           \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEVAL_CHECK_FALSE(" #__VA_ARGS__ ")");                                    \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEVAL_CHECK_FALSE(" #__VA_ARGS__ ")");                                    \
             }                                                                                      \
@@ -112,6 +140,10 @@
                 "CONSTEVAL_REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                       \
                 SNITCH_TEMP_ERROR.value());                                                        \
             SNITCH_TESTING_ABORT;                                                                  \
+        } else {                                                                                   \
+            SNITCH_CURRENT_TEST.reg.report_success(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEVAL_REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ ")");                            \
         }                                                                                          \
     } while (0)
 
@@ -126,6 +158,10 @@
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
                 "CONSTEVAL_CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                         \
                 SNITCH_TEMP_ERROR.value());                                                        \
+        } else {                                                                                   \
+            SNITCH_CURRENT_TEST.reg.report_success(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEVAL_CHECK_THAT(" #EXPR ", " #__VA_ARGS__ ")");                              \
         }                                                                                          \
     } while (0)
 

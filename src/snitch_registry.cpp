@@ -302,6 +302,14 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
                 print_location(r, e.id, e.sections, e.captures, e.location);
                 r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
                 r.print("\n");
+            },
+            [&](const snitch::event::assertion_succeeded& e) {
+                if (is_at_least(r.verbose, registry::verbosity::high)) {
+                    r.print(make_colored("passed: ", r.with_color, color::pass));
+                    print_location(r, e.id, e.sections, e.captures, e.location);
+                    r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+                    r.print("\n");
+                }
             }},
         event);
 }
@@ -408,6 +416,70 @@ void registry::report_failure(
             *this, event::assertion_failed{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
                        location, exp.expected, state.should_fail, state.may_fail});
+    }
+}
+
+void registry::report_success(
+    impl::test_state&         state,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
+    report_callback(
+        *this, event::assertion_succeeded{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   message});
+}
+
+void registry::report_success(
+    impl::test_state&         state,
+    const assertion_location& location,
+    std::string_view          message1,
+    std::string_view          message2) const noexcept {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
+    small_string<max_message_length> message;
+    append_or_truncate(message, message1, message2);
+
+    report_callback(
+        *this, event::assertion_succeeded{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   message});
+}
+
+void registry::report_success(
+    impl::test_state&         state,
+    const assertion_location& location,
+    const impl::expression&   exp) const noexcept {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
+    if (!exp.actual.empty()) {
+        small_string<max_message_length> message;
+        append_or_truncate(message, exp.expected, ", got ", exp.actual);
+        report_callback(
+            *this, event::assertion_succeeded{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message});
+    } else {
+        report_callback(
+            *this, event::assertion_succeeded{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, exp.expected});
     }
 }
 

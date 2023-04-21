@@ -22,11 +22,17 @@
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
             if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_REQUIRE[run-time]", __VA_ARGS__)) {                \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if constexpr (!(__VA_ARGS__)) {                                                        \
@@ -34,12 +40,20 @@
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_REQUIRE[compile-time](" #__VA_ARGS__ ")");                          \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE[compile-time](" #__VA_ARGS__ ")");                          \
             }                                                                                      \
             if (!(__VA_ARGS__)) {                                                                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_REQUIRE[run-time](" #__VA_ARGS__ ")");                              \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE[run-time](" #__VA_ARGS__ ")");                              \
             }                                                                                      \
         }                                                                                          \
         if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
@@ -60,9 +74,15 @@
                               "CONSTEXPR_CHECK[compile-time]", __VA_ARGS__)) {                     \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
             if (SNITCH_EXPR_IS_FALSE("CONSTEXPR_CHECK[run-time]", __VA_ARGS__)) {                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
@@ -70,9 +90,17 @@
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[compile-time](" #__VA_ARGS__ ")");                            \
             }                                                                                      \
             if (!(__VA_ARGS__)) {                                                                  \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK[run-time](" #__VA_ARGS__ ")");                                \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_CHECK[run-time](" #__VA_ARGS__ ")");                                \
             }                                                                                      \
@@ -94,11 +122,17 @@
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
             if (SNITCH_EXPR_IS_TRUE("CONSTEXPR_REQUIRE_FALSE[run-time]", __VA_ARGS__)) {           \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
             if constexpr (__VA_ARGS__) {                                                           \
@@ -106,12 +140,20 @@
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_REQUIRE_FALSE[compile-time](" #__VA_ARGS__ ")");                    \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_FALSE[compile-time](" #__VA_ARGS__ ")");                    \
             }                                                                                      \
             if (__VA_ARGS__) {                                                                     \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_REQUIRE_FALSE[run-time](" #__VA_ARGS__ ")");                        \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_FALSE[run-time](" #__VA_ARGS__ ")");                        \
             }                                                                                      \
         }                                                                                          \
         if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
@@ -132,9 +174,15 @@
                               "CONSTEXPR_CHECK_FALSE[compile-time]", __VA_ARGS__)) {               \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
             if (SNITCH_EXPR_IS_TRUE("CONSTEXPR_CHECK_FALSE[run-time]", __VA_ARGS__)) {             \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
             }                                                                                      \
         } else {                                                                                   \
@@ -142,9 +190,17 @@
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_CHECK_FALSE[compile-time](" #__VA_ARGS__ ")");                      \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_FALSE[compile-time](" #__VA_ARGS__ ")");                      \
             }                                                                                      \
             if (__VA_ARGS__) {                                                                     \
                 SNITCH_CURRENT_TEST.reg.report_failure(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_FALSE[run-time](" #__VA_ARGS__ ")");                          \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     "CONSTEXPR_CHECK_FALSE[run-time](" #__VA_ARGS__ ")");                          \
             }                                                                                      \
@@ -165,6 +221,10 @@
                 "CONSTEXPR_REQUIRE_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",         \
                 SNITCH_TEMP_ERROR.value());                                                        \
             SNITCH_CURRENT_ASSERTION_FAILED = true;                                                \
+        } else {                                                                                   \
+            SNITCH_CURRENT_TEST.reg.report_success(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEXPR_REQUIRE_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ ")");              \
         }                                                                                          \
         {                                                                                          \
             auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                   \
@@ -176,6 +236,12 @@
                     SNITCH_TEMP_MATCHER.describe_match(                                            \
                         SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));               \
                 SNITCH_CURRENT_ASSERTION_FAILED = true;                                            \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_REQUIRE_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",         \
+                    SNITCH_TEMP_MATCHER.describe_match(                                            \
+                        SNITCH_TEMP_VALUE, snitch::matchers::match_status::matched));              \
             }                                                                                      \
         }                                                                                          \
         if (SNITCH_CURRENT_ASSERTION_FAILED) {                                                     \
@@ -194,6 +260,10 @@
                 SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
                 "CONSTEXPR_CHECK_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
                 SNITCH_TEMP_ERROR.value());                                                        \
+        } else {                                                                                   \
+            SNITCH_CURRENT_TEST.reg.report_success(                                                \
+                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
+                "CONSTEXPR_CHECK_THAT[compile-time](" #EXPR ", " #__VA_ARGS__ ")");                \
         }                                                                                          \
         {                                                                                          \
             auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                   \
@@ -204,6 +274,12 @@
                     "CONSTEXPR_CHECK_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
                     SNITCH_TEMP_MATCHER.describe_match(                                            \
                         SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));               \
+            } else {                                                                               \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    "CONSTEXPR_CHECK_THAT[run-time](" #EXPR ", " #__VA_ARGS__ "), got ",           \
+                    SNITCH_TEMP_MATCHER.describe_match(                                            \
+                        SNITCH_TEMP_VALUE, snitch::matchers::match_status::matched));              \
             }                                                                                      \
         }                                                                                          \
     } while (0)

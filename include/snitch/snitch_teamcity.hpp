@@ -118,6 +118,12 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
                     {{"name", make_full_name(e.id)},
                      {"message",
                       make_full_message(e.location, e.sections, e.captures, e.message)}});
+            },
+            [&](const snitch::event::assertion_succeeded& e) {
+                send_message(
+                    r, "testStdOut",
+                    {{"name", make_full_name(e.id)},
+                     {"out", make_full_message(e.location, e.sections, e.captures, e.message)}});
             }},
         event);
 }

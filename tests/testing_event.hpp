@@ -6,7 +6,8 @@ struct event_deep_copy {
         test_case_started,
         test_case_ended,
         test_case_skipped,
-        assertion_failed
+        assertion_failed,
+        assertion_succeeded
     };
 
     type event_type = type::unknown;
@@ -48,6 +49,7 @@ struct mock_framework {
 
     snitch::small_vector<event_deep_copy, 32> events;
     snitch::small_string<4086>                messages;
+    bool                                      catch_success = false;
 
     void report(const snitch::registry&, const snitch::event::data& e) noexcept;
     void print(std::string_view msg) noexcept;

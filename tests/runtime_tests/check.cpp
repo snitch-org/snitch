@@ -120,25 +120,39 @@ struct long_matcher_always_fails {
 };
 } // namespace snitch::matchers
 
-#define CHECK_EXPR_SUCCESS(CATCHER)                                                                \
+#define CHECK_EVENT(CATCHER, EVENT, TYPE, FAILURE_LINE, MESSAGE)                                   \
     do {                                                                                           \
-        CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
-        CHECK((CATCHER).events.empty());                                                           \
-    } while (0)
-
-#define CHECK_EVENT_FAILURE(CATCHER, EVENT, FAILURE_LINE, MESSAGE)                                 \
-    do {                                                                                           \
-        CHECK((EVENT).event_type == event_deep_copy::type::assertion_failed);                      \
+        CHECK((EVENT).event_type == (TYPE));                                                       \
         CHECK_EVENT_TEST_ID((EVENT), (CATCHER).mock_case.id);                                      \
         CHECK_EVENT_LOCATION((EVENT), __FILE__, (FAILURE_LINE));                                   \
         CHECK((EVENT).message == (MESSAGE));                                                       \
     } while (0)
 
-#define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, MESSAGE)                                         \
+#define CHECK_EXPR(CATCHER, EVENT_TYPE, FAILURE_LINE, MESSAGE)                                     \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
         REQUIRE((CATCHER).events.size() == 1u);                                                    \
-        CHECK_EVENT_FAILURE(CATCHER, (CATCHER).events[0], FAILURE_LINE, MESSAGE);                  \
+        CHECK_EVENT(CATCHER, (CATCHER).events[0], EVENT_TYPE, FAILURE_LINE, MESSAGE);              \
+    } while (0)
+
+#define CHECK_EVENT_FAILURE(CATCHER, EVENT, FAILURE_LINE, MESSAGE)                                 \
+    CHECK_EVENT(CATCHER, EVENT, event_deep_copy::type::assertion_failed, FAILURE_LINE, MESSAGE)
+
+#define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, MESSAGE)                                         \
+    CHECK_EXPR(CATCHER, event_deep_copy::type::assertion_failed, FAILURE_LINE, MESSAGE)
+
+/*#define CHECK_EVENT_SUCCESS(CATCHER, EVENT, FAILURE_LINE, MESSAGE) \ CHECK_EVENT(CATCHER, EVENT,
+event_deep_copy::type::assertion_succeeded, FAILURE_LINE, MESSAGE)
+
+#define CHECK_EXPR_SUCCESS(CATCHER, FAILURE_LINE, MESSAGE)                                         \
+    CHECK_EXPR(CATCHER, event_deep_copy::type::assertion_succeeded, FAILURE_LINE, MESSAGE)*/
+
+#define CHECK_EXPR_SUCCESS(CATCHER)                                                                \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
+        REQUIRE((CATCHER).events.size() == 1u);                                                    \
+        CHECK((CATCHER).events[0].event_type == event_deep_copy::type::assertion_succeeded);       \
+        CHECK_EVENT_TEST_ID((CATCHER).events[0], (CATCHER).mock_case.id);                          \
     } while (0)
 
 SNITCH_WARNING_PUSH
@@ -1286,19 +1300,28 @@ TEST_CASE("consteval check that", "[test macros]") {
 #define CONSTEXPR_CHECK_EXPR_SUCCESS(CATCHER)                                                      \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
-        CHECK((CATCHER).events.empty());                                                           \
+        REQUIRE((CATCHER).events.size() == 2u);                                                    \
+        CHECK((CATCHER).events[0].event_type == event_deep_copy::type::assertion_succeeded);       \
+        CHECK((CATCHER).events[1].event_type == event_deep_copy::type::assertion_succeeded);       \
+        CHECK_EVENT_TEST_ID((CATCHER).events[0], (CATCHER).mock_case.id);                          \
+        CHECK_EVENT_TEST_ID((CATCHER).events[1], (CATCHER).mock_case.id);                          \
     } while (0)
 
 #define CONSTEXPR_CHECK_EXPR_FAILURE(CATCHER)                                                      \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
-        REQUIRE((CATCHER).events.size() == 1u);                                                    \
+        REQUIRE((CATCHER).events.size() == 2u);                                                    \
+        CHECK(                                                                                     \
+            (((CATCHER).events[0].event_type == event_deep_copy::type::assertion_succeeded) ^      \
+             ((CATCHER).events[1].event_type == event_deep_copy::type::assertion_succeeded)));     \
     } while (0)
 
 #define CONSTEXPR_CHECK_EXPR_FAILURE_2(CATCHER)                                                    \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
         REQUIRE((CATCHER).events.size() == 2u);                                                    \
+        CHECK((CATCHER).events[0].event_type == event_deep_copy::type::assertion_failed);          \
+        CHECK((CATCHER).events[1].event_type == event_deep_copy::type::assertion_failed);          \
     } while (0)
 
 TEST_CASE("constexpr check", "[test macros]") {
@@ -1412,7 +1435,7 @@ TEST_CASE("constexpr check", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
+            catcher, catcher.events[1u], failure_line,
             "CONSTEXPR_CHECK[run-time](compile_time_bug{}.foo()), got false"sv);
     }
 

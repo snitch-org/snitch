@@ -75,6 +75,13 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
                 copy_full_location(c, a);
                 return c;
             },
+            [](const snitch::event::assertion_succeeded& a) {
+                event_deep_copy c;
+                c.event_type = event_deep_copy::type::assertion_succeeded;
+                copy_test_case_id(c, a);
+                copy_full_location(c, a);
+                return c;
+            },
             [](const snitch::event::test_case_started& s) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_case_started;
@@ -118,7 +125,12 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
 }
 
 void mock_framework::report(const snitch::registry&, const snitch::event::data& e) noexcept {
-    events.push_back(deep_copy(e));
+    auto evt = deep_copy(e);
+    if (!catch_success && evt.event_type == event_deep_copy::type::assertion_succeeded) {
+        return;
+    }
+
+    events.push_back(evt);
 }
 
 void mock_framework::print(std::string_view msg) noexcept {

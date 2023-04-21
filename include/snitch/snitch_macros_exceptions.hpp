@@ -19,7 +19,9 @@
                     #__VA_ARGS__ " expected but no exception thrown");                             \
                 SNITCH_TESTING_ABORT;                                                              \
             } catch (const __VA_ARGS__&) {                                                         \
-                /* success */                                                                      \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    #__VA_ARGS__ " was thrown as expected");                                       \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
@@ -47,7 +49,9 @@
                     SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
                     #__VA_ARGS__ " expected but no exception thrown");                             \
             } catch (const __VA_ARGS__&) {                                                         \
-                /* success */                                                                      \
+                SNITCH_CURRENT_TEST.reg.report_success(                                            \
+                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                     \
+                    #__VA_ARGS__ " was thrown as expected");                                       \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
@@ -83,6 +87,12 @@
                         SNITCH_TEMP_MATCHER.describe_match(                                        \
                             e, snitch::matchers::match_status::failed));                           \
                     SNITCH_TESTING_ABORT;                                                          \
+                } else {                                                                           \
+                    SNITCH_CURRENT_TEST.reg.report_success(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                        "caught " #EXCEPTION " matched expected content: ",                        \
+                        SNITCH_TEMP_MATCHER.describe_match(                                        \
+                            e, snitch::matchers::match_status::matched));                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
@@ -118,6 +128,12 @@
                         "could not match caught " #EXCEPTION " with expected content: ",           \
                         SNITCH_TEMP_MATCHER.describe_match(                                        \
                             e, snitch::matchers::match_status::failed));                           \
+                } else {                                                                           \
+                    SNITCH_CURRENT_TEST.reg.report_success(                                        \
+                        SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                 \
+                        "caught " #EXCEPTION " matched expected content: ",                        \
+                        SNITCH_TEMP_MATCHER.describe_match(                                        \
+                            e, snitch::matchers::match_status::matched));                          \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
