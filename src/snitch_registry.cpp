@@ -265,7 +265,8 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
 
                     r.print(
                         make_colored("starting:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1), "\n");
+                        make_colored(full_name, r.with_color, color::highlight1));
+                    r.print("\n");
                 }
             },
             [&](const snitch::event::test_case_ended& e) {
@@ -277,12 +278,13 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
                     r.print(
                         make_colored("finished:", r.with_color, color::status), " ",
                         make_colored(full_name, r.with_color, color::highlight1), " (", e.duration,
-                        "s)\n");
+                        "s)");
 #else
                     r.print(
                         make_colored("finished:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1), "\n");
+                        make_colored(full_name, r.with_color, color::highlight1));
 #endif
+                    r.print("\n");
                 }
             },
             [&](const snitch::event::test_case_skipped& e) {
