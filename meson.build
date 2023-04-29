@@ -1,14 +1,57 @@
 project('snitch', 'cpp',
-  default_options : ['cpp_std=c++20', 'default_library=static'],
-  version : '1.0.0'
+  default_options: ['cpp_std=c++20', 'default_library=static'],
+  version: '1.0.0'
 )
 
-include_dirs = include_directories('.','include')
+include_dirs = include_directories('.', 'include')
 
 headers = files('include/snitch/snitch.hpp',
-                'include/snitch/snitch_teamcity.hpp')
+                'include/snitch/snitch_append.hpp',
+                'include/snitch/snitch_capture.hpp',
+                'include/snitch/snitch_cli.hpp',
+                'include/snitch/snitch_concepts.hpp',
+                'include/snitch/snitch_console.hpp',
+                'include/snitch/snitch_error_handling.hpp',
+                'include/snitch/snitch_expression.hpp',
+                'include/snitch/snitch_fixed_point.hpp',
+                'include/snitch/snitch_function.hpp',
+                'include/snitch/snitch_macros_check.hpp',
+                'include/snitch/snitch_macros_check_base.hpp',
+                'include/snitch/snitch_macros_consteval.hpp',
+                'include/snitch/snitch_macros_constexpr.hpp',
+                'include/snitch/snitch_macros_exceptions.hpp',
+                'include/snitch/snitch_macros_misc.hpp',
+                'include/snitch/snitch_macros_test_case.hpp',
+                'include/snitch/snitch_macros_utility.hpp',
+                'include/snitch/snitch_macros_warnings.hpp',
+                'include/snitch/snitch_matcher.hpp',
+                'include/snitch/snitch_section.hpp',
+                'include/snitch/snitch_string.hpp',
+                'include/snitch/snitch_string_utility.hpp',
+                'include/snitch/snitch_teamcity.hpp',
+                'include/snitch/snitch_test_data.hpp',
+                'include/snitch/snitch_type_name.hpp',
+                'include/snitch/snitch_vector.hpp')
 
-main = files('src/snitch.cpp')
+if get_option('unity_build')
+
+  main = files('src/snitch.cpp')
+
+else
+
+  main = files('src/snitch_append.cpp',
+               'src/snitch_capture.cpp',
+               'src/snitch_cli.cpp',
+               'src/snitch_console.cpp',
+               'src/snitch_error_handling.cpp',
+               'src/snitch_main.cpp',
+               'src/snitch_matcher.cpp',
+               'src/snitch_registry.cpp',
+               'src/snitch_section.cpp',
+               'src/snitch_string_utility.cpp',
+               'src/snitch_test_data.cpp')
+
+endif
 
 make_snitch_all = files('make_snitch_all.py')
 
@@ -26,7 +69,7 @@ if get_option('create_library')
 
   snitch_dep = declare_dependency(
     link_with: snitch,
-    include_directories : include_dirs
+    include_directories: include_dirs
   )
 
   import('pkgconfig').generate(
@@ -38,7 +81,7 @@ if get_option('create_library')
 
 else
 
-  snitch_dep = declare_dependency(include_directories : include_dirs)
+  snitch_dep = declare_dependency(include_directories: include_dirs)
 
 endif
 
@@ -46,11 +89,10 @@ if meson.version().version_compare('>=0.54.0')
   meson.override_dependency('snitch', snitch_dep)
 endif
 
-test('snitch_all_test'
-    ,executable('snitch_all_test'
-               ,[snitch_all,'tests/testing.cpp']
-               ,cpp_args : ['-DSNITCH_TEST_WITH_SNITCH'
-                           ,'-DSNITCH_TEST_HEADER_ONLY']
-               ,dependencies: [snitch_dep]
-               )
+test('snitch_all_test',
+  executable('snitch_all_test',
+             [snitch_all, 'tests/testing.cpp'],
+             cpp_args: ['-DSNITCH_TEST_WITH_SNITCH', '-DSNITCH_TEST_HEADER_ONLY'],
+             dependencies: [snitch_dep]
+  )
 )
