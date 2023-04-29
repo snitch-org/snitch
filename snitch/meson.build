@@ -1,11 +1,10 @@
 version = meson.project_version()
 vers = version.split('.')
 
-git_hash = run_command(find_program('git'),'log','-1','--format=%h'
-                      ,check:true).stdout().strip()
+git_hash = run_command(find_program('git'), 'log', '-1', '--format=%h', check:true).stdout().strip()
 
 conf_data = configuration_data({
-  'PROJECT_VERSION' : version,
+  'PROJECT_VERSION'       : version,
   'PROJECT_VERSION_MAJOR' : vers[0],
   'PROJECT_VERSION_MINOR' : vers[1],
   'PROJECT_VERSION_PATCH' : vers[2],
@@ -28,9 +27,7 @@ conf_data = configuration_data({
   'SNITCH_WITH_TIMINGS'                : get_option('with_timings').to_int(),
   'SNITCH_WITH_SHORTHAND_MACROS'       : get_option('with_shorthand_macros').to_int(),
   'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST' : get_option('constexpr_float_use_bitcast').to_int(),
-  'SNITCH_DEFAULT_WITH_COLOR'          : get_option('default_with_color').to_int(),
-  'SNITCH_CREATE_HEADER_ONLY'          : get_option('create_header_only').to_int(),
-  'SNITCH_CREATE_LIBRARY'              : get_option('create_library').to_int(),
+  'SNITCH_DEFAULT_WITH_COLOR'          : get_option('default_with_color').to_int()
 })
 
 conf_file = configure_file(

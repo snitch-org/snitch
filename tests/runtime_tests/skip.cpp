@@ -17,6 +17,7 @@ TEST_CASE("skip", "[test macros]") {
         CHECK(framework.get_num_skips() == 0u);
     }
 
+#if SNITCH_WITH_EXCEPTIONS
     SECTION("only skip") {
         framework.test_case.func = []() { SNITCH_SKIP("hello"); };
 
@@ -39,6 +40,40 @@ TEST_CASE("skip", "[test macros]") {
         framework.test_case.func = []() {
             SNITCH_SECTION("section 1") {
                 SNITCH_SKIP("hello");
+            }
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL_CHECK("trigger");
+            }
+        };
+
+        framework.run_test();
+        CHECK(framework.get_num_skips() == 1u);
+        CHECK(framework.get_num_failures() == 0u);
+    }
+#endif
+
+    SECTION("only skip check") {
+        framework.test_case.func = []() { SNITCH_SKIP_CHECK("hello"); };
+
+        framework.run_test();
+        CHECK(framework.get_num_skips() == 1u);
+    }
+
+    SECTION("skip check failure") {
+        framework.test_case.func = []() {
+            SNITCH_SKIP_CHECK("hello");
+            SNITCH_FAIL_CHECK("trigger");
+        };
+
+        framework.run_test();
+        CHECK(framework.get_num_skips() == 1u);
+        CHECK(framework.get_num_failures() == 0u);
+    }
+
+    SECTION("skip section") {
+        framework.test_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                SNITCH_SKIP_CHECK("hello");
             }
             SNITCH_SECTION("section 2") {
                 SNITCH_FAIL_CHECK("trigger");

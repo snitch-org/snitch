@@ -16,6 +16,9 @@
 #    else
 #        include "snitch/snitch.hpp"
 #    endif
+#    if !SNITCH_WITH_EXCEPTIONS
+#        define DOCTEST_CONFIG_NO_EXCEPTIONS_BUT_WITH_ALL_ASSERTS
+#    endif
 // The library used for testing.
 #    include "doctest/doctest.h"
 // Adjust doctest macros to match the snitch API

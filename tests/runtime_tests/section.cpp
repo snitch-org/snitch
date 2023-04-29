@@ -1,7 +1,9 @@
 #include "testing.hpp"
 #include "testing_event.hpp"
 
-#include <stdexcept>
+#if defined(SNITCH_WITH_EXCEPTIONS)
+#    include <stdexcept>
+#endif
 #include <string>
 
 using namespace std::literals;
@@ -70,6 +72,7 @@ TEST_CASE("section", "[test macros]") {
         CHECK_CASE(snitch::test_case_state::failed, 2u);
     }
 
+#if SNITCH_WITH_EXCEPTIONS
     SECTION("nested sections abort early") {
         framework.test_case.func = []() {
             SNITCH_SECTION("section 1") {
@@ -129,6 +132,7 @@ TEST_CASE("section", "[test macros]") {
         CHECK_NO_SECTION;
         CHECK_CASE(snitch::test_case_state::failed, 0u);
     }
+#endif
 
     SECTION("nested sections varying depth") {
         framework.test_case.func = []() {
