@@ -140,6 +140,8 @@ void mock_framework::print(std::string_view msg) noexcept {
 }
 
 void mock_framework::setup_reporter() {
+    registry.verbose = snitch::registry::verbosity::high;
+
     registry.report_callback = {*this, snitch::constant<&mock_framework::report>{}};
     registry.print_callback  = &snitch::impl::stdout_print;
 }

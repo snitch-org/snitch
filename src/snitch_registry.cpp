@@ -221,71 +221,62 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
     std::visit(
         snitch::overload{
             [&](const snitch::event::test_run_started& e) {
-                if (is_at_least(r.verbose, registry::verbosity::normal)) {
-                    r.print(
-                        make_colored("starting ", r.with_color, color::highlight2),
-                        make_colored(e.name, r.with_color, color::highlight1),
-                        make_colored(" with ", r.with_color, color::highlight2),
-                        make_colored(
-                            "snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
-                    r.print("==========================================\n");
-                }
+                r.print(
+                    make_colored("starting ", r.with_color, color::highlight2),
+                    make_colored(e.name, r.with_color, color::highlight1),
+                    make_colored(" with ", r.with_color, color::highlight2),
+                    make_colored(
+                        "snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
+                r.print("==========================================\n");
             },
             [&](const snitch::event::test_run_ended& e) {
-                if (is_at_least(r.verbose, registry::verbosity::normal)) {
-                    r.print("==========================================\n");
+                r.print("==========================================\n");
 
-                    if (e.success) {
-                        r.print(
-                            make_colored("success:", r.with_color, color::pass),
-                            " all tests passed (", e.run_count, " test cases, ", e.assertion_count,
-                            " assertions");
-                    } else {
-                        r.print(
-                            make_colored("error:", r.with_color, color::fail),
-                            " some tests failed (", e.fail_count, " out of ", e.run_count,
-                            " test cases, ", e.assertion_count, " assertions");
-                    }
+                if (e.success) {
+                    r.print(
+                        make_colored("success:", r.with_color, color::pass), " all tests passed (",
+                        e.run_count, " test cases, ", e.assertion_count, " assertions");
+                } else {
+                    r.print(
+                        make_colored("error:", r.with_color, color::fail), " some tests failed (",
+                        e.fail_count, " out of ", e.run_count, " test cases, ", e.assertion_count,
+                        " assertions");
+                }
 
-                    if (e.skip_count > 0) {
-                        r.print(", ", e.skip_count, " test cases skipped");
-                    }
+                if (e.skip_count > 0) {
+                    r.print(", ", e.skip_count, " test cases skipped");
+                }
 
 #if SNITCH_WITH_TIMINGS
-                    r.print(", ", e.duration, " seconds");
+                r.print(", ", e.duration, " seconds");
 #endif
 
-                    r.print(")\n");
-                }
+                r.print(")\n");
             },
             [&](const snitch::event::test_case_started& e) {
-                if (is_at_least(r.verbose, registry::verbosity::high)) {
-                    small_string<max_test_name_length> full_name;
-                    make_full_name(full_name, e.id);
+                small_string<max_test_name_length> full_name;
+                make_full_name(full_name, e.id);
 
-                    r.print(
-                        make_colored("starting:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1));
-                    r.print("\n");
-                }
+                r.print(
+                    make_colored("starting:", r.with_color, color::status), " ",
+                    make_colored(full_name, r.with_color, color::highlight1));
+                r.print("\n");
             },
             [&](const snitch::event::test_case_ended& e) {
-                if (is_at_least(r.verbose, registry::verbosity::high)) {
-                    small_string<max_test_name_length> full_name;
-                    make_full_name(full_name, e.id);
+                small_string<max_test_name_length> full_name;
+                make_full_name(full_name, e.id);
 
 #if SNITCH_WITH_TIMINGS
-                    r.print(
-                        make_colored("finished:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1), " (", e.duration,
-                        "s)");
+                r.print(
+                    make_colored("finished:", r.with_color, color::status), " ",
+                    make_colored(full_name, r.with_color, color::highlight1), " (", e.duration,
+                    "s)");
 #else
-                    r.print(
-                        make_colored("finished:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1));
+                r.print(
+                    make_colored("finished:", r.with_color, color::status), " ",
+                    make_colored(full_name, r.with_color, color::highlight1));
 #endif
-                    r.print("\n");
-                }
+                r.print("\n");
             },
             [&](const snitch::event::test_case_skipped& e) {
                 r.print(make_colored("skipped: ", r.with_color, color::skipped));
@@ -304,12 +295,10 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
                 r.print("\n");
             },
             [&](const snitch::event::assertion_succeeded& e) {
-                if (is_at_least(r.verbose, registry::verbosity::high)) {
-                    r.print(make_colored("passed: ", r.with_color, color::pass));
-                    print_location(r, e.id, e.sections, e.captures, e.location);
-                    r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-                    r.print("\n");
-                }
+                r.print(make_colored("passed: ", r.with_color, color::pass));
+                print_location(r, e.id, e.sections, e.captures, e.location);
+                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+                r.print("\n");
             }},
         event);
 }
@@ -362,10 +351,12 @@ void registry::report_assertion(
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
     if (success) {
-        report_callback(
-            *this, event::assertion_succeeded{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message});
+        if (impl::is_at_least(verbose, registry::verbosity::high)) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
+        }
     } else {
         report_callback(
             *this, event::assertion_failed{
@@ -397,10 +388,12 @@ void registry::report_assertion(
     append_or_truncate(message, message1, message2);
 
     if (success) {
-        report_callback(
-            *this, event::assertion_succeeded{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message});
+        if (impl::is_at_least(verbose, registry::verbosity::high)) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
+        }
     } else {
         report_callback(
             *this, event::assertion_failed{
@@ -432,10 +425,12 @@ void registry::report_assertion(
         append_or_truncate(message, exp.expected, ", got ", exp.actual);
 
         if (success) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
+            if (impl::is_at_least(verbose, registry::verbosity::high)) {
+                report_callback(
+                    *this, event::assertion_succeeded{
+                               state.test.id, state.sections.current_section,
+                               captures_buffer.span(), location, message});
+            }
         } else {
             report_callback(
                 *this, event::assertion_failed{
@@ -444,10 +439,12 @@ void registry::report_assertion(
         }
     } else {
         if (success) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, exp.expected});
+            if (impl::is_at_least(verbose, registry::verbosity::high)) {
+                report_callback(
+                    *this, event::assertion_succeeded{
+                               state.test.id, state.sections.current_section,
+                               captures_buffer.span(), location, exp.expected});
+            }
         } else {
             report_callback(
                 *this, event::assertion_failed{
@@ -473,7 +470,9 @@ void registry::report_skipped(
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
-    report_callback(*this, event::test_case_started{test.id});
+    if (impl::is_at_least(verbose, registry::verbosity::high)) {
+        report_callback(*this, event::test_case_started{test.id});
+    }
 
     test.state = impl::test_case_state::success;
 
@@ -556,20 +555,22 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
+    if (impl::is_at_least(verbose, registry::verbosity::high)) {
 #if SNITCH_WITH_TIMINGS
-    report_callback(
-        *this, event::test_case_ended{
-                   .id              = test.id,
-                   .state           = impl::convert_to_public_state(state.test.state),
-                   .assertion_count = state.asserts,
-                   .duration        = state.duration});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .state           = impl::convert_to_public_state(state.test.state),
+                       .assertion_count = state.asserts,
+                       .duration        = state.duration});
 #else
-    report_callback(
-        *this, event::test_case_ended{
-                   .id              = test.id,
-                   .state           = impl::convert_to_public_state(state.test.state),
-                   .assertion_count = state.asserts});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .state           = impl::convert_to_public_state(state.test.state),
+                       .assertion_count = state.asserts});
 #endif
+    }
 
     impl::set_current_test(previous_run);
 
@@ -580,7 +581,9 @@ bool registry::run_selected_tests(
     std::string_view                                     run_name,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
 
-    report_callback(*this, event::test_run_started{run_name});
+    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
+        report_callback(*this, event::test_run_started{run_name});
+    }
 
     bool        success         = true;
     std::size_t run_count       = 0;
@@ -629,26 +632,28 @@ bool registry::run_selected_tests(
     float duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
+    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
 #if SNITCH_WITH_TIMINGS
-    report_callback(
-        *this, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count,
-                   .duration        = duration});
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count,
+                       .duration        = duration});
 #else
-    report_callback(
-        *this, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count});
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count});
 #endif
+    }
 
     return success;
 }

@@ -82,6 +82,7 @@ struct event_catcher {
 
     event_catcher() {
         mock_registry.report_callback = {*this, snitch::constant<&event_catcher::report>{}};
+        mock_registry.verbose         = snitch::registry::verbosity::high;
     }
 
     void report(const snitch::registry&, const snitch::event::data& e) noexcept {
