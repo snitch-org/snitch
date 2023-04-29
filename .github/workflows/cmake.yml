@@ -83,7 +83,7 @@ jobs:
     - name: Test (with doctest)
       # A bug in Node.js/V8 prevents these tests from running in Debug config for WebAssembly.
       # https://bugs.chromium.org/p/v8/issues/detail?id=13961
-      if: !(matrix.platform.compiler == em++ && matrix.build-type == Debug)
+      if: ${{!(matrix.platform.compiler == 'em++'' && matrix.build-type == 'Debug')}}
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_run
