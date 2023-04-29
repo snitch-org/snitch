@@ -515,8 +515,8 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 #else
     report_callback(
         *this, event::test_case_ended{
-                   .id = test.id,
-                   .state = impl::convert_to_public_state(state.test.state),
+                   .id              = test.id,
+                   .state           = impl::convert_to_public_state(state.test.state),
                    .assertion_count = state.asserts});
 #endif
 
@@ -591,11 +591,11 @@ bool registry::run_selected_tests(
 #else
     report_callback(
         *this, event::test_run_ended{
-                   .name = run_name,
-                   .success = success,
-                   .run_count = run_count,
-                   .fail_count = fail_count,
-                   .skip_count = skip_count,
+                   .name            = run_name,
+                   .success         = success,
+                   .run_count       = run_count,
+                   .fail_count      = fail_count,
+                   .skip_count      = skip_count,
                    .assertion_count = assertion_count});
 #endif
 

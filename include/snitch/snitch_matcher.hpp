@@ -16,18 +16,16 @@ enum class match_status { failed, matched };
 namespace snitch {
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {
-                          { m.match(value) } -> convertible_to<bool>;
-                          {
-                              m.describe_match(value, matchers::match_status{})
-                              } -> convertible_to<std::string_view>;
-                      };
+    { m.match(value) } -> convertible_to<bool>;
+    { m.describe_match(value, matchers::match_status{}) } -> convertible_to<std::string_view>;
+};
 } // namespace snitch
 
 namespace snitch::impl {
 template<typename T>
 concept exception_with_what = requires(const T& e) {
-                                  { e.what() } -> convertible_to<std::string_view>;
-                              };
+    { e.what() } -> convertible_to<std::string_view>;
+};
 
 template<typename T, typename M>
 [[nodiscard]] constexpr auto constexpr_match(T&& value, M&& matcher) noexcept {
