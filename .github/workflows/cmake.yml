@@ -18,6 +18,7 @@ jobs:
         - { name: Ubuntu GCC,            os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage'"}
         - { name: Ubuntu GCC noexcept,   os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='-fno-exceptions'"}
         - { name: Ubuntu GCC notime,     os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_WITH_TIMINGS=0"}
+        - { name: Ubuntu GCC nounity,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_UNITY_BUILD=0"}
         - { name: Ubuntu Clang,          os: ubuntu-latest,  publish: true,  compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++'"}
         - { name: Ubuntu Clang noexcept, os: ubuntu-latest,  publish: false, compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++ -fno-exceptions'"}
         - { name: Windows 32,            os: windows-latest, publish: true,  compiler: vs2019,  arch: "32", build: "win32-vs2019",       cmakepp: "",        flags: "-A Win32"}
