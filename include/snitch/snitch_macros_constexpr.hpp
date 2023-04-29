@@ -21,14 +21,18 @@
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
                     SNITCH_CURRENT_EXPRESSION.success, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},  \
                     SNITCH_CURRENT_EXPRESSION);                                                    \
-                MAYBE_ABORT;                                                                       \
+                if (!SNITCH_CURRENT_EXPRESSION.success) {                                          \
+                    MAYBE_ABORT;                                                                   \
+                }                                                                                  \
             }                                                                                      \
             {                                                                                      \
                 SNITCH_EXPR(CHECK "[run-time]", EXPECTED, __VA_ARGS__);                            \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
                     SNITCH_CURRENT_EXPRESSION.success, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},  \
                     SNITCH_CURRENT_EXPRESSION);                                                    \
-                MAYBE_ABORT;                                                                       \
+                if (!SNITCH_CURRENT_EXPRESSION.success) {                                          \
+                    MAYBE_ABORT;                                                                   \
+                }                                                                                  \
             }                                                                                      \
         } else {                                                                                   \
             {                                                                                      \
@@ -36,13 +40,18 @@
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
                     SNITCH_TEMP_RESULT == EXPECTED, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},     \
                     CHECK "[compile-time](" #__VA_ARGS__ ")");                                     \
-                MAYBE_ABORT;                                                                       \
+                if (SNITCH_TEMP_RESULT != EXPECTED) {                                              \
+                    MAYBE_ABORT;                                                                   \
+                }                                                                                  \
             }                                                                                      \
             {                                                                                      \
+                const bool SNITCH_TEMP_RESULT = static_cast<bool>(__VA_ARGS__);                    \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    static_cast<bool>(__VA_ARGS__) == EXPECTED, SNITCH_CURRENT_TEST,               \
-                    {__FILE__, __LINE__}, CHECK "[run-time](" #__VA_ARGS__ ")");                   \
-                MAYBE_ABORT;                                                                       \
+                    SNITCH_TEMP_RESULT == EXPECTED, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},     \
+                    CHECK "[run-time](" #__VA_ARGS__ ")");                                         \
+                if (SNITCH_TEMP_RESULT != EXPECTED) {                                              \
+                    MAYBE_ABORT;                                                                   \
+                }                                                                                  \
             }                                                                                      \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
@@ -64,14 +73,18 @@
                 SNITCH_TEMP_RESULT.first, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},               \
                 CHECK "[compile-time](" #EXPR ", " #__VA_ARGS__ "), got ",                         \
                 SNITCH_TEMP_RESULT.second);                                                        \
-            MAYBE_ABORT;                                                                           \
+            if (!SNITCH_TEMP_RESULT.first) {                                                       \
+                MAYBE_ABORT;                                                                       \
+            }                                                                                      \
         }                                                                                          \
         {                                                                                          \
-            auto SNITCH_TEMP_RESULT = snitch::impl::match(EXPR, __VA_ARGS__);                      \
+            const auto SNITCH_TEMP_RESULT = snitch::impl::match(EXPR, __VA_ARGS__);                \
             SNITCH_CURRENT_TEST.reg.report_assertion(                                              \
                 SNITCH_TEMP_RESULT.first, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},               \
                 CHECK "[run-time](" #EXPR ", " #__VA_ARGS__ "), got ", SNITCH_TEMP_RESULT.second); \
-            MAYBE_ABORT;                                                                           \
+            if (!SNITCH_TEMP_RESULT.first) {                                                       \
+                MAYBE_ABORT;                                                                       \
+            }                                                                                      \
         }                                                                                          \
     } while (0)
 
