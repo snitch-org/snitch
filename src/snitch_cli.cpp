@@ -277,13 +277,13 @@ void print_help(
 
 // clang-format off
 constexpr expected_arguments expected_args = {
-    {{"-l", "--list-tests"},    {},                    "List tests by name"},
-    {{"--list-tags"},           {},                    "List tags by name"},
-    {{"--list-tests-with-tag"}, {"[tag]"},             "List tests by name with a given tag"},
-    {{"-v", "--verbosity"},     {"quiet|normal|high"}, "Define how much gets sent to the standard output"},
-    {{"--color"},               {"always|never"},      "Enable/disable color in output"},
-    {{"-h", "--help"},          {},                    "Print help"},
-    {{},                        {"test regex"},        "A regex to select which test cases to run", argument_type::repeatable}};
+    {{"-l", "--list-tests"},    {},                         "List tests by name"},
+    {{"--list-tags"},           {},                         "List tags by name"},
+    {{"--list-tests-with-tag"}, {"tag"},                    "List tests by name with a given tag"},
+    {{"-v", "--verbosity"},     {"quiet|normal|high|full"}, "Define how much gets sent to the standard output"},
+    {{"--color"},               {"always|never"},           "Enable/disable color in output"},
+    {{"-h", "--help"},          {},                         "Print help"},
+    {{},                        {"test regex"},             "A regex to select which test cases to run", argument_type::repeatable}};
 // clang-format on
 
 constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;

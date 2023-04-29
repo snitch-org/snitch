@@ -351,7 +351,7 @@ void registry::report_assertion(
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
     if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::high)) {
+        if (impl::is_at_least(verbose, registry::verbosity::full)) {
             report_callback(
                 *this, event::assertion_succeeded{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
@@ -388,7 +388,7 @@ void registry::report_assertion(
     append_or_truncate(message, message1, message2);
 
     if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::high)) {
+        if (impl::is_at_least(verbose, registry::verbosity::full)) {
             report_callback(
                 *this, event::assertion_succeeded{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
@@ -425,7 +425,7 @@ void registry::report_assertion(
         append_or_truncate(message, exp.expected, ", got ", exp.actual);
 
         if (success) {
-            if (impl::is_at_least(verbose, registry::verbosity::high)) {
+            if (impl::is_at_least(verbose, registry::verbosity::full)) {
                 report_callback(
                     *this, event::assertion_succeeded{
                                state.test.id, state.sections.current_section,
@@ -439,7 +439,7 @@ void registry::report_assertion(
         }
     } else {
         if (success) {
-            if (impl::is_at_least(verbose, registry::verbosity::high)) {
+            if (impl::is_at_least(verbose, registry::verbosity::full)) {
                 report_callback(
                     *this, event::assertion_succeeded{
                                state.test.id, state.sections.current_section,
@@ -748,11 +748,13 @@ void registry::configure(const cli::input& args) noexcept {
             verbose = snitch::registry::verbosity::normal;
         } else if (*opt->value == "high") {
             verbose = snitch::registry::verbosity::high;
+        } else if (*opt->value == "full") {
+            verbose = snitch::registry::verbosity::full;
         } else {
             using namespace snitch::impl;
             cli::print(
                 make_colored("warning:", with_color, color::warning),
-                " unknown verbosity level; please use one of quiet|normal|high\n");
+                " unknown verbosity level; please use one of quiet|normal|high|full\n");
         }
     }
 }

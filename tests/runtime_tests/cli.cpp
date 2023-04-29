@@ -93,7 +93,7 @@ TEST_CASE("parse arguments verbosity (long form)", "[cli]") {
     REQUIRE(input->arguments[0].value.has_value());
     REQUIRE(input->arguments[0].value_name.has_value());
     CHECK(input->arguments[0].value.value() == "high"sv);
-    CHECK(input->arguments[0].value_name.value() == "quiet|normal|high"sv);
+    CHECK(input->arguments[0].value_name.value() == "quiet|normal|high|full"sv);
     CHECK(console.messages.empty());
 }
 
@@ -110,7 +110,7 @@ TEST_CASE("parse arguments verbosity (short form)", "[cli]") {
     REQUIRE(input->arguments[0].value.has_value());
     REQUIRE(input->arguments[0].value_name.has_value());
     CHECK(input->arguments[0].value.value() == "high"sv);
-    CHECK(input->arguments[0].value_name.value() == "quiet|normal|high"sv);
+    CHECK(input->arguments[0].value_name.value() == "quiet|normal|high|full"sv);
     CHECK(console.messages.empty());
 }
 
@@ -124,7 +124,7 @@ TEST_CASE("parse arguments verbosity (no value)", "[cli]") {
     CHECK(
         console.messages ==
         contains_substring(
-            "missing value '<quiet|normal|high>' for command line argument '--verbosity'"));
+            "missing value '<quiet|normal|high|full>' for command line argument '--verbosity'"));
 }
 
 TEST_CASE("parse arguments unknown", "[cli]") {
@@ -199,7 +199,7 @@ TEST_CASE("get option", "[cli]") {
     REQUIRE(verbosity_option->value.has_value());
     REQUIRE(verbosity_option->value_name.has_value());
     CHECK(verbosity_option->value.value() == "high"sv);
-    CHECK(verbosity_option->value_name.value() == "quiet|normal|high"sv);
+    CHECK(verbosity_option->value_name.value() == "quiet|normal|high|full"sv);
 
     auto unknown_option = snitch::cli::get_option(*input, "--unknown");
     CHECK(!unknown_option.has_value());

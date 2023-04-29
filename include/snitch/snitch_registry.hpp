@@ -61,8 +61,8 @@ class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
 
 public:
-    enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
-    bool with_color                                      = true;
+    enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
+    bool with_color                                            = true;
 
     using print_function  = small_function<void(std::string_view) noexcept>;
     using report_function = small_function<void(const registry&, const event::data&) noexcept>;
