@@ -1554,3 +1554,127 @@ TEST_CASE("constexpr check that", "[test macros]") {
             "CONSTEXPR_CHECK_THAT[run-time](i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
     }
 }
+
+#if SNITCH_WITH_EXCEPTIONS
+struct my_exception : public std::exception {
+    const char* what() const noexcept override {
+        return "exception1";
+    }
+};
+
+struct my_other_exception : public std::exception {
+    const char* what() const noexcept override {
+        return "exception2";
+    }
+};
+
+TEST_CASE("check throws as", "[test macros]") {
+    event_catcher<1> catcher;
+
+    SECTION("pass") {
+        {
+            test_override override(catcher);
+            auto          fun = []() { throw my_exception{}; };
+            SNITCH_CHECK_THROWS_AS(fun(), my_exception);
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail other std::exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun = []() { throw my_other_exception{}; };
+            // clang-format off
+            SNITCH_CHECK_THROWS_AS(fun(), my_exception); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "my_exception expected but other std::exception thrown; message: exception2"sv);
+    }
+
+    SECTION("fail unknown exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun = []() { throw 1; };
+            // clang-format off
+            SNITCH_CHECK_THROWS_AS(fun(), my_exception); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "my_exception expected but other unknown exception thrown"sv);
+    }
+}
+
+TEST_CASE("check throws matches", "[test macros]") {
+    event_catcher<1> catcher;
+
+    SECTION("pass") {
+        {
+            test_override override(catcher);
+            auto          fun     = []() { throw my_exception{}; };
+            auto          matcher = snitch::matchers::with_what_contains{"exception1"};
+            SNITCH_CHECK_THROWS_MATCHES(fun(), my_exception, matcher);
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail other std::exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun     = []() { throw my_other_exception{}; };
+            auto          matcher = snitch::matchers::with_what_contains{"exception1"};
+            // clang-format off
+            SNITCH_CHECK_THROWS_MATCHES(fun(), my_exception, matcher); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "my_exception expected but other std::exception thrown; message: exception2"sv);
+    }
+
+    SECTION("fail unknown exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun     = []() { throw 1; };
+            auto          matcher = snitch::matchers::with_what_contains{"exception1"};
+            // clang-format off
+            SNITCH_CHECK_THROWS_MATCHES(fun(), my_exception, matcher); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "my_exception expected but other unknown exception thrown"sv);
+    }
+
+    SECTION("fail not a match") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun     = []() { throw my_other_exception{}; };
+            auto          matcher = snitch::matchers::with_what_contains{"exception1"};
+            // clang-format off
+            SNITCH_CHECK_THROWS_MATCHES(fun(), std::exception, matcher); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "could not match caught std::exception with expected content: could not find 'exception1' in 'exception2'"sv);
+    }
+}
+#endif
