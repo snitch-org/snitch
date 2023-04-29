@@ -795,6 +795,12 @@ If you need to use a reporter member function, please make sure that the reporte
 
 Likewise, when receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
 
+Finally, note that events being sent to the reporter are affected by the chosen verbosity:
+ - `quiet`: `assertion_failed` and `test_case_skipped` only.
+ - `normal`: same as `quiet`, plus `test_run_started` and `test_run_ended`.
+ - `high`: same as `normal`, plus `test_case_started` and `test_case_ended`.
+ - `full`: same as `high`, plus `assertion_succeeded` (i.e., all events).
+
 An example reporter for _Teamcity_ is included for demonstration, see `include/snitch/snitch_teamcity.hpp`.
 
 
@@ -802,11 +808,11 @@ An example reporter for _Teamcity_ is included for demonstration, see `include/s
 
 The default `main()` function provided in _snitch_ offers the following command-line API:
  - positional arguments for filtering tests by name, see below.
- - `-h,--help`: show command line help.
+ - `-h,--help`: show command-line help.
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
  - `   --list-tests-with-tag`: list all tests with a given tag.
- - `-v,--verbosity <quiet|normal|high>`: select level of detail for the default reporter.
+ - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
  - `   --color <always|never>`: enable/disable colors in the default reporter.
 
 The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at least one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
