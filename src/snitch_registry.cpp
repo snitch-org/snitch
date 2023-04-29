@@ -343,19 +343,11 @@ const char* registry::add(const test_id& id, impl::test_ptr func) {
     return id.name.data();
 }
 
-#if SNITCH_WITH_EXCEPTIONS
-#    define SNITCH_TESTING_ABORT                                                                   \
-        throw snitch::impl::abort_exception {}
-#else
-#    define SNITCH_TESTING_ABORT std::terminate()
-#endif
-
 void registry::report_assertion(
-    bool                      critical,
     bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
-    std::string_view          message) const {
+    std::string_view          message) const noexcept {
 
     if (state.test.state == impl::test_case_state::skipped) {
         return;
@@ -379,20 +371,15 @@ void registry::report_assertion(
             *this, event::assertion_failed{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
                        location, message, state.should_fail, state.may_fail});
-
-        if (critical) {
-            SNITCH_TESTING_ABORT;
-        }
     }
 }
 
 void registry::report_assertion(
-    bool                      critical,
     bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message1,
-    std::string_view          message2) const {
+    std::string_view          message2) const noexcept {
 
     if (state.test.state == impl::test_case_state::skipped) {
         return;
@@ -419,19 +406,14 @@ void registry::report_assertion(
             *this, event::assertion_failed{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
                        location, message, state.should_fail, state.may_fail});
-
-        if (critical) {
-            SNITCH_TESTING_ABORT;
-        }
     }
 }
 
 void registry::report_assertion(
-    bool                      critical,
     bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
-    const impl::expression&   exp) const {
+    const impl::expression&   exp) const noexcept {
 
     if (state.test.state == impl::test_case_state::skipped) {
         return;
@@ -459,10 +441,6 @@ void registry::report_assertion(
                 *this, event::assertion_failed{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
                            location, message, state.should_fail, state.may_fail});
-
-            if (critical) {
-                SNITCH_TESTING_ABORT;
-            }
         }
     } else {
         if (success) {
@@ -475,19 +453,14 @@ void registry::report_assertion(
                 *this, event::assertion_failed{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
                            location, exp.expected, state.should_fail, state.may_fail});
-
-            if (critical) {
-                SNITCH_TESTING_ABORT;
-            }
         }
     }
 }
 
 void registry::report_skipped(
-    bool                      critical,
     impl::test_state&         state,
     const assertion_location& location,
-    std::string_view          message) const {
+    std::string_view          message) const noexcept {
 
     impl::set_state(state.test, impl::test_case_state::skipped);
 
@@ -497,10 +470,6 @@ void registry::report_skipped(
         *this, event::test_case_skipped{
                    state.test.id, state.sections.current_section, captures_buffer.span(), location,
                    message});
-
-    if (critical) {
-        SNITCH_TESTING_ABORT;
-    }
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
@@ -547,13 +516,12 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_assertion(
-                false, false, state, {"<snitch internal>", 0},
+                false, state, {"<snitch internal>", 0},
                 "unhandled std::exception caught; message: ", e.what());
             --state.asserts; // this doesn't count as a user assert, undo the increment
         } catch (...) {
             report_assertion(
-                false, false, state, {"<snitch internal>", 0},
-                "unhandled unknown exception caught");
+                false, state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
             --state.asserts; // this doesn't count as a user assert, undo the increment
         }
 #else
@@ -575,8 +543,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         if (state.test.state == impl::test_case_state::success) {
             state.should_fail = false;
             report_assertion(
-                false, false, state, {"<snitch internal>", 0},
-                "expected test to fail, but it passed");
+                false, state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
             --state.asserts; // this doesn't count as a user assert, undo the increment
             state.should_fail = true;
         } else if (state.test.state == impl::test_case_state::failed) {

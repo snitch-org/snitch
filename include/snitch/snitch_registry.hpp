@@ -98,32 +98,28 @@ public:
     }
 
     void report_assertion(
-        bool                      critical,
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
-        std::string_view          message) const;
+        std::string_view          message) const noexcept;
 
     void report_assertion(
-        bool                      critical,
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message1,
-        std::string_view          message2) const;
+        std::string_view          message2) const noexcept;
 
     void report_assertion(
-        bool                      critical,
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
-        const impl::expression&   exp) const;
+        const impl::expression&   exp) const noexcept;
 
     void report_skipped(
-        bool                      critical,
         impl::test_state&         state,
         const assertion_location& location,
-        std::string_view          message) const;
+        std::string_view          message) const noexcept;
 
     impl::test_state run(impl::test_case& test) noexcept;
 
