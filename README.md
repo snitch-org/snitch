@@ -241,22 +241,22 @@ Results for Debug builds:
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
-| Build tests     | 64s      | 79s      | 73s       | 118s       |
-| Build all       | 66s      | 120s     | 75s       | 118s       |
-| Run tests       | 42ms     | 76ms     | 63ms      | 20ms       |
+| Build tests     | 62s      | 79s      | 73s       | 118s       |
+| Build all       | 64s      | 120s     | 75s       | 118s       |
+| Run tests       | 48ms     | 76ms     | 63ms      | 20ms       |
 | Library size    | 3.7MB    | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 32.3MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Executable size | 31.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.8s     | 47s      | 3.5s      | 0s         |
-| Build tests     | 145s     | 254s     | 207s      | 289s       |
-| Build all       | 148s     | 301s     | 210s      | 289s       |
+| Build tests     | 129s     | 254s     | 207s      | 289s       |
+| Build all       | 132s     | 301s     | 210s      | 289s       |
 | Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
 | Library size    | 0.68MB   | 2.6MB    | 0.39MB    | 0MB        |
-| Executable size | 9.6MB    | 17.4MB   | 15.2MB    | 11.3MB     |
+| Executable size | 8.6MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
