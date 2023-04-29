@@ -33,13 +33,7 @@ headers = files('include/snitch/snitch.hpp',
                 'include/snitch/snitch_type_name.hpp',
                 'include/snitch/snitch_vector.hpp')
 
-if get_option('unity_build')
-
-  main = files('src/snitch.cpp')
-
-else
-
-  main = files('src/snitch_append.cpp',
+sources = files('src/snitch_append.cpp',
                'src/snitch_capture.cpp',
                'src/snitch_cli.cpp',
                'src/snitch_console.cpp',
@@ -50,6 +44,14 @@ else
                'src/snitch_section.cpp',
                'src/snitch_string_utility.cpp',
                'src/snitch_test_data.cpp')
+
+if get_option('unity_build')
+
+  main = files('src/snitch.cpp')
+
+else
+
+  main = sources
 
 endif
 

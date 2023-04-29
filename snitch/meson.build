@@ -41,7 +41,7 @@ conf_file = configure_file(
 snitch_all = custom_target(
   output: 'snitch_all.hpp',
   build_by_default: get_option('create_header_only'),
-  depend_files : [conf_file, headers, main],
+  depend_files: [conf_file, headers, main, sources],
   command: [find_program('python3'), make_snitch_all,
             meson.project_source_root(), meson.project_build_root()],
   depfile: 'snitch_all.d',

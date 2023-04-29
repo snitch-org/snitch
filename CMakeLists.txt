@@ -74,21 +74,23 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
     ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)
 
+set(SNITCH_SOURCES_INDIVIDUAL
+    ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
+
 if (SNITCH_UNITY_BUILD)
     set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 else()
-    set(SNITCH_SOURCES
-        ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
+    set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
 endif()
 
 if (SNITCH_CREATE_LIBRARY)
@@ -122,6 +124,7 @@ if (SNITCH_CREATE_HEADER_ONLY)
         DEPENDS
             ${SNITCH_INCLUDES}
             ${PROJECT_SOURCE_DIR}/src/snitch.cpp
+            ${SNITCH_SOURCES_INDIVIDUAL}
             ${PROJECT_SOURCE_DIR}/make_snitch_all.py)
 
     add_library(snitch-header-only INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
