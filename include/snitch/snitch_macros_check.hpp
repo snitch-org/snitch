@@ -4,6 +4,7 @@
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_expression.hpp"
 #include "snitch/snitch_macros_check_base.hpp"
+#include "snitch/snitch_macros_warnings.hpp"
 #include "snitch/snitch_matcher.hpp"
 #include "snitch/snitch_registry.hpp"
 #include "snitch/snitch_test_data.hpp"
