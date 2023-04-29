@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 
 project(snitch LANGUAGES CXX VERSION 1.0.0)
 
+# Maximum lengths.
 set(SNITCH_MAX_TEST_CASES              5000 CACHE STRING "Maximum number of test cases in a test application.")
 set(SNITCH_MAX_NESTED_SECTIONS         8    CACHE STRING "Maximum depth of nested sections in a test case.")
 set(SNITCH_MAX_EXPR_LENGTH             1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
@@ -12,12 +13,16 @@ set(SNITCH_MAX_CAPTURES                8    CACHE STRING "Maximum number of capt
 set(SNITCH_MAX_CAPTURE_LENGTH          256  CACHE STRING "Maximum length of a captured expression.")
 set(SNITCH_MAX_UNIQUE_TAGS             1024 CACHE STRING "Maximum number of unique tags in a test application.")
 set(SNITCH_MAX_COMMAND_LINE_ARGS       1024 CACHE STRING "Maximum number of command line arguments to a test application.")
+
+# Feature toggles.
 set(SNITCH_DEFINE_MAIN                 ON   CACHE BOOL   "Define main() in snitch -- disable to provide your own main() function.")
 set(SNITCH_WITH_EXCEPTIONS             ON   CACHE BOOL   "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
 set(SNITCH_WITH_TIMINGS                ON   CACHE BOOL   "Measure the time taken by each test case -- disable to speed up tests.")
 set(SNITCH_WITH_SHORTHAND_MACROS       ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
 set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST ON   CACHE BOOL   "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")
 set(SNITCH_DEFAULT_WITH_COLOR          ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
+
+# Building and packaging options; not part of the library API.
 set(SNITCH_CREATE_HEADER_ONLY          ON   CACHE BOOL   "Create a single-header header-only version of snitch.")
 set(SNITCH_CREATE_LIBRARY              ON   CACHE BOOL   "Build a compiled library version of snitch.")
 set(SNITCH_UNITY_BUILD                 ON   CACHE BOOL   "Build sources as single file instead of separate files (faster full build).")
