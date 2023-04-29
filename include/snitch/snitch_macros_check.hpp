@@ -9,192 +9,73 @@
 #include "snitch/snitch_registry.hpp"
 #include "snitch/snitch_test_data.hpp"
 
-#define SNITCH_REQUIRE(...)                                                                        \
+#define SNITCH_REQUIRE_IMPL(CHECK, EXPECTED, CRITICAL, ...)                                        \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
         if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
-            if (SNITCH_EXPR_IS_FALSE("REQUIRE", __VA_ARGS__)) {                                    \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-                SNITCH_TESTING_ABORT;                                                              \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            }                                                                                      \
+            SNITCH_EXPR(CHECK, EXPECTED, __VA_ARGS__);                                             \
+            SNITCH_CURRENT_TEST.reg.report_assertion(                                              \
+                CRITICAL, SNITCH_CURRENT_EXPRESSION.success, SNITCH_CURRENT_TEST,                  \
+                {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);                                  \
         } else {                                                                                   \
-            if (!(__VA_ARGS__)) {                                                                  \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #__VA_ARGS__ ")");       \
-                SNITCH_TESTING_ABORT;                                                              \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE(" #__VA_ARGS__ ")");       \
-            }                                                                                      \
+            SNITCH_CURRENT_TEST.reg.report_assertion(                                              \
+                CRITICAL, static_cast<bool>(__VA_ARGS__) == EXPECTED, SNITCH_CURRENT_TEST,         \
+                {__FILE__, __LINE__}, CHECK "(" #__VA_ARGS__ ")");                                 \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
     } while (0)
 
-#define SNITCH_CHECK(...)                                                                          \
-    do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_WARNING_PUSH                                                                        \
-        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
-            if (SNITCH_EXPR_IS_FALSE("CHECK", __VA_ARGS__)) {                                      \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            }                                                                                      \
-        } else {                                                                                   \
-            if (!(__VA_ARGS__)) {                                                                  \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #__VA_ARGS__ ")");         \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK(" #__VA_ARGS__ ")");         \
-            }                                                                                      \
-        }                                                                                          \
-        SNITCH_WARNING_POP                                                                         \
-    } while (0)
-
-#define SNITCH_REQUIRE_FALSE(...)                                                                  \
-    do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_WARNING_PUSH                                                                        \
-        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
-            if (SNITCH_EXPR_IS_TRUE("REQUIRE_FALSE", __VA_ARGS__)) {                               \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-                SNITCH_TESTING_ABORT;                                                              \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            }                                                                                      \
-        } else {                                                                                   \
-            if (!(__VA_ARGS__)) {                                                                  \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #__VA_ARGS__ ")"); \
-                SNITCH_TESTING_ABORT;                                                              \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "REQUIRE_FALSE(" #__VA_ARGS__ ")"); \
-            }                                                                                      \
-        }                                                                                          \
-        SNITCH_WARNING_POP                                                                         \
-    } while (0)
-
-#define SNITCH_CHECK_FALSE(...)                                                                    \
-    do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_WARNING_PUSH                                                                        \
-        SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
-        SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
-            if (SNITCH_EXPR_IS_TRUE("CHECK_FALSE", __VA_ARGS__)) {                                 \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, SNITCH_CURRENT_EXPRESSION);         \
-            }                                                                                      \
-        } else {                                                                                   \
-            if (!(__VA_ARGS__)) {                                                                  \
-                SNITCH_CURRENT_TEST.reg.report_failure(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #__VA_ARGS__ ")");   \
-            } else {                                                                               \
-                SNITCH_CURRENT_TEST.reg.report_success(                                            \
-                    SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, "CHECK_FALSE(" #__VA_ARGS__ ")");   \
-            }                                                                                      \
-        }                                                                                          \
-        SNITCH_WARNING_POP                                                                         \
-    } while (0)
+// clang-format off
+#define SNITCH_REQUIRE(...)       SNITCH_REQUIRE_IMPL("REQUIRE",       true,  true,  __VA_ARGS__)
+#define SNITCH_CHECK(...)         SNITCH_REQUIRE_IMPL("CHECK",         true,  false, __VA_ARGS__)
+#define SNITCH_REQUIRE_FALSE(...) SNITCH_REQUIRE_IMPL("REQUIRE_FALSE", false, true,  __VA_ARGS__)
+#define SNITCH_CHECK_FALSE(...)   SNITCH_REQUIRE_IMPL("CHECK_FALSE",   false, false, __VA_ARGS__)
+// clang-format on
 
 #define SNITCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_CURRENT_TEST.reg.report_failure(                                                    \
-            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
-        SNITCH_TESTING_ABORT;                                                                      \
+        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
+            true, false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                    \
     } while (0)
 
 #define SNITCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        SNITCH_CURRENT_TEST.reg.report_failure(                                                    \
-            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
+            false, false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                   \
     } while (0)
 
 #define SNITCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
-        SNITCH_TESTING_ABORT;                                                                      \
+            true, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                           \
     } while (0)
 
 #define SNITCH_SKIP_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+            false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                          \
     } while (0)
 
-#define SNITCH_REQUIRE_THAT(EXPR, ...)                                                             \
+#define SNITCH_REQUIRE_THAT_IMPL(CHECK, CRITICAL, EXPR, ...)                                       \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                       \
-        auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                                  \
-        if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
-            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                "REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                 \
-                SNITCH_TEMP_MATCHER.describe_match(                                                \
-                    SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
-            SNITCH_TESTING_ABORT;                                                                  \
-        } else {                                                                                   \
-            SNITCH_CURRENT_TEST.reg.report_success(                                                \
-                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                "REQUIRE_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                 \
-                SNITCH_TEMP_MATCHER.describe_match(                                                \
-                    SNITCH_TEMP_VALUE, snitch::matchers::match_status::matched));                  \
-        }                                                                                          \
+        auto  SNITCH_TEMP_RESULT  = snitch::impl::match(EXPR, __VA_ARGS__);                        \
+        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
+            CRITICAL, SNITCH_TEMP_RESULT.first, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},         \
+            CHECK "(" #EXPR ", " #__VA_ARGS__ "), got ", SNITCH_TEMP_RESULT.second);               \
     } while (0)
 
-#define SNITCH_CHECK_THAT(EXPR, ...)                                                               \
-    do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        ++SNITCH_CURRENT_TEST.asserts;                                                             \
-        auto&& SNITCH_TEMP_VALUE   = (EXPR);                                                       \
-        auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                                  \
-        if (!SNITCH_TEMP_MATCHER.match(SNITCH_TEMP_VALUE)) {                                       \
-            SNITCH_CURRENT_TEST.reg.report_failure(                                                \
-                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                "CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                   \
-                SNITCH_TEMP_MATCHER.describe_match(                                                \
-                    SNITCH_TEMP_VALUE, snitch::matchers::match_status::failed));                   \
-        } else {                                                                                   \
-            SNITCH_CURRENT_TEST.reg.report_success(                                                \
-                SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                                         \
-                "CHECK_THAT(" #EXPR ", " #__VA_ARGS__ "), got ",                                   \
-                SNITCH_TEMP_MATCHER.describe_match(                                                \
-                    SNITCH_TEMP_VALUE, snitch::matchers::match_status::matched));                  \
-        }                                                                                          \
-    } while (0)
+// clang-format off
+#define SNITCH_REQUIRE_THAT(EXPR, ...) SNITCH_REQUIRE_THAT_IMPL("REQUIRE_THAT", true,  EXPR, __VA_ARGS__)
+#define SNITCH_CHECK_THAT(EXPR, ...)   SNITCH_REQUIRE_THAT_IMPL("CHECK_THAT",   false, EXPR, __VA_ARGS__)
+// clang-format on
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS

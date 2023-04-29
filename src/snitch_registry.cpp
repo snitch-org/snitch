@@ -343,150 +343,151 @@ const char* registry::add(const test_id& id, impl::test_ptr func) {
     return id.name.data();
 }
 
-void registry::report_failure(
+#if SNITCH_WITH_EXCEPTIONS
+#    define SNITCH_TESTING_ABORT                                                                   \
+        throw snitch::impl::abort_exception {}
+#else
+#    define SNITCH_TESTING_ABORT std::terminate()
+#endif
+
+void registry::report_assertion(
+    bool                      critical,
+    bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
-    std::string_view          message) const noexcept {
+    std::string_view          message) const {
 
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
 
-    if (!state.may_fail) {
+    ++state.asserts;
+
+    if (!success && !state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
     }
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
-    report_callback(
-        *this, event::assertion_failed{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message, state.should_fail, state.may_fail});
-}
-
-void registry::report_failure(
-    impl::test_state&         state,
-    const assertion_location& location,
-    std::string_view          message1,
-    std::string_view          message2) const noexcept {
-
-    if (state.test.state == impl::test_case_state::skipped) {
-        return;
-    }
-
-    if (!state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    small_string<max_message_length> message;
-    append_or_truncate(message, message1, message2);
-
-    report_callback(
-        *this, event::assertion_failed{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message, state.should_fail, state.may_fail});
-}
-
-void registry::report_failure(
-    impl::test_state&         state,
-    const assertion_location& location,
-    const impl::expression&   exp) const noexcept {
-
-    if (state.test.state == impl::test_case_state::skipped) {
-        return;
-    }
-
-    if (!state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    if (!exp.actual.empty()) {
-        small_string<max_message_length> message;
-        append_or_truncate(message, exp.expected, ", got ", exp.actual);
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, exp.expected, state.should_fail, state.may_fail});
-    }
-}
-
-void registry::report_success(
-    impl::test_state&         state,
-    const assertion_location& location,
-    std::string_view          message) const noexcept {
-
-    if (state.test.state == impl::test_case_state::skipped) {
-        return;
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    report_callback(
-        *this, event::assertion_succeeded{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message});
-}
-
-void registry::report_success(
-    impl::test_state&         state,
-    const assertion_location& location,
-    std::string_view          message1,
-    std::string_view          message2) const noexcept {
-
-    if (state.test.state == impl::test_case_state::skipped) {
-        return;
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    small_string<max_message_length> message;
-    append_or_truncate(message, message1, message2);
-
-    report_callback(
-        *this, event::assertion_succeeded{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message});
-}
-
-void registry::report_success(
-    impl::test_state&         state,
-    const assertion_location& location,
-    const impl::expression&   exp) const noexcept {
-
-    if (state.test.state == impl::test_case_state::skipped) {
-        return;
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    if (!exp.actual.empty()) {
-        small_string<max_message_length> message;
-        append_or_truncate(message, exp.expected, ", got ", exp.actual);
+    if (success) {
         report_callback(
             *this, event::assertion_succeeded{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
                        location, message});
     } else {
         report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message, state.should_fail, state.may_fail});
+
+        if (critical) {
+            SNITCH_TESTING_ABORT;
+        }
+    }
+}
+
+void registry::report_assertion(
+    bool                      critical,
+    bool                      success,
+    impl::test_state&         state,
+    const assertion_location& location,
+    std::string_view          message1,
+    std::string_view          message2) const {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
+    ++state.asserts;
+
+    if (!success && !state.may_fail) {
+        impl::set_state(state.test, impl::test_case_state::failed);
+    }
+
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
+    small_string<max_message_length> message;
+    append_or_truncate(message, message1, message2);
+
+    if (success) {
+        report_callback(
             *this, event::assertion_succeeded{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, exp.expected});
+                       location, message});
+    } else {
+        report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message, state.should_fail, state.may_fail});
+
+        if (critical) {
+            SNITCH_TESTING_ABORT;
+        }
+    }
+}
+
+void registry::report_assertion(
+    bool                      critical,
+    bool                      success,
+    impl::test_state&         state,
+    const assertion_location& location,
+    const impl::expression&   exp) const {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
+    ++state.asserts;
+
+    if (!success && !state.may_fail) {
+        impl::set_state(state.test, impl::test_case_state::failed);
+    }
+
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
+    if (!exp.actual.empty()) {
+        small_string<max_message_length> message;
+        append_or_truncate(message, exp.expected, ", got ", exp.actual);
+
+        if (success) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
+        } else {
+            report_callback(
+                *this, event::assertion_failed{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message, state.should_fail, state.may_fail});
+
+            if (critical) {
+                SNITCH_TESTING_ABORT;
+            }
+        }
+    } else {
+        if (success) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, exp.expected});
+        } else {
+            report_callback(
+                *this, event::assertion_failed{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, exp.expected, state.should_fail, state.may_fail});
+
+            if (critical) {
+                SNITCH_TESTING_ABORT;
+            }
+        }
     }
 }
 
 void registry::report_skipped(
+    bool                      critical,
     impl::test_state&         state,
     const assertion_location& location,
-    std::string_view          message) const noexcept {
+    std::string_view          message) const {
 
     impl::set_state(state.test, impl::test_case_state::skipped);
 
@@ -496,6 +497,10 @@ void registry::report_skipped(
         *this, event::test_case_skipped{
                    state.test.id, state.sections.current_section, captures_buffer.span(), location,
                    message});
+
+    if (critical) {
+        SNITCH_TESTING_ABORT;
+    }
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
@@ -541,11 +546,15 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         } catch (const impl::abort_exception&) {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
-            report_failure(
-                state, {"<snitch internal>", 0},
+            report_assertion(
+                false, false, state, {"<snitch internal>", 0},
                 "unhandled std::exception caught; message: ", e.what());
+            --state.asserts; // this doesn't count as a user assert, undo the increment
         } catch (...) {
-            report_failure(state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
+            report_assertion(
+                false, false, state, {"<snitch internal>", 0},
+                "unhandled unknown exception caught");
+            --state.asserts; // this doesn't count as a user assert, undo the increment
         }
 #else
         test.func();
@@ -565,7 +574,10 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     if (state.should_fail) {
         if (state.test.state == impl::test_case_state::success) {
             state.should_fail = false;
-            report_failure(state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
+            report_assertion(
+                false, false, state, {"<snitch internal>", 0},
+                "expected test to fail, but it passed");
+            --state.asserts; // this doesn't count as a user assert, undo the increment
             state.should_fail = true;
         } else if (state.test.state == impl::test_case_state::failed) {
             state.test.state = impl::test_case_state::success;
