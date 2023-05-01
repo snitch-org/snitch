@@ -908,12 +908,12 @@ int main(int argc, char* argv[]) {
 By default, _snitch_ assumes exceptions are enabled, and uses them in two cases:
 
  1. Obviously, in test macros that check exceptions being thrown (e.g., `REQUIRE_THROWS_AS(...)`).
- 2. In `REQUIRE_*()` or `FAIL()` macros, to abort execution of the current test case and continue to the next one.
+ 2. In `REQUIRE*()`, `FAIL()`, and `SKIP()` macros, to abort execution of the current test case and continue to the next one.
 
 If _snitch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNITCH_WITH_EXCEPTIONS` to `0`), then
 
  1. Test macros that check exceptions being thrown will not be defined.
- 2. `REQUIRE_*()` and `FAIL()` macros will simply use `std::terminate()` to abort execution. As a consequence, if a `REQUIRE*()` or `FAIL()` check fails, the whole test application stops and the following test cases are not executed.
+ 2. `REQUIRE*()`, `FAIL()`, and `SKIP()` macros will simply use `std::terminate()` to abort execution. Consequently, the whole test application stops and the following test cases are not executed. If this is undesirable, use the alternative macros that do not abort execution: `CHECK*()`, `FAIL_CHECK()`, and `SKIP_CHECK()`, then do the control flow yourself (e.g., return from the test case).
 
 
 ### Header-only build
