@@ -28,13 +28,14 @@ concept exception_with_what = requires(const T& e) {
 };
 
 template<typename T, typename M>
-[[nodiscard]] constexpr auto constexpr_match(T&& value, M&& matcher) noexcept {
+[[nodiscard]] constexpr auto match(T&& value, M&& matcher) noexcept {
     using result_type = decltype(matcher.describe_match(value, matchers::match_status::failed));
     if (!matcher.match(value)) {
-        return std::optional<result_type>(
-            matcher.describe_match(value, matchers::match_status::failed));
+        return std::pair<bool, result_type>(
+            false, matcher.describe_match(value, matchers::match_status::failed));
     } else {
-        return std::optional<result_type>{};
+        return std::pair<bool, result_type>(
+            true, matcher.describe_match(value, matchers::match_status::matched));
     }
 }
 } // namespace snitch::impl

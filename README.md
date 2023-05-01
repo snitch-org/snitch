@@ -241,22 +241,22 @@ Results for Debug builds:
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
 | Build framework | 2.0s     | 41s      | 2.0s      | 0s         |
-| Build tests     | 65s      | 79s      | 73s       | 118s       |
-| Build all       | 67s      | 120s     | 75s       | 118s       |
+| Build tests     | 62s      | 79s      | 73s       | 118s       |
+| Build all       | 64s      | 120s     | 75s       | 118s       |
 | Run tests       | 34ms     | 76ms     | 63ms      | 20ms       |
-| Library size    | 3.3MB    | 38.6MB   | 2.8MB     | 0MB        |
-| Executable size | 32.5MB   | 49.3MB   | 38.6MB    | 51.9MB     |
+| Library size    | 3.7MB    | 38.6MB   | 2.8MB     | 0MB        |
+| Executable size | 31.6MB   | 49.3MB   | 38.6MB    | 51.9MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 2.6s     | 47s      | 3.5s      | 0s         |
-| Build tests     | 134s     | 254s     | 207s      | 289s       |
-| Build all       | 137s     | 301s     | 210s      | 289s       |
-| Run tests       | 24ms     | 46ms     | 44ms      | 5ms        |
-| Library size    | 0.63MB   | 2.6MB    | 0.39MB    | 0MB        |
-| Executable size | 8.9MB    | 17.4MB   | 15.2MB    | 11.3MB     |
+| Build framework | 2.8s     | 47s      | 3.5s      | 0s         |
+| Build tests     | 128s     | 254s     | 207s      | 289s       |
+| Build all       | 130s     | 301s     | 210s      | 289s       |
+| Run tests       | 28ms     | 46ms     | 44ms      | 5ms        |
+| Library size    | 0.68MB   | 2.6MB    | 0.39MB    | 0MB        |
+| Executable size | 8.3MB    | 17.4MB   | 15.2MB    | 11.3MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
@@ -270,7 +270,7 @@ See [the dedicated page in the docs folder](doc/comparison_catch2.md) for a brea
 
 Given that _snitch_ mostly offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
 
- - _snitch_ does not do any heap allocation, ever. This is important if the tests need to monitor the global heap usage, to ensure that the tested code only allocates what it is supposed to (or not at all). This is tricky to do with _Catch2_, since some check macros will trigger heap allocations by using `std::string` and other heap-allocated data structures. To add to the confusion, some `std::string` instances used by _Catch2_ will fall under the small-string-optimization threshold, and won't generate heap allocations on some implementations of the C++ STL. This makes any measurement of heap usage not only noisy, but platform-dependent. If this is a concern to you, then _snitch_ is a better choice.
+ - _snitch_ does not do any heap allocation while running tests. This is important if the tests need to monitor the global heap usage, to ensure that the tested code only allocates what it is supposed to (or not at all). This is tricky to do with _Catch2_, since some check macros will trigger heap allocations by using `std::string` and other heap-allocated data structures. To add to the confusion, some `std::string` instances used by _Catch2_ will fall under the small-string-optimization threshold, and won't generate heap allocations on some implementations of the C++ STL. This makes any measurement of heap usage not only noisy, but platform-dependent. If this is a concern to you, then _snitch_ is a better choice.
 
  - _snitch_ has a much smaller compile-time footprint than _Catch2_, see the benchmarks above. If your tested code is very cheap to compile, but you have a large number of tests and/or assertions, your compilation time may be dominated by the testing framework implementation (this is the case in the benchmarks). If the compilation time with _Catch2_ becomes prohibitive or annoying, you can give _snitch_ a try to see if it improves it.
 
@@ -457,6 +457,11 @@ This is similar to `FAIL`, except that the test case continues. Further failures
 `SKIP(MSG);`
 
 This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
+
+
+`SKIP_CHECK(MSG);`
+
+This is similar to `SKIP`, except that the test case continues. Further failure will not be reported. This is only recommended as an alternative to `SKIP()` when exceptions cannot be used.
 
 
 ### Tags
@@ -795,6 +800,12 @@ If you need to use a reporter member function, please make sure that the reporte
 
 Likewise, when receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
 
+Finally, note that events being sent to the reporter are affected by the chosen verbosity:
+ - `quiet`: `assertion_failed` and `test_case_skipped` only.
+ - `normal`: same as `quiet`, plus `test_run_started` and `test_run_ended`.
+ - `high`: same as `normal`, plus `test_case_started` and `test_case_ended`.
+ - `full`: same as `high`, plus `assertion_succeeded` (i.e., all events).
+
 An example reporter for _Teamcity_ is included for demonstration, see `include/snitch/snitch_teamcity.hpp`.
 
 
@@ -802,11 +813,11 @@ An example reporter for _Teamcity_ is included for demonstration, see `include/s
 
 The default `main()` function provided in _snitch_ offers the following command-line API:
  - positional arguments for filtering tests by name, see below.
- - `-h,--help`: show command line help.
+ - `-h,--help`: show command-line help.
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
  - `   --list-tests-with-tag`: list all tests with a given tag.
- - `-v,--verbosity <quiet|normal|high>`: select level of detail for the default reporter.
+ - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
  - `   --color <always|never>`: enable/disable colors in the default reporter.
 
 The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at least one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
@@ -902,12 +913,12 @@ int main(int argc, char* argv[]) {
 By default, _snitch_ assumes exceptions are enabled, and uses them in two cases:
 
  1. Obviously, in test macros that check exceptions being thrown (e.g., `REQUIRE_THROWS_AS(...)`).
- 2. In `REQUIRE_*()` or `FAIL()` macros, to abort execution of the current test case and continue to the next one.
+ 2. In `REQUIRE*()`, `FAIL()`, and `SKIP()` macros, to abort execution of the current test case and continue to the next one.
 
 If _snitch_ detects that exceptions are not available (or is configured with exceptions disabled, by setting `SNITCH_WITH_EXCEPTIONS` to `0`), then
 
  1. Test macros that check exceptions being thrown will not be defined.
- 2. `REQUIRE_*()` and `FAIL()` macros will simply use `std::terminate()` to abort execution. As a consequence, if a `REQUIRE*()` or `FAIL()` check fails, the whole test application stops and the following test cases are not executed.
+ 2. `REQUIRE*()`, `FAIL()`, and `SKIP()` macros will simply use `std::terminate()` to abort execution. Consequently, the whole test application stops and the following test cases are not executed. If this is undesirable, use the alternative macros that do not abort execution: `CHECK*()`, `FAIL_CHECK()`, and `SKIP_CHECK()`, then do the control flow yourself (e.g., return from the test case).
 
 
 ### Header-only build

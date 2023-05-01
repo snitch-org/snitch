@@ -215,95 +215,99 @@ void print_location(
         r.print("          with ", make_colored(capture, r.with_color, color::highlight1), "\n");
     }
 }
+
+struct default_reporter_functor {
+    const registry& r;
+
+    void operator()(const snitch::event::test_run_started& e) const noexcept {
+        r.print(
+            make_colored("starting ", r.with_color, color::highlight2),
+            make_colored(e.name, r.with_color, color::highlight1),
+            make_colored(" with ", r.with_color, color::highlight2),
+            make_colored("snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
+        r.print("==========================================\n");
+    }
+
+    void operator()(const snitch::event::test_run_ended& e) const noexcept {
+        r.print("==========================================\n");
+
+        if (e.success) {
+            r.print(
+                make_colored("success:", r.with_color, color::pass), " all tests passed (",
+                e.run_count, " test cases, ", e.assertion_count, " assertions");
+        } else {
+            r.print(
+                make_colored("error:", r.with_color, color::fail), " some tests failed (",
+                e.fail_count, " out of ", e.run_count, " test cases, ", e.assertion_count,
+                " assertions");
+        }
+
+        if (e.skip_count > 0) {
+            r.print(", ", e.skip_count, " test cases skipped");
+        }
+
+#if SNITCH_WITH_TIMINGS
+        r.print(", ", e.duration, " seconds");
+#endif
+
+        r.print(")\n");
+    }
+
+    void operator()(const snitch::event::test_case_started& e) const noexcept {
+        small_string<max_test_name_length> full_name;
+        make_full_name(full_name, e.id);
+
+        r.print(
+            make_colored("starting:", r.with_color, color::status), " ",
+            make_colored(full_name, r.with_color, color::highlight1));
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::test_case_ended& e) const noexcept {
+        small_string<max_test_name_length> full_name;
+        make_full_name(full_name, e.id);
+
+#if SNITCH_WITH_TIMINGS
+        r.print(
+            make_colored("finished:", r.with_color, color::status), " ",
+            make_colored(full_name, r.with_color, color::highlight1), " (", e.duration, "s)");
+#else
+        r.print(
+            make_colored("finished:", r.with_color, color::status), " ",
+            make_colored(full_name, r.with_color, color::highlight1));
+#endif
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::test_case_skipped& e) const noexcept {
+        r.print(make_colored("skipped: ", r.with_color, color::skipped));
+        print_location(r, e.id, e.sections, e.captures, e.location);
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::assertion_failed& e) const noexcept {
+        if (e.expected) {
+            r.print(make_colored("expected failure: ", r.with_color, color::pass));
+        } else {
+            r.print(make_colored("failed: ", r.with_color, color::fail));
+        }
+        print_location(r, e.id, e.sections, e.captures, e.location);
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::assertion_succeeded& e) const noexcept {
+        r.print(make_colored("passed: ", r.with_color, color::pass));
+        print_location(r, e.id, e.sections, e.captures, e.location);
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        r.print("\n");
+    }
+};
 } // namespace
 
 void default_reporter(const registry& r, const event::data& event) noexcept {
-    std::visit(
-        snitch::overload{
-            [&](const snitch::event::test_run_started& e) {
-                if (is_at_least(r.verbose, registry::verbosity::normal)) {
-                    r.print(
-                        make_colored("starting ", r.with_color, color::highlight2),
-                        make_colored(e.name, r.with_color, color::highlight1),
-                        make_colored(" with ", r.with_color, color::highlight2),
-                        make_colored(
-                            "snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
-                    r.print("==========================================\n");
-                }
-            },
-            [&](const snitch::event::test_run_ended& e) {
-                if (is_at_least(r.verbose, registry::verbosity::normal)) {
-                    r.print("==========================================\n");
-
-                    if (e.success) {
-                        r.print(
-                            make_colored("success:", r.with_color, color::pass),
-                            " all tests passed (", e.run_count, " test cases, ", e.assertion_count,
-                            " assertions");
-                    } else {
-                        r.print(
-                            make_colored("error:", r.with_color, color::fail),
-                            " some tests failed (", e.fail_count, " out of ", e.run_count,
-                            " test cases, ", e.assertion_count, " assertions");
-                    }
-
-                    if (e.skip_count > 0) {
-                        r.print(", ", e.skip_count, " test cases skipped");
-                    }
-
-#if SNITCH_WITH_TIMINGS
-                    r.print(", ", e.duration, " seconds");
-#endif
-
-                    r.print(")\n");
-                }
-            },
-            [&](const snitch::event::test_case_started& e) {
-                if (is_at_least(r.verbose, registry::verbosity::high)) {
-                    small_string<max_test_name_length> full_name;
-                    make_full_name(full_name, e.id);
-
-                    r.print(
-                        make_colored("starting:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1));
-                    r.print("\n");
-                }
-            },
-            [&](const snitch::event::test_case_ended& e) {
-                if (is_at_least(r.verbose, registry::verbosity::high)) {
-                    small_string<max_test_name_length> full_name;
-                    make_full_name(full_name, e.id);
-
-#if SNITCH_WITH_TIMINGS
-                    r.print(
-                        make_colored("finished:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1), " (", e.duration,
-                        "s)");
-#else
-                    r.print(
-                        make_colored("finished:", r.with_color, color::status), " ",
-                        make_colored(full_name, r.with_color, color::highlight1));
-#endif
-                    r.print("\n");
-                }
-            },
-            [&](const snitch::event::test_case_skipped& e) {
-                r.print(make_colored("skipped: ", r.with_color, color::skipped));
-                print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-                r.print("\n");
-            },
-            [&](const snitch::event::assertion_failed& e) {
-                if (e.expected) {
-                    r.print(make_colored("expected failure: ", r.with_color, color::pass));
-                } else {
-                    r.print(make_colored("failed: ", r.with_color, color::fail));
-                }
-                print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-                r.print("\n");
-            }},
-        event);
+    std::visit(default_reporter_functor{r}, event);
 }
 } // namespace snitch::impl
 
@@ -335,7 +339,8 @@ const char* registry::add(const test_id& id, impl::test_ptr func) {
     return id.name.data();
 }
 
-void registry::report_failure(
+void registry::report_assertion(
+    bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
@@ -344,19 +349,31 @@ void registry::report_failure(
         return;
     }
 
-    if (!state.may_fail) {
+    ++state.asserts;
+
+    if (!success && !state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
     }
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
-    report_callback(
-        *this, event::assertion_failed{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message, state.should_fail, state.may_fail});
+    if (success) {
+        if (impl::is_at_least(verbose, registry::verbosity::full)) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
+        }
+    } else {
+        report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message, state.should_fail, state.may_fail});
+    }
 }
 
-void registry::report_failure(
+void registry::report_assertion(
+    bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message1,
@@ -366,7 +383,9 @@ void registry::report_failure(
         return;
     }
 
-    if (!state.may_fail) {
+    ++state.asserts;
+
+    if (!success && !state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
     }
 
@@ -375,13 +394,23 @@ void registry::report_failure(
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
 
-    report_callback(
-        *this, event::assertion_failed{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message, state.should_fail, state.may_fail});
+    if (success) {
+        if (impl::is_at_least(verbose, registry::verbosity::full)) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
+        }
+    } else {
+        report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message, state.should_fail, state.may_fail});
+    }
 }
 
-void registry::report_failure(
+void registry::report_assertion(
+    bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
     const impl::expression&   exp) const noexcept {
@@ -390,24 +419,35 @@ void registry::report_failure(
         return;
     }
 
-    if (!state.may_fail) {
+    ++state.asserts;
+
+    if (!success && !state.may_fail) {
         impl::set_state(state.test, impl::test_case_state::failed);
     }
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
+    small_string<max_message_length> message_buffer;
+    std::string_view                 message;
     if (!exp.actual.empty()) {
-        small_string<max_message_length> message;
-        append_or_truncate(message, exp.expected, ", got ", exp.actual);
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
+        append_or_truncate(message_buffer, exp.expected, ", got ", exp.actual);
+        message = message_buffer.str();
+    } else {
+        message = exp.expected;
+    }
+
+    if (success) {
+        if (impl::is_at_least(verbose, registry::verbosity::full)) {
+            report_callback(
+                *this, event::assertion_succeeded{
+                           state.test.id, state.sections.current_section, captures_buffer.span(),
+                           location, message});
+        }
     } else {
         report_callback(
             *this, event::assertion_failed{
                        state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, exp.expected, state.should_fail, state.may_fail});
+                       location, message, state.should_fail, state.may_fail});
     }
 }
 
@@ -427,7 +467,9 @@ void registry::report_skipped(
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
-    report_callback(*this, event::test_case_started{test.id});
+    if (impl::is_at_least(verbose, registry::verbosity::high)) {
+        report_callback(*this, event::test_case_started{test.id});
+    }
 
     test.state = impl::test_case_state::success;
 
@@ -469,11 +511,14 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         } catch (const impl::abort_exception&) {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
-            report_failure(
-                state, {"<snitch internal>", 0},
+            report_assertion(
+                false, state, {"<snitch internal>", 0},
                 "unhandled std::exception caught; message: ", e.what());
+            --state.asserts; // this doesn't count as a user assert, undo the increment
         } catch (...) {
-            report_failure(state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
+            report_assertion(
+                false, state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
+            --state.asserts; // this doesn't count as a user assert, undo the increment
         }
 #else
         test.func();
@@ -493,7 +538,9 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     if (state.should_fail) {
         if (state.test.state == impl::test_case_state::success) {
             state.should_fail = false;
-            report_failure(state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
+            report_assertion(
+                false, state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
+            --state.asserts; // this doesn't count as a user assert, undo the increment
             state.should_fail = true;
         } else if (state.test.state == impl::test_case_state::failed) {
             state.test.state = impl::test_case_state::success;
@@ -505,20 +552,22 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
+    if (impl::is_at_least(verbose, registry::verbosity::high)) {
 #if SNITCH_WITH_TIMINGS
-    report_callback(
-        *this, event::test_case_ended{
-                   .id              = test.id,
-                   .state           = impl::convert_to_public_state(state.test.state),
-                   .assertion_count = state.asserts,
-                   .duration        = state.duration});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .state           = impl::convert_to_public_state(state.test.state),
+                       .assertion_count = state.asserts,
+                       .duration        = state.duration});
 #else
-    report_callback(
-        *this, event::test_case_ended{
-                   .id              = test.id,
-                   .state           = impl::convert_to_public_state(state.test.state),
-                   .assertion_count = state.asserts});
+        report_callback(
+            *this, event::test_case_ended{
+                       .id              = test.id,
+                       .state           = impl::convert_to_public_state(state.test.state),
+                       .assertion_count = state.asserts});
 #endif
+    }
 
     impl::set_current_test(previous_run);
 
@@ -529,7 +578,9 @@ bool registry::run_selected_tests(
     std::string_view                                     run_name,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
 
-    report_callback(*this, event::test_run_started{run_name});
+    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
+        report_callback(*this, event::test_run_started{run_name});
+    }
 
     bool        success         = true;
     std::size_t run_count       = 0;
@@ -578,26 +629,28 @@ bool registry::run_selected_tests(
     float duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
+    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
 #if SNITCH_WITH_TIMINGS
-    report_callback(
-        *this, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count,
-                   .duration        = duration});
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count,
+                       .duration        = duration});
 #else
-    report_callback(
-        *this, event::test_run_ended{
-                   .name            = run_name,
-                   .success         = success,
-                   .run_count       = run_count,
-                   .fail_count      = fail_count,
-                   .skip_count      = skip_count,
-                   .assertion_count = assertion_count});
+        report_callback(
+            *this, event::test_run_ended{
+                       .name            = run_name,
+                       .success         = success,
+                       .run_count       = run_count,
+                       .fail_count      = fail_count,
+                       .skip_count      = skip_count,
+                       .assertion_count = assertion_count});
 #endif
+    }
 
     return success;
 }
@@ -692,11 +745,13 @@ void registry::configure(const cli::input& args) noexcept {
             verbose = snitch::registry::verbosity::normal;
         } else if (*opt->value == "high") {
             verbose = snitch::registry::verbosity::high;
+        } else if (*opt->value == "full") {
+            verbose = snitch::registry::verbosity::full;
         } else {
             using namespace snitch::impl;
             cli::print(
                 make_colored("warning:", with_color, color::warning),
-                " unknown verbosity level; please use one of quiet|normal|high\n");
+                " unknown verbosity level; please use one of quiet|normal|high|full\n");
         }
     }
 }

@@ -151,34 +151,33 @@ struct extracted_binary_expression {
     {
         expression expr{expected};
 
-        if (O{}(lhs, rhs) != Expected) {
+        const bool actual = O{}(lhs, rhs);
+        expr.success      = (actual == Expected);
+
+        if (!expr.success || SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS) {
             if constexpr (matcher_for<T, U>) {
                 using namespace snitch::matchers;
-                constexpr auto status = std::is_same_v<O, operator_equal> == Expected
-                                            ? match_status::failed
-                                            : match_status::matched;
+                const auto status = std::is_same_v<O, operator_equal> == actual
+                                        ? match_status::matched
+                                        : match_status::failed;
                 if (!expr.append_value(lhs.describe_match(rhs, status))) {
                     expr.actual.clear();
                 }
             } else if constexpr (matcher_for<U, T>) {
                 using namespace snitch::matchers;
-                constexpr auto status = std::is_same_v<O, operator_equal> == Expected
-                                            ? match_status::failed
-                                            : match_status::matched;
+                const auto status = std::is_same_v<O, operator_equal> == actual
+                                        ? match_status::matched
+                                        : match_status::failed;
                 if (!expr.append_value(rhs.describe_match(lhs, status))) {
                     expr.actual.clear();
                 }
             } else {
                 if (!expr.append_value(lhs) ||
-                    !(Expected ? expr.append_value(O::inverse) : expr.append_value(O::actual)) ||
+                    !(actual ? expr.append_value(O::actual) : expr.append_value(O::inverse)) ||
                     !expr.append_value(rhs)) {
                     expr.actual.clear();
                 }
             }
-
-            expr.success = false;
-        } else {
-            expr.success = true;
         }
 
         return expr;
@@ -252,14 +251,12 @@ struct extracted_unary_expression {
     {
         expression expr{expected};
 
-        if (static_cast<bool>(lhs) != Expected) {
+        expr.success = (static_cast<bool>(lhs) == Expected);
+
+        if (!expr.success || SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS) {
             if (!expr.append_value(lhs)) {
                 expr.actual.clear();
             }
-
-            expr.success = false;
-        } else {
-            expr.success = true;
         }
 
         return expr;

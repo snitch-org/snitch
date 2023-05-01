@@ -73,6 +73,14 @@ struct assertion_failed {
     bool                      allowed  = false;
 };
 
+struct assertion_succeeded {
+    const test_id&            id;
+    section_info              sections = {};
+    capture_info              captures = {};
+    const assertion_location& location;
+    std::string_view          message = {};
+};
+
 struct test_case_skipped {
     const test_id&            id;
     section_info              sections = {};
@@ -87,6 +95,7 @@ using data = std::variant<
     test_case_started,
     test_case_ended,
     assertion_failed,
+    assertion_succeeded,
     test_case_skipped>;
 } // namespace snitch::event
 

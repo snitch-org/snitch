@@ -378,6 +378,52 @@ TEST_CASE("report CHECK", "[registry]") {
     }
 }
 
+TEST_CASE("report CHECK success", "[registry]") {
+    mock_framework framework;
+    framework.catch_success = true;
+
+    framework.registry.add({"how many fingers", "[tag]"}, []() {
+        int number_of_fingers = 5;
+        // clang-format off
+        failure_line = __LINE__; SNITCH_CHECK(number_of_fingers == 5);
+        // clang-format on
+    });
+
+    auto& test = *framework.registry.begin();
+
+    SECTION("default reporter") {
+        framework.setup_print();
+        framework.registry.run(test);
+
+        CHECK(framework.messages == contains_substring("how many fingers"));
+        CHECK(framework.messages == contains_substring("registry.cpp"));
+        CHECK(framework.messages == contains_substring("number_of_fingers == 5"));
+#if SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS
+        CHECK(framework.messages == contains_substring("5 == 5"));
+#else
+        CHECK(framework.messages != contains_substring("5 == 5"));
+#endif
+    }
+
+    SECTION("custom reporter") {
+        framework.setup_reporter();
+        framework.registry.run(test);
+
+        REQUIRE(framework.get_num_successes() == 1u);
+        auto success_opt = framework.get_success_event(0u);
+        REQUIRE(success_opt.has_value());
+        const auto& success = success_opt.value();
+        CHECK_EVENT_TEST_ID(success, test.id);
+        CHECK_EVENT_LOCATION(success, __FILE__, failure_line);
+        CHECK(success.message == contains_substring("number_of_fingers == 5"));
+#if SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS
+        CHECK(success.message == contains_substring("5 == 5"));
+#else
+        CHECK(success.message != contains_substring("5 == 5"));
+#endif
+    }
+}
+
 #if SNITCH_WITH_EXCEPTIONS
 TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     mock_framework framework;
@@ -953,6 +999,14 @@ TEST_CASE("configure", "[registry]") {
         framework.registry.configure(*input);
 
         CHECK(framework.registry.verbose == snitch::registry::verbosity::high);
+    }
+
+    SECTION("verbosity = full") {
+        const arg_vector args = {"test", "--verbosity", "full"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.verbose == snitch::registry::verbosity::full);
     }
 
     SECTION("verbosity = bad") {

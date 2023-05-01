@@ -61,8 +61,8 @@ class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
 
 public:
-    enum class verbosity { quiet, normal, high } verbose = verbosity::normal;
-    bool with_color                                      = true;
+    enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
+    bool with_color                                            = true;
 
     using print_function  = small_function<void(std::string_view) noexcept>;
     using report_function = small_function<void(const registry&, const event::data&) noexcept>;
@@ -97,18 +97,21 @@ public:
         }(type_list<T>{});
     }
 
-    void report_failure(
+    void report_assertion(
+        bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
-    void report_failure(
+    void report_assertion(
+        bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message1,
         std::string_view          message2) const noexcept;
 
-    void report_failure(
+    void report_assertion(
+        bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         const impl::expression&   exp) const noexcept;

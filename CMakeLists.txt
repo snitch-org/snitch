@@ -3,30 +3,31 @@ cmake_minimum_required(VERSION 3.19)
 project(snitch LANGUAGES CXX VERSION 1.0.0)
 
 # Maximum lengths.
-set(SNITCH_MAX_TEST_CASES              5000 CACHE STRING "Maximum number of test cases in a test application.")
-set(SNITCH_MAX_NESTED_SECTIONS         8    CACHE STRING "Maximum depth of nested sections in a test case.")
-set(SNITCH_MAX_EXPR_LENGTH             1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
-set(SNITCH_MAX_MESSAGE_LENGTH          1024 CACHE STRING "Maximum length of error or status messages.")
-set(SNITCH_MAX_TEST_NAME_LENGTH        1024 CACHE STRING "Maximum length of a test case name.")
-set(SNITCH_MAX_TAG_LENGTH              256  CACHE STRING "Maximum length of a test tag.")
-set(SNITCH_MAX_CAPTURES                8    CACHE STRING "Maximum number of captured expressions in a test case.")
-set(SNITCH_MAX_CAPTURE_LENGTH          256  CACHE STRING "Maximum length of a captured expression.")
-set(SNITCH_MAX_UNIQUE_TAGS             1024 CACHE STRING "Maximum number of unique tags in a test application.")
-set(SNITCH_MAX_COMMAND_LINE_ARGS       1024 CACHE STRING "Maximum number of command line arguments to a test application.")
+set(SNITCH_MAX_TEST_CASES        5000 CACHE STRING "Maximum number of test cases in a test application.")
+set(SNITCH_MAX_NESTED_SECTIONS   8    CACHE STRING "Maximum depth of nested sections in a test case.")
+set(SNITCH_MAX_EXPR_LENGTH       1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
+set(SNITCH_MAX_MESSAGE_LENGTH    1024 CACHE STRING "Maximum length of error or status messages.")
+set(SNITCH_MAX_TEST_NAME_LENGTH  1024 CACHE STRING "Maximum length of a test case name.")
+set(SNITCH_MAX_TAG_LENGTH        256  CACHE STRING "Maximum length of a test tag.")
+set(SNITCH_MAX_CAPTURES          8    CACHE STRING "Maximum number of captured expressions in a test case.")
+set(SNITCH_MAX_CAPTURE_LENGTH    256  CACHE STRING "Maximum length of a captured expression.")
+set(SNITCH_MAX_UNIQUE_TAGS       1024 CACHE STRING "Maximum number of unique tags in a test application.")
+set(SNITCH_MAX_COMMAND_LINE_ARGS 1024 CACHE STRING "Maximum number of command line arguments to a test application.")
 
 # Feature toggles.
-set(SNITCH_DEFINE_MAIN                 ON   CACHE BOOL   "Define main() in snitch -- disable to provide your own main() function.")
-set(SNITCH_WITH_EXCEPTIONS             ON   CACHE BOOL   "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
-set(SNITCH_WITH_TIMINGS                ON   CACHE BOOL   "Measure the time taken by each test case -- disable to speed up tests.")
-set(SNITCH_WITH_SHORTHAND_MACROS       ON   CACHE BOOL   "Use short names for test macros -- disable if this causes conflicts.")
-set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST ON   CACHE BOOL   "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")
-set(SNITCH_DEFAULT_WITH_COLOR          ON   CACHE BOOL   "Enable terminal colors by default -- can also be controlled by command line interface.")
+set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
+set(SNITCH_WITH_EXCEPTIONS                 ON  CACHE BOOL "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
+set(SNITCH_WITH_TIMINGS                    ON  CACHE BOOL "Measure the time taken by each test case -- disable to speed up tests.")
+set(SNITCH_WITH_SHORTHAND_MACROS           ON  CACHE BOOL "Use short names for test macros -- disable if this causes conflicts.")
+set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST     ON  CACHE BOOL "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")
+set(SNITCH_DEFAULT_WITH_COLOR              ON  CACHE BOOL "Enable terminal colors by default -- can also be controlled by command line interface.")
+set(SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS OFF CACHE BOOL "Enable expression decomposition even for successful assertions -- more expensive.")
 
 # Building and packaging options; not part of the library API.
-set(SNITCH_CREATE_HEADER_ONLY          ON   CACHE BOOL   "Create a single-header header-only version of snitch.")
-set(SNITCH_CREATE_LIBRARY              ON   CACHE BOOL   "Build a compiled library version of snitch.")
-set(SNITCH_UNITY_BUILD                 ON   CACHE BOOL   "Build sources as single file instead of separate files (faster full build).")
-set(SNITCH_DO_TEST                     OFF  CACHE BOOL   "Build tests.")
+set(SNITCH_CREATE_HEADER_ONLY ON  CACHE BOOL "Create a single-header header-only version of snitch.")
+set(SNITCH_CREATE_LIBRARY     ON  CACHE BOOL "Build a compiled library version of snitch.")
+set(SNITCH_UNITY_BUILD        ON  CACHE BOOL "Build sources as single file instead of separate files (faster full build).")
+set(SNITCH_DO_TEST            OFF CACHE BOOL "Build tests.")
 
 # Figure out git hash, if any
 execute_process(
@@ -74,21 +75,23 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
     ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)
 
+set(SNITCH_SOURCES_INDIVIDUAL
+    ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
+
 if (SNITCH_UNITY_BUILD)
     set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
 else()
-    set(SNITCH_SOURCES
-        ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
-        ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
+    set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
 endif()
 
 if (SNITCH_CREATE_LIBRARY)
@@ -122,6 +125,7 @@ if (SNITCH_CREATE_HEADER_ONLY)
         DEPENDS
             ${SNITCH_INCLUDES}
             ${PROJECT_SOURCE_DIR}/src/snitch.cpp
+            ${SNITCH_SOURCES_INDIVIDUAL}
             ${PROJECT_SOURCE_DIR}/make_snitch_all.py)
 
     add_library(snitch-header-only INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
