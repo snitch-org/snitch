@@ -63,6 +63,8 @@ TEST_CASE("skip", "[test macros]") {
         framework.test_case.func = []() {
             SNITCH_SKIP_CHECK("hello");
             SNITCH_FAIL_CHECK("trigger");
+            SNITCH_CHECK(1 == 2);
+            SNITCH_CHECK_THAT("hello"sv, snitch::matchers::contains_substring{"world"sv});
         };
 
         framework.run_test();
