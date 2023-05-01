@@ -459,6 +459,11 @@ This is similar to `FAIL`, except that the test case continues. Further failures
 This reports the current test case as "skipped". Any previously reported status for this test case is ignored. The current test case is stopped. Execution then continues with the next test case, if any.
 
 
+`SKIP_CHECK(MSG);`
+
+This is similar to `SKIP`, except that the test case continues. Further failure will not be reported. This is only recommended as an alternative to `SKIP()` when exceptions cannot be used.
+
+
 ### Tags
 
 Tags are assigned to each test case using the [Test case macros](#test-case-macros), as a single string. Within this string, individual tags must be surrounded by square brackets, with no white-space between tags (although white space within a tag is allowed). For example:

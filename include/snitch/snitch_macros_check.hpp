@@ -94,6 +94,7 @@
 #    define FAIL(MESSAGE)       SNITCH_FAIL(MESSAGE)
 #    define FAIL_CHECK(MESSAGE) SNITCH_FAIL_CHECK(MESSAGE)
 #    define SKIP(MESSAGE)       SNITCH_SKIP(MESSAGE)
+#    define SKIP_CHECK(MESSAGE) SNITCH_SKIP_CHECK(MESSAGE)
 
 #    define REQUIRE(...)           SNITCH_REQUIRE(__VA_ARGS__)
 #    define CHECK(...)             SNITCH_CHECK(__VA_ARGS__)
