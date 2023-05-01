@@ -61,12 +61,13 @@ struct mock_framework {
     void run_test();
 
     std::optional<event_deep_copy> get_failure_event(std::size_t id = 0) const;
-
+    std::optional<event_deep_copy> get_success_event(std::size_t id = 0) const;
     std::optional<event_deep_copy> get_skip_event() const;
 
     std::size_t get_num_registered_tests() const;
     std::size_t get_num_runs() const;
     std::size_t get_num_failures() const;
+    std::size_t get_num_successes() const;
     std::size_t get_num_skips() const;
 };
 

@@ -170,6 +170,10 @@ std::optional<event_deep_copy> mock_framework::get_failure_event(std::size_t id)
     return get_event(events, event_deep_copy::type::assertion_failed, id);
 }
 
+std::optional<event_deep_copy> mock_framework::get_success_event(std::size_t id) const {
+    return get_event(events, event_deep_copy::type::assertion_succeeded, id);
+}
+
 std::optional<event_deep_copy> mock_framework::get_skip_event() const {
     return get_event(events, event_deep_copy::type::test_case_skipped, 0u);
 }
@@ -184,6 +188,10 @@ std::size_t mock_framework::get_num_runs() const {
 
 std::size_t mock_framework::get_num_failures() const {
     return count_events(events, event_deep_copy::type::assertion_failed);
+}
+
+std::size_t mock_framework::get_num_successes() const {
+    return count_events(events, event_deep_copy::type::assertion_succeeded);
 }
 
 std::size_t mock_framework::get_num_skips() const {
