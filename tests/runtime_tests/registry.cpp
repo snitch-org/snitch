@@ -955,6 +955,14 @@ TEST_CASE("configure", "[registry]") {
         CHECK(framework.registry.verbose == snitch::registry::verbosity::high);
     }
 
+    SECTION("verbosity = full") {
+        const arg_vector args = {"test", "--verbosity", "full"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.verbose == snitch::registry::verbosity::full);
+    }
+
     SECTION("verbosity = bad") {
         const arg_vector args = {"test", "--verbosity", "bad"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
