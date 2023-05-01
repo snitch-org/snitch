@@ -11,23 +11,24 @@ conf_data = configuration_data({
 
   'SNITCH_FULL_VERSION' : version + '.' + git_hash,
 
-  'SNITCH_MAX_TEST_CASES'              : get_option('max_test_cases'),
-  'SNITCH_MAX_NESTED_SECTIONS'         : get_option('max_nested_sections'),
-  'SNITCH_MAX_EXPR_LENGTH'             : get_option('max_expr_length'),
-  'SNITCH_MAX_MESSAGE_LENGTH'          : get_option('max_message_length'),
-  'SNITCH_MAX_TEST_NAME_LENGTH'        : get_option('max_test_name_length'),
-  'SNITCH_MAX_TAG_LENGTH'              : get_option('max_tag_length'),
-  'SNITCH_MAX_CAPTURES'                : get_option('max_captures'),
-  'SNITCH_MAX_CAPTURE_LENGTH'          : get_option('max_capture_length'),
-  'SNITCH_MAX_UNIQUE_TAGS'             : get_option('max_unique_tags'),
-  'SNITCH_MAX_COMMAND_LINE_ARGS'       : get_option('max_command_line_args'),
+  'SNITCH_MAX_TEST_CASES'        : get_option('max_test_cases'),
+  'SNITCH_MAX_NESTED_SECTIONS'   : get_option('max_nested_sections'),
+  'SNITCH_MAX_EXPR_LENGTH'       : get_option('max_expr_length'),
+  'SNITCH_MAX_MESSAGE_LENGTH'    : get_option('max_message_length'),
+  'SNITCH_MAX_TEST_NAME_LENGTH'  : get_option('max_test_name_length'),
+  'SNITCH_MAX_TAG_LENGTH'        : get_option('max_tag_length'),
+  'SNITCH_MAX_CAPTURES'          : get_option('max_captures'),
+  'SNITCH_MAX_CAPTURE_LENGTH'    : get_option('max_capture_length'),
+  'SNITCH_MAX_UNIQUE_TAGS'       : get_option('max_unique_tags'),
+  'SNITCH_MAX_COMMAND_LINE_ARGS' : get_option('max_command_line_args'),
 
-  'SNITCH_DEFINE_MAIN'                 : get_option('define_main').to_int(),
-  'SNITCH_WITH_EXCEPTIONS'             : get_option('with_exceptions').to_int(),
-  'SNITCH_WITH_TIMINGS'                : get_option('with_timings').to_int(),
-  'SNITCH_WITH_SHORTHAND_MACROS'       : get_option('with_shorthand_macros').to_int(),
-  'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST' : get_option('constexpr_float_use_bitcast').to_int(),
-  'SNITCH_DEFAULT_WITH_COLOR'          : get_option('default_with_color').to_int()
+  'SNITCH_DEFINE_MAIN'                     : get_option('define_main').to_int(),
+  'SNITCH_WITH_EXCEPTIONS'                 : get_option('with_exceptions').to_int(),
+  'SNITCH_WITH_TIMINGS'                    : get_option('with_timings').to_int(),
+  'SNITCH_WITH_SHORTHAND_MACROS'           : get_option('with_shorthand_macros').to_int(),
+  'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST'     : get_option('constexpr_float_use_bitcast').to_int(),
+  'SNITCH_DEFAULT_WITH_COLOR'              : get_option('default_with_color').to_int(),
+  'SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS' : get_option('decompose_successful_assertions').to_int()
 })
 
 conf_file = configure_file(

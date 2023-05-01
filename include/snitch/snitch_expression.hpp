@@ -154,7 +154,7 @@ struct extracted_binary_expression {
         const bool actual = O{}(lhs, rhs);
         expr.success      = (actual == Expected);
 
-        if (!expr.success) {
+        if (!expr.success || SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS) {
             if constexpr (matcher_for<T, U>) {
                 using namespace snitch::matchers;
                 const auto status = std::is_same_v<O, operator_equal> == actual
@@ -253,7 +253,7 @@ struct extracted_unary_expression {
 
         expr.success = (static_cast<bool>(lhs) == Expected);
 
-        if (!expr.success) {
+        if (!expr.success || SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS) {
             if (!expr.append_value(lhs)) {
                 expr.actual.clear();
             }
