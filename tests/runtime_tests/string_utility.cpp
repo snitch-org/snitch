@@ -105,7 +105,7 @@ constexpr bool append(snitch::small_string_span s, const append_expected_diff& r
 #endif
 } // namespace append_test
 
-TEST_CASE("append", "[utility]") {
+TEST_CASE("append misc", "[utility]") {
     using ae  = append_test::append_expected;
     using aed = append_test::append_expected_diff;
 
@@ -199,6 +199,11 @@ TEST_CASE("append", "[utility]") {
         CONSTEXPR_CHECK(a(nullptr) == ae{"nullp"sv, false});
         CONSTEXPR_CHECK(a(b{}.get()) == aed{{"0x???"sv, false}, {"0x"sv, false, true}});
     }
+}
+
+TEST_CASE("append ints", "[utility]") {
+    using ae  = append_test::append_expected;
+    using aed = append_test::append_expected_diff;
 
     SECTION("integers do fit") {
         constexpr auto a = [](const auto& value) constexpr {
@@ -296,6 +301,11 @@ TEST_CASE("append", "[utility]") {
         // therefore we loose one character at the end.
         CONSTEXPR_CHECK(a(enum_type::value3) == aed{{"123", false}, {"12", false}});
     }
+}
+
+TEST_CASE("append floats", "[utility]") {
+    using ae  = append_test::append_expected;
+    using aed = append_test::append_expected_diff;
 
     SECTION("floats do fit") {
         constexpr auto a = [](const auto& value) constexpr {
