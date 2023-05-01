@@ -412,6 +412,11 @@ TEST_CASE("append floats", "[utility]") {
         std::cout << static_cast<double>(b) / static_cast<double>(k) << std::endl;
     }
 #endif
+}
+
+TEST_CASE("append doubles", "[utility]") {
+    using ae  = append_test::append_expected;
+    using aed = append_test::append_expected_diff;
 
     SECTION("doubles do fit") {
         constexpr auto a = [](const auto& value) constexpr {
