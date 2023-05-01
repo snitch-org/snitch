@@ -215,92 +215,99 @@ void print_location(
         r.print("          with ", make_colored(capture, r.with_color, color::highlight1), "\n");
     }
 }
+
+struct default_reporter_functor {
+    const registry& r;
+
+    void operator()(const snitch::event::test_run_started& e) const noexcept {
+        r.print(
+            make_colored("starting ", r.with_color, color::highlight2),
+            make_colored(e.name, r.with_color, color::highlight1),
+            make_colored(" with ", r.with_color, color::highlight2),
+            make_colored("snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
+        r.print("==========================================\n");
+    }
+
+    void operator()(const snitch::event::test_run_ended& e) const noexcept {
+        r.print("==========================================\n");
+
+        if (e.success) {
+            r.print(
+                make_colored("success:", r.with_color, color::pass), " all tests passed (",
+                e.run_count, " test cases, ", e.assertion_count, " assertions");
+        } else {
+            r.print(
+                make_colored("error:", r.with_color, color::fail), " some tests failed (",
+                e.fail_count, " out of ", e.run_count, " test cases, ", e.assertion_count,
+                " assertions");
+        }
+
+        if (e.skip_count > 0) {
+            r.print(", ", e.skip_count, " test cases skipped");
+        }
+
+#if SNITCH_WITH_TIMINGS
+        r.print(", ", e.duration, " seconds");
+#endif
+
+        r.print(")\n");
+    }
+
+    void operator()(const snitch::event::test_case_started& e) const noexcept {
+        small_string<max_test_name_length> full_name;
+        make_full_name(full_name, e.id);
+
+        r.print(
+            make_colored("starting:", r.with_color, color::status), " ",
+            make_colored(full_name, r.with_color, color::highlight1));
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::test_case_ended& e) const noexcept {
+        small_string<max_test_name_length> full_name;
+        make_full_name(full_name, e.id);
+
+#if SNITCH_WITH_TIMINGS
+        r.print(
+            make_colored("finished:", r.with_color, color::status), " ",
+            make_colored(full_name, r.with_color, color::highlight1), " (", e.duration, "s)");
+#else
+        r.print(
+            make_colored("finished:", r.with_color, color::status), " ",
+            make_colored(full_name, r.with_color, color::highlight1));
+#endif
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::test_case_skipped& e) const noexcept {
+        r.print(make_colored("skipped: ", r.with_color, color::skipped));
+        print_location(r, e.id, e.sections, e.captures, e.location);
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::assertion_failed& e) const noexcept {
+        if (e.expected) {
+            r.print(make_colored("expected failure: ", r.with_color, color::pass));
+        } else {
+            r.print(make_colored("failed: ", r.with_color, color::fail));
+        }
+        print_location(r, e.id, e.sections, e.captures, e.location);
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        r.print("\n");
+    }
+
+    void operator()(const snitch::event::assertion_succeeded& e) const noexcept {
+        r.print(make_colored("passed: ", r.with_color, color::pass));
+        print_location(r, e.id, e.sections, e.captures, e.location);
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        r.print("\n");
+    }
+};
 } // namespace
 
 void default_reporter(const registry& r, const event::data& event) noexcept {
-    std::visit(
-        snitch::overload{
-            [&](const snitch::event::test_run_started& e) {
-                r.print(
-                    make_colored("starting ", r.with_color, color::highlight2),
-                    make_colored(e.name, r.with_color, color::highlight1),
-                    make_colored(" with ", r.with_color, color::highlight2),
-                    make_colored(
-                        "snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
-                r.print("==========================================\n");
-            },
-            [&](const snitch::event::test_run_ended& e) {
-                r.print("==========================================\n");
-
-                if (e.success) {
-                    r.print(
-                        make_colored("success:", r.with_color, color::pass), " all tests passed (",
-                        e.run_count, " test cases, ", e.assertion_count, " assertions");
-                } else {
-                    r.print(
-                        make_colored("error:", r.with_color, color::fail), " some tests failed (",
-                        e.fail_count, " out of ", e.run_count, " test cases, ", e.assertion_count,
-                        " assertions");
-                }
-
-                if (e.skip_count > 0) {
-                    r.print(", ", e.skip_count, " test cases skipped");
-                }
-
-#if SNITCH_WITH_TIMINGS
-                r.print(", ", e.duration, " seconds");
-#endif
-
-                r.print(")\n");
-            },
-            [&](const snitch::event::test_case_started& e) {
-                small_string<max_test_name_length> full_name;
-                make_full_name(full_name, e.id);
-
-                r.print(
-                    make_colored("starting:", r.with_color, color::status), " ",
-                    make_colored(full_name, r.with_color, color::highlight1));
-                r.print("\n");
-            },
-            [&](const snitch::event::test_case_ended& e) {
-                small_string<max_test_name_length> full_name;
-                make_full_name(full_name, e.id);
-
-#if SNITCH_WITH_TIMINGS
-                r.print(
-                    make_colored("finished:", r.with_color, color::status), " ",
-                    make_colored(full_name, r.with_color, color::highlight1), " (", e.duration,
-                    "s)");
-#else
-                r.print(
-                    make_colored("finished:", r.with_color, color::status), " ",
-                    make_colored(full_name, r.with_color, color::highlight1));
-#endif
-                r.print("\n");
-            },
-            [&](const snitch::event::test_case_skipped& e) {
-                r.print(make_colored("skipped: ", r.with_color, color::skipped));
-                print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-                r.print("\n");
-            },
-            [&](const snitch::event::assertion_failed& e) {
-                if (e.expected) {
-                    r.print(make_colored("expected failure: ", r.with_color, color::pass));
-                } else {
-                    r.print(make_colored("failed: ", r.with_color, color::fail));
-                }
-                print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-                r.print("\n");
-            },
-            [&](const snitch::event::assertion_succeeded& e) {
-                r.print(make_colored("passed: ", r.with_color, color::pass));
-                print_location(r, e.id, e.sections, e.captures, e.location);
-                r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-                r.print("\n");
-            }},
-        event);
+    std::visit(default_reporter_functor{r}, event);
 }
 } // namespace snitch::impl
 
