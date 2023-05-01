@@ -420,37 +420,27 @@ void registry::report_assertion(
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
+    small_string<max_message_length> message_buffer;
+    std::string_view                 message;
     if (!exp.actual.empty()) {
-        small_string<max_message_length> message;
-        append_or_truncate(message, exp.expected, ", got ", exp.actual);
+        append_or_truncate(message_buffer, exp.expected, ", got ", exp.actual);
+        message = message_buffer.str();
+    } else {
+        message = exp.expected;
+    }
 
-        if (success) {
-            if (impl::is_at_least(verbose, registry::verbosity::full)) {
-                report_callback(
-                    *this, event::assertion_succeeded{
-                               state.test.id, state.sections.current_section,
-                               captures_buffer.span(), location, message});
-            }
-        } else {
+    if (success) {
+        if (impl::is_at_least(verbose, registry::verbosity::full)) {
             report_callback(
-                *this, event::assertion_failed{
+                *this, event::assertion_succeeded{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message, state.should_fail, state.may_fail});
+                           location, message});
         }
     } else {
-        if (success) {
-            if (impl::is_at_least(verbose, registry::verbosity::full)) {
-                report_callback(
-                    *this, event::assertion_succeeded{
-                               state.test.id, state.sections.current_section,
-                               captures_buffer.span(), location, exp.expected});
-            }
-        } else {
-            report_callback(
-                *this, event::assertion_failed{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, exp.expected, state.should_fail, state.may_fail});
-        }
+        report_callback(
+            *this, event::assertion_failed{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message, state.should_fail, state.may_fail});
     }
 }
 
