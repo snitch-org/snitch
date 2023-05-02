@@ -66,6 +66,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_utility.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_warnings.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_matcher.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_registry.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_section.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
