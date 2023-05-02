@@ -1,7 +1,13 @@
 version = meson.project_version()
 vers = version.split('.')
 
-git_hash = run_command(find_program('git'), 'log', '-1', '--format=%h', check:true).stdout().strip()
+git_command = run_command(find_program('git'), 'log', '-1', '--format=%h', check: false)
+if git_command.returncode() == 0
+  git_hash = git_command.stdout().strip()
+  full_version = version + '.' + git_hash
+else
+  full_version = version
+endif
 
 conf_data = configuration_data({
   'PROJECT_VERSION'       : version,
@@ -9,7 +15,7 @@ conf_data = configuration_data({
   'PROJECT_VERSION_MINOR' : vers[1],
   'PROJECT_VERSION_PATCH' : vers[2],
 
-  'SNITCH_FULL_VERSION' : version + '.' + git_hash,
+  'SNITCH_FULL_VERSION' : full_version,
 
   'SNITCH_MAX_TEST_CASES'        : get_option('max_test_cases'),
   'SNITCH_MAX_NESTED_SECTIONS'   : get_option('max_nested_sections'),
