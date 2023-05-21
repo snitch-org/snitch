@@ -40,7 +40,6 @@ struct test_run_started {
 
 struct test_run_ended {
     std::string_view name            = {};
-    bool             success         = true;
     std::size_t      run_count       = 0;
     std::size_t      fail_count      = 0;
     std::size_t      skip_count      = 0;
@@ -48,6 +47,7 @@ struct test_run_ended {
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
+    bool success = true;
 };
 
 struct test_case_started {
@@ -56,8 +56,8 @@ struct test_case_started {
 
 struct test_case_ended {
     const test_id&  id;
-    test_case_state state           = test_case_state::success;
     std::size_t     assertion_count = 0;
+    test_case_state state           = test_case_state::success;
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
