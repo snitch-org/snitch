@@ -442,6 +442,16 @@ This is similar to `REQUIRE_THROWS_AS`, but further checks the content of the ex
 This is similar to `REQUIRE_THROWS_MATCHES`, except that on failure the test case continues. Further failures may be reported in the same test case.
 
 
+`REQUIRE_NOTHROW(EXPR);`
+
+This evaluates the expression `EXPR` inside a `try/catch` block. If an exception is thrown, then this reports a test failure. On failure, the current test case is stopped. Execution then continues with the next test case, if any.
+
+
+`CHECK_NOTHROW(EXPR);`
+
+This is similar to `REQUIRE_NOTHROW`, except that on failure the test case continues. Further failures may be reported in the same test case.
+
+
 #### Miscellaneous
 
 `FAIL(MSG);`

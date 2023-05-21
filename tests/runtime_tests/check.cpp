@@ -1678,4 +1678,66 @@ TEST_CASE("check throws matches", "[test macros]") {
             "could not match caught std::exception with expected content: could not find 'exception1' in 'exception2'"sv);
     }
 }
+
+namespace {
+[[nodiscard]] int nodiscard_function() {
+    return 1;
+}
+} // namespace
+
+TEST_CASE("check nothrow", "[test macros]") {
+    event_catcher<1> catcher;
+
+    SECTION("pass void") {
+        {
+            test_override override(catcher);
+            auto          fun = [] {};
+            SNITCH_CHECK_NOTHROW(fun());
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("pass int [[nodiscard]]") {
+        {
+            test_override override(catcher);
+            SNITCH_CHECK_NOTHROW(nodiscard_function());
+        }
+
+        CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail std::exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun = []() { throw my_exception{}; };
+            // clang-format off
+            SNITCH_CHECK_NOTHROW(fun()); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "expected fun() not to throw but it threw a std::exception; message: exception1"sv);
+    }
+
+    SECTION("fail other exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun = []() { throw 1; };
+            // clang-format off
+            SNITCH_CHECK_NOTHROW(fun()); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line,
+            "expected fun() not to throw but it threw an unknown exception"sv);
+    }
+}
+
 #endif
