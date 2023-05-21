@@ -32,7 +32,7 @@
 | - `REQUIRE_THROWS_AS` / `CHECK_THROWS_AS`           | Yes           | Done         |
 | - `REQUIRE_THROWS_WITH` / `CHECK_THROWS_WITH`       | No            | Maybe        |
 | - `REQUIRE_THROWS_MATCHES` / `CHECK_THROWS_MATCHES` | Yes           | Done         |
-| - `REQUIRE_NOTHROW` / `CHECK_NOTHROW`               | No            | Maybe        |
+| - `REQUIRE_NOTHROW` / `CHECK_NOTHROW`               | Yes           | Done         |
 | - `STATIC_REQUIRE` / `STATIC_CHECK`                 | Sort of (8)   | Done         |
 | - `CHECK_NOFAIL`                                    | No            | Maybe        |
 | - `SUCCEED`                                         | No            | Maybe        |
