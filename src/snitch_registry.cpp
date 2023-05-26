@@ -557,15 +557,15 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         report_callback(
             *this, event::test_case_ended{
                        .id              = test.id,
-                       .state           = impl::convert_to_public_state(state.test.state),
                        .assertion_count = state.asserts,
+                       .state           = impl::convert_to_public_state(state.test.state),
                        .duration        = state.duration});
 #else
         report_callback(
             *this, event::test_case_ended{
                        .id              = test.id,
-                       .state           = impl::convert_to_public_state(state.test.state),
-                       .assertion_count = state.asserts});
+                       .assertion_count = state.asserts,
+                       .state           = impl::convert_to_public_state(state.test.state)});
 #endif
     }
 
@@ -634,21 +634,22 @@ bool registry::run_selected_tests(
         report_callback(
             *this, event::test_run_ended{
                        .name            = run_name,
-                       .success         = success,
                        .run_count       = run_count,
                        .fail_count      = fail_count,
                        .skip_count      = skip_count,
                        .assertion_count = assertion_count,
-                       .duration        = duration});
+                       .duration        = duration,
+                       .success         = success,
+                   });
 #else
         report_callback(
             *this, event::test_run_ended{
                        .name            = run_name,
-                       .success         = success,
                        .run_count       = run_count,
                        .fail_count      = fail_count,
                        .skip_count      = skip_count,
-                       .assertion_count = assertion_count});
+                       .assertion_count = assertion_count,
+                       .success         = success});
 #endif
     }
 
