@@ -19,7 +19,7 @@ struct assertion_exception : public std::exception {
 struct assertion_exception_enabler {
     snitch::small_function<void(std::string_view)> prev_handler;
 
-    assertion_exception_enabler() : prev_handler(&snitch::impl::stdout_print) {
+    assertion_exception_enabler() : prev_handler(snitch::assertion_failed_handler) {
         snitch::assertion_failed_handler = [](std::string_view msg) {
             throw assertion_exception(msg);
         };
