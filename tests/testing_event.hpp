@@ -75,7 +75,7 @@ struct console_output_catcher {
     snitch::small_string<4086>                              messages = {};
     snitch::small_function<void(std::string_view) noexcept> prev_print;
 
-    console_output_catcher() : prev_print(&snitch::impl::stdout_print) {
+    console_output_catcher() : prev_print(snitch::cli::console_print) {
         snitch::cli::console_print = {*this, snitch::constant<&console_output_catcher::print>{}};
     }
 
