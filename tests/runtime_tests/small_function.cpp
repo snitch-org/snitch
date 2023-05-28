@@ -163,5 +163,30 @@ TEMPLATE_TEST_CASE(
             }
             CHECK(test_object_instances <= expected_instances);
         }
+
+        SECTION("from other function") {
+            snitch::small_function<TestType> f1 = &test_class<TestType>::method_static;
+            snitch::small_function<TestType> f2(f1);
+
+            call_function(f1);
+
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 44);
+            }
+            CHECK(test_object_instances <= expected_instances);
+
+            test_object_instances = 0u;
+            return_value          = 0u;
+            function_called       = false;
+
+            call_function(f2);
+
+            CHECK(function_called);
+            if (!std::is_same_v<R, void>) {
+                CHECK(return_value == 44);
+            }
+            CHECK(test_object_instances <= expected_instances);
+        }
     }(type_holder<TestType>{});
 }
