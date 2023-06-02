@@ -58,7 +58,7 @@ If you need features that are not in the list above, please use _Catch2_ or _doc
 
 Notable current limitations:
 
- - No multi-threaded test execution yet; the code is thread-friendly, this is just not implemented.
+ - No multithreaded test execution yet; the code is thread-friendly, this is just not implemented.
 
 Supported compilers:
 
@@ -215,7 +215,7 @@ And this disables the build step that generates the single-header file "`snitch_
 
 ## Benchmark
 
-The following benchmarks were done using real-world tests from another library ([_observable_unique_ptr_](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were ran on a desktop with the following specs:
+The following benchmarks were done using real-world tests from another library ([_observable_unique_ptr_](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were run on a desktop with the following specs:
  - OS: Linux Mint 20.3, linux kernel 5.15.0-56-generic.
  - CPU: AMD Ryzen 5 2600 (6 core).
  - RAM: 16GB.
@@ -266,7 +266,7 @@ Notes:
 
 ### Detailed comparison with _Catch2_
 
-See [the dedicated page in the docs folder](doc/comparison_catch2.md) for a break down of _Catch2_ features and their implementation status in _snitch_.
+See [the dedicated page in the docs folder](doc/comparison_catch2.md) for a breakdown of _Catch2_ features and their implementation status in _snitch_.
 
 Given that _snitch_ mostly offers a subset of the _Catch2_ API, why would anyone want to use it over _Catch2_?
 
@@ -678,7 +678,7 @@ failed: running test case "test with many captures"
           CHECK(std::abs(std::cos(i * 3.14159 / 10)) > 0.4), got 0.000001 <= 0.400000
 ```
 
-The only requirement is that the captured variable or expression must of a type that _snitch_ can serialize to a string. See [Custom string serialization](#custom-string-serialization) for more information.
+The only requirement is that the captured variable or expression must be of a type that _snitch_ can serialize to a string. See [Custom string serialization](#custom-string-serialization) for more information.
 
 A more free-form way to add context to the tests is to use `INFO(...)`. The parameters to this macro will be serialized together to form a single string, which will be appended as one capture. This can be combined with `CAPTURE()`. For example:
 
@@ -712,9 +712,9 @@ failed: running test case "test with info"
 
 ### Custom string serialization
 
-When the _snitch_ framework needs to serialize a value to a string, it does so with the free function `append(span, value)`, where `span` is a `snitch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what builtin functions do.
+When the _snitch_ framework needs to serialize a value to a string, it does so with the free function `append(span, value)`, where `span` is a `snitch::small_string_span`, and `value` is the value to serialize. The function must return a boolean, equal to `true` if the serialization was successful, or `false` if there was not enough room in the output string to store the complete textual representation of the value. On failure, it is recommended to write as many characters as possible, and just truncate the output; this is what built-in functions do.
 
-Builtin serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
+Built-in serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
 
 If you want to serialize custom types not supported out of the box by _snitch_, you need to provide your own `append()` function. This function must be placed in the same namespace as your custom type or in the `snitch` namespace, so it can be found by ADL. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
 
@@ -943,7 +943,7 @@ With meson, the `snitch_dep` dependency works for both library and header-only u
 
 `snitch_all.hpp` is the only header required to use the library; other headers may be provided for convenience functions (e.g., reporters for common CI frameworks) and these must still be included separately.
 
-To use _snitch_ as header-only in your code, simply include `snitch_all.hpp` instead of `snitch.hpp`. Then, one of your file must include the _snitch_ implementation. This can be done with a `.cpp` file containing only the following:
+To use _snitch_ as header-only in your code, simply include `snitch_all.hpp` instead of `snitch.hpp`. Then, one of your files must include the _snitch_ implementation. This can be done with a `.cpp` file containing only the following:
 
 ```c++
 #define SNITCH_IMPLEMENTATION
