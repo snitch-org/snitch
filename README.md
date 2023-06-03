@@ -49,7 +49,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - No external dependency; just pure C++20 with the STL.
  - Compiles template-heavy tests at least 50% faster than other testing frameworks (see Release [benchmarks](#benchmark)).
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
- - Limited subset of the [_Catch2_](https://github.com/catchorg/_Catch2_) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
+ - Limited subset of the [_Catch2_](https://github.com/catchorg/Catch2) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Matchers use a different API (see [Matchers](#matchers) below).
    - Additional macros for testing [`constexpr`](#run-time-and-compile-time) and [`consteval`](#compile-time) expressions.
