@@ -90,7 +90,7 @@
 **Notes:**
  1. Support for hidden tests (`[.]` or `[.tag]`), `[!mayfail]`, and `[!shouldfail]` only.
  2. No streaming in _snitch_. For example, `INFO("the number is " << i)` is not supported. Supporting this is not on the roadmap.
- 3. See [the README](README.md#matchers) for differences between _Catch2_ and _snitch_ matchers.
+ 3. See [the README](/README.md#matchers) for differences between _Catch2_ and _snitch_ matchers.
  4. Spelled `snitch::matchers::contains_substring`.
  5. Spelled `snitch::matchers::with_what_contains`, and does substring matching (not exact matching). It does not require the exception type to inherit from `std::exception`, just to have a member function `what()` that returns an object convertible to `std::string_view`.
  6. Supported only in a limited form; use `registry::report_callback` and set it up to call all your event listeners, as needed. Improving this is not on the roadmap.
