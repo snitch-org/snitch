@@ -163,7 +163,7 @@ set_precision(signed_fixed_data fd, std::size_t p) noexcept {
 
     const std::size_t exp_digits = num_exp_digits(fd.exponent);
 
-    // The exponent has a unsigned_fixed size, so we can start by writing the main digits.
+    // The exponent has a fixed size, so we can start by writing the main digits.
     // We write the digits with always a single digit before the decimal separator,
     // and the rest as fractional part. This will require adjusting the value of
     // the exponent later.
