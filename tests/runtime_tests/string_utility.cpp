@@ -161,6 +161,14 @@ TEST_CASE("append misc", "[utility]") {
         CONSTEXPR_CHECK(a(nullptr) == ae{"nul"sv, false});
     }
 
+    SECTION("nullptr const char*") {
+        constexpr auto a = [](const char* value) constexpr {
+            return append_test::to_string<3, true>(value);
+        };
+
+        CONSTEXPR_CHECK(a(nullptr) == ae{"nul"sv, false});
+    }
+
     SECTION("pointers do fit") {
         constexpr auto a = [](const auto& value) constexpr {
             return append_test::to_string<21, true>(static_cast<void*>(value));

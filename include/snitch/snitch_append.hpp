@@ -323,15 +323,15 @@ namespace snitch {
 
 template<typename T>
 [[nodiscard]] constexpr bool append(small_string_span ss, T* ptr) noexcept {
+    if (ptr == nullptr) {
+        return append(ss, nullptr);
+    }
+
     if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
         return append(ss, std::string_view(ptr));
     } else if constexpr (std::is_function_v<T>) {
-        if (ptr != nullptr) {
-            constexpr std::string_view function_ptr_str = "0x????????";
-            return append(ss, function_ptr_str);
-        } else {
-            return append(ss, nullptr);
-        }
+        constexpr std::string_view function_ptr_str = "0x????????";
+        return append(ss, function_ptr_str);
     } else {
         return append(ss, static_cast<const void*>(ptr));
     }
