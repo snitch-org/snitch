@@ -321,27 +321,6 @@ namespace snitch {
     return append(ss, value ? true_str : false_str);
 }
 
-template<typename T>
-[[nodiscard]] constexpr bool append(small_string_span ss, T* ptr) noexcept {
-    if (ptr == nullptr) {
-        return append(ss, nullptr);
-    }
-
-    if constexpr (std::is_same_v<std::remove_cv_t<T>, char>) {
-        return append(ss, std::string_view(ptr));
-    } else if constexpr (std::is_function_v<T>) {
-        constexpr std::string_view function_ptr_str = "0x????????";
-        return append(ss, function_ptr_str);
-    } else {
-        return append(ss, static_cast<const void*>(ptr));
-    }
-}
-
-template<std::size_t N>
-[[nodiscard]] constexpr bool append(small_string_span ss, const char str[N]) noexcept {
-    return append(ss, std::string_view(str));
-}
-
 template<signed_integral T>
 [[nodiscard]] constexpr bool append(small_string_span ss, T value) noexcept {
     return append(ss, static_cast<large_int_t>(value));
@@ -357,9 +336,25 @@ template<enumeration T>
     return append(ss, static_cast<std::underlying_type_t<T>>(value));
 }
 
-template<convertible_to<std::string_view> T>
-[[nodiscard]] constexpr bool append(small_string_span ss, const T& value) noexcept {
-    return append(ss, std::string_view(value));
+template<typename T>
+    requires(raw_string<T> || pointer<T> || function_pointer<T> || member_function_pointer<T>)
+[[nodiscard]] constexpr bool append(small_string_span ss, T&& value) noexcept {
+    if constexpr (raw_string<T>) {
+        return append(ss, std::string_view(value, std::extent_v<impl::decay_object<T>> - 1u));
+    } else {
+        if (value == nullptr) {
+            return append(ss, nullptr);
+        }
+
+        if constexpr (function_pointer<T> || member_function_pointer<T>) {
+            constexpr std::string_view function_ptr_str = "0x????????";
+            return append(ss, function_ptr_str);
+        } else if constexpr (std::is_same_v<impl::decay_object<T>, const char*>) {
+            return append(ss, std::string_view(value));
+        } else {
+            return append(ss, static_cast<const void*>(value));
+        }
+    }
 }
 
 template<typename T>
