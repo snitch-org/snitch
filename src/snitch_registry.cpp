@@ -725,18 +725,43 @@ bool registry::run_tests(const cli::input& args) noexcept {
     }
 }
 
+namespace {
+void parse_colour_mode_option(registry& reg, std::string_view color_option) {
+    if (color_option == "ansi") {
+        reg.with_color = true;
+    } else if (color_option == "none") {
+        reg.with_color = false;
+    } else if (color_option == "default") {
+        // Nothing to do.
+    } else {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", reg.with_color, color::warning),
+            " unknown color directive; please use one of ansi|default|none\n");
+    }
+}
+
+void parse_color_option(registry& reg, std::string_view color_option) {
+    if (color_option == "always") {
+        reg.with_color = true;
+    } else if (color_option == "never") {
+        reg.with_color = false;
+    } else {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", reg.with_color, color::warning),
+            " unknown color directive; please use one of always|never\n");
+    }
+}
+} // namespace
+
 void registry::configure(const cli::input& args) noexcept {
+    if (auto opt = get_option(args, "--colour-mode")) {
+        parse_colour_mode_option(*this, *opt->value);
+    }
+
     if (auto opt = get_option(args, "--color")) {
-        if (*opt->value == "always") {
-            with_color = true;
-        } else if (*opt->value == "never") {
-            with_color = false;
-        } else {
-            using namespace snitch::impl;
-            cli::print(
-                make_colored("warning:", with_color, color::warning),
-                " unknown color directive; please use one of always|never\n");
-        }
+        parse_color_option(*this, *opt->value);
     }
 
     if (auto opt = get_option(args, "--verbosity")) {

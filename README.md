@@ -830,6 +830,9 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
  - `   --color <always|never>`: enable/disable colors in the default reporter.
 
+The following options are provided for compability with *Catch2*:
+ - `   --colour-mode <ansi|default|none>`: enable/disable colors in the default reporter.
+
 The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at least one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
 
 A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:

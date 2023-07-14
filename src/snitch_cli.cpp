@@ -282,6 +282,7 @@ constexpr expected_arguments expected_args = {
     {{"--list-tests-with-tag"}, {"tag"},                    "List tests by name with a given tag"},
     {{"-v", "--verbosity"},     {"quiet|normal|high|full"}, "Define how much gets sent to the standard output"},
     {{"--color"},               {"always|never"},           "Enable/disable color in output"},
+    {{"--colour-mode"},         {"ansi|default|none"},      "Enable/disable color in output (for compatibility with Catch2)"},
     {{"-h", "--help"},          {},                         "Print help"},
     {{},                        {"test regex"},             "A regex to select which test cases to run", argument_type::repeatable}};
 // clang-format on
