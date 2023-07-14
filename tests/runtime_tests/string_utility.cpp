@@ -11,9 +11,15 @@ using string_type = snitch::small_string<max_length>;
 
 enum class enum_type { value1 = 0, value2 = 12, value3 = 123456 };
 
-using function_ptr_type = void (*)();
+struct frob {
+    void knob() {}
+};
 
 void foo() {}
+
+using function_ptr_type        = void (*)();
+using member_function_ptr_type = void (frob::*)();
+
 } // namespace
 
 namespace append_test {
@@ -56,8 +62,32 @@ struct append_result2 {
     }
 };
 
+// We want this to take a `const T&` argument, but this triggers an internal compiler error in MSVC.
 template<std::size_t N, bool TestConstexpr, typename T>
 constexpr append_result2<N> to_string(T value) {
+    if (std::is_constant_evaluated()) {
+        snitch::small_string<N> str;
+        bool                    success = append(str, value);
+        return {{{str, success}}, {}};
+    } else {
+        if constexpr (TestConstexpr) {
+            snitch::small_string<N> str1, str2;
+            bool                    success1 = append(str1, value);
+            bool                    success2 = snitch::impl::append_constexpr(str2, value);
+            return {{{str2, success2}}, {{str1, success1}}};
+        } else {
+            snitch::small_string<N> str;
+            bool                    success = append(str, value);
+            return {{}, {{str, success}}};
+        }
+    }
+}
+
+// Needed to avoid decay of string litterals to `const char*`.
+// We could merge this with the function above if that function took a `const T&` argument,
+// but this triggers an internal compiler error in MSVC. So use this as a workaround.
+template<std::size_t N, bool TestConstexpr, std::size_t M>
+constexpr append_result2<N> to_string(const snitch::char_array<M>& value) {
     if (std::is_constant_evaluated()) {
         snitch::small_string<N> str;
         bool                    success = append(str, value);
@@ -161,6 +191,16 @@ TEST_CASE("append misc", "[utility]") {
         CONSTEXPR_CHECK(a(nullptr) == ae{"nul"sv, false});
     }
 
+    SECTION("const char* and string literal") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
+
+        CONSTEXPR_CHECK(a(static_cast<const char*>(nullptr)) == ae{"nullptr"sv, true});
+        CONSTEXPR_CHECK(a(static_cast<const char*>("abc")) == ae{"abc"sv, true});
+        CONSTEXPR_CHECK(a("abc") == ae{"abc"sv, true});
+    }
+
     SECTION("pointers do fit") {
         constexpr auto a = [](const auto& value) constexpr {
             return append_test::to_string<21, true>(static_cast<void*>(value));
@@ -175,13 +215,6 @@ TEST_CASE("append misc", "[utility]") {
 
         CONSTEXPR_CHECK(a(nullptr) == ae{"nullptr"sv, true});
         CONSTEXPR_CHECK(a(b{}.get()) == aed{{"0x????????"sv, true}, {"0x"sv, true, true}});
-
-        constexpr auto b = [](const auto& value) constexpr {
-            return append_test::to_string<21, false>(value);
-        };
-
-        CONSTEXPR_CHECK(b(static_cast<function_ptr_type>(nullptr)) == ae{"nullptr"sv, true});
-        CONSTEXPR_CHECK(b(&foo) == ae{"0x????????"sv, true});
     }
 
     SECTION("pointers don't fit") {
@@ -198,6 +231,18 @@ TEST_CASE("append misc", "[utility]") {
 
         CONSTEXPR_CHECK(a(nullptr) == ae{"nullp"sv, false});
         CONSTEXPR_CHECK(a(b{}.get()) == aed{{"0x???"sv, false}, {"0x"sv, false, true}});
+    }
+
+    SECTION("function pointers") {
+        constexpr auto a = [](const auto& value) constexpr {
+            return append_test::to_string<21, false>(value);
+        };
+
+        CONSTEXPR_CHECK(a(static_cast<function_ptr_type>(nullptr)) == ae{"nullptr"sv, true});
+        CONSTEXPR_CHECK(a(&foo) == ae{"0x????????"sv, true});
+
+        CONSTEXPR_CHECK(a(static_cast<member_function_ptr_type>(nullptr)) == ae{"nullptr"sv, true});
+        CONSTEXPR_CHECK(a(&frob::knob) == ae{"0x????????"sv, true});
     }
 }
 

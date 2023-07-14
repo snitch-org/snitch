@@ -95,6 +95,43 @@ struct cli_input {
     arg_vector       args;
 };
 
+template<std::size_t MaxEvents>
+struct event_catcher {
+    snitch::registry mock_registry;
+
+    snitch::impl::test_case mock_case{
+        .id    = {"mock_test", "[mock_tag]", "mock_type"},
+        .func  = nullptr,
+        .state = snitch::impl::test_case_state::not_run};
+
+    snitch::impl::test_state mock_test{.reg = mock_registry, .test = mock_case};
+
+    snitch::small_vector<event_deep_copy, MaxEvents> events;
+
+    event_catcher() {
+        mock_registry.report_callback = {*this, snitch::constant<&event_catcher::report>{}};
+        mock_registry.verbose         = snitch::registry::verbosity::full;
+    }
+
+    void report(const snitch::registry&, const snitch::event::data& e) noexcept {
+        events.push_back(deep_copy(e));
+    }
+};
+
+struct test_override {
+    snitch::impl::test_state* previous;
+
+    template<std::size_t N>
+    explicit test_override(event_catcher<N>& catcher) :
+        previous(snitch::impl::try_get_current_test()) {
+        snitch::impl::set_current_test(&catcher.mock_test);
+    }
+
+    ~test_override() {
+        snitch::impl::set_current_test(previous);
+    }
+};
+
 #define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
     CHECK(ACTUAL.test_id_name == EXPECTED.name);                                                   \
     CHECK(ACTUAL.test_id_tags == EXPECTED.tags);                                                   \
@@ -173,4 +210,60 @@ struct cli_input {
         REQUIRE(end.event_type == event_deep_copy::type::test_case_ended);                         \
         CHECK(end.test_case_state == STATE);                                                       \
         CHECK(end.test_case_assertion_count == ASSERT_COUNT);                                      \
+    } while (0)
+
+#define CHECK_EVENT(CATCHER, EVENT, TYPE, FAILURE_LINE, MESSAGE)                                   \
+    do {                                                                                           \
+        CHECK((EVENT).event_type == (TYPE));                                                       \
+        CHECK_EVENT_TEST_ID((EVENT), (CATCHER).mock_case.id);                                      \
+        CHECK_EVENT_LOCATION((EVENT), __FILE__, (FAILURE_LINE));                                   \
+        CHECK((EVENT).message == (MESSAGE));                                                       \
+    } while (0)
+
+#define CHECK_EXPR(CATCHER, EVENT_TYPE, FAILURE_LINE, MESSAGE)                                     \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
+        REQUIRE((CATCHER).events.size() == 1u);                                                    \
+        CHECK_EVENT(CATCHER, (CATCHER).events[0], EVENT_TYPE, FAILURE_LINE, MESSAGE);              \
+    } while (0)
+
+#define CHECK_EVENT_FAILURE(CATCHER, EVENT, FAILURE_LINE, MESSAGE)                                 \
+    CHECK_EVENT(CATCHER, EVENT, event_deep_copy::type::assertion_failed, FAILURE_LINE, MESSAGE)
+
+#define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, MESSAGE)                                         \
+    CHECK_EXPR(CATCHER, event_deep_copy::type::assertion_failed, FAILURE_LINE, MESSAGE)
+
+#define CHECK_EXPR_SUCCESS(CATCHER)                                                                \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
+        REQUIRE((CATCHER).events.size() == 1u);                                                    \
+        CHECK((CATCHER).events[0].event_type == event_deep_copy::type::assertion_succeeded);       \
+        CHECK_EVENT_TEST_ID((CATCHER).events[0], (CATCHER).mock_case.id);                          \
+    } while (0)
+
+#define CONSTEXPR_CHECK_EXPR_SUCCESS(CATCHER)                                                      \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
+        REQUIRE((CATCHER).events.size() == 2u);                                                    \
+        CHECK((CATCHER).events[0].event_type == event_deep_copy::type::assertion_succeeded);       \
+        CHECK((CATCHER).events[1].event_type == event_deep_copy::type::assertion_succeeded);       \
+        CHECK_EVENT_TEST_ID((CATCHER).events[0], (CATCHER).mock_case.id);                          \
+        CHECK_EVENT_TEST_ID((CATCHER).events[1], (CATCHER).mock_case.id);                          \
+    } while (0)
+
+#define CONSTEXPR_CHECK_EXPR_FAILURE(CATCHER)                                                      \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
+        REQUIRE((CATCHER).events.size() == 2u);                                                    \
+        CHECK(                                                                                     \
+            (((CATCHER).events[0].event_type == event_deep_copy::type::assertion_succeeded) ^      \
+             ((CATCHER).events[1].event_type == event_deep_copy::type::assertion_succeeded)));     \
+    } while (0)
+
+#define CONSTEXPR_CHECK_EXPR_FAILURE_2(CATCHER)                                                    \
+    do {                                                                                           \
+        CHECK((CATCHER).mock_test.asserts == 2u);                                                  \
+        REQUIRE((CATCHER).events.size() == 2u);                                                    \
+        CHECK((CATCHER).events[0].event_type == event_deep_copy::type::assertion_failed);          \
+        CHECK((CATCHER).events[1].event_type == event_deep_copy::type::assertion_failed);          \
     } while (0)
