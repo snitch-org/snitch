@@ -62,8 +62,32 @@ struct append_result2 {
     }
 };
 
+// We want this to take a `const T&` argument, but this triggers an internal compiler error in MSVC.
 template<std::size_t N, bool TestConstexpr, typename T>
-constexpr append_result2<N> to_string(const T& value) {
+constexpr append_result2<N> to_string(T value) {
+    if (std::is_constant_evaluated()) {
+        snitch::small_string<N> str;
+        bool                    success = append(str, value);
+        return {{{str, success}}, {}};
+    } else {
+        if constexpr (TestConstexpr) {
+            snitch::small_string<N> str1, str2;
+            bool                    success1 = append(str1, value);
+            bool                    success2 = snitch::impl::append_constexpr(str2, value);
+            return {{{str2, success2}}, {{str1, success1}}};
+        } else {
+            snitch::small_string<N> str;
+            bool                    success = append(str, value);
+            return {{}, {{str, success}}};
+        }
+    }
+}
+
+// Needed to avoid decay of string litterals to `const char*`.
+// We could merge this with the function above if that function took a `const T&` argument,
+// but this triggers an internal compiler error in MSVC. So use this as a workaround.
+template<std::size_t N, bool TestConstexpr, std::size_t M>
+constexpr append_result2<N> to_string(const snitch::char_array<M>& value) {
     if (std::is_constant_evaluated()) {
         snitch::small_string<N> str;
         bool                    success = append(str, value);
