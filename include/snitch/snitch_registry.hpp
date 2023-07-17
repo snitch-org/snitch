@@ -30,10 +30,14 @@ constexpr std::size_t max_test_name_length = SNITCH_MAX_TEST_NAME_LENGTH;
 constexpr std::size_t max_tag_length = SNITCH_MAX_TAG_LENGTH;
 // Maximum number of unique tags in the whole program.
 constexpr std::size_t max_unique_tags = SNITCH_MAX_UNIQUE_TAGS;
+// Maximum number of registered reporters to select from the command line.
+constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS;
 } // namespace snitch
 
 namespace snitch::impl {
 void default_reporter(const registry& r, const event::data& event) noexcept;
+bool configure_default_reporter(
+    registry& r, std::string_view option, std::string_view value) noexcept;
 
 template<typename T, typename F>
 constexpr test_ptr to_test_case_ptr(const F&) noexcept {
@@ -57,15 +61,33 @@ is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
 
 [[nodiscard]] filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept;
 
+using print_function  = small_function<void(std::string_view) noexcept>;
+using report_function = small_function<void(const registry&, const event::data&) noexcept>;
+using configure_reporter_function =
+    small_function<bool(registry&, std::string_view, std::string_view) noexcept>;
+
+struct registered_reporter {
+    std::string_view            name;
+    report_function             callback;
+    configure_reporter_function configure;
+};
+
 class registry {
+    // Contains all registered test cases.
     small_vector<impl::test_case, max_test_cases> test_list;
+
+    // Contains all registered reporters.
+    small_vector<std::optional<registered_reporter>, max_registered_reporters>
+        registered_reporters = {registered_reporter{
+            "console", &snitch::impl::default_reporter, &snitch::impl::configure_default_reporter}};
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
     bool with_color                                            = true;
 
-    using print_function  = small_function<void(std::string_view) noexcept>;
-    using report_function = small_function<void(const registry&, const event::data&) noexcept>;
+    using print_function              = snitch::print_function;
+    using report_function             = snitch::report_function;
+    using configure_reporter_function = snitch::configure_reporter_function;
 
     print_function  print_callback  = &snitch::impl::stdout_print;
     report_function report_callback = &snitch::impl::default_reporter;
@@ -79,6 +101,12 @@ public:
             this->print_callback("...");
         }
     }
+
+    // Requires: number of reporters + 1 <= max_registered_reporters.
+    std::string_view add_reporter(
+        std::string_view                   name,
+        const report_function&             report,
+        const configure_reporter_function& configure);
 
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
     const char* add(const test_id& id, impl::test_ptr func);

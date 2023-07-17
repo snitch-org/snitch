@@ -1016,6 +1016,62 @@ TEST_CASE("configure", "[registry]") {
 
         CHECK(console.messages == contains_substring("unknown verbosity level"));
     }
+
+    SECTION("reporter = console (no option)") {
+        const arg_vector args = {"test", "--reporter", "console"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(console.messages != contains_substring("error"));
+    }
+
+    SECTION("reporter = console (with option)") {
+        const arg_vector args = {"test", "--reporter", "console::color=never"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.with_color = true;
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.with_color == false);
+    }
+
+    SECTION("reporter = console (unknown option)") {
+        const arg_vector args = {"test", "--reporter", "console::abcd=never"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(console.messages == contains_substring("unknown reporter option 'abcd'"));
+    }
+
+    SECTION("reporter = console (bad: missing value)") {
+        const arg_vector args = {"test", "--reporter", "console::abcdnever"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(
+            console.messages ==
+            contains_substring(
+                "badly formatted reporter option 'abcdnever'; expected 'key=value'"));
+    }
+
+    SECTION("reporter = console (bad: empty option)") {
+        const arg_vector args = {"test", "--reporter", "console::=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(
+            console.messages ==
+            contains_substring("badly formatted reporter option '=value'; expected 'key=value'"));
+    }
+
+    SECTION("reporter = console (bad: only equal)") {
+        const arg_vector args = {"test", "--reporter", "console::="};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(
+            console.messages ==
+            contains_substring("badly formatted reporter option '='; expected 'key=value'"));
+    }
 }
 
 TEST_CASE("run tests cli", "[registry]") {

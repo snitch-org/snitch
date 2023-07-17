@@ -803,7 +803,7 @@ struct Reporter {
 
 Reporter reporter; // must remain alive for the duration of the tests!
 
-snitch::tests.report_callback = {reporter, snitch::constant<&Reporter::report>};
+snitch::tests.report_callback = {reporter, snitch::constant<&Reporter::report>{}};
 ```
 
 If you need to use a reporter member function, please make sure that the reporter object remains alive for the duration of the tests (e.g., declare it static, global, or as a local variable declared in `main()`), or make sure to de-register it when your reporter is destroyed.

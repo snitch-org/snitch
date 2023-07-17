@@ -304,14 +304,85 @@ struct default_reporter_functor {
         r.print("\n");
     }
 };
+
+void parse_colour_mode_option(registry& reg, std::string_view color_option) {
+    if (color_option == "ansi") {
+        reg.with_color = true;
+    } else if (color_option == "none") {
+        reg.with_color = false;
+    } else if (color_option == "default") {
+        // Nothing to do.
+    } else {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", reg.with_color, color::warning),
+            " unknown color directive; please use one of ansi|default|none\n");
+    }
+}
+
+void parse_color_option(registry& reg, std::string_view color_option) {
+    if (color_option == "always") {
+        reg.with_color = true;
+    } else if (color_option == "never") {
+        reg.with_color = false;
+    } else {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", reg.with_color, color::warning),
+            " unknown color directive; please use one of always|never\n");
+    }
+}
 } // namespace
 
 void default_reporter(const registry& r, const event::data& event) noexcept {
     std::visit(default_reporter_functor{r}, event);
 }
+
+bool configure_default_reporter(
+    registry& r, std::string_view option, std::string_view value) noexcept {
+
+    if (option == "color") {
+        parse_color_option(r, value);
+        return true;
+    }
+    if (option == "colour-mode") {
+        parse_colour_mode_option(r, value);
+        return true;
+    }
+
+    return false;
+}
 } // namespace snitch::impl
 
 namespace snitch {
+std::string_view registry::add_reporter(
+    std::string_view                   name,
+    const report_function&             report,
+    const configure_reporter_function& configure) {
+
+    if (registered_reporters.available() == 0u) {
+        using namespace snitch::impl;
+        print(
+            make_colored("error:", with_color, color::fail),
+            " max number of reporters reached; "
+            "please increase 'SNITCH_MAX_REGISTERED_REPORTERS' (currently ",
+            max_registered_reporters, ")\n.");
+        assertion_failed("max number of reporters reached");
+    }
+
+    if (name.find("::") != std::string_view::npos) {
+        using namespace snitch::impl;
+        print(
+            make_colored("error:", with_color, color::fail),
+            " reporter name cannot contains '::' (trying to register ", name, ")\n.");
+        assertion_failed("invalid reporter name");
+    }
+
+    registered_reporters.push_back(registered_reporter{name, report, configure});
+
+    return name;
+}
+
 const char* registry::add(const test_id& id, impl::test_ptr func) {
     if (test_list.available() == 0u) {
         using namespace snitch::impl;
@@ -344,7 +415,6 @@ void registry::report_assertion(
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
-
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
@@ -378,7 +448,6 @@ void registry::report_assertion(
     const assertion_location& location,
     std::string_view          message1,
     std::string_view          message2) const noexcept {
-
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
@@ -414,7 +483,6 @@ void registry::report_assertion(
     impl::test_state&         state,
     const assertion_location& location,
     const impl::expression&   exp) const noexcept {
-
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
@@ -455,7 +523,6 @@ void registry::report_skipped(
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
-
     impl::set_state(state.test, impl::test_case_state::skipped);
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
@@ -577,7 +644,6 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 bool registry::run_selected_tests(
     std::string_view                                     run_name,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
-
     if (impl::is_at_least(verbose, registry::verbosity::normal)) {
         report_callback(*this, event::test_run_started{run_name});
     }
@@ -725,43 +791,13 @@ bool registry::run_tests(const cli::input& args) noexcept {
     }
 }
 
-namespace {
-void parse_colour_mode_option(registry& reg, std::string_view color_option) {
-    if (color_option == "ansi") {
-        reg.with_color = true;
-    } else if (color_option == "none") {
-        reg.with_color = false;
-    } else if (color_option == "default") {
-        // Nothing to do.
-    } else {
-        using namespace snitch::impl;
-        cli::print(
-            make_colored("warning:", reg.with_color, color::warning),
-            " unknown color directive; please use one of ansi|default|none\n");
-    }
-}
-
-void parse_color_option(registry& reg, std::string_view color_option) {
-    if (color_option == "always") {
-        reg.with_color = true;
-    } else if (color_option == "never") {
-        reg.with_color = false;
-    } else {
-        using namespace snitch::impl;
-        cli::print(
-            make_colored("warning:", reg.with_color, color::warning),
-            " unknown color directive; please use one of always|never\n");
-    }
-}
-} // namespace
-
 void registry::configure(const cli::input& args) noexcept {
     if (auto opt = get_option(args, "--colour-mode")) {
-        parse_colour_mode_option(*this, *opt->value);
+        impl::parse_colour_mode_option(*this, *opt->value);
     }
 
     if (auto opt = get_option(args, "--color")) {
-        parse_color_option(*this, *opt->value);
+        impl::parse_color_option(*this, *opt->value);
     }
 
     if (auto opt = get_option(args, "--verbosity")) {
@@ -778,6 +814,65 @@ void registry::configure(const cli::input& args) noexcept {
             cli::print(
                 make_colored("warning:", with_color, color::warning),
                 " unknown verbosity level; please use one of quiet|normal|high|full\n");
+        }
+    }
+
+    if (auto opt = get_option(args, "--reporter")) {
+        // Isolate reporter name and options
+        std::string_view reporter_name = *opt->value;
+        std::string_view options;
+        if (auto option_pos = reporter_name.find("::"); option_pos != std::string_view::npos) {
+            options       = reporter_name.substr(option_pos);
+            reporter_name = reporter_name.substr(0, option_pos);
+        }
+
+        // Locate reporter
+        auto iter = std::find_if(
+            registered_reporters.begin(), registered_reporters.end(),
+            [&](const auto& reporter) { return reporter->name == reporter_name; });
+
+        if (iter == registered_reporters.end()) {
+            using namespace snitch::impl;
+            cli::print(
+                make_colored("warning:", with_color, color::warning), " unknown reporter '",
+                reporter_name, "', using default\n");
+            cli::print(make_colored("note:", with_color, color::status), " available reporters:\n");
+            for (const auto& reporter : registered_reporters) {
+                cli::print(
+                    make_colored("note:", with_color, color::status), "  ", reporter->name, "\n");
+            }
+        } else {
+            report_callback = (*iter)->callback;
+
+            // Configure reporter
+            auto option_pos = options.find("::");
+            while (option_pos != std::string_view::npos) {
+                option_pos = options.find("::", 2);
+                if (option_pos != std::string_view::npos) {
+                    options = options.substr(option_pos);
+                }
+
+                std::string_view option = options.substr(2, option_pos);
+
+                auto equal_pos = option.find("=");
+                if (equal_pos == std::string_view::npos || equal_pos == 0) {
+                    using namespace snitch::impl;
+                    cli::print(
+                        make_colored("warning:", with_color, color::warning),
+                        " badly formatted reporter option '", option, "'; expected 'key=value'\n");
+                    continue;
+                }
+
+                std::string_view option_name  = option.substr(0, equal_pos);
+                std::string_view option_value = option.substr(equal_pos + 1);
+
+                if (!(*iter)->configure(*this, option_name, option_value)) {
+                    using namespace snitch::impl;
+                    cli::print(
+                        make_colored("warning:", with_color, color::warning),
+                        " unknown reporter option '", option_name, "'\n");
+                }
+            }
         }
     }
 }

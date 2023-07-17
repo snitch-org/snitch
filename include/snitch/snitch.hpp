@@ -17,6 +17,7 @@
 #include "snitch/snitch_macros_constexpr.hpp"
 #include "snitch/snitch_macros_exceptions.hpp"
 #include "snitch/snitch_macros_misc.hpp"
+#include "snitch/snitch_macros_reporter.hpp"
 #include "snitch/snitch_macros_test_case.hpp"
 #include "snitch/snitch_macros_utility.hpp"
 #include "snitch/snitch_macros_warnings.hpp"
