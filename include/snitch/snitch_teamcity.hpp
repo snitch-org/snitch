@@ -136,6 +136,6 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
 } // namespace snitch::teamcity
 
 SNITCH_REGISTER_REPORTER_CALLBACKS(
-    "TeamCity", &snitch::teamcity::initialize, {}, &snitch::teamcity::report, {});
+    "teamcity", &snitch::teamcity::initialize, {}, &snitch::teamcity::report, {});
 
 #endif

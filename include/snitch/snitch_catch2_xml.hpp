@@ -180,5 +180,5 @@ struct reporter {
 };
 } // namespace snitch::catch2_xml
 
-SNITCH_REGISTER_REPORTER("XML", snitch::catch2_xml::reporter);
+SNITCH_REGISTER_REPORTER("xml", snitch::catch2_xml::reporter);
 #endif

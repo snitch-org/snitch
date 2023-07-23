@@ -787,8 +787,8 @@ It may be necessary to override the default verbosity when the reporter is initi
 
 With the default build configuration, *snitch* provides the following built-in reporters. They can all be disabled by setting the CMake option `SNITCH_WITH_ALL_REPORTERS` or Meson option `with_all_reporters` off, then enabled individually with specific build options if desired.
  - `console`: This is the default reporter, always present.
- - `TeamCity`: Reports events in a format suitable for JetBrains TeamCity.
- - `XML`: Reports events in the *Catch2* XML format. Provided for compatibility with *Catch2*.
+ - `teamcity`: Reports events in a format suitable for JetBrains TeamCity.
+ - `xml`: Reports events in the *Catch2* XML format. Provided for compatibility with *Catch2*.
 
 
 #### Overriding the default reporter
