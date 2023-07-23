@@ -84,6 +84,12 @@ small_string<max_duration_length> make_duration(float duration) noexcept {
     return string;
 }
 
+void initialize(registry& r) noexcept {
+    // TeamCity needs test_case_started and test_case_ended events, which are only printed on
+    // verbosity 'high', so ensure the requested verbosity is at least as much.
+    r.verbose = r.verbose < registry::verbosity::high ? registry::verbosity::high : r.verbose;
+}
+
 void report(const registry& r, const snitch::event::data& event) noexcept {
     std::visit(
         snitch::overload{
@@ -128,5 +134,8 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
         event);
 }
 } // namespace snitch::teamcity
+
+SNITCH_REGISTER_REPORTER_CALLBACKS(
+    "TeamCity", &snitch::teamcity::initialize, {}, &snitch::teamcity::report, {});
 
 #endif

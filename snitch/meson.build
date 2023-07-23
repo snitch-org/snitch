@@ -36,6 +36,8 @@ conf_data = configuration_data({
   'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST'     : get_option('constexpr_float_use_bitcast').to_int(),
   'SNITCH_DEFAULT_WITH_COLOR'              : get_option('default_with_color').to_int(),
   'SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS' : get_option('decompose_successful_assertions').to_int()
+  'SNITCH_WITH_ALL_REPORTERS'              : get_option('with_all_reporters').to_int()
+  'SNITCH_WITH_TEAMCITY_REPORTER'          : get_option('with_teamcity_reporter').to_int()
 })
 
 conf_file = configure_file(

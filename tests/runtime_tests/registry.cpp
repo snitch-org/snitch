@@ -1072,6 +1072,21 @@ TEST_CASE("configure", "[registry]") {
             console.messages ==
             contains_substring("badly formatted reporter option '='; expected 'key=value'"));
     }
+
+    SECTION("reporter = bad colons") {
+        for (const auto& args :
+             {arg_vector{"test", "--reporter", ""}, arg_vector{"test", "--reporter", ":"},
+              arg_vector{"test", "--reporter", "::"}, arg_vector{"test", "--reporter", ":::"},
+              arg_vector{"test", "--reporter", "::::"}}) {
+            CAPTURE(args[2]);
+            console.messages.clear();
+
+            auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+            framework.registry.configure(*input);
+
+            CHECK(console.messages == contains_substring("invalid reporter"));
+        }
+    }
 }
 
 TEST_CASE("run tests cli", "[registry]") {
@@ -1133,6 +1148,31 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK(console.messages != contains_substring("drink from the cup"));
         CHECK(console.messages != contains_substring("how many templated lights <int>"));
         CHECK(console.messages != contains_substring("how many templated lights <float>"));
+    }
+
+    SECTION("--list-reporters") {
+        const arg_vector args = {"test", "--list-reporters"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+        SECTION("default") {
+            framework.registry.run_tests(*input);
+
+            CHECK(framework.events.empty());
+            CHECK(console.messages == contains_substring("console"));
+            CHECK(console.messages != contains_substring("custom"));
+        }
+
+        SECTION("with custom reporter") {
+            framework.registry.add_reporter(
+                "custom", {}, {},
+                [](const snitch::registry&, const snitch::event::data&) noexcept {}, {});
+
+            framework.registry.run_tests(*input);
+
+            CHECK(framework.events.empty());
+            CHECK(console.messages == contains_substring("console"));
+            CHECK(console.messages == contains_substring("custom"));
+        }
     }
 
     SECTION("test filter") {

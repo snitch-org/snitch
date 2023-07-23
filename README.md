@@ -32,6 +32,9 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Captures](#captures)
     - [Custom string serialization](#custom-string-serialization)
     - [Reporters](#reporters)
+        - [Built-in reporters](#built-in-reporters)
+        - [Overriding the default reporter](#overriding-the-default-reporter)
+        - [Registering a new reporter](#registering-a-new-reporter)
     - [Default main function](#default-main-function)
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
@@ -761,13 +764,36 @@ Note that _snitch_ small strings have a fixed capacity; once this capacity is re
 
 ### Reporters
 
-By default, _snitch_ will report the test results to the standard output, using its own report format. You can override this by supplying your own "reporter" callback function to the test registry. This requires [using your own main function](#using-your-own-main-function).
+By default, _snitch_ will report the test results to the standard output, using its own report format. There are two ways you can override this:
+ - Register a new reporter with `REGISTER_REPORTER(...)` and select it from the command line. This is more flexible as you can chance which reporter to use without re-compiling, but it requires a bit more boilerplate. See [Registering a new reporter](#registering-a-new-reporter). A list of standard reporters is already built-in *snitch* and enabled by default; see [Built-in reporters](#built-in-reporters).
+ - Override the default reporter by directly supplying your own callback function to the test registry. This is simpler but requires [using your own main function](#using-your-own-main-function), and is only a good option if the reporter never needs to change. See [Overriding the default reporter](#overriding-the-default-reporter).
 
-The callback is a single `noexcept` function, taking two arguments:
+In both cases, the core of the reporter is its "report" callback function. It is a `noexcept` function, taking two arguments:
  - a reference to the `snitch::registry` that generated the event
  - a reference to the `snitch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
 
-The callback can be registered either as a free function, a stateless lambda, or a member function. You can register your own callback as follows:
+When receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
+
+Finally, note that events being sent to the reporter are affected by the chosen verbosity:
+ - `quiet`: `assertion_failed` and `test_case_skipped` only.
+ - `normal`: same as `quiet`, plus `test_run_started` and `test_run_ended`.
+ - `high`: same as `normal`, plus `test_case_started` and `test_case_ended`.
+ - `full`: same as `high`, plus `assertion_succeeded` (i.e., all events).
+
+It may be necessary to override the default verbosity when the reporter is initialised if the reporter requires certain events to be sent.
+
+
+#### Built-in reporters
+
+With the default build configuration, *snitch* provides the following built-in reporters. They can all be disabled by setting the CMake option `SNITCH_WITH_ALL_REPORTERS` or Meson option `with_all_reporters` off, then enabled individually with specific build options if desired.
+ - `console`: This is the default reporter, always present.
+ - `TeamCity`: Reports events in a format suitable for JetBrains TeamCity.
+ - `XML`: Reports events in the *Catch2* XML format. Provided for compatibility with *Catch2*.
+
+
+#### Overriding the default reporter
+
+The default reporter callback can be registered either as a free function, a stateless lambda, or a member function. This is the reporter that is used if no `--reporter` option is passed to the command line. You can register your own callback as follows:
 
 ```c++
 // Free function.
@@ -808,15 +834,32 @@ snitch::tests.report_callback = {reporter, snitch::constant<&Reporter::report>{}
 
 If you need to use a reporter member function, please make sure that the reporter object remains alive for the duration of the tests (e.g., declare it static, global, or as a local variable declared in `main()`), or make sure to de-register it when your reporter is destroyed.
 
-Likewise, when receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
 
-Finally, note that events being sent to the reporter are affected by the chosen verbosity:
- - `quiet`: `assertion_failed` and `test_case_skipped` only.
- - `normal`: same as `quiet`, plus `test_run_started` and `test_run_ended`.
- - `high`: same as `normal`, plus `test_case_started` and `test_case_ended`.
- - `full`: same as `high`, plus `assertion_succeeded` (i.e., all events).
+#### Registering a new reporter
 
-An example reporter for _Teamcity_ is included for demonstration, see `include/snitch/snitch_teamcity.hpp`.
+There are two macros available to register a new repoter: `REGISTER_REPORTER` and `REGISTER_REPORTER_CALLBACKS`. The former registers a reporter class or struct, and is useful for statefull reporters. The latter registers a reporter as a series of callback functions, which only need defining as needed. Both offer the same functionality, and you can simply choose the one that is most convenient for you.
+
+`REGISTER_REPORTER(NAME, TYPE);`
+
+This must be called at namespace, global, or class scope; not inside a function or another test case. This registers a new reporter with name `NAME` (which is used to select it from the command line), and type `TYPE`. The type must define:
+ - A constructor taking a `snitch::registry&`, called when the reporter is selected.
+ - A `configure(snitch::registry&, std::string_view, std::string_view)` member function, called for each reporter option from the command line.
+ - A `report(const snitch::registry&, const snitch::event::data&)` member function. It is the main report callback, and should be implemented as described in the [Reporters](#reporters) section.
+
+An example can be found in `include/snitch_catch2_xml.hpp`.
+
+
+`REGISTER_REPORTER_CALLBACKS(NAME, INIT, CONFIG, REPORT, FINISH);`
+
+This is similar to `REGISTER_REPORTER`, but takes four separate callback functions instead of a single type as argument. The four callback functions are:
+ - `INIT` has signature `void(snitch::registry& r) noexcept` and is used to initialise the reporter. It is called once when the reporter is selected.
+ - `CONFIG` has signature `bool(snitch::registry& r, std::string_view k, std::string_view v) noexcept` and is used to configure the reporter. It is called once for each of the options provided on the command line, with `k` the name of the option, and `v` its value. The function is expected to return `false` if the option was unknown, and `true` otherwise.
+ - `REPORT` has signature `void(const snitch::registry& r, const snitch::event::data& e) noexcept`. It is the main report callback, as described in [Reporters](#reporters).
+ - `FINISH` has signature `void(snitch::registry& r) noexcept` and is used to close the reporter. It is called once when the tests are finished running.
+
+All callback functions are optional except `REPORT`. If a callback is unused, simply specify the function as `{}`. Otherwise, please refer to [Overriding the default reporter](#overriding-the-default-reporter) for instructions on how to specify your own callback functions.
+
+An example can be found in `include/snitch_teamcity.hpp`.
 
 
 ### Default main function
@@ -827,6 +870,8 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
  - `   --list-tests-with-tag`: list all tests with a given tag.
+ - `   --list-reporters`: list all registered reporters.
+ - `-r,--reporter <reporter[::key=value]*>`: choose which reporter to use to output the test events.
  - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
  - `   --color <always|never>`: enable/disable colors in the default reporter.
 

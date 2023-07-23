@@ -23,6 +23,8 @@ set(SNITCH_WITH_SHORTHAND_MACROS           ON  CACHE BOOL "Use short names for t
 set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST     ON  CACHE BOOL "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")
 set(SNITCH_DEFAULT_WITH_COLOR              ON  CACHE BOOL "Enable terminal colors by default -- can also be controlled by command line interface.")
 set(SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS OFF CACHE BOOL "Enable expression decomposition even for successful assertions -- more expensive.")
+set(SNITCH_WITH_ALL_REPORTERS              ON  CACHE BOOL "Allow all built-in reporters to be selected from the command line -- disable for faster compilation.")
+set(SNITCH_WITH_TEAMCITY_REPORTER          OFF CACHE BOOL "Allow the TeamCity reporter to be selected from the command line -- enable if needed.")
 
 # Building and packaging options; not part of the library API.
 set(SNITCH_CREATE_HEADER_ONLY ON  CACHE BOOL "Create a single-header header-only version of snitch.")
@@ -89,6 +91,7 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporters.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)

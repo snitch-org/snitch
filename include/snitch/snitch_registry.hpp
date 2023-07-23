@@ -35,9 +35,11 @@ constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS
 } // namespace snitch
 
 namespace snitch::impl {
-void default_reporter(const registry& r, const event::data& event) noexcept;
+void initialize_default_reporter(registry& r) noexcept;
 bool configure_default_reporter(
     registry& r, std::string_view option, std::string_view value) noexcept;
+void default_reporter(const registry& r, const event::data& event) noexcept;
+void finish_default_reporter(registry& r) noexcept;
 
 template<typename T, typename F>
 constexpr test_ptr to_test_case_ptr(const F&) noexcept {
@@ -63,13 +65,17 @@ is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
 
 using print_function  = small_function<void(std::string_view) noexcept>;
 using report_function = small_function<void(const registry&, const event::data&) noexcept>;
-using configure_reporter_function =
+using configure_report_function =
     small_function<bool(registry&, std::string_view, std::string_view) noexcept>;
+using initialize_report_function = small_function<void(registry&) noexcept>;
+using finish_report_function     = small_function<void(registry&) noexcept>;
 
 struct registered_reporter {
-    std::string_view            name;
-    report_function             callback;
-    configure_reporter_function configure;
+    std::string_view           name;
+    initialize_report_function initialize;
+    configure_report_function  configure;
+    report_function            callback;
+    finish_report_function     finish;
 };
 
 class registry {
@@ -79,18 +85,23 @@ class registry {
     // Contains all registered reporters.
     small_vector<std::optional<registered_reporter>, max_registered_reporters>
         registered_reporters = {registered_reporter{
-            "console", &snitch::impl::default_reporter, &snitch::impl::configure_default_reporter}};
+            "console", &snitch::impl::initialize_default_reporter,
+            &snitch::impl::configure_default_reporter, &snitch::impl::default_reporter,
+            &snitch::impl::finish_default_reporter}};
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
     bool with_color                                            = true;
 
-    using print_function              = snitch::print_function;
-    using report_function             = snitch::report_function;
-    using configure_reporter_function = snitch::configure_reporter_function;
+    using print_function             = snitch::print_function;
+    using initialize_report_function = snitch::initialize_report_function;
+    using configure_report_function  = snitch::configure_report_function;
+    using report_function            = snitch::report_function;
+    using finish_report_function     = snitch::finish_report_function;
 
-    print_function  print_callback  = &snitch::impl::stdout_print;
-    report_function report_callback = &snitch::impl::default_reporter;
+    print_function         print_callback  = &snitch::impl::stdout_print;
+    report_function        report_callback = &snitch::impl::default_reporter;
+    finish_report_function finish_callback = &snitch::impl::finish_default_reporter;
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
@@ -104,9 +115,11 @@ public:
 
     // Requires: number of reporters + 1 <= max_registered_reporters.
     std::string_view add_reporter(
-        std::string_view                   name,
-        const report_function&             report,
-        const configure_reporter_function& configure);
+        std::string_view                                 name,
+        const std::optional<initialize_report_function>& initialize,
+        const std::optional<configure_report_function>&  configure,
+        const report_function&                           report,
+        const std::optional<finish_report_function>&     finish);
 
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
     const char* add(const test_id& id, impl::test_ptr func);
@@ -167,6 +180,8 @@ public:
     void list_all_tags() const;
 
     void list_tests_with_tag(std::string_view tag) const noexcept;
+
+    void list_all_reporters() const noexcept;
 
     impl::test_case*       begin() noexcept;
     impl::test_case*       end() noexcept;

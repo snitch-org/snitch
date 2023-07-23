@@ -13,11 +13,6 @@
 namespace snitch::impl { namespace {
 using namespace std::literals;
 
-bool is_at_least(registry::verbosity verbose, registry::verbosity required) noexcept {
-    using underlying_type = std::underlying_type_t<registry::verbosity>;
-    return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
-}
-
 // Requires: s contains a well-formed list of tags.
 template<typename F>
 void for_each_raw_tag(std::string_view s, F&& callback) {
@@ -338,6 +333,8 @@ void default_reporter(const registry& r, const event::data& event) noexcept {
     std::visit(default_reporter_functor{r}, event);
 }
 
+void initialize_default_reporter(registry&) noexcept {}
+
 bool configure_default_reporter(
     registry& r, std::string_view option, std::string_view value) noexcept {
 
@@ -352,13 +349,17 @@ bool configure_default_reporter(
 
     return false;
 }
+
+void finish_default_reporter(registry&) noexcept {}
 } // namespace snitch::impl
 
 namespace snitch {
 std::string_view registry::add_reporter(
-    std::string_view                   name,
-    const report_function&             report,
-    const configure_reporter_function& configure) {
+    std::string_view                                 name,
+    const std::optional<initialize_report_function>& initialize,
+    const std::optional<configure_report_function>&  configure,
+    const report_function&                           report,
+    const std::optional<finish_report_function>&     finish) {
 
     if (registered_reporters.available() == 0u) {
         using namespace snitch::impl;
@@ -378,7 +379,11 @@ std::string_view registry::add_reporter(
         assertion_failed("invalid reporter name");
     }
 
-    registered_reporters.push_back(registered_reporter{name, report, configure});
+    registered_reporters.push_back(registered_reporter{
+        name, initialize.value_or([](registry&) noexcept {}),
+        configure.value_or(
+            [](registry&, std::string_view, std::string_view) noexcept { return false; }),
+        report, finish.value_or([](registry&) noexcept {})});
 
     return name;
 }
@@ -428,7 +433,7 @@ void registry::report_assertion(
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
     if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::full)) {
+        if (verbose >= registry::verbosity::full) {
             report_callback(
                 *this, event::assertion_succeeded{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
@@ -464,7 +469,7 @@ void registry::report_assertion(
     append_or_truncate(message, message1, message2);
 
     if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::full)) {
+        if (verbose >= registry::verbosity::full) {
             report_callback(
                 *this, event::assertion_succeeded{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
@@ -505,7 +510,7 @@ void registry::report_assertion(
     }
 
     if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::full)) {
+        if (verbose >= registry::verbosity::full) {
             report_callback(
                 *this, event::assertion_succeeded{
                            state.test.id, state.sections.current_section, captures_buffer.span(),
@@ -534,7 +539,7 @@ void registry::report_skipped(
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
-    if (impl::is_at_least(verbose, registry::verbosity::high)) {
+    if (verbose >= registry::verbosity::high) {
         report_callback(*this, event::test_case_started{test.id});
     }
 
@@ -619,7 +624,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
-    if (impl::is_at_least(verbose, registry::verbosity::high)) {
+    if (verbose >= registry::verbosity::high) {
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_case_ended{
@@ -644,7 +649,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 bool registry::run_selected_tests(
     std::string_view                                     run_name,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
-    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
+    if (verbose >= registry::verbosity::normal) {
         report_callback(*this, event::test_run_started{run_name});
     }
 
@@ -695,7 +700,7 @@ bool registry::run_selected_tests(
     float duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
-    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
+    if (verbose >= registry::verbosity::normal) {
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_run_ended{
@@ -759,6 +764,12 @@ bool registry::run_tests(const cli::input& args) noexcept {
         return true;
     }
 
+    if (get_option(args, "--list-reporters")) {
+        list_all_reporters();
+        return true;
+    }
+
+    bool success = false;
     if (get_positional_argument(args, "test regex").has_value()) {
         const auto filter = [&](const test_id& id) noexcept {
             std::optional<bool> selected;
@@ -785,11 +796,94 @@ bool registry::run_tests(const cli::input& args) noexcept {
             return selected.value();
         };
 
-        return run_selected_tests(args.executable, filter);
+        success = run_selected_tests(args.executable, filter);
     } else {
-        return run_tests(args.executable);
+        success = run_tests(args.executable);
     }
+
+    finish_callback(*this);
+
+    return success;
 }
+
+namespace impl {
+void parse_reporter(
+    registry&                                                   r,
+    small_vector_span<const std::optional<registered_reporter>> reporters,
+    std::string_view                                            arg) noexcept {
+
+    if (arg.empty() || arg[0] == ':') {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", r.with_color, color::warning), " invalid reporter '", arg,
+            "', using default\n");
+        return;
+    }
+
+    // Isolate reporter name and options
+    std::string_view reporter_name = arg;
+    std::string_view options;
+    if (auto option_pos = reporter_name.find("::"); option_pos != std::string_view::npos) {
+        options       = reporter_name.substr(option_pos);
+        reporter_name = reporter_name.substr(0, option_pos);
+    }
+
+    // Locate reporter
+    auto iter = std::find_if(reporters.begin(), reporters.end(), [&](const auto& reporter) {
+        return reporter->name == reporter_name;
+    });
+
+    if (iter == reporters.end()) {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", r.with_color, color::warning), " unknown reporter '",
+            reporter_name, "', using default\n");
+        cli::print(make_colored("note:", r.with_color, color::status), " available reporters:\n");
+        for (const auto& reporter : reporters) {
+            cli::print(
+                make_colored("note:", r.with_color, color::status), "  ", reporter->name, "\n");
+        }
+        return;
+    }
+
+    // Initialise reporter now, so we can configure it.
+    (*iter)->initialize(r);
+
+    // Configure reporter
+    auto option_pos = options.find("::");
+    while (option_pos != std::string_view::npos) {
+        option_pos = options.find("::", 2);
+        if (option_pos != std::string_view::npos) {
+            options = options.substr(option_pos);
+        }
+
+        std::string_view option = options.substr(2, option_pos);
+
+        auto equal_pos = option.find("=");
+        if (equal_pos == std::string_view::npos || equal_pos == 0) {
+            using namespace snitch::impl;
+            cli::print(
+                make_colored("warning:", r.with_color, color::warning),
+                " badly formatted reporter option '", option, "'; expected 'key=value'\n");
+            continue;
+        }
+
+        std::string_view option_name  = option.substr(0, equal_pos);
+        std::string_view option_value = option.substr(equal_pos + 1);
+
+        if (!(*iter)->configure(r, option_name, option_value)) {
+            using namespace snitch::impl;
+            cli::print(
+                make_colored("warning:", r.with_color, color::warning),
+                " unknown reporter option '", option_name, "'\n");
+        }
+    }
+
+    // Register reporter callbacks
+    r.report_callback = (*iter)->callback;
+    r.finish_callback = (*iter)->finish;
+}
+} // namespace impl
 
 void registry::configure(const cli::input& args) noexcept {
     if (auto opt = get_option(args, "--colour-mode")) {
@@ -818,62 +912,7 @@ void registry::configure(const cli::input& args) noexcept {
     }
 
     if (auto opt = get_option(args, "--reporter")) {
-        // Isolate reporter name and options
-        std::string_view reporter_name = *opt->value;
-        std::string_view options;
-        if (auto option_pos = reporter_name.find("::"); option_pos != std::string_view::npos) {
-            options       = reporter_name.substr(option_pos);
-            reporter_name = reporter_name.substr(0, option_pos);
-        }
-
-        // Locate reporter
-        auto iter = std::find_if(
-            registered_reporters.begin(), registered_reporters.end(),
-            [&](const auto& reporter) { return reporter->name == reporter_name; });
-
-        if (iter == registered_reporters.end()) {
-            using namespace snitch::impl;
-            cli::print(
-                make_colored("warning:", with_color, color::warning), " unknown reporter '",
-                reporter_name, "', using default\n");
-            cli::print(make_colored("note:", with_color, color::status), " available reporters:\n");
-            for (const auto& reporter : registered_reporters) {
-                cli::print(
-                    make_colored("note:", with_color, color::status), "  ", reporter->name, "\n");
-            }
-        } else {
-            report_callback = (*iter)->callback;
-
-            // Configure reporter
-            auto option_pos = options.find("::");
-            while (option_pos != std::string_view::npos) {
-                option_pos = options.find("::", 2);
-                if (option_pos != std::string_view::npos) {
-                    options = options.substr(option_pos);
-                }
-
-                std::string_view option = options.substr(2, option_pos);
-
-                auto equal_pos = option.find("=");
-                if (equal_pos == std::string_view::npos || equal_pos == 0) {
-                    using namespace snitch::impl;
-                    cli::print(
-                        make_colored("warning:", with_color, color::warning),
-                        " badly formatted reporter option '", option, "'; expected 'key=value'\n");
-                    continue;
-                }
-
-                std::string_view option_name  = option.substr(0, equal_pos);
-                std::string_view option_value = option.substr(equal_pos + 1);
-
-                if (!(*iter)->configure(*this, option_name, option_value)) {
-                    using namespace snitch::impl;
-                    cli::print(
-                        make_colored("warning:", with_color, color::warning),
-                        " unknown reporter option '", option_name, "'\n");
-                }
-            }
-        }
+        impl::parse_reporter(*this, registered_reporters, *opt->value);
     }
 }
 
@@ -915,6 +954,12 @@ void registry::list_tests_with_tag(std::string_view tag) const noexcept {
         const auto result = is_filter_match_tags(t.id.tags, tag);
         return result == filter_result::included || result == filter_result::not_excluded;
     });
+}
+
+void registry::list_all_reporters() const noexcept {
+    for (const auto& r : registered_reporters) {
+        cli::print(r->name, "\n");
+    }
 }
 
 impl::test_case* registry::begin() noexcept {
