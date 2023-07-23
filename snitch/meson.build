@@ -38,6 +38,7 @@ conf_data = configuration_data({
   'SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS' : get_option('decompose_successful_assertions').to_int()
   'SNITCH_WITH_ALL_REPORTERS'              : get_option('with_all_reporters').to_int()
   'SNITCH_WITH_TEAMCITY_REPORTER'          : get_option('with_teamcity_reporter').to_int()
+  'SNITCH_WITH_CATCH2_XML_REPORTER'        : get_option('with_catch2_xml_reporter').to_int()
 })
 
 conf_file = configure_file(

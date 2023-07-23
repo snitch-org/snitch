@@ -25,6 +25,7 @@ set(SNITCH_DEFAULT_WITH_COLOR              ON  CACHE BOOL "Enable terminal color
 set(SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS OFF CACHE BOOL "Enable expression decomposition even for successful assertions -- more expensive.")
 set(SNITCH_WITH_ALL_REPORTERS              ON  CACHE BOOL "Allow all built-in reporters to be selected from the command line -- disable for faster compilation.")
 set(SNITCH_WITH_TEAMCITY_REPORTER          OFF CACHE BOOL "Allow the TeamCity reporter to be selected from the command line -- enable if needed.")
+set(SNITCH_WITH_CATCH2_XML_REPORTER        OFF CACHE BOOL "Allow the Catch2 XML reporter to be selected from the command line -- enable if needed.")
 
 # Building and packaging options; not part of the library API.
 set(SNITCH_CREATE_HEADER_ONLY ON  CACHE BOOL "Create a single-header header-only version of snitch.")

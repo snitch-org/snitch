@@ -21,6 +21,7 @@ option('default_with_color'              ,type: 'boolean' ,value: true, descript
 option('decompose_successful_assertions' ,type: 'boolean' ,value: true, description: 'Enable expression decomposition even for successful assertions -- more expensive.')
 option('with_all_reporters'              ,type: 'boolean' ,value: true, description: 'Allow all built-in reporters to be selected from the command line -- disable for faster compilation.')
 option('with_teamcity_reporter'          ,type: 'boolean' ,value: true, description: 'Allow the TeamCity reporter to be selected from the command line -- enable if needed.')
+option('with_catch2_xml_reporter'        ,type: 'boolean' ,value: true, description: 'Allow the Catch2 XML reporter to be selected from the command line -- enable if needed.')
 
 # Building and packaging options; not part of the library API.
 option('create_header_only' ,type: 'boolean' ,value: true, description: 'Create a single-header header-only version of snitch.')
