@@ -6,6 +6,7 @@
 #include "snitch_main.cpp"
 #include "snitch_matcher.cpp"
 #include "snitch_registry.cpp"
+#include "snitch_reporters.cpp"
 #include "snitch_section.cpp"
 #include "snitch_string_utility.cpp"
 #include "snitch_test_data.cpp"

@@ -42,6 +42,7 @@ sources = files('src/snitch_append.cpp',
                'src/snitch_main.cpp',
                'src/snitch_matcher.cpp',
                'src/snitch_registry.cpp',
+               'src/snitch_reporters.cpp',
                'src/snitch_section.cpp',
                'src/snitch_string_utility.cpp',
                'src/snitch_test_data.cpp')
