@@ -173,11 +173,12 @@ filter_result is_filter_match_tags(std::string_view tags, std::string_view filte
     return match ? match_action : no_match_action;
 }
 
-filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept {
+filter_result
+is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept {
     if (filter.starts_with('[') || filter.starts_with("~[")) {
-        return is_filter_match_tags(id.tags, filter);
+        return is_filter_match_tags(tags, filter);
     } else {
-        return is_filter_match_name(id.name, filter);
+        return is_filter_match_name(name, filter);
     }
 }
 } // namespace snitch
@@ -773,11 +774,13 @@ bool registry::run_tests(const cli::input& args) noexcept {
 
     bool success = false;
     if (get_positional_argument(args, "test regex").has_value()) {
+        small_string<max_test_name_length> buffer;
+
         const auto filter = [&](const test_id& id) noexcept {
             std::optional<bool> selected;
 
             const auto callback = [&](std::string_view filter) noexcept {
-                switch (is_filter_match_id(id, filter)) {
+                switch (is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter)) {
                 case filter_result::included: selected = true; break;
                 case filter_result::excluded: selected = false; break;
                 case filter_result::not_included:

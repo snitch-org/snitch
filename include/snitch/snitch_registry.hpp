@@ -61,7 +61,8 @@ is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
 [[nodiscard]] filter_result
 is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
 
-[[nodiscard]] filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept;
+[[nodiscard]] filter_result
+is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept;
 
 using print_function  = small_function<void(std::string_view) noexcept>;
 using report_function = small_function<void(const registry&, const event::data&) noexcept>;

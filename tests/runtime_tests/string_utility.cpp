@@ -998,20 +998,18 @@ TEST_CASE("is_filter_match_tag", "[utility]") {
 }
 
 TEST_CASE("is_filter_match_id", "[utility]") {
-    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "abc"sv) == filter_result::included);
-    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~abc"sv) == filter_result::excluded);
-    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "ab*"sv) == filter_result::included);
-    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag1]"sv) == filter_result::included);
-    CHECK(is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag2]"sv) == filter_result::included);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "abc"sv) == filter_result::included);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "~abc"sv) == filter_result::excluded);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "ab*"sv) == filter_result::included);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "[tag1]"sv) == filter_result::included);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "[tag2]"sv) == filter_result::included);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "[tag3]"sv) == filter_result::not_included);
     CHECK(
-        is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "[tag3]"sv) == filter_result::not_included);
+        is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "~[tag3]"sv) == filter_result::not_excluded);
     CHECK(
-        is_filter_match_id({"abc"sv, "[tag1][tag2]"sv}, "~[tag3]"sv) ==
-        filter_result::not_excluded);
-    CHECK(
-        is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "\\[weird]"sv) ==
+        is_filter_match_id("[weird]"sv, "[tag1][tag2]"sv, "\\[weird]"sv) ==
         filter_result::included);
     CHECK(
-        is_filter_match_id({"[weird]"sv, "[tag1][tag2]"sv}, "[weird]"sv) ==
+        is_filter_match_id("[weird]"sv, "[tag1][tag2]"sv, "[weird]"sv) ==
         filter_result::not_included);
 }
