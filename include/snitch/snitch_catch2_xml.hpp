@@ -34,12 +34,7 @@ small_string<max_message_length> make_escaped(std::string_view string) noexcept 
 
 small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
     small_string<max_test_name_length> name;
-    if (id.type.length() != 0) {
-        append_or_truncate(name, id.name, "(\"", id.type, "\")");
-    } else {
-        append_or_truncate(name, id.name);
-    }
-
+    snitch::impl::make_full_name(name, id);
     escape(name);
     return name;
 }

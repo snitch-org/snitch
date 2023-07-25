@@ -35,6 +35,9 @@ constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS
 } // namespace snitch
 
 namespace snitch::impl {
+std::string_view
+make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept;
+
 void initialize_default_reporter(registry& r) noexcept;
 bool configure_default_reporter(
     registry& r, std::string_view option, std::string_view value) noexcept;

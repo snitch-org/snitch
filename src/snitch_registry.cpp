@@ -10,7 +10,8 @@
 // Testing framework implementation.
 // ---------------------------------
 
-namespace snitch::impl { namespace {
+namespace snitch::impl {
+namespace {
 using namespace std::literals;
 
 // Requires: s contains a well-formed list of tags.
@@ -86,22 +87,6 @@ void for_each_tag(std::string_view s, F&& callback) {
     });
 }
 
-std::string_view
-make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
-    buffer.clear();
-    if (id.type.length() != 0) {
-        if (!append(buffer, id.name, " <", id.type, ">")) {
-            return {};
-        }
-    } else {
-        if (!append(buffer, id.name)) {
-            return {};
-        }
-    }
-
-    return buffer.str();
-}
-
 template<typename F>
 void list_tests(const registry& r, F&& predicate) noexcept {
     small_string<max_test_name_length> buffer;
@@ -139,7 +124,24 @@ make_capture_buffer(const capture_state& captures) noexcept {
 
     return captures_buffer;
 }
-}} // namespace snitch::impl
+} // namespace
+
+std::string_view
+make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
+    buffer.clear();
+    if (id.type.length() != 0) {
+        if (!append(buffer, id.name, " <", id.type, ">")) {
+            return {};
+        }
+    } else {
+        if (!append(buffer, id.name)) {
+            return {};
+        }
+    }
+
+    return buffer.str();
+}
+} // namespace snitch::impl
 
 namespace snitch {
 filter_result is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
