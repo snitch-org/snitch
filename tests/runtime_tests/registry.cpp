@@ -471,7 +471,8 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
 TEST_CASE("report unhandled std::exception", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
+    const std::size_t test_line = __LINE__;
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, test_line}, []() {
         throw std::runtime_error("error message");
     });
 
@@ -482,7 +483,7 @@ TEST_CASE("report unhandled std::exception", "[registry]") {
         framework.registry.run(test);
 
         CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("<snitch internal>:0"));
+        CHECK(framework.messages == contains_substring("registry.cpp"));
         CHECK(
             framework.messages ==
             contains_substring("unhandled std::exception caught; message: error message"));
@@ -497,7 +498,7 @@ TEST_CASE("report unhandled std::exception", "[registry]") {
         REQUIRE(failure_opt.has_value());
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, "<snitch internal>", 0u);
+        CHECK_EVENT_LOCATION(failure, __FILE__, test_line);
         CHECK(
             failure.message ==
             contains_substring("unhandled std::exception caught; message: error message"));
@@ -507,7 +508,8 @@ TEST_CASE("report unhandled std::exception", "[registry]") {
 TEST_CASE("report unhandled unknown exception", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() { throw 42; });
+    const std::size_t test_line = __LINE__;
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, test_line}, []() { throw 42; });
 
     auto& test = *framework.registry.begin();
 
@@ -516,7 +518,7 @@ TEST_CASE("report unhandled unknown exception", "[registry]") {
         framework.registry.run(test);
 
         CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("<snitch internal>:0"));
+        CHECK(framework.messages == contains_substring("registry.cpp"));
         CHECK(framework.messages == contains_substring("unhandled unknown exception caught"));
     }
 
@@ -529,7 +531,7 @@ TEST_CASE("report unhandled unknown exception", "[registry]") {
         REQUIRE(failure_opt.has_value());
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, "<snitch internal>", 0u);
+        CHECK_EVENT_LOCATION(failure, __FILE__, test_line);
         CHECK(failure.message == contains_substring("unhandled unknown exception caught"));
     }
 }

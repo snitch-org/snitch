@@ -585,12 +585,11 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_assertion(
-                false, state, {"<snitch internal>", 0},
+                false, state, test.location,
                 "unhandled std::exception caught; message: ", e.what());
             --state.asserts; // this doesn't count as a user assert, undo the increment
         } catch (...) {
-            report_assertion(
-                false, state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
+            report_assertion(false, state, test.location, "unhandled unknown exception caught");
             --state.asserts; // this doesn't count as a user assert, undo the increment
         }
 #else
