@@ -44,26 +44,6 @@ small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
     return name;
 }
 
-small_string<max_message_length> make_full_message(
-    const snitch::assertion_location& location,
-    const snitch::section_info&       sections,
-    const snitch::capture_info&       captures,
-    std::string_view                  message) noexcept {
-
-    small_string<max_message_length> full_message;
-    append_or_truncate(full_message, location.file, ":", location.line, "\n");
-    for (const auto& s : sections) {
-        append_or_truncate(full_message, s.name, "\n");
-    }
-    for (const auto& c : captures) {
-        append_or_truncate(full_message, c, "\n");
-    }
-
-    append_or_truncate(full_message, "  ", message);
-    escape(full_message);
-    return full_message;
-}
-
 constexpr std::size_t max_number_length = 32;
 
 template<typename T>
@@ -91,7 +71,7 @@ struct reporter {
     open(const registry& r, std::string_view node, std::initializer_list<key_value> args) noexcept {
         r.print(indent(), "<", node);
         for (const auto& arg : args) {
-            r.print(" ", arg.key, "=\"", make_escaped(arg.value), "\"");
+            r.print(" ", arg.key, "=\"", arg.value, "\"");
         }
         r.print(">\n");
         ++indent_level;
@@ -101,7 +81,7 @@ struct reporter {
     node(const registry& r, std::string_view node, std::initializer_list<key_value> args) noexcept {
         r.print(indent(), "<", node);
         for (const auto& arg : args) {
-            r.print(" ", arg.key, "=\"", make_escaped(arg.value), "\"");
+            r.print(" ", arg.key, "=\"", arg.value, "\"");
         }
         r.print("/>\n");
     }
@@ -152,8 +132,8 @@ struct reporter {
                     open(
                         r, "TestCase",
                         {{"name", make_full_name(e.id)},
-                         {"tags", e.id.tags},
-                         {"filename", e.location.file},
+                         {"tags", make_escaped(e.id.tags)},
+                         {"filename", make_escaped(e.location.file)},
                          {"line", make_string(e.location.line)}});
                 },
                 [&](const snitch::event::test_case_ended& e) {
