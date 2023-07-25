@@ -8,7 +8,7 @@
 #define SNITCH_TEST_CASE_IMPL(ID, ...)                                                             \
     static void        ID();                                                                       \
     static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snitch::tests.add({__VA_ARGS__}, &ID);                                                     \
+        snitch::tests.add({__VA_ARGS__}, {__FILE__, __LINE__}, &ID);                               \
     void ID()
 
 #define SNITCH_TEST_CASE(...)                                                                      \
@@ -19,7 +19,7 @@
     static void        ID();                                                                       \
     static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snitch::tests.add_with_type_list<TYPES>(                                                   \
-            NAME, TAGS, []<typename TestType>() { ID<TestType>(); });                              \
+            NAME, TAGS, {__FILE__, __LINE__}, []<typename TestType>() { ID<TestType>(); });        \
     template<typename TestType>                                                                    \
     void ID()
 
@@ -32,7 +32,7 @@
     static void        ID();                                                                       \
     static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snitch::tests.add_with_types<__VA_ARGS__>(                                                 \
-            NAME, TAGS, []<typename TestType>() { ID<TestType>(); });                              \
+            NAME, TAGS, {__FILE__, __LINE__}, []<typename TestType>() { ID<TestType>(); });        \
     template<typename TestType>                                                                    \
     void ID()
 
@@ -47,7 +47,7 @@
     };                                                                                             \
     }                                                                                              \
     static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snitch::tests.add({__VA_ARGS__}, []() { ID{}.test_fun(); });                               \
+        snitch::tests.add({__VA_ARGS__}, {__FILE__, __LINE__}, []() { ID{}.test_fun(); });         \
     void ID::test_fun()
 
 #define SNITCH_TEST_CASE_METHOD(FIXTURE, ...)                                                      \
@@ -63,7 +63,8 @@
     }                                                                                              \
     static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snitch::tests.add_with_types<TYPES>(                                                       \
-            NAME, TAGS, []() < typename TestType > { ID<TestType>{}.test_fun(); });                \
+            NAME, TAGS, {__FILE__, __LINE__},                                                      \
+            []() < typename TestType > { ID<TestType>{}.test_fun(); });                            \
     template<typename TestType>                                                                    \
     void ID<TestType>::test_fun()
 
@@ -80,7 +81,8 @@
     }                                                                                              \
     static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
         snitch::tests.add_with_types<__VA_ARGS__>(                                                 \
-            NAME, TAGS, []() < typename TestType > { ID<TestType>{}.test_fun(); });                \
+            NAME, TAGS, {__FILE__, __LINE__},                                                      \
+            []() < typename TestType > { ID<TestType>{}.test_fun(); });                            \
     template<typename TestType>                                                                    \
     void ID<TestType>::test_fun()
 

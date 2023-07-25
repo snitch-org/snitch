@@ -122,19 +122,28 @@ public:
         const std::optional<finish_report_function>&     finish);
 
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char* add(const test_id& id, impl::test_ptr func);
+    const char* add(const test_id& id, const source_location& location, impl::test_ptr func);
 
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    const char* add_with_types(std::string_view name, std::string_view tags, const F& func) {
-        return (add({name, tags, type_name<Args>}, impl::to_test_case_ptr<Args>(func)), ...);
+    const char* add_with_types(
+        std::string_view       name,
+        std::string_view       tags,
+        const source_location& location,
+        const F&               func) {
+        return (
+            add({name, tags, type_name<Args>}, location, impl::to_test_case_ptr<Args>(func)), ...);
     }
 
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
-    const char* add_with_type_list(std::string_view name, std::string_view tags, const F& func) {
+    const char* add_with_type_list(
+        std::string_view       name,
+        std::string_view       tags,
+        const source_location& location,
+        const F&               func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
-            return this->add_with_types<Args...>(name, tags, func);
+            return this->add_with_types<Args...>(name, tags, location, func);
         }(type_list<T>{});
     }
 

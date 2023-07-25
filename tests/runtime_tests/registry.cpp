@@ -23,7 +23,8 @@ TEST_CASE("add regular test", "[registry]") {
     mock_framework framework;
 
     test_called = false;
-    framework.registry.add({"how many lights", "[tag]"}, []() { test_called = true; });
+    framework.registry.add(
+        {"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() { test_called = true; });
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
@@ -59,7 +60,7 @@ TEST_CASE("add regular test no tags", "[registry]") {
     mock_framework framework;
 
     test_called = false;
-    framework.registry.add({"how many lights"}, []() { test_called = true; });
+    framework.registry.add({"how many lights"}, {__FILE__, __LINE__}, []() { test_called = true; });
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
@@ -103,7 +104,7 @@ TEST_CASE("add template test", "[registry]") {
 
         if (with_type_list) {
             framework.registry.add_with_type_list<snitch::type_list<int, float>>(
-                "how many lights", "[tag]", []<typename T>() {
+                "how many lights", "[tag]", {__FILE__, __LINE__}, []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -114,7 +115,7 @@ TEST_CASE("add template test", "[registry]") {
                 });
         } else {
             framework.registry.add_with_types<int, float>(
-                "how many lights", "[tag]", []<typename T>() {
+                "how many lights", "[tag]", {__FILE__, __LINE__}, []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -197,7 +198,7 @@ SNITCH_WARNING_DISABLE_UNREACHABLE
 TEST_CASE("report FAIL_CHECK regular", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
         // clang-format off
         failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
         // clang-format on
@@ -231,11 +232,12 @@ TEST_CASE("report FAIL_CHECK regular", "[registry]") {
 TEST_CASE("report FAIL_CHECK template", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add_with_types<int>("how many lights", "[tag]", []<typename TestType>() {
-        // clang-format off
+    framework.registry.add_with_types<int>(
+        "how many lights", "[tag]", {__FILE__, __LINE__}, []<typename TestType>() {
+            // clang-format off
         failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
-        // clang-format on
-    });
+            // clang-format on
+        });
 
     auto& test = *framework.registry.begin();
 
@@ -266,7 +268,7 @@ TEST_CASE("report FAIL_CHECK template", "[registry]") {
 TEST_CASE("report FAIL_CHECK section", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
         SNITCH_SECTION("ask nicely") {
             // clang-format off
             failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
@@ -305,7 +307,7 @@ TEST_CASE("report FAIL_CHECK section", "[registry]") {
 TEST_CASE("report FAIL_CHECK capture", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
         int number_of_lights = 3;
         SNITCH_CAPTURE(number_of_lights);
         // clang-format off
@@ -344,7 +346,7 @@ TEST_CASE("report FAIL_CHECK capture", "[registry]") {
 TEST_CASE("report CHECK", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
         int number_of_lights = 4;
         // clang-format off
         failure_line = __LINE__; SNITCH_CHECK(number_of_lights == 3);
@@ -382,7 +384,7 @@ TEST_CASE("report CHECK success", "[registry]") {
     mock_framework framework;
     framework.catch_success = true;
 
-    framework.registry.add({"how many fingers", "[tag]"}, []() {
+    framework.registry.add({"how many fingers", "[tag]"}, {__FILE__, __LINE__}, []() {
         int number_of_fingers = 5;
         // clang-format off
         failure_line = __LINE__; SNITCH_CHECK(number_of_fingers == 5);
@@ -428,7 +430,7 @@ TEST_CASE("report CHECK success", "[registry]") {
 TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
         auto ask_how_many_lights = [] { throw std::runtime_error{"there are four lights"}; };
         // clang-format off
         failure_line = __LINE__; SNITCH_REQUIRE_THROWS_AS(ask_how_many_lights(), std::logic_error);
@@ -469,8 +471,9 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
 TEST_CASE("report unhandled std::exception", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add(
-        {"how many lights", "[tag]"}, []() { throw std::runtime_error("error message"); });
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
+        throw std::runtime_error("error message");
+    });
 
     auto& test = *framework.registry.begin();
 
@@ -504,7 +507,7 @@ TEST_CASE("report unhandled std::exception", "[registry]") {
 TEST_CASE("report unhandled unknown exception", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() { throw 42; });
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() { throw 42; });
 
     auto& test = *framework.registry.begin();
 
@@ -535,7 +538,7 @@ TEST_CASE("report unhandled unknown exception", "[registry]") {
 TEST_CASE("report SKIP", "[registry]") {
     mock_framework framework;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() {
         // clang-format off
         failure_line = __LINE__; SNITCH_SKIP_CHECK("there are four lights");
         // clang-format on
@@ -578,20 +581,22 @@ void register_tests(mock_framework& framework) {
     test_called_hidden1   = false;
     test_called_hidden2   = false;
 
-    framework.registry.add({"how are you", "[tag]"}, []() { test_called = true; });
+    framework.registry.add(
+        {"how are you", "[tag]"}, {__FILE__, __LINE__}, []() { test_called = true; });
 
-    framework.registry.add({"how many lights", "[tag][other_tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag][other_tag]"}, {__FILE__, __LINE__}, []() {
         test_called_other_tag = true;
         SNITCH_FAIL_CHECK("there are four lights");
     });
 
-    framework.registry.add({"drink from the cup", "[tag][skipped]"}, []() {
+    framework.registry.add({"drink from the cup", "[tag][skipped]"}, {__FILE__, __LINE__}, []() {
         test_called_skipped = true;
         SNITCH_SKIP_CHECK("not thirsty");
     });
 
     framework.registry.add_with_types<int, float>(
-        "how many templated lights", "[tag][tag with spaces]", []<typename T>() {
+        "how many templated lights", "[tag][tag with spaces]", {__FILE__, __LINE__},
+        []<typename T>() {
             if constexpr (std::is_same_v<T, int>) {
                 test_called_int = true;
                 SNITCH_FAIL_CHECK("there are four lights (int)");
@@ -601,31 +606,35 @@ void register_tests(mock_framework& framework) {
             }
         });
 
-    framework.registry.add(
-        {"hidden test 1", "[.][hidden][other_tag]"}, []() { test_called_hidden1 = true; });
-
-    framework.registry.add({"hidden test 2", "[.hidden]"}, []() { test_called_hidden2 = true; });
-
-    framework.registry.add({"may fail that does not fail", "[.][may fail][!mayfail]"}, []() {});
-
-    framework.registry.add({"may fail that does fail", "[.][may fail][!mayfail]"}, []() {
-        SNITCH_FAIL_CHECK("it did fail");
+    framework.registry.add({"hidden test 1", "[.][hidden][other_tag]"}, {__FILE__, __LINE__}, []() {
+        test_called_hidden1 = true;
     });
 
     framework.registry.add(
-        {"should fail that does not fail", "[.][should fail][!shouldfail]"}, []() {});
-
-    framework.registry.add({"should fail that does fail", "[.][should fail][!shouldfail]"}, []() {
-        SNITCH_FAIL_CHECK("it did fail");
-    });
+        {"hidden test 2", "[.hidden]"}, {__FILE__, __LINE__}, []() { test_called_hidden2 = true; });
 
     framework.registry.add(
-        {"may+should fail that does not fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {"may fail that does not fail", "[.][may fail][!mayfail]"}, {__FILE__, __LINE__}, []() {});
+
+    framework.registry.add(
+        {"may fail that does fail", "[.][may fail][!mayfail]"}, {__FILE__, __LINE__},
+        []() { SNITCH_FAIL_CHECK("it did fail"); });
+
+    framework.registry.add(
+        {"should fail that does not fail", "[.][should fail][!shouldfail]"}, {__FILE__, __LINE__},
         []() {});
 
     framework.registry.add(
-        {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {"should fail that does fail", "[.][should fail][!shouldfail]"}, {__FILE__, __LINE__},
         []() { SNITCH_FAIL_CHECK("it did fail"); });
+
+    framework.registry.add(
+        {"may+should fail that does not fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {__FILE__, __LINE__}, []() {});
+
+    framework.registry.add(
+        {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {__FILE__, __LINE__}, []() { SNITCH_FAIL_CHECK("it did fail"); });
 }
 } // namespace
 
@@ -1209,13 +1218,13 @@ TEST_CASE("run tests cli readme example", "[registry]") {
 
     readme_test_called = {false};
 
-    framework.registry.add({"a"}, []() { readme_test_called[0] = true; });
-    framework.registry.add({"b"}, []() { readme_test_called[1] = true; });
-    framework.registry.add({"c"}, []() { readme_test_called[2] = true; });
-    framework.registry.add({"d"}, []() { readme_test_called[3] = true; });
-    framework.registry.add({"abc"}, []() { readme_test_called[4] = true; });
-    framework.registry.add({"abd"}, []() { readme_test_called[5] = true; });
-    framework.registry.add({"abcd"}, []() { readme_test_called[6] = true; });
+    framework.registry.add({"a"}, {__FILE__, __LINE__}, []() { readme_test_called[0] = true; });
+    framework.registry.add({"b"}, {__FILE__, __LINE__}, []() { readme_test_called[1] = true; });
+    framework.registry.add({"c"}, {__FILE__, __LINE__}, []() { readme_test_called[2] = true; });
+    framework.registry.add({"d"}, {__FILE__, __LINE__}, []() { readme_test_called[3] = true; });
+    framework.registry.add({"abc"}, {__FILE__, __LINE__}, []() { readme_test_called[4] = true; });
+    framework.registry.add({"abd"}, {__FILE__, __LINE__}, []() { readme_test_called[5] = true; });
+    framework.registry.add({"abcd"}, {__FILE__, __LINE__}, []() { readme_test_called[6] = true; });
 
     const arg_vector args = {"test", "a*", "~*d", "abcd"};
     auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());

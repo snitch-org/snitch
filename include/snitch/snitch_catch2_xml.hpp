@@ -149,13 +149,12 @@ struct reporter {
                     close(r, "Catch2TestRun");
                 },
                 [&](const snitch::event::test_case_started& e) {
-                    // TODO: missing filename and line attribs
                     open(
                         r, "TestCase",
                         {{"name", make_full_name(e.id)},
                          {"tags", e.id.tags},
-                         {"filename", "foo.cpp"},
-                         {"line", "1"}});
+                         {"filename", e.location.file},
+                         {"line", make_string(e.location.line)}});
                 },
                 [&](const snitch::event::test_case_ended& e) {
 #if SNITCH_WITH_TIMINGS

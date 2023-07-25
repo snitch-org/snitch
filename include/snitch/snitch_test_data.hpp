@@ -11,6 +11,11 @@
 namespace snitch {
 class registry;
 
+struct source_location {
+    std::string_view file = {};
+    std::size_t      line = 0u;
+};
+
 struct test_id {
     std::string_view name = {};
     std::string_view tags = {};
@@ -25,10 +30,7 @@ struct section_id {
 using section_info = small_vector_span<const section_id>;
 using capture_info = small_vector_span<const std::string_view>;
 
-struct assertion_location {
-    std::string_view file = {};
-    std::size_t      line = 0u;
-};
+using assertion_location = source_location;
 
 enum class test_case_state { success, failed, skipped };
 } // namespace snitch
@@ -51,13 +53,15 @@ struct test_run_ended {
 };
 
 struct test_case_started {
-    const test_id& id;
+    const test_id&         id;
+    const source_location& location;
 };
 
 struct test_case_ended {
-    const test_id&  id;
-    std::size_t     assertion_count = 0;
-    test_case_state state           = test_case_state::success;
+    const test_id&         id;
+    const source_location& location;
+    std::size_t            assertion_count = 0;
+    test_case_state        state           = test_case_state::success;
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
@@ -114,9 +118,10 @@ using test_ptr = void (*)();
 enum class test_case_state { not_run, success, skipped, failed };
 
 struct test_case {
-    test_id         id    = {};
-    test_ptr        func  = nullptr;
-    test_case_state state = test_case_state::not_run;
+    test_id         id       = {};
+    source_location location = {};
+    test_ptr        func     = nullptr;
+    test_case_state state    = test_case_state::not_run;
 };
 
 struct section_nesting_level {

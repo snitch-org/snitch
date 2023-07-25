@@ -254,7 +254,8 @@ struct default_reporter_functor {
 
         r.print(
             make_colored("starting:", r.with_color, color::status), " ",
-            make_colored(full_name, r.with_color, color::highlight1));
+            make_colored(full_name, r.with_color, color::highlight1), " at ", e.location.file, ":",
+            e.location.line);
         r.print("\n");
     }
 
@@ -388,7 +389,7 @@ std::string_view registry::add_reporter(
     return name;
 }
 
-const char* registry::add(const test_id& id, impl::test_ptr func) {
+const char* registry::add(const test_id& id, const source_location& location, impl::test_ptr func) {
     if (test_list.available() == 0u) {
         using namespace snitch::impl;
         print(
@@ -399,7 +400,7 @@ const char* registry::add(const test_id& id, impl::test_ptr func) {
         assertion_failed("max number of test cases reached");
     }
 
-    test_list.push_back(impl::test_case{id, func});
+    test_list.push_back(impl::test_case{id, location, func});
 
     small_string<max_test_name_length> buffer;
     if (impl::make_full_name(buffer, test_list.back().id).empty()) {
@@ -540,7 +541,7 @@ void registry::report_skipped(
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
     if (verbose >= registry::verbosity::high) {
-        report_callback(*this, event::test_case_started{test.id});
+        report_callback(*this, event::test_case_started{test.id, test.location});
     }
 
     test.state = impl::test_case_state::success;
@@ -629,6 +630,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         report_callback(
             *this, event::test_case_ended{
                        .id              = test.id,
+                       .location        = test.location,
                        .assertion_count = state.asserts,
                        .state           = impl::convert_to_public_state(state.test.state),
                        .duration        = state.duration});
@@ -636,6 +638,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         report_callback(
             *this, event::test_case_ended{
                        .id              = test.id,
+                       .location        = test.location,
                        .assertion_count = state.asserts,
                        .state           = impl::convert_to_public_state(state.test.state)});
 #endif
