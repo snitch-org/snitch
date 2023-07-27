@@ -37,6 +37,17 @@ void send_message(
     r.print(teamcity_footer);
 }
 
+small_string<max_message_length>
+make_suite_name(std::string_view app, const filter_info& filters) noexcept {
+    small_string<max_message_length> name;
+    append_or_truncate(name, app);
+    for (const auto& filter : filters) {
+        append_or_truncate(name, " \"", filter, "\"");
+    }
+    escape(name);
+    return name;
+}
+
 small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
     small_string<max_test_name_length> name;
     snitch::impl::make_full_name(name, id);
@@ -89,10 +100,11 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
     std::visit(
         snitch::overload{
             [&](const snitch::event::test_run_started& e) {
-                send_message(r, "testSuiteStarted", {{"name", make_escaped(e.name)}});
+                send_message(r, "testSuiteStarted", {{"name", make_suite_name(e.name, e.filters)}});
             },
             [&](const snitch::event::test_run_ended& e) {
-                send_message(r, "testSuiteFinished", {{"name", make_escaped(e.name)}});
+                send_message(
+                    r, "testSuiteFinished", {{"name", make_suite_name(e.name, e.filters)}});
             },
             [&](const snitch::event::test_case_started& e) {
                 send_message(r, "testStarted", {{"name", make_full_name(e.id)}});

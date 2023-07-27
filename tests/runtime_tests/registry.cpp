@@ -644,6 +644,16 @@ TEST_CASE("run tests", "[registry]") {
     mock_framework framework;
     register_tests(framework);
 
+    const auto run_selected_tests = [&](std::string_view filter, bool tags) {
+        const snitch::small_vector<std::string_view, 1> filter_strings = {filter};
+        const auto filter_function = [&](const snitch::test_id& id) noexcept {
+            return (tags ? snitch::is_filter_match_tags(id.tags, filter)
+                         : snitch::is_filter_match_name(id.name, filter)) ==
+                   snitch::filter_result::included;
+        };
+        framework.registry.run_selected_tests("test_app", filter_strings, filter_function);
+    };
+
     for (auto r : {reporter::print, reporter::custom}) {
         if (r == reporter::print) {
             framework.setup_print();
@@ -676,11 +686,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all pass") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*are you") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("*are you", false);
 
             CHECK(test_called);
             CHECK(!test_called_other_tag);
@@ -701,11 +707,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all failed") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*lights*") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("*lights*", false);
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -726,11 +728,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered all skipped") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*cup") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("*cup", false);
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -752,11 +750,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered tags") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[other_tag]") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("[other_tag]", true);
 
             CHECK(!test_called);
             CHECK(test_called_other_tag);
@@ -777,11 +771,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests filtered tags wildcard") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "*tag]") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("*tag]", true);
 
             CHECK(test_called);
             CHECK(test_called_other_tag);
@@ -802,11 +792,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [.]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[hidden]") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("[hidden]", true);
 
             CHECK(!test_called);
             CHECK(!test_called_other_tag);
@@ -827,11 +813,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!mayfail]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[may fail]") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("[may fail]", true);
 
             if (r == reporter::print) {
                 CHECK(
@@ -844,11 +826,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!shouldfail]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[should fail]") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("[should fail]", true);
 
             if (r == reporter::print) {
                 CHECK(
@@ -861,11 +839,7 @@ TEST_CASE("run tests", "[registry]") {
         }
 
         SECTION("run tests special tag [!shouldfail][!mayfail]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[may+should fail]") ==
-                           snitch::filter_result::included;
-                });
+            run_selected_tests("[may+should fail]", true);
 
             if (r == reporter::print) {
                 CHECK(

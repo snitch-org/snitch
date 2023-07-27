@@ -181,6 +181,7 @@ public:
 
     bool run_selected_tests(
         std::string_view                                     run_name,
+        const filter_info&                                   filter_strings,
         const small_function<bool(const test_id&) noexcept>& filter) noexcept;
 
     bool run_tests(const cli::input& args) noexcept;

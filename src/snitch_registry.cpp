@@ -653,9 +653,12 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 
 bool registry::run_selected_tests(
     std::string_view                                     run_name,
+    const filter_info&                                   filter_strings,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
+
     if (verbose >= registry::verbosity::normal) {
-        report_callback(*this, event::test_run_started{run_name});
+        report_callback(
+            *this, event::test_run_started{.name = run_name, .filters = filter_strings});
     }
 
     bool        success         = true;
@@ -710,6 +713,7 @@ bool registry::run_selected_tests(
         report_callback(
             *this, event::test_run_ended{
                        .name            = run_name,
+                       .filters         = filter_strings,
                        .run_count       = run_count,
                        .fail_count      = fail_count,
                        .skip_count      = skip_count,
@@ -721,6 +725,7 @@ bool registry::run_selected_tests(
         report_callback(
             *this, event::test_run_ended{
                        .name            = run_name,
+                       .filters         = filter_strings,
                        .run_count       = run_count,
                        .fail_count      = fail_count,
                        .skip_count      = skip_count,
@@ -744,7 +749,8 @@ bool registry::run_tests(std::string_view run_name) noexcept {
         return selected;
     };
 
-    return run_selected_tests(run_name, filter);
+    const small_vector<std::string_view, 1> filter_strings = {};
+    return run_selected_tests(run_name, filter_strings, filter);
 }
 
 bool registry::run_tests(const cli::input& args) noexcept {
@@ -776,12 +782,17 @@ bool registry::run_tests(const cli::input& args) noexcept {
 
     bool success = false;
     if (get_positional_argument(args, "test regex").has_value()) {
+        small_vector<std::string_view, max_command_line_args> filter_strings;
+        const auto add_filter_string = [&](std::string_view filter) noexcept {
+            filter_strings.push_back(filter);
+        };
+        for_each_positional_argument(args, "test regex", add_filter_string);
+
         small_string<max_test_name_length> buffer;
 
         const auto filter = [&](const test_id& id) noexcept {
             std::optional<bool> selected;
-
-            const auto callback = [&](std::string_view filter) noexcept {
+            for (const auto& filter : filter_strings) {
                 switch (is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter)) {
                 case filter_result::included: selected = true; break;
                 case filter_result::excluded: selected = false; break;
@@ -796,14 +807,12 @@ bool registry::run_tests(const cli::input& args) noexcept {
                     }
                     break;
                 }
-            };
-
-            for_each_positional_argument(args, "test regex", callback);
+            }
 
             return selected.value();
         };
 
-        success = run_selected_tests(args.executable, filter);
+        success = run_selected_tests(args.executable, filter_strings, filter);
     } else {
         success = run_tests(args.executable);
     }

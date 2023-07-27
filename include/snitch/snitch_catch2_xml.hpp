@@ -39,6 +39,18 @@ small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
     return name;
 }
 
+small_string<max_message_length> make_filters(const filter_info& filters) noexcept {
+    small_string<max_message_length> filter_string;
+
+    bool first = true;
+    for (const auto& filter : filters) {
+        append_or_truncate(filter_string, (first ? "\"" : " \""), filter, "\"");
+    }
+
+    escape(filter_string);
+    return filter_string;
+}
+
 constexpr std::size_t max_number_length = 32;
 
 template<typename T>
@@ -102,9 +114,14 @@ struct reporter {
             snitch::overload{
                 [&](const snitch::event::test_run_started& e) {
                     r.print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+                    // TODO: missing rng-seed
                     open(
                         r, "Catch2TestRun",
-                        {{"name", make_escaped(e.name)}, {"xml-format-version", "2"}});
+                        {{"name", make_escaped(e.name)},
+                         {"rng-seed", "0"},
+                         {"xml-format-version", "2"},
+                         {"catch2-version", SNITCH_FULL_VERSION ".snitch"},
+                         {"filters", make_filters(e.filters)}});
                 },
                 [&](const snitch::event::test_run_ended& e) {
                     // TODO: missing failures and expectedFailures attribs

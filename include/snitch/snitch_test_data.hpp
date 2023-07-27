@@ -27,6 +27,7 @@ struct section_id {
     std::string_view description = {};
 };
 
+using filter_info  = small_vector_span<const std::string_view>;
 using section_info = small_vector_span<const section_id>;
 using capture_info = small_vector_span<const std::string_view>;
 
@@ -37,11 +38,13 @@ enum class test_case_state { success, failed, skipped };
 
 namespace snitch::event {
 struct test_run_started {
-    std::string_view name = {};
+    std::string_view name    = {};
+    filter_info      filters = {};
 };
 
 struct test_run_ended {
     std::string_view name            = {};
+    filter_info      filters         = {};
     std::size_t      run_count       = 0;
     std::size_t      fail_count      = 0;
     std::size_t      skip_count      = 0;
