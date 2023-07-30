@@ -765,14 +765,14 @@ Note that _snitch_ small strings have a fixed capacity; once this capacity is re
 ### Reporters
 
 By default, _snitch_ will report the test results to the standard output, using its own report format. There are two ways you can override this:
- - Register a new reporter with `REGISTER_REPORTER(...)` and select it from the command line. This is more flexible as you can chance which reporter to use without re-compiling, but it requires a bit more boilerplate. See [Registering a new reporter](#registering-a-new-reporter). A list of standard reporters is already built-in *snitch* and enabled by default; see [Built-in reporters](#built-in-reporters).
+ - Register a new reporter with `REGISTER_REPORTER(...)` and select it from the command line. This is more flexible as you can change which reporter to use without re-compiling, but it requires a bit more boilerplate. See [Registering a new reporter](#registering-a-new-reporter). A list of standard reporters is provided with *snitch* and enabled by default; see [Built-in reporters](#built-in-reporters).
  - Override the default reporter by directly supplying your own callback function to the test registry. This is simpler but requires [using your own main function](#using-your-own-main-function), and is only a good option if the reporter never needs to change. See [Overriding the default reporter](#overriding-the-default-reporter).
 
 In both cases, the core of the reporter is its "report" callback function. It is a `noexcept` function, taking two arguments:
  - a reference to the `snitch::registry` that generated the event
  - a reference to the `snitch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
 
-When receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns, after which point the event data will be destroyed or overwritten. If you need persistent copies of this data, you must explicitly copy the data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
+When receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns; after this, the event data will be destroyed or overwritten. If you need persistent access to this data (e.g., because your reporting format requires reporting the data at a different time than when the event is generated), you must explicitly copy the relevant data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
 
 Finally, note that events being sent to the reporter are affected by the chosen verbosity:
  - `quiet`: `assertion_failed` and `test_case_skipped` only.
@@ -780,12 +780,12 @@ Finally, note that events being sent to the reporter are affected by the chosen 
  - `high`: same as `normal`, plus `test_case_started` and `test_case_ended`.
  - `full`: same as `high`, plus `assertion_succeeded` (i.e., all events).
 
-It may be necessary to override the default verbosity when the reporter is initialised if the reporter requires certain events to be sent.
+It may be necessary to override the default verbosity when the reporter is initialized if the reporter requires certain events to be sent.
 
 
 #### Built-in reporters
 
-With the default build configuration, *snitch* provides the following built-in reporters. They can all be disabled by setting the CMake option `SNITCH_WITH_ALL_REPORTERS` or Meson option `with_all_reporters` off, then enabled individually with specific build options if desired.
+With the default build configuration, *snitch* provides the following built-in reporters. They can all be disabled by turning off the CMake option `SNITCH_WITH_ALL_REPORTERS` or Meson option `with_all_reporters`, then enabled individually with specific build options if desired.
  - `console`: This is the default reporter, always present.
  - `teamcity`: Reports events in a format suitable for JetBrains TeamCity.
  - `xml`: Reports events in the *Catch2* XML format. Provided for compatibility with *Catch2*.
