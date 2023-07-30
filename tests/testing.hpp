@@ -7,7 +7,6 @@
 #    endif
 #    define CHECK_THROWS_WHAT(EXPR, EXCEPT, MESSAGE)                                               \
         CHECK_THROWS_MATCHES(EXPR, EXCEPT, snitch::matchers::with_what_contains{(MESSAGE)})
-
 #else
 
 // The library being tested.
@@ -45,14 +44,36 @@
 
 #    include <ostream>
 
-namespace doctest::detail {
+namespace concepts {
+struct any_arg {
+    template<typename T>
+    operator T() const noexcept;
+};
+
+template<typename T>
+concept matcher = requires(const T& m) {
+                      { m.match(any_arg{}) } -> snitch::convertible_to<bool>;
+                      {
+                          m.describe_match(any_arg{}, snitch::matchers::match_status{})
+                          } -> snitch::convertible_to<std::string_view>;
+                  };
+
 template<typename T>
 concept function = std::is_function_v<T>;
+} // namespace concepts
 
-template<function T>
+namespace snitch {
+template<std::size_t N>
+std::ostream& operator<<(std::ostream& str, const snitch::small_string<N>& in) {
+    return str << std::string_view{in};
+}
+} // namespace snitch
+
+namespace doctest::detail {
+template<concepts::function T>
 struct filldata<T*> {
     static void fill(std::ostream* stream, T* in) {
-        filldata<const void*>::fill(stream, in != nullptr ? "funcptr" : "nullptr");
+        *stream << (in != nullptr ? "funcptr" : "nullptr");
     }
 };
 } // namespace doctest::detail

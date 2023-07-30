@@ -21,6 +21,7 @@ TEST_CASE("section", "[test macros]") {
         framework.run_test();
         CHECK(framework.get_num_failures() == 1u);
         CHECK_NO_SECTION;
+        CHECK_CASE(snitch::test_case_state::failed, 2u, 1u);
     }
 
     SECTION("single section") {
@@ -33,7 +34,7 @@ TEST_CASE("section", "[test macros]") {
         framework.run_test();
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_SECTIONS("section 1");
-        CHECK_CASE(snitch::test_case_state::failed, 1u);
+        CHECK_CASE(snitch::test_case_state::failed, 2u, 1u);
     }
 
     SECTION("two sections") {
@@ -51,7 +52,7 @@ TEST_CASE("section", "[test macros]") {
         REQUIRE(framework.get_num_failures() == 2u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 2");
-        CHECK_CASE(snitch::test_case_state::failed, 2u);
+        CHECK_CASE(snitch::test_case_state::failed, 4u, 2u);
     }
 
     SECTION("nested sections") {
@@ -69,7 +70,7 @@ TEST_CASE("section", "[test macros]") {
         REQUIRE(framework.get_num_failures() == 2u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.1");
-        CHECK_CASE(snitch::test_case_state::failed, 2u);
+        CHECK_CASE(snitch::test_case_state::failed, 3u, 2u);
     }
 
 #if SNITCH_WITH_EXCEPTIONS
@@ -90,7 +91,7 @@ TEST_CASE("section", "[test macros]") {
 
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_SECTIONS("section 1");
-        CHECK_CASE(snitch::test_case_state::failed, 1u);
+        CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
     }
 
     SECTION("nested sections std::exception throw") {
@@ -110,7 +111,7 @@ TEST_CASE("section", "[test macros]") {
 
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_NO_SECTION;
-        CHECK_CASE(snitch::test_case_state::failed, 0u);
+        CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
     }
 
     SECTION("nested sections unknown exception throw") {
@@ -130,7 +131,7 @@ TEST_CASE("section", "[test macros]") {
 
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_NO_SECTION;
-        CHECK_CASE(snitch::test_case_state::failed, 0u);
+        CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
     }
 #endif
 
@@ -165,13 +166,18 @@ TEST_CASE("section", "[test macros]") {
 
         framework.run_test();
 
+        // NB: the sections generate 6 repeats of the test.
         REQUIRE(framework.get_num_failures() == 5u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1", "section 1.2");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.3", "section 1.3.1");
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 2", "section 2.1");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 3");
-        CHECK_CASE(snitch::test_case_state::failed, 11u);
+        // NB:
+        // - 6 "no exceptions"
+        // - 6 "CHECK(true)"
+        // - 5 "trigger"
+        CHECK_CASE(snitch::test_case_state::failed, 17u, 5u);
     }
 
     SECTION("nested sections multiple leaves") {
@@ -206,6 +212,7 @@ TEST_CASE("section", "[test macros]") {
 
         framework.run_test();
 
+        // NB: the sections generate 6 repeats of the test.
         REQUIRE(framework.get_num_failures() == 6u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1", "section 1.1", "section 1.1.1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 1.1", "section 1.1.2");
@@ -213,7 +220,10 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 2", "section 2.1", "section 2.1.1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 2", "section 2.1", "section 2.1.2");
         CHECK_SECTIONS_FOR_FAILURE(5u, "section 2", "section 2.1", "section 2.1.3");
-        CHECK_CASE(snitch::test_case_state::failed, 6u);
+        // NB:
+        // - 6 "no exception"
+        // - 6 "trigger"
+        CHECK_CASE(snitch::test_case_state::failed, 12u, 6u);
     }
 
     SECTION("one section in a loop") {
@@ -229,13 +239,18 @@ TEST_CASE("section", "[test macros]") {
 
         framework.run_test();
 
+        // NB: the sections generate 5 repeats of the test
         REQUIRE(framework.get_num_failures() == 5u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 1");
-        CHECK_CASE(snitch::test_case_state::failed, 30u);
+        // NB:
+        // - 5 "no exceptions"
+        // - 5x5 "i <= 10" (full loop executed for each repeat!)
+        // - 5 "trigger"
+        CHECK_CASE(snitch::test_case_state::failed, 35u, 5u);
     }
 
     SECTION("two sections in a loop") {
@@ -255,13 +270,18 @@ TEST_CASE("section", "[test macros]") {
 
         framework.run_test();
 
+        // NB: the sections generate 10 repeats of the test
         REQUIRE(framework.get_num_failures() == 5u);
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(2u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 2");
-        CHECK_CASE(snitch::test_case_state::failed, 60u);
+        // NB:
+        // - 10 "no exceptions"
+        // - 10x5 "i <= 10" (full loop executed for each repeat!)
+        // - 10 "i % 2u == x"
+        CHECK_CASE(snitch::test_case_state::failed, 70u, 5u);
     }
 }
 

@@ -411,7 +411,7 @@ TEST_CASE("report CHECK success", "[registry]") {
         framework.setup_reporter();
         framework.registry.run(test);
 
-        REQUIRE(framework.get_num_successes() == 1u);
+        REQUIRE(framework.get_num_successes() == 2u);
         auto success_opt = framework.get_success_event(0u);
         REQUIRE(success_opt.has_value());
         const auto& success = success_opt.value();
@@ -468,7 +468,7 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
     }
 }
 
-TEST_CASE("report unhandled std::exception", "[registry]") {
+TEST_CASE("report unexpected std::exception", "[registry]") {
     mock_framework framework;
 
     const std::size_t test_line = __LINE__;
@@ -486,7 +486,7 @@ TEST_CASE("report unhandled std::exception", "[registry]") {
         CHECK(framework.messages == contains_substring("registry.cpp"));
         CHECK(
             framework.messages ==
-            contains_substring("unhandled std::exception caught; message: error message"));
+            contains_substring("unexpected std::exception caught; message: error message"));
     }
 
     SECTION("custom reporter") {
@@ -501,11 +501,11 @@ TEST_CASE("report unhandled std::exception", "[registry]") {
         CHECK_EVENT_LOCATION(failure, __FILE__, test_line);
         CHECK(
             failure.message ==
-            contains_substring("unhandled std::exception caught; message: error message"));
+            contains_substring("unexpected std::exception caught; message: error message"));
     }
 }
 
-TEST_CASE("report unhandled unknown exception", "[registry]") {
+TEST_CASE("report unexpected unknown exception", "[registry]") {
     mock_framework framework;
 
     const std::size_t test_line = __LINE__;
@@ -519,7 +519,7 @@ TEST_CASE("report unhandled unknown exception", "[registry]") {
 
         CHECK(framework.messages == contains_substring("how many lights"));
         CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("unhandled unknown exception caught"));
+        CHECK(framework.messages == contains_substring("unexpected unknown exception caught"));
     }
 
     SECTION("custom reporter") {
@@ -532,7 +532,7 @@ TEST_CASE("report unhandled unknown exception", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, test_line);
-        CHECK(failure.message == contains_substring("unhandled unknown exception caught"));
+        CHECK(failure.message == contains_substring("unexpected unknown exception caught"));
     }
 }
 #endif
@@ -677,11 +677,11 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (3 out of 5 test cases, 3 assertions, 1 "
+                    contains_substring("some tests failed (3 out of 5 test cases, 7 assertions, 1 "
                                        "test cases skipped"));
             } else {
                 CHECK(framework.get_num_runs() == 5u);
-                CHECK_RUN(false, 5u, 3u, 1u, 3u);
+                CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
             }
         }
 
@@ -699,10 +699,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("all tests passed (1 test cases, 0 assertions"));
+                    contains_substring("all tests passed (1 test cases, 1 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 1u);
-                CHECK_RUN(true, 1u, 0u, 0u, 0u);
+                CHECK_RUN(true, 1u, 0u, 0u, 0u, 1u, 0u, 0u);
             }
         }
 
@@ -720,10 +720,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (3 out of 3 test cases, 3 assertions"));
+                    contains_substring("some tests failed (3 out of 3 test cases, 6 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 3u);
-                CHECK_RUN(false, 3u, 3u, 0u, 3u);
+                CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);
             }
         }
 
@@ -745,7 +745,7 @@ TEST_CASE("run tests", "[registry]") {
                                        "test cases skipped"));
             } else {
                 CHECK(framework.get_num_runs() == 1u);
-                CHECK_RUN(true, 1u, 0u, 1u, 0u);
+                CHECK_RUN(true, 1u, 0u, 0u, 1u, 0u, 0u, 0u);
             }
         }
 
@@ -763,10 +763,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (1 out of 2 test cases, 1 assertions"));
+                    contains_substring("some tests failed (1 out of 2 test cases, 3 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(false, 2u, 1u, 0u, 1u);
+                CHECK_RUN(false, 2u, 1u, 0u, 0u, 3u, 1u, 0u);
             }
         }
 
@@ -784,10 +784,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (3 out of 6 test cases, 3 assertions"));
+                    contains_substring("some tests failed (3 out of 6 test cases, 8 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 6u);
-                CHECK_RUN(false, 6u, 3u, 1u, 3u);
+                CHECK_RUN(false, 6u, 3u, 0u, 1u, 8u, 3u, 0u);
             }
         }
 
@@ -805,10 +805,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("all tests passed (2 test cases, 0 assertions"));
+                    contains_substring("all tests passed (2 test cases, 2 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(true, 2u, 0u, 0u, 0u);
+                CHECK_RUN(true, 2u, 0u, 0u, 0u, 2u, 0u, 0u);
             }
         }
 
@@ -818,10 +818,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("all tests passed (2 test cases, 1 assertions"));
+                    contains_substring("all tests passed (2 test cases, 3 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(true, 2u, 0u, 0u, 1u);
+                CHECK_RUN(true, 2u, 0u, 1u, 0u, 3u, 0u, 1u);
             }
         }
 
@@ -831,10 +831,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (1 out of 2 test cases, 1 assertions"));
+                    contains_substring("some tests failed (1 out of 2 test cases, 5 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(false, 2u, 1u, 0u, 1u);
+                CHECK_RUN(false, 2u, 1u, 1u, 0u, 5u, 1u, 1u);
             }
         }
 
@@ -844,10 +844,10 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("all tests passed (2 test cases, 1 assertions"));
+                    contains_substring("all tests passed (2 test cases, 5 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(true, 2u, 0u, 0u, 1u);
+                CHECK_RUN(true, 2u, 0u, 2u, 0u, 5u, 0u, 2u);
             }
         }
     }
@@ -1085,7 +1085,7 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(false, 5u, 3u, 1u, 3u);
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
     }
 
     SECTION("--help") {
@@ -1165,7 +1165,7 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(false, 3u, 3u, 0u, 3u);
+        CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);
     }
 
     SECTION("test filter exclusion") {
@@ -1173,7 +1173,7 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(false, 7u, 3u, 1u, 3u);
+        CHECK_RUN(false, 7u, 3u, 0u, 1u, 9u, 3u, 0u);
     }
 
     SECTION("test tag filter") {
@@ -1181,7 +1181,7 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(true, 1u, 0u, 1u, 0u);
+        CHECK_RUN(true, 1u, 0u, 0u, 1u, 0u, 0u, 0u);
     }
 }
 

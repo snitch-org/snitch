@@ -33,7 +33,7 @@ using capture_info = small_vector_span<const std::string_view>;
 
 using assertion_location = source_location;
 
-enum class test_case_state { success, failed, skipped };
+enum class test_case_state { success, failed, expected_fail, skipped };
 } // namespace snitch
 
 namespace snitch::event {
@@ -43,15 +43,21 @@ struct test_run_started {
 };
 
 struct test_run_ended {
-    std::string_view name            = {};
-    filter_info      filters         = {};
-    std::size_t      run_count       = 0;
-    std::size_t      fail_count      = 0;
-    std::size_t      skip_count      = 0;
-    std::size_t      assertion_count = 0;
+    std::string_view name                = {};
+    filter_info      filters             = {};
+    std::size_t      run_count           = 0;
+    std::size_t      fail_count          = 0;
+    std::size_t      expected_fail_count = 0;
+    std::size_t      skip_count          = 0;
+
+    std::size_t assertion_count                  = 0;
+    std::size_t assertion_failure_count          = 0;
+    std::size_t expected_assertion_failure_count = 0;
+
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
+
     bool success = true;
 };
 
@@ -63,8 +69,13 @@ struct test_case_started {
 struct test_case_ended {
     const test_id&         id;
     const source_location& location;
-    std::size_t            assertion_count = 0;
-    test_case_state        state           = test_case_state::success;
+
+    std::size_t assertion_count                  = 0;
+    std::size_t assertion_failure_count          = 0;
+    std::size_t expected_assertion_failure_count = 0;
+
+    test_case_state state = test_case_state::success;
+
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif
@@ -118,7 +129,7 @@ constexpr std::size_t max_capture_length = SNITCH_MAX_CAPTURE_LENGTH;
 namespace snitch::impl {
 using test_ptr = void (*)();
 
-enum class test_case_state { not_run, success, skipped, failed };
+enum class test_case_state { not_run, success, skipped, failed, expected_fail };
 
 struct test_case {
     test_id         id       = {};
@@ -145,11 +156,15 @@ using capture_state = small_vector<small_string<max_capture_length>, max_capture
 struct test_state {
     registry&     reg;
     test_case&    test;
-    section_state sections    = {};
-    capture_state captures    = {};
-    std::size_t   asserts     = 0;
-    bool          may_fail    = false;
-    bool          should_fail = false;
+    section_state sections = {};
+    capture_state captures = {};
+
+    std::size_t asserts           = 0;
+    std::size_t failures          = 0;
+    std::size_t expected_failures = 0;
+    bool        may_fail          = false;
+    bool        should_fail       = false;
+
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
 #endif

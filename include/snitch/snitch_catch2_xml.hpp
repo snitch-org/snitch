@@ -124,19 +124,20 @@ struct reporter {
                          {"filters", make_filters(e.filters)}});
                 },
                 [&](const snitch::event::test_run_ended& e) {
-                    // TODO: missing failures and expectedFailures attribs
                     node(
                         r, "OverallResults",
-                        {{"successes", make_string(e.assertion_count)},
-                         {"failures", "0"},
-                         {"expectedFailures", "0"}});
+                        {{"successes", make_string(
+                                           e.assertion_count - e.assertion_failure_count -
+                                           e.expected_assertion_failure_count)},
+                         {"failures", make_string(e.assertion_failure_count)},
+                         {"expectedFailures", make_string(e.expected_assertion_failure_count)}});
 
-                    // TODO: missing expectedFailures attrib
                     node(
                         r, "OverallResultsCases",
-                        {{"successes", make_string(e.run_count - e.fail_count)},
+                        {{"successes",
+                          make_string(e.run_count - e.fail_count - e.expected_fail_count)},
                          {"failures", make_string(e.fail_count)},
-                         {"expectedFailures", "0"}});
+                         {"expectedFailures", make_string(e.expected_fail_count)}});
 
                     close(r, "Catch2TestRun");
                 },

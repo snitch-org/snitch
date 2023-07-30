@@ -13,14 +13,21 @@ struct event_deep_copy {
     type event_type = type::unknown;
 
     snitch::small_string<snitch::max_test_name_length> test_run_name;
-    bool                                               test_run_success         = false;
-    std::size_t                                        test_run_run_count       = 0;
-    std::size_t                                        test_run_fail_count      = 0;
-    std::size_t                                        test_run_skip_count      = 0;
-    std::size_t                                        test_run_assertion_count = 0;
 
-    snitch::test_case_state test_case_state           = snitch::test_case_state::success;
-    std::size_t             test_case_assertion_count = 0;
+    bool        test_run_success                          = false;
+    std::size_t test_run_run_count                        = 0;
+    std::size_t test_run_fail_count                       = 0;
+    std::size_t test_run_expected_fail_count              = 0;
+    std::size_t test_run_skip_count                       = 0;
+    std::size_t test_run_assertion_count                  = 0;
+    std::size_t test_run_assertion_failure_count          = 0;
+    std::size_t test_run_expected_assertion_failure_count = 0;
+
+    snitch::test_case_state test_case_state = snitch::test_case_state::success;
+
+    std::size_t test_case_assertion_count        = 0;
+    std::size_t test_case_failure_count          = 0;
+    std::size_t test_case_expected_failure_count = 0;
 
     snitch::small_string<snitch::max_test_name_length> test_id_name;
     snitch::small_string<snitch::max_test_name_length> test_id_tags;
@@ -191,7 +198,9 @@ struct test_override {
 
 #define CHECK_NO_SECTION CHECK_NO_SECTION_FOR_FAILURE(0u)
 
-#define CHECK_RUN(SUCCESS, RUN_COUNT, FAIL_COUNT, SKIP_COUNT, ASSERT_COUNT)                        \
+#define CHECK_RUN(                                                                                 \
+    SUCCESS, RUN_COUNT, FAIL_COUNT, EXP_FAIL_COUNT, SKIP_COUNT, ASSERT_COUNT, FAILURE_COUNT,       \
+    EXP_FAILURE_COUNT)                                                                             \
     do {                                                                                           \
         REQUIRE(framework.events.size() >= 2u);                                                    \
         auto end = framework.events.back();                                                        \
@@ -199,17 +208,22 @@ struct test_override {
         CHECK(end.test_run_success == SUCCESS);                                                    \
         CHECK(end.test_run_run_count == RUN_COUNT);                                                \
         CHECK(end.test_run_fail_count == FAIL_COUNT);                                              \
+        CHECK(end.test_run_expected_fail_count == EXP_FAIL_COUNT);                                 \
         CHECK(end.test_run_skip_count == SKIP_COUNT);                                              \
         CHECK(end.test_run_assertion_count == ASSERT_COUNT);                                       \
+        CHECK(end.test_run_assertion_failure_count == FAILURE_COUNT);                              \
+        CHECK(end.test_run_expected_assertion_failure_count == EXP_FAILURE_COUNT);                 \
     } while (0)
 
-#define CHECK_CASE(STATE, ASSERT_COUNT)                                                            \
+#define CHECK_CASE(STATE, ASSERT_COUNT, FAILURE_COUNT)                                             \
     do {                                                                                           \
         REQUIRE(framework.events.size() >= 2u);                                                    \
         auto end = framework.events.back();                                                        \
         REQUIRE(end.event_type == event_deep_copy::type::test_case_ended);                         \
         CHECK(end.test_case_state == STATE);                                                       \
         CHECK(end.test_case_assertion_count == ASSERT_COUNT);                                      \
+        CHECK(end.test_case_failure_count == FAILURE_COUNT);                                       \
+        CHECK(end.test_case_expected_failure_count == 0u);                                         \
     } while (0)
 
 #define CHECK_EVENT(CATCHER, EVENT, TYPE, FAILURE_LINE, MESSAGE)                                   \

@@ -110,6 +110,7 @@ snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcep
     switch (s) {
     case impl::test_case_state::success: return snitch::test_case_state::success;
     case impl::test_case_state::failed: return snitch::test_case_state::failed;
+    case impl::test_case_state::expected_fail: return snitch::test_case_state::expected_fail;
     case impl::test_case_state::skipped: return snitch::test_case_state::skipped;
     default: terminate_with("test case state cannot be exposed to the public");
     }
@@ -419,20 +420,33 @@ const char* registry::add(const test_id& id, const source_location& location, im
     return id.name.data();
 }
 
+namespace {
+void register_assertion(bool success, impl::test_state& state) {
+    ++state.asserts;
+
+    if (!success) {
+        if (state.may_fail || state.should_fail) {
+            ++state.expected_failures;
+            impl::set_state(state.test, impl::test_case_state::expected_fail);
+        } else {
+            ++state.failures;
+            impl::set_state(state.test, impl::test_case_state::failed);
+        }
+    }
+}
+} // namespace
+
 void registry::report_assertion(
     bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
+
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
 
-    ++state.asserts;
-
-    if (!success && !state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
+    register_assertion(success, state);
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
@@ -457,34 +471,14 @@ void registry::report_assertion(
     const assertion_location& location,
     std::string_view          message1,
     std::string_view          message2) const noexcept {
+
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
 
-    ++state.asserts;
-
-    if (!success && !state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
-
-    if (success) {
-        if (verbose >= registry::verbosity::full) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
-        }
-    } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    }
+    report_assertion(success, state, location, message);
 }
 
 void registry::report_assertion(
@@ -492,17 +486,10 @@ void registry::report_assertion(
     impl::test_state&         state,
     const assertion_location& location,
     const impl::expression&   exp) const noexcept {
+
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
-
-    ++state.asserts;
-
-    if (!success && !state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
     small_string<max_message_length> message_buffer;
     std::string_view                 message;
@@ -513,19 +500,7 @@ void registry::report_assertion(
         message = exp.expected;
     }
 
-    if (success) {
-        if (verbose >= registry::verbosity::full) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
-        }
-    } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    }
+    report_assertion(success, state, location, message);
 }
 
 void registry::report_skipped(
@@ -584,16 +559,15 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 #if SNITCH_WITH_EXCEPTIONS
         try {
             test.func();
+            report_assertion(true, state, test.location, "no exception caught");
         } catch (const impl::abort_exception&) {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_assertion(
                 false, state, test.location,
-                "unhandled std::exception caught; message: ", e.what());
-            --state.asserts; // this doesn't count as a user assert, undo the increment
+                "unexpected std::exception caught; message: ", e.what());
         } catch (...) {
-            report_assertion(false, state, test.location, "unhandled unknown exception caught");
-            --state.asserts; // this doesn't count as a user assert, undo the increment
+            report_assertion(false, state, test.location, "unexpected unknown exception caught");
         }
 #else
         test.func();
@@ -611,15 +585,11 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     } while (!state.sections.levels.empty() && state.test.state != impl::test_case_state::skipped);
 
     if (state.should_fail) {
-        if (state.test.state == impl::test_case_state::success) {
-            state.should_fail = false;
-            report_assertion(
-                false, state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
-            --state.asserts; // this doesn't count as a user assert, undo the increment
-            state.should_fail = true;
-        } else if (state.test.state == impl::test_case_state::failed) {
-            state.test.state = impl::test_case_state::success;
-        }
+        state.should_fail = false;
+        report_assertion(
+            state.test.state == impl::test_case_state::expected_fail, state, test.location,
+            "expected test to fail, but it passed");
+        state.should_fail = true;
     }
 
 #if SNITCH_WITH_TIMINGS
@@ -631,18 +601,22 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_case_ended{
-                       .id              = test.id,
-                       .location        = test.location,
-                       .assertion_count = state.asserts,
-                       .state           = impl::convert_to_public_state(state.test.state),
-                       .duration        = state.duration});
+                       .id                               = test.id,
+                       .location                         = test.location,
+                       .assertion_count                  = state.asserts,
+                       .assertion_failure_count          = state.failures,
+                       .expected_assertion_failure_count = state.expected_failures,
+                       .state    = impl::convert_to_public_state(state.test.state),
+                       .duration = state.duration});
 #else
         report_callback(
             *this, event::test_case_ended{
-                       .id              = test.id,
-                       .location        = test.location,
-                       .assertion_count = state.asserts,
-                       .state           = impl::convert_to_public_state(state.test.state)});
+                       .id                               = test.id,
+                       .location                         = test.location,
+                       .assertion_count                  = state.asserts,
+                       .assertion_failure_count          = state.failures,
+                       .expected_assertion_failure_count = state.expected_failures,
+                       .state = impl::convert_to_public_state(state.test.state)});
 #endif
     }
 
@@ -661,11 +635,14 @@ bool registry::run_selected_tests(
             *this, event::test_run_started{.name = run_name, .filters = filter_strings});
     }
 
-    bool        success         = true;
-    std::size_t run_count       = 0;
-    std::size_t fail_count      = 0;
-    std::size_t skip_count      = 0;
-    std::size_t assertion_count = 0;
+    bool        success                          = true;
+    std::size_t run_count                        = 0;
+    std::size_t fail_count                       = 0;
+    std::size_t expected_fail_count              = 0;
+    std::size_t skip_count                       = 0;
+    std::size_t assertion_count                  = 0;
+    std::size_t assertion_failure_count          = 0;
+    std::size_t expected_assertion_failure_count = 0;
 
 #if SNITCH_WITH_TIMINGS
     using clock     = std::chrono::steady_clock;
@@ -681,10 +658,16 @@ bool registry::run_selected_tests(
 
         ++run_count;
         assertion_count += state.asserts;
+        assertion_failure_count += state.failures;
+        expected_assertion_failure_count += state.expected_failures;
 
         switch (t.state) {
         case impl::test_case_state::success: {
             // Nothing to do
+            break;
+        }
+        case impl::test_case_state::expected_fail: {
+            ++expected_fail_count;
             break;
         }
         case impl::test_case_state::failed: {
@@ -712,25 +695,31 @@ bool registry::run_selected_tests(
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_run_ended{
-                       .name            = run_name,
-                       .filters         = filter_strings,
-                       .run_count       = run_count,
-                       .fail_count      = fail_count,
-                       .skip_count      = skip_count,
-                       .assertion_count = assertion_count,
-                       .duration        = duration,
-                       .success         = success,
+                       .name                             = run_name,
+                       .filters                          = filter_strings,
+                       .run_count                        = run_count,
+                       .fail_count                       = fail_count,
+                       .expected_fail_count              = expected_fail_count,
+                       .skip_count                       = skip_count,
+                       .assertion_count                  = assertion_count,
+                       .assertion_failure_count          = assertion_failure_count,
+                       .expected_assertion_failure_count = expected_assertion_failure_count,
+                       .duration                         = duration,
+                       .success                          = success,
                    });
 #else
         report_callback(
             *this, event::test_run_ended{
-                       .name            = run_name,
-                       .filters         = filter_strings,
-                       .run_count       = run_count,
-                       .fail_count      = fail_count,
-                       .skip_count      = skip_count,
-                       .assertion_count = assertion_count,
-                       .success         = success});
+                       .name                             = run_name,
+                       .filters                          = filter_strings,
+                       .run_count                        = run_count,
+                       .fail_count                       = fail_count,
+                       .expected_fail_count              = expected_fail_count,
+                       .skip_count                       = skip_count,
+                       .assertion_count                  = assertion_count,
+                       .assertion_failure_count          = assertion_failure_count,
+                       .expected_assertion_failure_count = expected_assertion_failure_count,
+                       .success                          = success});
 #endif
     }
 
