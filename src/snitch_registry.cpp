@@ -612,7 +612,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         state.should_fail = false;
         report_assertion(
             state.test.state == impl::test_case_state::allowed_fail, state, test.location,
-            "expected test to fail, but it passed");
+            "expected test to fail");
         state.should_fail = true;
     }
 
