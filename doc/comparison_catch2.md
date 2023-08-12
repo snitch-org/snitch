@@ -85,6 +85,7 @@
 | - `BENCHMARK_ADVANCED`                              | No            | No           |
 | - `GENERATE`                                        | No            | No           |
 | - `REGISTER_LISTENER`                               | Sort of (6)   | Done         |
+| - `REGISTER_REPORTER`                               | Yes           | Done         |
 | - `SKIP`                                            | Yes (2)       | Done         |
 
 **Notes:**
