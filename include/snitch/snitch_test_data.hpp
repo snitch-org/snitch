@@ -37,10 +37,18 @@ struct section_id {
     std::string_view description = {};
 };
 
+/// Section data
+struct section {
+    /// Identifiers (name, description)
+    section_id id = {};
+    /// Location (file, line)
+    source_location location = {};
+};
+
 /// List of test case filters
 using filter_info = small_vector_span<const std::string_view>;
 /// List of active sections (in increasing nesting level)
-using section_info = small_vector_span<const section_id>;
+using section_info = small_vector_span<const section>;
 /// List of active captures (in order of declaration)
 using capture_info = small_vector_span<const std::string_view>;
 
@@ -212,7 +220,7 @@ struct section_nesting_level {
 };
 
 struct section_state {
-    small_vector<section_id, max_nested_sections>            current_section = {};
+    small_vector<section, max_nested_sections>               current_section = {};
     small_vector<section_nesting_level, max_nested_sections> levels          = {};
     std::size_t                                              depth           = 0;
     bool                                                     leaf_executed   = false;

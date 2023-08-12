@@ -64,7 +64,7 @@ small_string<max_message_length> make_full_message(
     small_string<max_message_length> full_message;
     append_or_truncate(full_message, location.file, ":", location.line, "\n");
     for (const auto& s : sections) {
-        append_or_truncate(full_message, s.name, "\n");
+        append_or_truncate(full_message, s.id.name, "\n");
     }
     for (const auto& c : captures) {
         append_or_truncate(full_message, c, "\n");

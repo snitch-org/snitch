@@ -199,8 +199,8 @@ void print_location(
 
     for (auto& section : sections) {
         r.print(
-            "          in section \"", make_colored(section.name, r.with_color, color::highlight1),
-            "\"\n");
+            "          in section \"",
+            make_colored(section.id.name, r.with_color, color::highlight1), "\"\n");
     }
 
     r.print("          at ", location.file, ":", location.line, "\n");
