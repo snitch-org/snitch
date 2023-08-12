@@ -35,7 +35,7 @@
 | - `REQUIRE_NOTHROW` / `CHECK_NOTHROW`               | Yes           | Done         |
 | - `STATIC_REQUIRE` / `STATIC_CHECK`                 | Sort of (8)   | Done         |
 | - `CHECK_NOFAIL`                                    | No            | Maybe        |
-| - `SUCCEED`                                         | No            | Maybe        |
+| - `SUCCEED`                                         | Yes           | Done         |
 | - `FAIL` / `FAIL_CHECK`                             | Yes (2)       | Done         |
 | - `WARN`                                            | No            | Maybe        |
 | **Logging and context**                             |               |              |
