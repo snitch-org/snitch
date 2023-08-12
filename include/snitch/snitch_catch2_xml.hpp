@@ -106,7 +106,7 @@ struct reporter {
     explicit reporter(registry& r) noexcept {
         // The XML reporter needs test_case_started and test_case_ended events, which are only
         // printed on verbosity 'high', so ensure the requested verbosity is at least as much.
-        r.verbose = r.verbose < registry::verbosity::full ? registry::verbosity::full : r.verbose;
+        r.verbose = r.verbose < registry::verbosity::high ? registry::verbosity::high : r.verbose;
     }
 
     bool configure(registry&, std::string_view, std::string_view) noexcept {
@@ -164,7 +164,7 @@ struct reporter {
                 }},
             e.data);
 
-        for (const auto& s : e.sections) {
+        for (const auto& s [[maybe_unused]] : e.sections) {
             close(r, "Section");
         }
     }

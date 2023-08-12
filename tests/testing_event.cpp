@@ -22,12 +22,29 @@ template<typename T>
 void copy_full_location(event_deep_copy& c, const T& e) {
     append_or_truncate(c.location_file, e.location.file);
     c.location_line = e.location.line;
-    append_or_truncate(c.message, e.message);
+
+    if constexpr (std::is_same_v<T, snitch::event::test_case_skipped>) {
+        append_or_truncate(c.message, e.message);
+    } else {
+        std::visit(
+            snitch::overload{
+                [&](std::string_view message) { append_or_truncate(c.message, message); },
+                [&](const snitch::expression_info& exp) {
+                    if (!exp.actual.empty()) {
+                        append_or_truncate(
+                            c.message, exp.type, "(", exp.expected, "), got ", exp.actual);
+                    } else {
+                        append_or_truncate(c.message, exp.expected);
+                    }
+                }},
+            e.data);
+    }
+
     for (const auto& ec : e.captures) {
         c.captures.push_back(ec);
     }
     for (const auto& es : e.sections) {
-        c.sections.push_back(es.name);
+        c.sections.push_back(es.id.name);
     }
 }
 
