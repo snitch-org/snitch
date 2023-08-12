@@ -95,7 +95,7 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
                 c.test_case_state                  = s.state;
                 c.test_case_assertion_count        = s.assertion_count;
                 c.test_case_failure_count          = s.assertion_failure_count;
-                c.test_case_expected_failure_count = s.expected_assertion_failure_count;
+                c.test_case_expected_failure_count = s.allowed_assertion_failure_count;
                 return c;
             },
             [](const snitch::event::test_run_started& s) {
@@ -108,14 +108,14 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
                 event_deep_copy c;
                 c.event_type = event_deep_copy::type::test_run_ended;
                 copy_test_run_id(c, s);
-                c.test_run_success                          = s.success;
-                c.test_run_run_count                        = s.run_count;
-                c.test_run_fail_count                       = s.fail_count;
-                c.test_run_expected_fail_count              = s.expected_fail_count;
-                c.test_run_skip_count                       = s.skip_count;
-                c.test_run_assertion_count                  = s.assertion_count;
-                c.test_run_assertion_failure_count          = s.assertion_failure_count;
-                c.test_run_expected_assertion_failure_count = s.expected_assertion_failure_count;
+                c.test_run_success                         = s.success;
+                c.test_run_run_count                       = s.run_count;
+                c.test_run_fail_count                      = s.fail_count;
+                c.test_run_allowed_fail_count              = s.allowed_fail_count;
+                c.test_run_skip_count                      = s.skip_count;
+                c.test_run_assertion_count                 = s.assertion_count;
+                c.test_run_assertion_failure_count         = s.assertion_failure_count;
+                c.test_run_allowed_assertion_failure_count = s.allowed_assertion_failure_count;
                 return c;
             },
             [](const snitch::event::test_case_skipped& s) {

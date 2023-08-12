@@ -14,14 +14,14 @@ struct event_deep_copy {
 
     snitch::small_string<snitch::max_test_name_length> test_run_name;
 
-    bool        test_run_success                          = false;
-    std::size_t test_run_run_count                        = 0;
-    std::size_t test_run_fail_count                       = 0;
-    std::size_t test_run_expected_fail_count              = 0;
-    std::size_t test_run_skip_count                       = 0;
-    std::size_t test_run_assertion_count                  = 0;
-    std::size_t test_run_assertion_failure_count          = 0;
-    std::size_t test_run_expected_assertion_failure_count = 0;
+    bool        test_run_success                         = false;
+    std::size_t test_run_run_count                       = 0;
+    std::size_t test_run_fail_count                      = 0;
+    std::size_t test_run_allowed_fail_count              = 0;
+    std::size_t test_run_skip_count                      = 0;
+    std::size_t test_run_assertion_count                 = 0;
+    std::size_t test_run_assertion_failure_count         = 0;
+    std::size_t test_run_allowed_assertion_failure_count = 0;
 
     snitch::test_case_state test_case_state = snitch::test_case_state::success;
 
@@ -208,11 +208,11 @@ struct test_override {
         CHECK(end.test_run_success == SUCCESS);                                                    \
         CHECK(end.test_run_run_count == RUN_COUNT);                                                \
         CHECK(end.test_run_fail_count == FAIL_COUNT);                                              \
-        CHECK(end.test_run_expected_fail_count == EXP_FAIL_COUNT);                                 \
+        CHECK(end.test_run_allowed_fail_count == EXP_FAIL_COUNT);                                  \
         CHECK(end.test_run_skip_count == SKIP_COUNT);                                              \
         CHECK(end.test_run_assertion_count == ASSERT_COUNT);                                       \
         CHECK(end.test_run_assertion_failure_count == FAILURE_COUNT);                              \
-        CHECK(end.test_run_expected_assertion_failure_count == EXP_FAILURE_COUNT);                 \
+        CHECK(end.test_run_allowed_assertion_failure_count == EXP_FAILURE_COUNT);                  \
     } while (0)
 
 #define CHECK_CASE(STATE, ASSERT_COUNT, FAILURE_COUNT)                                             \

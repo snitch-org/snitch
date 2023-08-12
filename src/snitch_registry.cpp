@@ -110,7 +110,7 @@ snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcep
     switch (s) {
     case impl::test_case_state::success: return snitch::test_case_state::success;
     case impl::test_case_state::failed: return snitch::test_case_state::failed;
-    case impl::test_case_state::expected_fail: return snitch::test_case_state::expected_fail;
+    case impl::test_case_state::allowed_fail: return snitch::test_case_state::allowed_fail;
     case impl::test_case_state::skipped: return snitch::test_case_state::skipped;
     default: terminate_with("test case state cannot be exposed to the public");
     }
@@ -426,8 +426,8 @@ void register_assertion(bool success, impl::test_state& state) {
 
     if (!success) {
         if (state.may_fail || state.should_fail) {
-            ++state.expected_failures;
-            impl::set_state(state.test, impl::test_case_state::expected_fail);
+            ++state.allowed_failures;
+            impl::set_state(state.test, impl::test_case_state::allowed_fail);
         } else {
             ++state.failures;
             impl::set_state(state.test, impl::test_case_state::failed);
@@ -587,7 +587,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     if (state.should_fail) {
         state.should_fail = false;
         report_assertion(
-            state.test.state == impl::test_case_state::expected_fail, state, test.location,
+            state.test.state == impl::test_case_state::allowed_fail, state, test.location,
             "expected test to fail, but it passed");
         state.should_fail = true;
     }
@@ -601,21 +601,21 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_case_ended{
-                       .id                               = test.id,
-                       .location                         = test.location,
-                       .assertion_count                  = state.asserts,
-                       .assertion_failure_count          = state.failures,
-                       .expected_assertion_failure_count = state.expected_failures,
+                       .id                              = test.id,
+                       .location                        = test.location,
+                       .assertion_count                 = state.asserts,
+                       .assertion_failure_count         = state.failures,
+                       .allowed_assertion_failure_count = state.allowed_failures,
                        .state    = impl::convert_to_public_state(state.test.state),
                        .duration = state.duration});
 #else
         report_callback(
             *this, event::test_case_ended{
-                       .id                               = test.id,
-                       .location                         = test.location,
-                       .assertion_count                  = state.asserts,
-                       .assertion_failure_count          = state.failures,
-                       .expected_assertion_failure_count = state.expected_failures,
+                       .id                              = test.id,
+                       .location                        = test.location,
+                       .assertion_count                 = state.asserts,
+                       .assertion_failure_count         = state.failures,
+                       .allowed_assertion_failure_count = state.allowed_failures,
                        .state = impl::convert_to_public_state(state.test.state)});
 #endif
     }
@@ -635,14 +635,14 @@ bool registry::run_selected_tests(
             *this, event::test_run_started{.name = run_name, .filters = filter_strings});
     }
 
-    bool        success                          = true;
-    std::size_t run_count                        = 0;
-    std::size_t fail_count                       = 0;
-    std::size_t expected_fail_count              = 0;
-    std::size_t skip_count                       = 0;
-    std::size_t assertion_count                  = 0;
-    std::size_t assertion_failure_count          = 0;
-    std::size_t expected_assertion_failure_count = 0;
+    bool        success                         = true;
+    std::size_t run_count                       = 0;
+    std::size_t fail_count                      = 0;
+    std::size_t allowed_fail_count              = 0;
+    std::size_t skip_count                      = 0;
+    std::size_t assertion_count                 = 0;
+    std::size_t assertion_failure_count         = 0;
+    std::size_t allowed_assertion_failure_count = 0;
 
 #if SNITCH_WITH_TIMINGS
     using clock     = std::chrono::steady_clock;
@@ -659,15 +659,15 @@ bool registry::run_selected_tests(
         ++run_count;
         assertion_count += state.asserts;
         assertion_failure_count += state.failures;
-        expected_assertion_failure_count += state.expected_failures;
+        allowed_assertion_failure_count += state.allowed_failures;
 
         switch (t.state) {
         case impl::test_case_state::success: {
             // Nothing to do
             break;
         }
-        case impl::test_case_state::expected_fail: {
-            ++expected_fail_count;
+        case impl::test_case_state::allowed_fail: {
+            ++allowed_fail_count;
             break;
         }
         case impl::test_case_state::failed: {
@@ -695,31 +695,31 @@ bool registry::run_selected_tests(
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_run_ended{
-                       .name                             = run_name,
-                       .filters                          = filter_strings,
-                       .run_count                        = run_count,
-                       .fail_count                       = fail_count,
-                       .expected_fail_count              = expected_fail_count,
-                       .skip_count                       = skip_count,
-                       .assertion_count                  = assertion_count,
-                       .assertion_failure_count          = assertion_failure_count,
-                       .expected_assertion_failure_count = expected_assertion_failure_count,
-                       .duration                         = duration,
-                       .success                          = success,
+                       .name                            = run_name,
+                       .filters                         = filter_strings,
+                       .run_count                       = run_count,
+                       .fail_count                      = fail_count,
+                       .allowed_fail_count              = allowed_fail_count,
+                       .skip_count                      = skip_count,
+                       .assertion_count                 = assertion_count,
+                       .assertion_failure_count         = assertion_failure_count,
+                       .allowed_assertion_failure_count = allowed_assertion_failure_count,
+                       .duration                        = duration,
+                       .success                         = success,
                    });
 #else
         report_callback(
             *this, event::test_run_ended{
-                       .name                             = run_name,
-                       .filters                          = filter_strings,
-                       .run_count                        = run_count,
-                       .fail_count                       = fail_count,
-                       .expected_fail_count              = expected_fail_count,
-                       .skip_count                       = skip_count,
-                       .assertion_count                  = assertion_count,
-                       .assertion_failure_count          = assertion_failure_count,
-                       .expected_assertion_failure_count = expected_assertion_failure_count,
-                       .success                          = success});
+                       .name                            = run_name,
+                       .filters                         = filter_strings,
+                       .run_count                       = run_count,
+                       .fail_count                      = fail_count,
+                       .allowed_fail_count              = allowed_fail_count,
+                       .skip_count                      = skip_count,
+                       .assertion_count                 = assertion_count,
+                       .assertion_failure_count         = assertion_failure_count,
+                       .allowed_assertion_failure_count = allowed_assertion_failure_count,
+                       .success                         = success});
 #endif
     }
 

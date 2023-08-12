@@ -128,16 +128,16 @@ struct reporter {
                         r, "OverallResults",
                         {{"successes", make_string(
                                            e.assertion_count - e.assertion_failure_count -
-                                           e.expected_assertion_failure_count)},
+                                           e.allowed_assertion_failure_count)},
                          {"failures", make_string(e.assertion_failure_count)},
-                         {"expectedFailures", make_string(e.expected_assertion_failure_count)}});
+                         {"expectedFailures", make_string(e.allowed_assertion_failure_count)}});
 
                     node(
                         r, "OverallResultsCases",
                         {{"successes",
-                          make_string(e.run_count - e.fail_count - e.expected_fail_count)},
+                          make_string(e.run_count - e.fail_count - e.allowed_fail_count)},
                          {"failures", make_string(e.fail_count)},
-                         {"expectedFailures", make_string(e.expected_fail_count)}});
+                         {"expectedFailures", make_string(e.allowed_fail_count)}});
 
                     close(r, "Catch2TestRun");
                 },
