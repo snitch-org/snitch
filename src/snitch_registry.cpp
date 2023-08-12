@@ -215,6 +215,28 @@ void print_location(
     }
 }
 
+void print_message(const registry& r, const assertion_data& data) {
+    std::visit(
+        overload{
+            [&](std::string_view message) {
+                r.print("          ", make_colored(message, r.with_color, color::highlight2));
+            },
+            [&](const expression_info& exp) {
+                small_string<max_message_length> message_buffer;
+                std::string_view                 message;
+                if (!exp.actual.empty()) {
+                    append_or_truncate(
+                        message_buffer, exp.type, "(", exp.expected, "), got ", exp.actual);
+                    message = message_buffer.str();
+                } else {
+                    message = exp.expected;
+                }
+
+                r.print("          ", make_colored(message, r.with_color, color::highlight2));
+            }},
+        data);
+}
+
 struct default_reporter_functor {
     const registry& r;
 
@@ -293,14 +315,14 @@ struct default_reporter_functor {
             r.print(make_colored("failed: ", r.with_color, color::fail));
         }
         print_location(r, e.id, e.sections, e.captures, e.location);
-        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        print_message(r, e.data);
         r.print("\n");
     }
 
     void operator()(const snitch::event::assertion_succeeded& e) const noexcept {
         r.print(make_colored("passed: ", r.with_color, color::pass));
         print_location(r, e.id, e.sections, e.captures, e.location);
-        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
+        print_message(r, e.data);
         r.print("\n");
     }
 };
@@ -434,13 +456,13 @@ void register_assertion(bool success, impl::test_state& state) {
         }
     }
 }
-} // namespace
 
-void registry::report_assertion(
+void report_assertion_impl(
+    const registry&           r,
     bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
-    std::string_view          message) const noexcept {
+    const assertion_data&     data) noexcept {
 
     if (state.test.state == impl::test_case_state::skipped) {
         return;
@@ -451,18 +473,28 @@ void registry::report_assertion(
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
 
     if (success) {
-        if (verbose >= registry::verbosity::full) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
+        if (r.verbose >= registry::verbosity::full) {
+            r.report_callback(
+                r, event::assertion_succeeded{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, data});
         }
     } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
+        r.report_callback(
+            r, event::assertion_failed{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   data, state.should_fail, state.may_fail});
     }
+}
+} // namespace
+
+void registry::report_assertion(
+    bool                      success,
+    impl::test_state&         state,
+    const assertion_location& location,
+    std::string_view          message) const noexcept {
+
+    report_assertion_impl(*this, success, state, location, message);
 }
 
 void registry::report_assertion(
@@ -478,7 +510,7 @@ void registry::report_assertion(
 
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
-    report_assertion(success, state, location, message);
+    report_assertion_impl(*this, success, state, location, message);
 }
 
 void registry::report_assertion(
@@ -491,16 +523,8 @@ void registry::report_assertion(
         return;
     }
 
-    small_string<max_message_length> message_buffer;
-    std::string_view                 message;
-    if (!exp.actual.empty()) {
-        append_or_truncate(message_buffer, exp.expected, ", got ", exp.actual);
-        message = message_buffer.str();
-    } else {
-        message = exp.expected;
-    }
-
-    report_assertion(success, state, location, message);
+    report_assertion_impl(
+        *this, success, state, location, expression_info{exp.type, exp.expected, exp.actual});
 }
 
 void registry::report_skipped(

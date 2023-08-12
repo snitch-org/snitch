@@ -59,7 +59,7 @@ small_string<max_message_length> make_full_message(
     const snitch::assertion_location& location,
     const snitch::section_info&       sections,
     const snitch::capture_info&       captures,
-    std::string_view                  message) noexcept {
+    const snitch::assertion_data&     data) noexcept {
 
     small_string<max_message_length> full_message;
     append_or_truncate(full_message, location.file, ":", location.line, "\n");
@@ -70,7 +70,21 @@ small_string<max_message_length> make_full_message(
         append_or_truncate(full_message, c, "\n");
     }
 
-    append_or_truncate(full_message, "  ", message);
+    append_or_truncate(full_message, "  ");
+
+    std::visit(
+        overload{
+            [&](std::string_view message) { append_or_truncate(full_message, message); },
+            [&](const snitch::expression_info& exp) {
+                if (!exp.actual.empty()) {
+                    append_or_truncate(
+                        full_message, exp.type, "(", exp.expected, "), got ", exp.actual);
+                } else {
+                    append_or_truncate(full_message, exp.expected);
+                }
+            }},
+        data);
+
     escape(full_message);
     return full_message;
 }
@@ -129,14 +143,13 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
                 send_message(
                     r, "testFailed",
                     {{"name", make_full_name(e.id)},
-                     {"message",
-                      make_full_message(e.location, e.sections, e.captures, e.message)}});
+                     {"message", make_full_message(e.location, e.sections, e.captures, e.data)}});
             },
             [&](const snitch::event::assertion_succeeded& e) {
                 send_message(
                     r, "testStdOut",
                     {{"name", make_full_name(e.id)},
-                     {"out", make_full_message(e.location, e.sections, e.captures, e.message)}});
+                     {"out", make_full_message(e.location, e.sections, e.captures, e.data)}});
             }},
         event);
 }

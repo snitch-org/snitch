@@ -38,6 +38,7 @@ DEFINE_OPERATOR(!=, not_equal, " != ", " == ");
 #undef DEFINE_OPERATOR
 
 struct expression {
+    std::string_view              type     = {};
     std::string_view              expected = {};
     small_string<max_expr_length> actual   = {};
     bool                          success  = true;
@@ -102,6 +103,7 @@ struct invalid_expression {
 
 template<bool Expected, typename T, typename O, typename U>
 struct extracted_binary_expression {
+    std::string_view type;
     std::string_view expected;
     const T&         lhs;
     const U&         rhs;
@@ -149,7 +151,7 @@ struct extracted_binary_expression {
     constexpr expression to_expression() const noexcept(noexcept(static_cast<bool>(O{}(lhs, rhs))))
         requires(requires(const T& lhs, const U& rhs) { O{}(lhs, rhs); })
     {
-        expression expr{expected};
+        expression expr{type, expected};
 
         const bool actual = O{}(lhs, rhs);
         expr.success      = (actual == Expected);
@@ -195,6 +197,7 @@ struct extracted_binary_expression {
 
 template<bool Expected, typename T>
 struct extracted_unary_expression {
+    std::string_view type;
     std::string_view expected;
     const T&         lhs;
 
@@ -203,7 +206,7 @@ struct extracted_unary_expression {
     template<typename U>                                                                           \
     constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U& rhs)       \
         const noexcept {                                                                           \
-        return {expected, lhs, rhs};                                                               \
+        return {type, expected, lhs, rhs};                                                         \
     }
 
     EXPR_OPERATOR(<, operator_less)
@@ -249,7 +252,7 @@ struct extracted_unary_expression {
     constexpr expression to_expression() const noexcept(noexcept(static_cast<bool>(lhs)))
         requires(requires(const T& lhs) { static_cast<bool>(lhs); })
     {
-        expression expr{expected};
+        expression expr{type, expected};
 
         expr.success = (static_cast<bool>(lhs) == Expected);
 
@@ -274,11 +277,12 @@ struct extracted_unary_expression {
 
 template<bool Expected>
 struct expression_extractor {
+    std::string_view type;
     std::string_view expected;
 
     template<typename T>
     constexpr extracted_unary_expression<Expected, T> operator<=(const T& lhs) const noexcept {
-        return {expected, lhs};
+        return {type, expected, lhs};
     }
 };
 

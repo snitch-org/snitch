@@ -74,8 +74,15 @@ struct reporter {
         r.print(indent(), "</", node, ">\n");
     }
 
-    void
-    open(const registry& r, std::string_view node, std::initializer_list<key_value> args) noexcept {
+    void print(const registry& r, std::string_view data) noexcept {
+        r.print(indent(), data, "\n");
+    }
+
+    void open(
+        const registry&                  r,
+        std::string_view                 node,
+        std::initializer_list<key_value> args = {}) noexcept {
+
         r.print(indent(), "<", node);
         for (const auto& arg : args) {
             r.print(" ", arg.key, "=\"", arg.value, "\"");
@@ -84,8 +91,11 @@ struct reporter {
         ++indent_level;
     }
 
-    void
-    node(const registry& r, std::string_view node, std::initializer_list<key_value> args) noexcept {
+    void node(
+        const registry&                  r,
+        std::string_view                 node,
+        std::initializer_list<key_value> args = {}) noexcept {
+
         r.print(indent(), "<", node);
         for (const auto& arg : args) {
             r.print(" ", arg.key, "=\"", arg.value, "\"");

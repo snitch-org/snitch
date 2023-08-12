@@ -58,6 +58,19 @@ enum class test_case_state {
     /// Test case explicitly skipped (with SKIP(...))
     skipped
 };
+
+/// Content of an expression
+struct expression_info {
+    /// Macro used for the assertion (CHECK, etc.)
+    std::string_view type;
+    /// Expression as written in the source code
+    std::string_view expected;
+    /// Expression with evaluated operands
+    std::string_view actual;
+};
+
+/// Payload of an assertion (error message, expression, ...)
+using assertion_data = std::variant<std::string_view, expression_info>;
 } // namespace snitch
 
 namespace snitch::event {
@@ -140,7 +153,7 @@ struct assertion_failed {
     section_info              sections = {};
     capture_info              captures = {};
     const assertion_location& location;
-    std::string_view          message  = {};
+    assertion_data            data     = {};
     bool                      expected = false; /// [!shouldfail]
     bool                      allowed  = false; /// [!mayfail]
 };
@@ -150,7 +163,7 @@ struct assertion_succeeded {
     section_info              sections = {};
     capture_info              captures = {};
     const assertion_location& location;
-    std::string_view          message = {};
+    assertion_data            data = {};
 };
 
 struct test_case_skipped {
