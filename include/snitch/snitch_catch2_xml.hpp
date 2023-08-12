@@ -106,7 +106,7 @@ struct reporter {
     explicit reporter(registry& r) noexcept {
         // The XML reporter needs test_case_started and test_case_ended events, which are only
         // printed on verbosity 'high', so ensure the requested verbosity is at least as much.
-        r.verbose = r.verbose < registry::verbosity::high ? registry::verbosity::high : r.verbose;
+        r.verbose = r.verbose < registry::verbosity::full ? registry::verbosity::full : r.verbose;
     }
 
     bool configure(registry&, std::string_view, std::string_view) noexcept {
@@ -115,8 +115,58 @@ struct reporter {
     }
 
     template<typename T>
-    void report_assertion(const registry&, const T&) noexcept {
-        // TODO
+    void report_assertion(const registry& r, const T& e, bool success) noexcept {
+        for (const auto& s : e.sections) {
+            open(
+                r, "Section",
+                {{"name", make_escaped(s.id.name)},
+                 {"filename", make_escaped(s.location.file)},
+                 {"line", make_string(s.location.line)}});
+        }
+
+        for (const auto& c : e.captures) {
+            open(r, "Info");
+            print(r, make_escaped(c));
+            close(r, "Info");
+        }
+
+        std::visit(
+            overload{
+                [&](std::string_view message) {
+                    open(
+                        r, success ? "Success" : "Failure",
+                        {{"filename", make_escaped(e.location.file)},
+                         {"line", make_string(e.location.line)}});
+                    print(r, make_escaped(message));
+                    close(r, success ? "Success" : "Failure");
+                },
+                [&](const snitch::expression_info& exp) {
+                    open(
+                        r, "Expression",
+                        {{"success", success ? "true" : "false"},
+                         {"type", exp.type},
+                         {"filename", make_escaped(e.location.file)},
+                         {"line", make_string(e.location.line)}});
+
+                    open(r, "Original");
+                    print(r, make_escaped(exp.expected));
+                    close(r, "Original");
+
+                    open(r, "Expanded");
+                    if (!exp.actual.empty()) {
+                        print(r, make_escaped(exp.actual));
+                    } else {
+                        print(r, make_escaped(exp.expected));
+                    }
+                    close(r, "Expanded");
+
+                    close(r, "Expression");
+                }},
+            e.data);
+
+        for (const auto& s : e.sections) {
+            close(r, "Section");
+        }
     }
 
     void report(const registry& r, const snitch::event::data& event) noexcept {
@@ -175,8 +225,8 @@ struct reporter {
                 [&](const snitch::event::test_case_skipped&) {
                     // Nothing to do; this gets reported as "success".
                 },
-                [&](const snitch::event::assertion_failed& e) { report_assertion(r, e); },
-                [&](const snitch::event::assertion_succeeded& e) { report_assertion(r, e); }},
+                [&](const snitch::event::assertion_failed& e) { report_assertion(r, e, false); },
+                [&](const snitch::event::assertion_succeeded& e) { report_assertion(r, e, true); }},
             event);
     }
 };
