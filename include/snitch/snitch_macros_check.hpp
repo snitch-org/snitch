@@ -42,6 +42,13 @@
 #define SNITCH_CHECK_FALSE(...)   SNITCH_REQUIRE_IMPL("CHECK_FALSE",   false, (void)0,               __VA_ARGS__)
 // clang-format on
 
+#define SNITCH_SUCCEED(MESSAGE)                                                                    \
+    do {                                                                                           \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
+            true, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                           \
+    } while (0)
+
 #define SNITCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
@@ -91,6 +98,7 @@
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS
+#    define SUCCEED(MESSAGE)    SNITCH_SUCCEED(MESSAGE)
 #    define FAIL(MESSAGE)       SNITCH_FAIL(MESSAGE)
 #    define FAIL_CHECK(MESSAGE) SNITCH_FAIL_CHECK(MESSAGE)
 #    define SKIP(MESSAGE)       SNITCH_SKIP(MESSAGE)
