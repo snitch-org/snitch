@@ -596,7 +596,7 @@ void finish(snitch::registry&) noexcept {
 }
 
 void register_one_test(snitch::registry& r) {
-    r.add({"the test", "[tag]"}, {__FILE__, __LINE__}, []() { CHECK(1 == 2); });
+    r.add({"the test", "[tag]"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 2); });
 }
 }} // namespace ::my_reporter
 
