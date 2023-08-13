@@ -47,10 +47,10 @@ struct function_traits<Ret(Args...) noexcept> {
         return [](void* ptr, Args... args) noexcept {
             if constexpr (std::is_same_v<return_type, void>) {
                 (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             } else {
                 return (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             }
         };
     }
@@ -60,10 +60,10 @@ struct function_traits<Ret(Args...) noexcept> {
         return [](const void* ptr, Args... args) noexcept {
             if constexpr (std::is_same_v<return_type, void>) {
                 (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             } else {
                 return (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             }
         };
     }
@@ -83,10 +83,10 @@ struct function_traits<Ret(Args...)> {
         return [](void* ptr, Args... args) {
             if constexpr (std::is_same_v<return_type, void>) {
                 (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             } else {
                 return (static_cast<ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             }
         };
     }
@@ -96,10 +96,10 @@ struct function_traits<Ret(Args...)> {
         return [](const void* ptr, Args... args) {
             if constexpr (std::is_same_v<return_type, void>) {
                 (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             } else {
                 return (static_cast<const ObjectType*>(ptr)->*constant<MemberFunction>::value)(
-                    std::move(args)...);
+                    std::forward<Args>(args)...);
             }
         };
     }
