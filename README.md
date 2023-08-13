@@ -873,7 +873,7 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `   --list-reporters`: list all registered reporters.
  - `-r,--reporter <reporter[::key=value]*>`: choose which reporter to use to output the test events.
  - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
- - `   --color <always|never>`: enable/disable colors in the default reporter.
+ - `   --color <always|default|never>`: enable/disable colors in the default reporter.
 
 The following options are provided for compability with *Catch2*:
  - `   --colour-mode <ansi|default|none>`: enable/disable colors in the default reporter.

@@ -300,7 +300,7 @@ constexpr expected_arguments expected_args = {
     {{"--list-reporters"},      {},                         "List available test reporters (see --reporter)"},
     {{"-r", "--reporter"},      {"reporter[::key=value]*"}, "Choose which reporter to use to output the test results"},
     {{"-v", "--verbosity"},     {"quiet|normal|high|full"}, "Define how much gets sent to the standard output"},
-    {{"--color"},               {"always|never"},           "Enable/disable color in output"},
+    {{"--color"},               {"always|default|never"},   "Enable/disable color in output"},
     {{"--colour-mode"},         {"ansi|default|none"},      "Enable/disable color in output (for compatibility with Catch2)"},
     {{"-h", "--help"},          {},                         "Print help"},
     {{},                        {"test regex"},             "A regex to select which test cases to run", argument_type::repeatable}};

@@ -347,11 +347,13 @@ void parse_color_option(registry& reg, std::string_view color_option) {
         reg.with_color = true;
     } else if (color_option == "never") {
         reg.with_color = false;
+    } else if (color_option == "default") {
+        // Nothing to do.
     } else {
         using namespace snitch::impl;
         cli::print(
             make_colored("warning:", reg.with_color, color::warning),
-            " unknown color directive; please use one of always|never\n");
+            " unknown color directive; please use one of always|default|never\n");
     }
 }
 } // namespace
