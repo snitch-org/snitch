@@ -223,16 +223,16 @@ void print_message(const registry& r, const assertion_data& data) {
             },
             [&](const expression_info& exp) {
                 small_string<max_message_length> message_buffer;
-                std::string_view                 message;
                 if (!exp.actual.empty()) {
                     append_or_truncate(
                         message_buffer, exp.type, "(", exp.expected, "), got ", exp.actual);
-                    message = message_buffer.str();
                 } else {
-                    message = exp.expected;
+                    append_or_truncate(message_buffer, exp.type, "(", exp.expected, ")");
                 }
 
-                r.print("          ", make_colored(message, r.with_color, color::highlight2));
+                r.print(
+                    "          ",
+                    make_colored(message_buffer.str(), r.with_color, color::highlight2));
             }},
         data);
 }

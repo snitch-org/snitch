@@ -80,7 +80,7 @@ small_string<max_message_length> make_full_message(
                     append_or_truncate(
                         full_message, exp.type, "(", exp.expected, "), got ", exp.actual);
                 } else {
-                    append_or_truncate(full_message, exp.expected);
+                    append_or_truncate(full_message, exp.type, "(", exp.expected, ")");
                 }
             }},
         data);

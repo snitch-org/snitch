@@ -34,7 +34,7 @@ void copy_full_location(event_deep_copy& c, const T& e) {
                         append_or_truncate(
                             c.message, exp.type, "(", exp.expected, "), got ", exp.actual);
                     } else {
-                        append_or_truncate(c.message, exp.expected);
+                        append_or_truncate(c.message, exp.type, "(", exp.expected, ")");
                     }
                 }},
             e.data);
