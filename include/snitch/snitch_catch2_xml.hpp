@@ -45,6 +45,7 @@ small_string<max_message_length> make_filters(const filter_info& filters) noexce
     bool first = true;
     for (const auto& filter : filters) {
         append_or_truncate(filter_string, (first ? "\"" : " \""), filter, "\"");
+        first = false;
     }
 
     escape(filter_string);
