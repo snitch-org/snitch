@@ -153,12 +153,14 @@ public:
         }(type_list<T>{});
     }
 
+    // Internal API; do not use.
     void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
+    // Internal API; do not use.
     void report_assertion(
         bool                      success,
         impl::test_state&         state,
@@ -166,21 +168,26 @@ public:
         std::string_view          message1,
         std::string_view          message2) const noexcept;
 
+    // Internal API; do not use.
     void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         const impl::expression&   exp) const noexcept;
 
+    // Internal API; do not use.
     void report_skipped(
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
+    // Internal API; do not use.
     impl::test_state run(impl::test_case& test) noexcept;
 
+    // Internal API; do not use.
     bool run_tests(std::string_view run_name) noexcept;
 
+    // Internal API; do not use.
     bool run_selected_tests(
         std::string_view                                     run_name,
         const filter_info&                                   filter_strings,

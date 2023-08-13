@@ -404,7 +404,7 @@ std::string_view registry::add_reporter(
         using namespace snitch::impl;
         print(
             make_colored("error:", with_color, color::fail),
-            " reporter name cannot contains '::' (trying to register ", name, ")\n.");
+            " reporter name cannot contains '::' (trying to register '", name, "')\n.");
         assertion_failed("invalid reporter name");
     }
 

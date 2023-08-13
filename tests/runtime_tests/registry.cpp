@@ -574,45 +574,152 @@ TEST_CASE("report SKIP", "[registry]") {
 
 SNITCH_WARNING_POP
 
+namespace { namespace my_reporter {
+bool init_called      = false;
+bool configure_result = true;
+bool configure_called = false;
+bool report_called    = false;
+bool finish_called    = false;
+
+void init(snitch::registry&) noexcept {
+    init_called = true;
+}
+bool configure(snitch::registry&, std::string_view, std::string_view) noexcept {
+    configure_called = true;
+    return configure_result;
+}
+void report(const snitch::registry&, const snitch::event::data&) noexcept {
+    report_called = true;
+}
+void finish(snitch::registry&) noexcept {
+    finish_called = true;
+}
+
+void register_one_test(snitch::registry& r) {
+    r.add({"the test", "[tag]"}, {__FILE__, __LINE__}, []() { CHECK(1 == 2); });
+}
+}} // namespace ::my_reporter
+
 TEST_CASE("add reporter", "[registry]") {
     mock_framework framework;
+    framework.setup_print();
+    console_output_catcher console;
+    my_reporter::register_one_test(framework.registry);
+
+    my_reporter::init_called      = false;
+    my_reporter::configure_result = true;
+    my_reporter::configure_called = false;
+    my_reporter::report_called    = false;
+    my_reporter::finish_called    = false;
+
+    SECTION("full") {
+        framework.registry.add_reporter(
+            "custom", &my_reporter::init, &my_reporter::configure, &my_reporter::report,
+            &my_reporter::finish);
+
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(my_reporter::init_called);
+        CHECK(my_reporter::configure_called);
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+
+        framework.registry.run_tests(*input);
+
+        CHECK(my_reporter::report_called);
+        CHECK(my_reporter::finish_called);
+    }
+
+    SECTION("no init") {
+        framework.registry.add_reporter(
+            "custom", {}, &my_reporter::configure, &my_reporter::report, &my_reporter::finish);
+
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(!my_reporter::init_called);
+        CHECK(my_reporter::configure_called);
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+
+        framework.registry.run_tests(*input);
+
+        CHECK(my_reporter::report_called);
+        CHECK(my_reporter::finish_called);
+    }
+
+    SECTION("no config") {
+        framework.registry.add_reporter(
+            "custom", &my_reporter::init, {}, &my_reporter::report, &my_reporter::finish);
+
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(my_reporter::init_called);
+        CHECK(!my_reporter::configure_called);
+        CHECK(console.messages == contains_substring("unknown reporter option 'arg'"));
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+
+        framework.registry.run_tests(*input);
+
+        CHECK(my_reporter::report_called);
+        CHECK(my_reporter::finish_called);
+    }
+
+    SECTION("no finish") {
+        framework.registry.add_reporter(
+            "custom", &my_reporter::init, &my_reporter::configure, &my_reporter::report, {});
+
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(my_reporter::init_called);
+        CHECK(my_reporter::configure_called);
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+
+        framework.registry.run_tests(*input);
+
+        CHECK(my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+    }
 
 #if SNITCH_WITH_EXCEPTIONS
     SECTION("max number reached") {
         assertion_exception_enabler enabler;
-        // TODO: catch print() to hide output of test
 
         std::array<snitch::small_string<32>, snitch::max_registered_reporters> names = {};
         for (std::size_t i = 1; i < snitch::max_registered_reporters; ++i) {
             append_or_truncate(names[i], "dummy", i);
-            framework.registry.add_reporter(names[i], {}, {}, &snitch::impl::default_reporter, {});
+            framework.registry.add_reporter(names[i], {}, {}, &my_reporter::report, {});
         }
 
         CHECK_THROWS_WHAT(
-            framework.registry.add_reporter("toomuch", {}, {}, &snitch::impl::default_reporter, {}),
+            framework.registry.add_reporter("toomuch", {}, {}, &my_reporter::report, {}),
             assertion_exception, "max number of reporters reached");
+        CHECK(
+            framework.messages ==
+            contains_substring("max number of reporters reached; "
+                               "please increase 'SNITCH_MAX_REGISTERED_REPORTERS'"));
     }
-#endif
 
     SECTION("bad name") {
-        // TODO
-    }
+        assertion_exception_enabler enabler;
 
-    SECTION("full") {
-        // TODO
+        CHECK_THROWS_WHAT(
+            framework.registry.add_reporter("bad::name", {}, {}, &my_reporter::report, {}),
+            assertion_exception, "invalid reporter name");
+        CHECK(
+            framework.messages == contains_substring("reporter name cannot contains '::' "
+                                                     "(trying to register 'bad::name')"));
     }
-
-    SECTION("no init") {
-        // TODO
-    }
-
-    SECTION("no config") {
-        // TODO
-    }
-
-    SECTION("no finish") {
-        // TODO
-    }
+#endif
 }
 
 namespace {
