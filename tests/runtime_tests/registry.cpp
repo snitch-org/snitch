@@ -939,27 +939,59 @@ TEST_CASE("configure", "[registry]") {
     console_output_catcher console;
 
     SECTION("color = always") {
-        const arg_vector args = {"test", "--color", "always"};
-        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-        framework.registry.configure(*input);
+        for (const auto& args :
+             {arg_vector{"test", "--color", "always"},
+              arg_vector{"test", "--colour-mode", "ansi"}}) {
 
-        CHECK(framework.registry.with_color == true);
+            SECTION(args[2]) {
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(framework.registry.with_color == true);
+            }
+        }
     }
 
     SECTION("color = never") {
-        const arg_vector args = {"test", "--color", "never"};
-        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-        framework.registry.configure(*input);
+        for (const auto& args :
+             {arg_vector{"test", "--color", "never"},
+              arg_vector{"test", "--colour-mode", "none"}}) {
 
-        CHECK(framework.registry.with_color == false);
+            SECTION(args[2]) {
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(framework.registry.with_color == false);
+            }
+        }
+    }
+
+    SECTION("color = default") {
+        for (const auto& args :
+             {arg_vector{"test", "--color", "default"},
+              arg_vector{"test", "--colour-mode", "default"}}) {
+
+            SECTION(args[2]) {
+                bool prev = framework.registry.with_color;
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(framework.registry.with_color == prev);
+            }
+        }
     }
 
     SECTION("color = bad") {
-        const arg_vector args = {"test", "--color", "bad"};
-        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-        framework.registry.configure(*input);
+        for (const auto& args :
+             {arg_vector{"test", "--color", "bad"}, arg_vector{"test", "--colour-mode", "bad"}}) {
+            auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+            framework.registry.configure(*input);
 
-        CHECK(console.messages == contains_substring("unknown color directive"));
+            CHECK(console.messages == contains_substring("unknown color directive"));
+        }
     }
 
     SECTION("verbosity = quiet") {
@@ -1019,6 +1051,15 @@ TEST_CASE("configure", "[registry]") {
         CHECK(framework.registry.with_color == false);
     }
 
+    SECTION("reporter = console (multiple options)") {
+        const arg_vector args = {"test", "--reporter", "console::color=never::colour-mode=none"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.with_color = false;
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.with_color == false);
+    }
+
     SECTION("reporter = console (unknown option)") {
         const arg_vector args = {"test", "--reporter", "console::abcd=never"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
@@ -1063,14 +1104,23 @@ TEST_CASE("configure", "[registry]") {
              {arg_vector{"test", "--reporter", ""}, arg_vector{"test", "--reporter", ":"},
               arg_vector{"test", "--reporter", "::"}, arg_vector{"test", "--reporter", ":::"},
               arg_vector{"test", "--reporter", "::::"}}) {
-            CAPTURE(args[2]);
-            console.messages.clear();
 
-            auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-            framework.registry.configure(*input);
+            SECTION(args[2]) {
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
 
-            CHECK(console.messages == contains_substring("invalid reporter"));
+                CHECK(console.messages == contains_substring("invalid reporter"));
+            }
         }
+    }
+
+    SECTION("reporter = unknown") {
+        const arg_vector args = {"test", "--reporter", "fantasio"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(console.messages == contains_substring("unknown reporter 'fantasio', using default"));
     }
 }
 
