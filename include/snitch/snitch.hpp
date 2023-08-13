@@ -3,6 +3,7 @@
 
 #include "snitch/snitch_append.hpp"
 #include "snitch/snitch_capture.hpp"
+#include "snitch/snitch_catch2_xml.hpp"
 #include "snitch/snitch_cli.hpp"
 #include "snitch/snitch_concepts.hpp"
 #include "snitch/snitch_config.hpp"
@@ -26,6 +27,7 @@
 #include "snitch/snitch_section.hpp"
 #include "snitch/snitch_string.hpp"
 #include "snitch/snitch_string_utility.hpp"
+#include "snitch/snitch_teamcity.hpp"
 #include "snitch/snitch_test_data.hpp"
 #include "snitch/snitch_type_name.hpp"
 #include "snitch/snitch_vector.hpp"
