@@ -1,4 +1,5 @@
 #include "testing.hpp"
+#include "testing_assertions.hpp"
 #include "testing_event.hpp"
 
 #include <stdexcept>
@@ -572,6 +573,47 @@ TEST_CASE("report SKIP", "[registry]") {
 }
 
 SNITCH_WARNING_POP
+
+TEST_CASE("add reporter", "[registry]") {
+    mock_framework framework;
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("max number reached") {
+        assertion_exception_enabler enabler;
+        // TODO: catch print() to hide output of test
+
+        std::array<snitch::small_string<32>, snitch::max_registered_reporters> names = {};
+        for (std::size_t i = 1; i < snitch::max_registered_reporters; ++i) {
+            append_or_truncate(names[i], "dummy", i);
+            framework.registry.add_reporter(names[i], {}, {}, &snitch::impl::default_reporter, {});
+        }
+
+        CHECK_THROWS_WHAT(
+            framework.registry.add_reporter("toomuch", {}, {}, &snitch::impl::default_reporter, {}),
+            assertion_exception, "max number of reporters reached");
+    }
+#endif
+
+    SECTION("bad name") {
+        // TODO
+    }
+
+    SECTION("full") {
+        // TODO
+    }
+
+    SECTION("no init") {
+        // TODO
+    }
+
+    SECTION("no config") {
+        // TODO
+    }
+
+    SECTION("no finish") {
+        // TODO
+    }
+}
 
 namespace {
 void register_tests(mock_framework& framework) {

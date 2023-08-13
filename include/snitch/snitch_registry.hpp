@@ -87,6 +87,8 @@ class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
 
     // Contains all registered reporters.
+    // NB: We use std::optional because small_vector default constructs all its elements, and
+    // registered_reporter is not default-constructible.
     small_vector<std::optional<registered_reporter>, max_registered_reporters>
         registered_reporters = {registered_reporter{
             "console", &snitch::impl::initialize_default_reporter,

@@ -396,7 +396,7 @@ std::string_view registry::add_reporter(
             make_colored("error:", with_color, color::fail),
             " max number of reporters reached; "
             "please increase 'SNITCH_MAX_REGISTERED_REPORTERS' (currently ",
-            max_registered_reporters, ")\n.");
+            max_registered_reporters, ").\n");
         assertion_failed("max number of reporters reached");
     }
 
@@ -424,7 +424,7 @@ const char* registry::add(const test_id& id, const source_location& location, im
             make_colored("error:", with_color, color::fail),
             " max number of test cases reached; "
             "please increase 'SNITCH_MAX_TEST_CASES' (currently ",
-            max_test_cases, ")\n.");
+            max_test_cases, ").\n");
         assertion_failed("max number of test cases reached");
     }
 
@@ -959,7 +959,7 @@ void registry::list_all_tags() const {
                             make_colored("error:", with_color, color::fail),
                             " max number of tags reached; "
                             "please increase 'SNITCH_MAX_UNIQUE_TAGS' (currently ",
-                            max_unique_tags, ")\n.");
+                            max_unique_tags, ").\n");
                         assertion_failed("max number of unique tags reached");
                     }
 
