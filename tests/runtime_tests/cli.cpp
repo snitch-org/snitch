@@ -139,6 +139,33 @@ TEST_CASE("parse arguments unknown", "[cli]") {
     CHECK(console.messages == contains_substring("unknown command line argument '--make-coffee'"));
 }
 
+TEST_CASE("parse arguments unknown Catch2 (no value)", "[cli]") {
+    console_output_catcher console;
+
+    const arg_vector args = {"test", "--invisibles"};
+    auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+    REQUIRE(input.has_value());
+    CHECK(input->executable == "test"sv);
+    CHECK(input->arguments.empty());
+    CHECK(console.messages == contains_substring("unknown command line argument '--invisibles'"));
+}
+
+TEST_CASE("parse arguments unknown Catch2", "[cli]") {
+    console_output_catcher console;
+
+    const arg_vector args = {"test", "--wait-for-keypress", "never"};
+    auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+    REQUIRE(input.has_value());
+    CHECK(input->executable == "test"sv);
+    CHECK(input->arguments.empty());
+    CHECK(
+        console.messages ==
+        contains_substring("unknown command line argument '--wait-for-keypress'"));
+    CHECK(input->arguments.empty());
+}
+
 TEST_CASE("parse arguments positional", "[cli]") {
     console_output_catcher console;
 
