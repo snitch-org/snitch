@@ -393,7 +393,7 @@ TEMPLATE_TEST_CASE("small vector", "[utility]", vector_type, span_type, const_sp
 }
 
 #if SNITCH_WITH_EXCEPTIONS
-TEST_CASE("small vector error cases") {
+TEST_CASE("small vector error cases", "[utility]") {
     using TestType = vector_type;
     assertion_exception_enabler enabler;
 
@@ -499,6 +499,26 @@ TEST_CASE("small vector error cases") {
     }
 }
 #endif
+
+TEST_CASE("default init const span", "[utility]") {
+    const_span_type v;
+
+    SECTION("properties") {
+        CHECK(v.size() == 0u);
+        CHECK(v.capacity() == 0u);
+        CHECK(v.available() == 0u);
+        CHECK(v.empty());
+        CHECK(v.begin() == nullptr);
+        CHECK(v.end() == nullptr);
+    }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("operator[]") {
+        assertion_exception_enabler enabler;
+        CHECK_THROWS_WHAT(v[0], assertion_exception, "operator[] called with incorrect index");
+    }
+#endif
+}
 
 TEST_CASE("constexpr small vector test_struct", "[utility]") {
     using TestType = vector_type;
