@@ -29,7 +29,7 @@ TEST_CASE("add regular test", "[registry]") {
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
     CHECK(test.id.name == "how many lights"sv);
     CHECK(test.id.tags == "[tag]"sv);
     CHECK(test.id.type == ""sv);
@@ -65,7 +65,7 @@ TEST_CASE("add regular test no tags", "[registry]") {
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
     CHECK(test.id.name == "how many lights"sv);
     CHECK(test.id.tags == ""sv);
     CHECK(test.id.type == ""sv);
@@ -129,13 +129,13 @@ TEST_CASE("add template test", "[registry]") {
 
         REQUIRE(framework.get_num_registered_tests() == 2u);
 
-        auto& test1 = *framework.registry.begin();
+        auto& test1 = framework.registry.test_cases()[0];
         CHECK(test1.id.name == "how many lights"sv);
         CHECK(test1.id.tags == "[tag]"sv);
         CHECK(test1.id.type == "int"sv);
         REQUIRE(test1.func != nullptr);
 
-        auto& test2 = *(framework.registry.begin() + 1);
+        auto& test2 = framework.registry.test_cases()[1];
         CHECK(test2.id.name == "how many lights"sv);
         CHECK(test2.id.tags == "[tag]"sv);
         CHECK(test2.id.type == "float"sv);
@@ -205,7 +205,7 @@ TEST_CASE("report FAIL_CHECK regular", "[registry]") {
         // clang-format on
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -240,7 +240,7 @@ TEST_CASE("report FAIL_CHECK template", "[registry]") {
             // clang-format on
         });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -277,7 +277,7 @@ TEST_CASE("report FAIL_CHECK section", "[registry]") {
         }
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -316,7 +316,7 @@ TEST_CASE("report FAIL_CHECK capture", "[registry]") {
         // clang-format on
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -354,7 +354,7 @@ TEST_CASE("report CHECK", "[registry]") {
         // clang-format on
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -392,7 +392,7 @@ TEST_CASE("report CHECK success", "[registry]") {
         // clang-format on
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -438,7 +438,7 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
         // clang-format on
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -477,7 +477,7 @@ TEST_CASE("report unexpected std::exception", "[registry]") {
         throw std::runtime_error("error message");
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -512,7 +512,7 @@ TEST_CASE("report unexpected unknown exception", "[registry]") {
     const std::size_t test_line = __LINE__;
     framework.registry.add({"how many lights", "[tag]"}, {__FILE__, test_line}, []() { throw 42; });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -547,7 +547,7 @@ TEST_CASE("report SKIP", "[registry]") {
         // clang-format on
     });
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
 
     SECTION("default reporter") {
         framework.setup_print();
@@ -695,7 +695,8 @@ TEST_CASE("add reporter", "[registry]") {
         assertion_exception_enabler enabler;
 
         std::array<snitch::small_string<32>, snitch::max_registered_reporters> names = {};
-        for (std::size_t i = 1; i < snitch::max_registered_reporters; ++i) {
+        for (std::size_t i = framework.registry.reporters().size();
+             i < snitch::max_registered_reporters; ++i) {
             append_or_truncate(names[i], "dummy", i);
             framework.registry.add_reporter(names[i], {}, {}, &my_reporter::report, {});
         }

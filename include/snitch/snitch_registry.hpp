@@ -76,10 +76,11 @@ using finish_report_function     = small_function<void(registry&) noexcept>;
 
 struct registered_reporter {
     std::string_view           name;
-    initialize_report_function initialize;
-    configure_report_function  configure;
-    report_function            callback;
-    finish_report_function     finish;
+    initialize_report_function initialize = [](registry&) noexcept {};
+    configure_report_function  configure =
+        [](registry&, std::string_view, std::string_view) noexcept { return false; };
+    report_function        callback = [](const registry&, const event::data&) noexcept {};
+    finish_report_function finish   = [](registry&) noexcept {};
 };
 
 class registry {
@@ -87,10 +88,8 @@ class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
 
     // Contains all registered reporters.
-    // NB: We use std::optional because small_vector default constructs all its elements, and
-    // registered_reporter is not default-constructible.
-    small_vector<std::optional<registered_reporter>, max_registered_reporters>
-        registered_reporters = {registered_reporter{
+    small_vector<registered_reporter, max_registered_reporters> registered_reporters = {
+        registered_reporter{
             "console", &snitch::impl::initialize_default_reporter,
             &snitch::impl::configure_default_reporter, &snitch::impl::default_reporter,
             &snitch::impl::finish_default_reporter}};
@@ -206,10 +205,11 @@ public:
 
     void list_all_reporters() const noexcept;
 
-    impl::test_case*       begin() noexcept;
-    impl::test_case*       end() noexcept;
-    const impl::test_case* begin() const noexcept;
-    const impl::test_case* end() const noexcept;
+    small_vector_span<impl::test_case>       test_cases() noexcept;
+    small_vector_span<const impl::test_case> test_cases() const noexcept;
+
+    small_vector_span<registered_reporter>       reporters() noexcept;
+    small_vector_span<const registered_reporter> reporters() const noexcept;
 };
 
 extern constinit registry tests;

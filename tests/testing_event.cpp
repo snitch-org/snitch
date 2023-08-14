@@ -198,7 +198,7 @@ std::optional<event_deep_copy> mock_framework::get_skip_event() const {
 }
 
 std::size_t mock_framework::get_num_registered_tests() const {
-    return registry.end() - registry.begin();
+    return registry.test_cases().size();
 }
 
 std::size_t mock_framework::get_num_runs() const {

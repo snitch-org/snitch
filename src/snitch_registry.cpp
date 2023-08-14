@@ -90,7 +90,7 @@ void for_each_tag(std::string_view s, F&& callback) {
 template<typename F>
 void list_tests(const registry& r, F&& predicate) noexcept {
     small_string<max_test_name_length> buffer;
-    for (const test_case& t : r) {
+    for (const test_case& t : r.test_cases()) {
         if (!predicate(t)) {
             continue;
         }
@@ -680,7 +680,7 @@ bool registry::run_selected_tests(
     auto time_start = clock::now();
 #endif
 
-    for (impl::test_case& t : *this) {
+    for (impl::test_case& t : this->test_cases()) {
         if (!predicate(t.id)) {
             continue;
         }
@@ -844,9 +844,9 @@ bool registry::run_tests(const cli::input& args) noexcept {
 
 namespace impl {
 void parse_reporter(
-    registry&                                                   r,
-    small_vector_span<const std::optional<registered_reporter>> reporters,
-    std::string_view                                            arg) noexcept {
+    registry&                                    r,
+    small_vector_span<const registered_reporter> reporters,
+    std::string_view                             arg) noexcept {
 
     if (arg.empty() || arg[0] == ':') {
         using namespace snitch::impl;
@@ -866,7 +866,7 @@ void parse_reporter(
 
     // Locate reporter
     auto iter = std::find_if(reporters.begin(), reporters.end(), [&](const auto& reporter) {
-        return reporter->name == reporter_name;
+        return reporter.name == reporter_name;
     });
 
     if (iter == reporters.end()) {
@@ -877,13 +877,13 @@ void parse_reporter(
         cli::print(make_colored("note:", r.with_color, color::status), " available reporters:\n");
         for (const auto& reporter : reporters) {
             cli::print(
-                make_colored("note:", r.with_color, color::status), "  ", reporter->name, "\n");
+                make_colored("note:", r.with_color, color::status), "  ", reporter.name, "\n");
         }
         return;
     }
 
     // Initialise reporter now, so we can configure it.
-    (*iter)->initialize(r);
+    iter->initialize(r);
 
     // Configure reporter
     auto option_pos = options.find("::");
@@ -907,7 +907,7 @@ void parse_reporter(
         std::string_view option_name  = option.substr(0, equal_pos);
         std::string_view option_value = option.substr(equal_pos + 1);
 
-        if (!(*iter)->configure(r, option_name, option_value)) {
+        if (!iter->configure(r, option_name, option_value)) {
             using namespace snitch::impl;
             cli::print(
                 make_colored("warning:", r.with_color, color::warning),
@@ -916,8 +916,8 @@ void parse_reporter(
     }
 
     // Register reporter callbacks
-    r.report_callback = (*iter)->callback;
-    r.finish_callback = (*iter)->finish;
+    r.report_callback = iter->callback;
+    r.finish_callback = iter->finish;
 }
 } // namespace impl
 
@@ -994,24 +994,24 @@ void registry::list_tests_with_tag(std::string_view tag) const noexcept {
 
 void registry::list_all_reporters() const noexcept {
     for (const auto& r : registered_reporters) {
-        cli::print(r->name, "\n");
+        cli::print(r.name, "\n");
     }
 }
 
-impl::test_case* registry::begin() noexcept {
-    return test_list.begin();
+small_vector_span<impl::test_case> registry::test_cases() noexcept {
+    return test_list;
 }
 
-impl::test_case* registry::end() noexcept {
-    return test_list.end();
+small_vector_span<const impl::test_case> registry::test_cases() const noexcept {
+    return test_list;
 }
 
-const impl::test_case* registry::begin() const noexcept {
-    return test_list.begin();
+small_vector_span<registered_reporter> registry::reporters() noexcept {
+    return registered_reporters;
 }
 
-const impl::test_case* registry::end() const noexcept {
-    return test_list.end();
+small_vector_span<const registered_reporter> registry::reporters() const noexcept {
+    return registered_reporters;
 }
 
 constinit registry tests = []() {
