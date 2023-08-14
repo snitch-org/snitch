@@ -226,7 +226,7 @@ TEST_CASE("report FAIL_CHECK regular", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
+        CHECK(failure.expr_message == contains_substring("there are four lights"));
     }
 }
 
@@ -262,7 +262,7 @@ TEST_CASE("report FAIL_CHECK template", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
+        CHECK(failure.expr_message == contains_substring("there are four lights"));
     }
 }
 
@@ -299,7 +299,7 @@ TEST_CASE("report FAIL_CHECK section", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
+        CHECK(failure.expr_message == contains_substring("there are four lights"));
         REQUIRE(failure.sections.size() == 1u);
         REQUIRE(failure.sections[0] == "ask nicely"sv);
     }
@@ -338,7 +338,7 @@ TEST_CASE("report FAIL_CHECK capture", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
+        CHECK(failure.expr_message == contains_substring("there are four lights"));
         REQUIRE(failure.captures.size() == 1u);
         REQUIRE(failure.captures[0] == "number_of_lights := 3"sv);
     }
@@ -376,8 +376,8 @@ TEST_CASE("report CHECK", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("number_of_lights == 3"));
-        CHECK(failure.message == contains_substring("4 != 3"));
+        CHECK(failure.expr_expected == "number_of_lights == 3"sv);
+        CHECK(failure.expr_actual == "4 != 3"sv);
     }
 }
 
@@ -418,11 +418,11 @@ TEST_CASE("report CHECK success", "[registry]") {
         const auto& success = success_opt.value();
         CHECK_EVENT_TEST_ID(success, test.id);
         CHECK_EVENT_LOCATION(success, __FILE__, failure_line);
-        CHECK(success.message == contains_substring("number_of_fingers == 5"));
+        CHECK(success.expr_expected == "number_of_fingers == 5"sv);
 #if SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS
-        CHECK(success.message == contains_substring("5 == 5"));
+        CHECK(success.expr_actual == "5 == 5"sv);
 #else
-        CHECK(success.message != contains_substring("5 == 5"));
+        CHECK(success.expr_actual == ""sv);
 #endif
     }
 }
@@ -463,9 +463,9 @@ TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
         CHECK(
-            failure.message ==
+            failure.expr_message ==
             contains_substring("std::logic_error expected but other std::exception thrown"));
-        CHECK(failure.message == contains_substring("there are four lights"));
+        CHECK(failure.expr_message == contains_substring("there are four lights"));
     }
 }
 
@@ -501,7 +501,7 @@ TEST_CASE("report unexpected std::exception", "[registry]") {
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, test_line);
         CHECK(
-            failure.message ==
+            failure.expr_message ==
             contains_substring("unexpected std::exception caught; message: error message"));
     }
 }
@@ -533,7 +533,7 @@ TEST_CASE("report unexpected unknown exception", "[registry]") {
         const auto& failure = failure_opt.value();
         CHECK_EVENT_TEST_ID(failure, test.id);
         CHECK_EVENT_LOCATION(failure, __FILE__, test_line);
-        CHECK(failure.message == contains_substring("unexpected unknown exception caught"));
+        CHECK(failure.expr_message == contains_substring("unexpected unknown exception caught"));
     }
 }
 #endif
@@ -568,7 +568,7 @@ TEST_CASE("report SKIP", "[registry]") {
         const auto& skip = skip_opt.value();
         CHECK_EVENT_TEST_ID(skip, test.id);
         CHECK_EVENT_LOCATION(skip, __FILE__, failure_line);
-        CHECK(skip.message == contains_substring("there are four lights"));
+        CHECK(skip.expr_message == contains_substring("there are four lights"));
     }
 }
 

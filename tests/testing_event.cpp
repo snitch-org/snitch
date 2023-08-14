@@ -24,18 +24,15 @@ void copy_full_location(event_deep_copy& c, const T& e) {
     c.location_line = e.location.line;
 
     if constexpr (std::is_same_v<T, snitch::event::test_case_skipped>) {
-        append_or_truncate(c.message, e.message);
+        append_or_truncate(c.expr_message, e.message);
     } else {
         std::visit(
             snitch::overload{
-                [&](std::string_view message) { append_or_truncate(c.message, message); },
+                [&](std::string_view message) { append_or_truncate(c.expr_message, message); },
                 [&](const snitch::expression_info& exp) {
-                    if (!exp.actual.empty()) {
-                        append_or_truncate(
-                            c.message, exp.type, "(", exp.expected, "), got ", exp.actual);
-                    } else {
-                        append_or_truncate(c.message, exp.type, "(", exp.expected, ")");
-                    }
+                    append_or_truncate(c.expr_type, exp.type);
+                    append_or_truncate(c.expr_expected, exp.expected);
+                    append_or_truncate(c.expr_actual, exp.actual);
                 }},
             e.data);
     }
@@ -218,4 +215,57 @@ std::size_t mock_framework::get_num_successes() const {
 
 std::size_t mock_framework::get_num_skips() const {
     return count_events(events, event_deep_copy::type::test_case_skipped);
+}
+
+snitch::matchers::has_expr_data::has_expr_data(std::string_view msg) : expected{msg} {}
+
+snitch::matchers::has_expr_data::has_expr_data(
+    std::string_view type, std::string_view expected, std::string_view actual) :
+    expected{expr_data{type, expected, actual}} {}
+
+bool snitch::matchers::has_expr_data::match(const event_deep_copy& e) const noexcept {
+    return std::visit(
+        snitch::overload{
+            [&](std::string_view message) { return message == e.expr_message; },
+            [&](const expr_data& expr) {
+                return expr.type == e.expr_type && expr.expected == e.expr_expected &&
+                       expr.actual == e.expr_actual;
+            }},
+        expected);
+}
+
+snitch::small_string<snitch::max_message_length> snitch::matchers::has_expr_data::describe_match(
+    const event_deep_copy& e, match_status) const noexcept {
+    return std::visit(
+        snitch::overload{
+            [&](std::string_view message) {
+                snitch::small_string<snitch::max_message_length> msg;
+                if (e.expr_message != message) {
+                    append_or_truncate(msg, "'", e.expr_message, "' != '", message, "'");
+                } else {
+                    append_or_truncate(msg, "'", message, "'");
+                }
+                return msg;
+            },
+            [&](const expr_data& expr) {
+                snitch::small_string<snitch::max_message_length> msg;
+                if (e.expr_type != expr.type) {
+                    append_or_truncate(msg, "'", e.expr_type, "' != '", expr.type, "'");
+                } else {
+                    append_or_truncate(msg, "'", expr.type, "'");
+                }
+                if (e.expr_expected != expr.expected) {
+                    append_or_truncate(
+                        msg, " and '", e.expr_expected, "' != '", expr.expected, "'");
+                } else {
+                    append_or_truncate(msg, " and '", expr.expected, "'");
+                }
+                if (e.expr_actual != expr.actual) {
+                    append_or_truncate(msg, " and '", e.expr_actual, "' != '", expr.actual, "'");
+                } else {
+                    append_or_truncate(msg, " and '", expr.actual, "'");
+                }
+                return msg;
+            }},
+        expected);
 }

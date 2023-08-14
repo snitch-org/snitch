@@ -36,7 +36,10 @@ struct event_deep_copy {
     snitch::small_string<snitch::max_message_length> location_file;
     std::size_t                                      location_line = 0u;
 
-    snitch::small_string<snitch::max_message_length> message;
+    snitch::small_string<snitch::max_message_length> expr_message;
+    snitch::small_string<64>                         expr_type;
+    snitch::small_string<snitch::max_message_length> expr_expected;
+    snitch::small_string<snitch::max_message_length> expr_actual;
     snitch::small_vector<snitch::small_string<snitch::max_message_length>, snitch::max_captures>
         captures;
     snitch::
@@ -139,6 +142,27 @@ struct test_override {
     }
 };
 
+namespace snitch::matchers {
+struct has_expr_data {
+    struct expr_data {
+        std::string_view type;
+        std::string_view expected;
+        std::string_view actual;
+    };
+
+    std::variant<std::string_view, expr_data> expected;
+
+    explicit has_expr_data(std::string_view msg);
+    explicit has_expr_data(
+        std::string_view type, std::string_view expected, std::string_view actual);
+
+    bool match(const event_deep_copy& e) const noexcept;
+
+    small_string<max_message_length>
+    describe_match(const event_deep_copy& e, match_status status) const noexcept;
+};
+} // namespace snitch::matchers
+
 #define CHECK_EVENT_TEST_ID(ACTUAL, EXPECTED)                                                      \
     CHECK(ACTUAL.test_id_name == EXPECTED.name);                                                   \
     CHECK(ACTUAL.test_id_tags == EXPECTED.tags);                                                   \
@@ -226,26 +250,26 @@ struct test_override {
         CHECK(end.test_case_expected_failure_count == 0u);                                         \
     } while (0)
 
-#define CHECK_EVENT(CATCHER, EVENT, TYPE, FAILURE_LINE, MESSAGE)                                   \
+#define CHECK_EVENT(CATCHER, EVENT, TYPE, FAILURE_LINE, ...)                                       \
     do {                                                                                           \
         CHECK((EVENT).event_type == (TYPE));                                                       \
         CHECK_EVENT_TEST_ID((EVENT), (CATCHER).mock_case.id);                                      \
         CHECK_EVENT_LOCATION((EVENT), __FILE__, (FAILURE_LINE));                                   \
-        CHECK((EVENT).message == (MESSAGE));                                                       \
+        CHECK((EVENT) == snitch::matchers::has_expr_data{__VA_ARGS__});                            \
     } while (0)
 
-#define CHECK_EXPR(CATCHER, EVENT_TYPE, FAILURE_LINE, MESSAGE)                                     \
+#define CHECK_EXPR(CATCHER, EVENT_TYPE, FAILURE_LINE, ...)                                         \
     do {                                                                                           \
         CHECK((CATCHER).mock_test.asserts == 1u);                                                  \
         REQUIRE((CATCHER).events.size() == 1u);                                                    \
-        CHECK_EVENT(CATCHER, (CATCHER).events[0], EVENT_TYPE, FAILURE_LINE, MESSAGE);              \
+        CHECK_EVENT(CATCHER, (CATCHER).events[0], EVENT_TYPE, FAILURE_LINE, __VA_ARGS__);          \
     } while (0)
 
-#define CHECK_EVENT_FAILURE(CATCHER, EVENT, FAILURE_LINE, MESSAGE)                                 \
-    CHECK_EVENT(CATCHER, EVENT, event_deep_copy::type::assertion_failed, FAILURE_LINE, MESSAGE)
+#define CHECK_EVENT_FAILURE(CATCHER, EVENT, FAILURE_LINE, ...)                                     \
+    CHECK_EVENT(CATCHER, EVENT, event_deep_copy::type::assertion_failed, FAILURE_LINE, __VA_ARGS__)
 
-#define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, MESSAGE)                                         \
-    CHECK_EXPR(CATCHER, event_deep_copy::type::assertion_failed, FAILURE_LINE, MESSAGE)
+#define CHECK_EXPR_FAILURE(CATCHER, FAILURE_LINE, ...)                                             \
+    CHECK_EXPR(CATCHER, event_deep_copy::type::assertion_failed, FAILURE_LINE, __VA_ARGS__)
 
 #define CHECK_EXPR_SUCCESS(CATCHER)                                                                \
     do {                                                                                           \
