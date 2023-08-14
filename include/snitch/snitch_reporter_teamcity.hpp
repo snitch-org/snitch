@@ -1,5 +1,5 @@
-#ifndef SNITCH_TEAMCITY_HPP
-#define SNITCH_TEAMCITY_HPP
+#ifndef SNITCH_REPORTER_TEAMCITY_HPP
+#define SNITCH_REPORTER_TEAMCITY_HPP
 
 #include "snitch/snitch_config.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef SNITCH_CATCH2_XML_HPP
-#define SNITCH_CATCH2_XML_HPP
+#ifndef SNITCH_REPORTER_CATCH2_XML_HPP
+#define SNITCH_REPORTER_CATCH2_XML_HPP
 
 #include "snitch/snitch_config.hpp"
 
