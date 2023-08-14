@@ -216,23 +216,28 @@ void print_location(
 }
 
 void print_message(const registry& r, const assertion_data& data) {
+    constexpr auto indent = "          "sv;
     std::visit(
         overload{
             [&](std::string_view message) {
-                r.print("          ", make_colored(message, r.with_color, color::highlight2));
+                r.print(indent, make_colored(message, r.with_color, color::highlight2));
             },
             [&](const expression_info& exp) {
                 small_string<max_message_length> message_buffer;
-                if (!exp.actual.empty()) {
-                    append_or_truncate(
-                        message_buffer, exp.type, "(", exp.expected, "), got ", exp.actual);
-                } else {
-                    append_or_truncate(message_buffer, exp.type, "(", exp.expected, ")");
-                }
-
+                append_or_truncate(message_buffer, exp.type, "(", exp.expected, ")");
                 r.print(
-                    "          ",
-                    make_colored(message_buffer.str(), r.with_color, color::highlight2));
+                    indent, make_colored(message_buffer.str(), r.with_color, color::highlight2));
+
+                if (!exp.actual.empty()) {
+                    if (exp.expected.size() + exp.type.size() + 3 > 64) {
+                        r.print(
+                            "\n", indent,
+                            "got: ", make_colored(exp.actual, r.with_color, color::highlight2));
+                    } else {
+                        r.print(
+                            ", got: ", make_colored(exp.actual, r.with_color, color::highlight2));
+                    }
+                }
             }},
         data);
 }
