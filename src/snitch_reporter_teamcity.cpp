@@ -13,7 +13,7 @@
 #    include <initializer_list>
 #    include <string_view>
 
-namespace snitch::teamcity {
+namespace snitch::reporter::teamcity {
 namespace {
 struct key_value {
     std::string_view key;
@@ -150,9 +150,13 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
             }},
         event);
 }
-} // namespace snitch::teamcity
+} // namespace snitch::reporter::teamcity
 
 SNITCH_REGISTER_REPORTER_CALLBACKS(
-    "teamcity", &snitch::teamcity::initialize, {}, &snitch::teamcity::report, {});
+    "teamcity",
+    &snitch::reporter::teamcity::initialize,
+    {},
+    &snitch::reporter::teamcity::report,
+    {});
 
 #endif

@@ -11,7 +11,7 @@
 #    include <initializer_list>
 #    include <string_view>
 
-namespace snitch::catch2_xml {
+namespace snitch::reporter::catch2_xml {
 struct reporter {
     std::size_t indent_level = 0;
 
@@ -21,7 +21,7 @@ struct reporter {
 
     void report(const registry& r, const snitch::event::data& event) noexcept;
 };
-} // namespace snitch::catch2_xml
+} // namespace snitch::reporter::catch2_xml
 
 #endif
 #endif

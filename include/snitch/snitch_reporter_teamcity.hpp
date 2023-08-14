@@ -7,11 +7,11 @@
 
 #    include "snitch/snitch_test_data.hpp"
 
-namespace snitch::teamcity {
+namespace snitch::reporter::teamcity {
 void initialize(registry& r) noexcept;
 
 void report(const registry& r, const snitch::event::data& event) noexcept;
-} // namespace snitch::teamcity
+} // namespace snitch::reporter::teamcity
 
 #endif
 #endif

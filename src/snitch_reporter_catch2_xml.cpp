@@ -13,7 +13,7 @@
 #    include <initializer_list>
 #    include <string_view>
 
-namespace snitch::catch2_xml {
+namespace snitch::reporter::catch2_xml {
 namespace {
 struct key_value {
     std::string_view key;
@@ -234,8 +234,8 @@ void reporter::report(const registry& r, const snitch::event::data& event) noexc
             }},
         event);
 }
-} // namespace snitch::catch2_xml
+} // namespace snitch::reporter::catch2_xml
 
-SNITCH_REGISTER_REPORTER("xml", snitch::catch2_xml::reporter);
+SNITCH_REGISTER_REPORTER("xml", snitch::reporter::catch2_xml::reporter);
 
 #endif
