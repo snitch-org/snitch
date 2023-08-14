@@ -859,7 +859,7 @@ This is similar to `REGISTER_REPORTER`, but takes four separate callback functio
 
 All callback functions are optional except `REPORT`. If a callback is unused, simply specify the function as `{}`. Otherwise, please refer to [Overriding the default reporter](#overriding-the-default-reporter) for instructions on how to specify your own callback functions.
 
-An example can be found in `include/snitch_teamcity.hpp` / `src/snitch_teamcity.cpp`.
+An example can be found in `include/snitch_reporter_teamcity.hpp` / `src/snitch_reporter_teamcity.cpp`.
 
 
 ### Default main function

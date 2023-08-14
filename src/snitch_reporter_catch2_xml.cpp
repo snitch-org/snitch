@@ -2,9 +2,9 @@
 
 #if defined(SNITCH_WITH_CATCH2_XML_REPORTER) || defined(SNITCH_WITH_ALL_REPORTERS)
 
-#    include "snitch/snitch_catch2_xml.hpp"
 #    include "snitch/snitch_macros_reporter.hpp"
 #    include "snitch/snitch_registry.hpp"
+#    include "snitch/snitch_reporter_catch2_xml.hpp"
 #    include "snitch/snitch_string.hpp"
 #    include "snitch/snitch_string_utility.hpp"
 #    include "snitch/snitch_test_data.hpp"

@@ -4,9 +4,9 @@
 
 #    include "snitch/snitch_macros_reporter.hpp"
 #    include "snitch/snitch_registry.hpp"
+#    include "snitch/snitch_reporter_teamcity.hpp"
 #    include "snitch/snitch_string.hpp"
 #    include "snitch/snitch_string_utility.hpp"
-#    include "snitch/snitch_teamcity.hpp"
 #    include "snitch/snitch_test_data.hpp"
 
 #    include <cstddef>

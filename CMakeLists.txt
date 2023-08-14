@@ -56,7 +56,6 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_append.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_capture.hpp
-    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_catch2_xml.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_cli.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_concepts.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_console.hpp
@@ -76,10 +75,11 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_warnings.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_matcher.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_registry.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_catch2_xml.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_teamcity.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_section.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
-    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_test_data.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_name.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
@@ -88,16 +88,16 @@ set(SNITCH_INCLUDES
 set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
-    ${PROJECT_SOURCE_DIR}/src/snitch_catch2_xml.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporter_catch2_xml.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporter_teamcity.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
-    ${PROJECT_SOURCE_DIR}/src/snitch_teamcity.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
 
 if (SNITCH_UNITY_BUILD)
