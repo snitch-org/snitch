@@ -143,6 +143,12 @@ event_deep_copy deep_copy(const snitch::event::data& e) {
         e);
 }
 
+mock_framework::mock_framework() noexcept {
+    registry.add_reporter(
+        "console", &snitch::reporter::console::initialize, &snitch::reporter::console::configure,
+        &snitch::reporter::console::report, {});
+}
+
 void mock_framework::report(const snitch::registry&, const snitch::event::data& e) noexcept {
     auto evt = deep_copy(e);
     if (!catch_success && evt.event_type == event_deep_copy::type::assertion_succeeded) {
@@ -169,7 +175,7 @@ void mock_framework::setup_print() {
     registry.with_color = false;
     registry.verbose    = snitch::registry::verbosity::full;
 
-    registry.report_callback = &snitch::impl::default_reporter;
+    registry.report_callback = &snitch::reporter::console::report;
     registry.print_callback  = {*this, snitch::constant<&mock_framework::print>{}};
 }
 

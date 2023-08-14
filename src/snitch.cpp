@@ -7,6 +7,7 @@
 #include "snitch_matcher.cpp"
 #include "snitch_registry.cpp"
 #include "snitch_reporter_catch2_xml.cpp"
+#include "snitch_reporter_console.cpp"
 #include "snitch_reporter_teamcity.cpp"
 #include "snitch_section.cpp"
 #include "snitch_string_utility.cpp"

@@ -61,6 +61,8 @@ struct mock_framework {
     snitch::small_string<4086>                messages;
     bool                                      catch_success = false;
 
+    mock_framework() noexcept;
+
     void report(const snitch::registry&, const snitch::event::data& e) noexcept;
     void print(std::string_view msg) noexcept;
 

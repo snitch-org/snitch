@@ -8,6 +8,7 @@
 #include "snitch/snitch_error_handling.hpp"
 #include "snitch/snitch_expression.hpp"
 #include "snitch/snitch_function.hpp"
+#include "snitch/snitch_reporter_console.hpp"
 #include "snitch/snitch_string.hpp"
 #include "snitch/snitch_string_utility.hpp"
 #include "snitch/snitch_test_data.hpp"
@@ -38,18 +39,15 @@ namespace snitch::impl {
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept;
 
-void initialize_default_reporter(registry& r) noexcept;
-bool configure_default_reporter(
-    registry& r, std::string_view option, std::string_view value) noexcept;
-void default_reporter(const registry& r, const event::data& event) noexcept;
-void finish_default_reporter(registry& r) noexcept;
-
 template<typename T, typename F>
 constexpr test_ptr to_test_case_ptr(const F&) noexcept {
     return []() { F{}.template operator()<T>(); };
 }
 
 struct abort_exception {};
+
+void parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
+void parse_color_option(registry& reg, std::string_view color_option) noexcept;
 } // namespace snitch::impl
 
 namespace snitch {
@@ -88,11 +86,7 @@ class registry {
     small_vector<impl::test_case, max_test_cases> test_list;
 
     // Contains all registered reporters.
-    small_vector<registered_reporter, max_registered_reporters> registered_reporters = {
-        registered_reporter{
-            "console", &snitch::impl::initialize_default_reporter,
-            &snitch::impl::configure_default_reporter, &snitch::impl::default_reporter,
-            &snitch::impl::finish_default_reporter}};
+    small_vector<registered_reporter, max_registered_reporters> registered_reporters;
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
@@ -105,8 +99,8 @@ public:
     using finish_report_function     = snitch::finish_report_function;
 
     print_function         print_callback  = &snitch::impl::stdout_print;
-    report_function        report_callback = &snitch::impl::default_reporter;
-    finish_report_function finish_callback = &snitch::impl::finish_default_reporter;
+    report_function        report_callback = &snitch::reporter::console::report;
+    finish_report_function finish_callback = [](registry&) noexcept {};
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {

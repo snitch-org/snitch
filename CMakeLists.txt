@@ -76,6 +76,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_matcher.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_registry.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_catch2_xml.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_console.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_teamcity.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_section.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
@@ -95,6 +96,7 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_reporter_catch2_xml.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporter_console.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_reporter_teamcity.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp

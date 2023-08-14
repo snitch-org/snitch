@@ -24,6 +24,7 @@
 #include "snitch/snitch_matcher.hpp"
 #include "snitch/snitch_registry.hpp"
 #include "snitch/snitch_reporter_catch2_xml.hpp"
+#include "snitch/snitch_reporter_console.hpp"
 #include "snitch/snitch_reporter_teamcity.hpp"
 #include "snitch/snitch_section.hpp"
 #include "snitch/snitch_string.hpp"
