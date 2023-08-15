@@ -67,7 +67,7 @@ small_string<max_number_length> make_string(T number) noexcept {
 std::string_view get_indent(const reporter& rep) noexcept {
     constexpr std::string_view spaces            = "                ";
     constexpr std::size_t      spaces_per_indent = 2;
-    return spaces.substr(0, std::max(spaces.size(), spaces_per_indent * rep.indent_level));
+    return spaces.substr(0, std::min(spaces.size(), spaces_per_indent * rep.indent_level));
 }
 
 void close(reporter& rep, const registry& r, std::string_view node) noexcept {
