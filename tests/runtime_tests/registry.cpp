@@ -870,7 +870,7 @@ TEST_CASE("run tests", "[registry]") {
             if (r == reporter::print) {
                 CHECK(
                     framework.messages ==
-                    contains_substring("some tests failed (3 out of 3 test cases, 6 assertions"));
+                    contains_substring("all tests failed (3 out of 3 test cases, 6 assertions"));
             } else {
                 CHECK(framework.get_num_runs() == 3u);
                 CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);

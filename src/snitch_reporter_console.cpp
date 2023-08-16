@@ -92,9 +92,9 @@ struct default_reporter_functor {
                 e.run_count, " test cases, ", e.assertion_count, " assertions");
         } else {
             r.print(
-                make_colored("error:", r.with_color, color::fail), " some tests failed (",
-                e.fail_count, " out of ", e.run_count, " test cases, ", e.assertion_count,
-                " assertions");
+                make_colored("error:", r.with_color, color::fail), " ",
+                (e.fail_count == e.run_count ? "all" : "some"), " tests failed (", e.fail_count,
+                " out of ", e.run_count, " test cases, ", e.assertion_count, " assertions");
         }
 
         if (e.skip_count > 0) {
