@@ -55,8 +55,10 @@ void print_message(const registry& r, const assertion_data& data) {
                 r.print(
                     indent, make_colored(message_buffer.str(), r.with_color, color::highlight2));
 
+                constexpr std::size_t long_line_threshold = 64;
                 if (!exp.actual.empty()) {
-                    if (exp.expected.size() + exp.type.size() + 3 > 64) {
+                    if (exp.expected.size() + exp.type.size() + 3 > long_line_threshold ||
+                        exp.actual.size() + 5 > long_line_threshold) {
                         r.print(
                             "\n", indent,
                             "got: ", make_colored(exp.actual, r.with_color, color::highlight2));
