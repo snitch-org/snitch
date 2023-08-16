@@ -73,17 +73,22 @@ small_string<max_message_length> make_full_message(
         append_or_truncate(full_message, c, "\n");
     }
 
-    append_or_truncate(full_message, "  ");
+    constexpr std::string_view indent = "  ";
 
     std::visit(
         overload{
-            [&](std::string_view message) { append_or_truncate(full_message, message); },
+            [&](std::string_view message) { append_or_truncate(full_message, indent, message); },
             [&](const snitch::expression_info& exp) {
+                append_or_truncate(full_message, indent, exp.type, "(", exp.expected, ")");
+
+                constexpr std::size_t long_line_threshold = 64;
                 if (!exp.actual.empty()) {
-                    append_or_truncate(
-                        full_message, exp.type, "(", exp.expected, "), got ", exp.actual);
-                } else {
-                    append_or_truncate(full_message, exp.type, "(", exp.expected, ")");
+                    if (exp.expected.size() + exp.type.size() + 3 > long_line_threshold ||
+                        exp.actual.size() + 5 > long_line_threshold) {
+                        append_or_truncate(full_message, "\n", indent, "got: ", exp.actual);
+                    } else {
+                        append_or_truncate(full_message, ", got: ", exp.actual);
+                    }
                 }
             }},
         data);
