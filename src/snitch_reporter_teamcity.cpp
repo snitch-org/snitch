@@ -138,7 +138,7 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
             },
             [&](const snitch::event::assertion_failed& e) {
                 send_message(
-                    r, "testFailed",
+                    r, e.expected || e.allowed ? "testStdOut" : "testFailed",
                     {{"name", make_full_name(e.id)},
                      {"message", make_full_message(e.location, e.sections, e.captures, e.data)}});
             },
