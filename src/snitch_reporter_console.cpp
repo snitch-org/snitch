@@ -145,6 +145,8 @@ struct default_reporter_functor {
     void operator()(const snitch::event::assertion_failed& e) const noexcept {
         if (e.expected) {
             r.print(make_colored("expected failure: ", r.with_color, color::pass));
+        } else if (e.allowed) {
+            r.print(make_colored("allowed failure: ", r.with_color, color::pass));
         } else {
             r.print(make_colored("failed: ", r.with_color, color::fail));
         }
