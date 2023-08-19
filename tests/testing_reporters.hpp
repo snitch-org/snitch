@@ -55,7 +55,7 @@ void regex_blank(std::string& line, const std::vector<std::regex>& ignores);
                 CHECK(std::string_view{line_actual} == std::string_view{line_expected});           \
                 ++line_number;                                                                     \
             }                                                                                      \
-            if (!file_expected.eof()) {                                                            \
+            if (file_expected.is_open() && !file_expected.eof()) {                                 \
                 FAIL_CHECK("expected more output");                                                \
             } else if (!file_actual.eof()) {                                                       \
                 FAIL_CHECK("unexpected extra output");                                             \
