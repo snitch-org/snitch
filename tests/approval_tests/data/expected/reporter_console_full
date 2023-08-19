@@ -230,6 +230,11 @@ failed: running test case "test unexpected throw fail"
           at */snitch/tests/testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
 finished: test unexpected throw fail (*)
+starting: test SKIP at */snitch/tests/testing_reporters.cpp:*
+skipped: running test case "test SKIP"
+          at */snitch/tests/testing_reporters.cpp:*
+          not interesting
+finished: test SKIP (*)
 starting: test INFO at */snitch/tests/testing_reporters.cpp:*
 failed: running test case "test INFO"
           at */snitch/tests/testing_reporters.cpp:*
@@ -351,4 +356,4 @@ passed: running test case "test SECTION & INFO"
           no exception caught
 finished: test SECTION & INFO (*)
 ==========================================
-error: some tests failed (19 out of 34 test cases, 81 assertions, * seconds)
+error: some tests failed (19 out of 35 test cases, 81 assertions, 1 test cases skipped, * seconds)

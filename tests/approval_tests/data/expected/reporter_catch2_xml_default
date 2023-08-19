@@ -197,6 +197,9 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test SKIP" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test INFO" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
     <Info>
       info
@@ -336,5 +339,5 @@
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
   <OverallResults successes="43" failures="36" expectedFailures="2"/>
-  <OverallResultsCases successes="13" failures="19" expectedFailures="2"/>
+  <OverallResultsCases successes="14" failures="19" expectedFailures="2"/>
 </Catch2TestRun>

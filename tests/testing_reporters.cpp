@@ -99,6 +99,8 @@ void register_tests_for_reporters(snitch::registry& r) {
     });
 #endif
 
+    r.add({"test SKIP"}, {__FILE__, __LINE__}, []() { SNITCH_SKIP("not interesting"); });
+
     r.add({"test INFO"}, {__FILE__, __LINE__}, []() {
         SNITCH_INFO("info");
         SNITCH_FAIL_CHECK("failure");
