@@ -4,11 +4,13 @@
 // clang-format on
 
 namespace {
+#if SNITCH_WITH_EXCEPTIONS
 void throw_something(bool do_throw) {
     if (do_throw) {
         throw std::runtime_error("I threw");
     }
 }
+#endif
 
 constexpr int some_very_long_name_that_forces_lines_to_wrap = 1;
 } // namespace
