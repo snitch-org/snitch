@@ -4,8 +4,7 @@
 
 void register_tests_for_reporters(snitch::registry& r);
 
-const std::filesystem::path test_data_path =
-    std::filesystem::path(__FILE__).parent_path() / "approval_tests" / "data";
+const std::filesystem::path test_data_path = std::filesystem::path("data");
 
 struct print_to_file {
     std::ofstream file;

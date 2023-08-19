@@ -109,7 +109,7 @@ target_compile_definitions(snitch_runtime_tests PUBLIC
 
 add_custom_target(snitch_runtime_tests_run
     COMMAND snitch_runtime_tests
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/runtime_tests
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
@@ -137,9 +137,15 @@ target_compile_definitions(snitch_approval_tests PUBLIC
     SNITCH_DEFINE_MAIN=0
     SNITCH_WITH_SHORTHAND_MACROS=0)
 
+if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+    # Add approval test data to the preload-file list
+    target_link_options(snitch_approval_tests PUBLIC
+        "SHELL:--preload-file ${PROJECT_SOURCE_DIR}/tests/approval_tests/data@data")
+endif()
+
 add_custom_target(snitch_approval_tests_run
     COMMAND snitch_approval_tests
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/approval_tests
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_approval_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
@@ -165,7 +171,7 @@ target_compile_definitions(snitch_runtime_tests_self PUBLIC
 
 add_custom_target(snitch_runtime_tests_self_run
     COMMAND snitch_runtime_tests_self
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/runtime_tests
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
 
@@ -188,6 +194,6 @@ target_compile_definitions(snitch_runtime_tests_self_header_only PUBLIC
 
 add_custom_target(snitch_runtime_tests_self_header_only_run
     COMMAND snitch_runtime_tests_self_header_only
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/runtime_tests
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_self_header_only_run PROPERTIES EXCLUDE_FROM_ALL True)
