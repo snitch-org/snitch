@@ -15,9 +15,16 @@
 
 namespace snitch::reporter::teamcity {
 namespace {
+struct assertion {
+    const snitch::assertion_location& location;
+    const snitch::section_info&       sections;
+    const snitch::capture_info&       captures;
+    const snitch::assertion_data&     data;
+};
+
 struct key_value {
-    std::string_view key;
-    std::string_view value;
+    std::string_view                          key;
+    std::variant<std::string_view, assertion> value;
 };
 
 void escape(small_string_span string) noexcept {
@@ -28,6 +35,48 @@ void escape(small_string_span string) noexcept {
     }
 }
 
+template<typename T>
+std::string_view make_escaped(small_string_span buffer, const T& value) noexcept {
+    buffer.clear();
+    append_or_truncate(buffer, value);
+    escape(buffer);
+    return std::string_view{buffer.data(), buffer.size()};
+}
+
+void print_assertion(const registry& r, const assertion& msg) noexcept {
+    small_string<max_message_length> buffer;
+
+    r.print("'", make_escaped(buffer, msg.location.file), ":", msg.location.line, "|n");
+    for (const auto& s : msg.sections) {
+        r.print(make_escaped(buffer, s.id.name), "|n");
+    }
+    for (const auto& c : msg.captures) {
+        r.print(make_escaped(buffer, c), "|n");
+    }
+
+    constexpr std::string_view indent = "  ";
+
+    std::visit(
+        overload{
+            [&](std::string_view message) { r.print(indent, make_escaped(buffer, message), "'"); },
+            [&](const snitch::expression_info& exp) {
+                r.print(indent, exp.type, "(", make_escaped(buffer, exp.expected), ")");
+
+                constexpr std::size_t long_line_threshold = 64;
+                if (!exp.actual.empty()) {
+                    if (exp.expected.size() + exp.type.size() + 3 > long_line_threshold ||
+                        exp.actual.size() + 5 > long_line_threshold) {
+                        r.print("|n", indent, "got: ", make_escaped(buffer, exp.actual), "'");
+                    } else {
+                        r.print(", got: ", make_escaped(buffer, exp.actual), "'");
+                    }
+                } else {
+                    r.print("'");
+                }
+            }},
+        msg.data);
+}
+
 void send_message(
     const registry& r, std::string_view message, std::initializer_list<key_value> args) noexcept {
     constexpr std::string_view teamcity_header = "##teamCity[";
@@ -35,7 +84,12 @@ void send_message(
 
     r.print(teamcity_header, message);
     for (const auto& arg : args) {
-        r.print(" ", arg.key, "='", arg.value, "'");
+        r.print(" ", arg.key, "=");
+        std::visit(
+            snitch::overload{
+                [&](std::string_view msg) { r.print("'", msg, "'"); },
+                [&](const assertion& msg) { print_assertion(r, msg); }},
+            arg.value);
     }
     r.print(teamcity_footer);
 }
@@ -56,45 +110,6 @@ small_string<max_test_name_length> make_full_name(const test_id& id) noexcept {
     snitch::impl::make_full_name(name, id);
     escape(name);
     return name;
-}
-
-small_string<max_message_length> make_full_message(
-    const snitch::assertion_location& location,
-    const snitch::section_info&       sections,
-    const snitch::capture_info&       captures,
-    const snitch::assertion_data&     data) noexcept {
-
-    small_string<max_message_length> full_message;
-    append_or_truncate(full_message, location.file, ":", location.line, "\n");
-    for (const auto& s : sections) {
-        append_or_truncate(full_message, s.id.name, "\n");
-    }
-    for (const auto& c : captures) {
-        append_or_truncate(full_message, c, "\n");
-    }
-
-    constexpr std::string_view indent = "  ";
-
-    std::visit(
-        overload{
-            [&](std::string_view message) { append_or_truncate(full_message, indent, message); },
-            [&](const snitch::expression_info& exp) {
-                append_or_truncate(full_message, indent, exp.type, "(", exp.expected, ")");
-
-                constexpr std::size_t long_line_threshold = 64;
-                if (!exp.actual.empty()) {
-                    if (exp.expected.size() + exp.type.size() + 3 > long_line_threshold ||
-                        exp.actual.size() + 5 > long_line_threshold) {
-                        append_or_truncate(full_message, "\n", indent, "got: ", exp.actual);
-                    } else {
-                        append_or_truncate(full_message, ", got: ", exp.actual);
-                    }
-                }
-            }},
-        data);
-
-    escape(full_message);
-    return full_message;
 }
 
 constexpr std::size_t max_duration_length = 32;
@@ -138,20 +153,20 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
                 send_message(
                     r, "testIgnored",
                     {{"name", make_full_name(e.id)},
-                     {"message",
-                      make_full_message(e.location, e.sections, e.captures, e.message)}});
+                     {"message", assertion{e.location, e.sections, e.captures, e.message}}});
             },
             [&](const snitch::event::assertion_failed& e) {
                 send_message(
                     r, e.expected || e.allowed ? "testStdOut" : "testFailed",
                     {{"name", make_full_name(e.id)},
-                     {"message", make_full_message(e.location, e.sections, e.captures, e.data)}});
+                     {e.expected || e.allowed ? "out" : "message",
+                      assertion{e.location, e.sections, e.captures, e.data}}});
             },
             [&](const snitch::event::assertion_succeeded& e) {
                 send_message(
                     r, "testStdOut",
                     {{"name", make_full_name(e.id)},
-                     {"out", make_full_message(e.location, e.sections, e.captures, e.data)}});
+                     {"out", assertion{e.location, e.sections, e.captures, e.data}}});
             }},
         event);
 }

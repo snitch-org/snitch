@@ -1,0 +1,149 @@
+[1;36mstarting [0m[1;35mtest[0m[1;36m with [0m[1;35msnitch v*
+[0m==========================================
+[1;31mfailed: [0mrunning test case "[1;35mtest fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;32mallowed failure: [0mrunning test case "[1;35mtest mayfail bad pass[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest shouldfail good fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mexpected test to fail[0m
+[1;32mexpected failure: [0mrunning test case "[1;35mtest shouldfail bad pass[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest no tags fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtyped test no tags fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          for type [1;35mint[0m
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtyped test no tags fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          for type [1;35mfloat[0m
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtyped test with tags fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          for type [1;35mint[0m
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtyped test with tags fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          for type [1;35mfloat[0m
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest FAIL fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36msomething bad[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest expression fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest long expression fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(some_very_long_name_that_forces_lines_to_wrap != some_very_long_name_that_forces_lines_to_wrap)[0m
+          got: [1;36m1 == 1[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest too long expression fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mCHECK(super_long_string != super_long_string)[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest NOTHROW fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mexpected throw_something(true) not to throw but it threw a std::exception; message: I threw[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest THROW fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mstd::runtime_error expected but no exception thrown[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest THROW fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mstd::system_error expected but other std::exception thrown; message: I threw[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest THROW fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mcould not match caught std::runtime_error with expected content: could not find 'I throws' in 'I threw'[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest unexpected throw fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36munexpected std::exception caught; message: unexpected error[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo[0m
+          [1;36mfailure[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 1[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          [1;36mfailure 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          with [1;35minfo 2[0m
+          [1;36mfailure 3[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          [1;36mfailure 4[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest SECTION[0m"
+          in section "[1;35msection[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 1[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 1[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 7[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 2[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 2[0m"
+          in section "[1;35msection 2.1[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 3[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 7[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 2[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 2[0m"
+          in section "[1;35msection 2.2[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 4[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 2[0m"
+          in section "[1;35msection 2.2[0m"
+          in section "[1;35msection 2.2.1[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 5[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          in section "[1;35msection 2[0m"
+          in section "[1;35msection 2.2[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 6[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest multiple SECTION[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36mfailure 7[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest SECTION & INFO[0m"
+          in section "[1;35msection 1[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          with [1;35minfo 2[0m
+          [1;36mfailure 1[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest SECTION & INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          [1;36mfailure 3[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest SECTION & INFO[0m"
+          in section "[1;35msection 2[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          with [1;35minfo 3[0m
+          [1;36mfailure 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest SECTION & INFO[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          with [1;35minfo 1[0m
+          [1;36mfailure 3[0m
+==========================================
+[1;31merror:[0m some tests failed (19 out of 34 test cases, 81 assertions, * seconds)

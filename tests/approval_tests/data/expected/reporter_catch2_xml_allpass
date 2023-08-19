@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Catch2TestRun name="test" rng-seed="0" xml-format-version="2" catch2-version="*.snitch" filters="&quot;* pass*&quot;">
+  <TestCase name="test pass" tags="[tag2][tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test mayfail good pass" tags="[tag2][tag1][!mayfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test mayfail bad pass" tags="[tag2][tag1][!mayfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test shouldfail bad pass" tags="[tag2][tag1][!shouldfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test no tags pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test no tags pass &lt;int&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test no tags pass &lt;float&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test with tags pass &lt;int&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test with tags pass &lt;float&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test SUCCEED pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test expression pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test long expression pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test too long expression pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test NOTHROW pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test THROW pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <OverallResults successes="22" failures="0" expectedFailures="2"/>
+  <OverallResultsCases successes="13" failures="0" expectedFailures="2"/>
+</Catch2TestRun>

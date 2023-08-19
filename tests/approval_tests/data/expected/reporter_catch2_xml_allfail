@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Catch2TestRun name="test" rng-seed="0" xml-format-version="2" catch2-version="*.snitch" filters="&quot;* fail*&quot;">
+  <TestCase name="test fail" tags="[tag2][tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test shouldfail good fail" tags="[tag2][tag1][!shouldfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      expected test to fail
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test no tags fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test no tags fail &lt;int&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test no tags fail &lt;float&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test with tags fail &lt;int&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test with tags fail &lt;float&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test FAIL fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      something bad
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test expression fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test long expression fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        some_very_long_name_that_forces_lines_to_wrap != some_very_long_name_that_forces_lines_to_wrap
+      </Original>
+      <Expanded>
+        1 == 1
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test too long expression fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Original>
+        super_long_string != super_long_string
+      </Original>
+      <Expanded>
+        super_long_string != super_long_string
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test NOTHROW fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      expected throw_something(true) not to throw but it threw a std::exception; message: I threw
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test THROW fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      std::runtime_error expected but no exception thrown
+    </Failure>
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      std::system_error expected but other std::exception thrown; message: I threw
+    </Failure>
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      could not match caught std::runtime_error with expected content: could not find &apos;I throws&apos; in &apos;I threw&apos;
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test unexpected throw fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      unexpected std::exception caught; message: unexpected error
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <OverallResults successes="13" failures="16" expectedFailures="0"/>
+  <OverallResultsCases successes="0" failures="14" expectedFailures="0"/>
+</Catch2TestRun>

@@ -102,14 +102,42 @@ public:
     report_function        report_callback = &snitch::reporter::console::report;
     finish_report_function finish_callback = [](registry&) noexcept {};
 
+    template<typename T>
+    bool append_or_print(small_string<max_message_length>& ss, T&& value) const noexcept {
+        const std::size_t init_size = ss.size();
+        if (append(ss, value)) {
+            return true;
+        }
+
+        ss.resize(init_size);
+        this->print_callback(ss);
+        ss.clear();
+
+        if (append(ss, value)) {
+            return true;
+        }
+
+        if constexpr (std::is_convertible_v<std::decay_t<T>, std::string_view>) {
+            ss.clear();
+            this->print_callback(value);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     template<typename... Args>
     void print(Args&&... args) const noexcept {
         small_string<max_message_length> message;
-        const bool                       could_fit = append(message, std::forward<Args>(args)...);
-        this->print_callback(message);
-        if (!could_fit) {
-            this->print_callback("...");
+        (append_or_print(message, std::forward<Args>(args)) && ...);
+        if (!message.empty()) {
+            this->print_callback(message);
         }
+    }
+
+    template<convertible_to<std::string_view> T>
+    void print(const T& str) const noexcept {
+        this->print_callback(str);
     }
 
     // Requires: number of reporters + 1 <= max_registered_reporters.

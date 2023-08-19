@@ -47,7 +47,7 @@ void print_message(const registry& r, const assertion_data& data) {
     std::visit(
         overload{
             [&](std::string_view message) {
-                r.print(indent, make_colored(message, r.with_color, color::highlight2));
+                r.print(indent, make_colored(message, r.with_color, color::highlight2), "\n");
             },
             [&](const expression_info& exp) {
                 small_string<max_message_length> message_buffer;
@@ -61,11 +61,15 @@ void print_message(const registry& r, const assertion_data& data) {
                         exp.actual.size() + 5 > long_line_threshold) {
                         r.print(
                             "\n", indent,
-                            "got: ", make_colored(exp.actual, r.with_color, color::highlight2));
+                            "got: ", make_colored(exp.actual, r.with_color, color::highlight2),
+                            "\n");
                     } else {
                         r.print(
-                            ", got: ", make_colored(exp.actual, r.with_color, color::highlight2));
+                            ", got: ", make_colored(exp.actual, r.with_color, color::highlight2),
+                            "\n");
                     }
+                } else {
+                    r.print("\n");
                 }
             }},
         data);
@@ -115,8 +119,7 @@ struct default_reporter_functor {
         r.print(
             make_colored("starting:", r.with_color, color::status), " ",
             make_colored(full_name, r.with_color, color::highlight1), " at ", e.location.file, ":",
-            e.location.line);
-        r.print("\n");
+            e.location.line, "\n");
     }
 
     void operator()(const snitch::event::test_case_ended& e) const noexcept {
@@ -126,20 +129,18 @@ struct default_reporter_functor {
 #if SNITCH_WITH_TIMINGS
         r.print(
             make_colored("finished:", r.with_color, color::status), " ",
-            make_colored(full_name, r.with_color, color::highlight1), " (", e.duration, "s)");
+            make_colored(full_name, r.with_color, color::highlight1), " (", e.duration, "s)\n");
 #else
         r.print(
             make_colored("finished:", r.with_color, color::status), " ",
-            make_colored(full_name, r.with_color, color::highlight1));
+            make_colored(full_name, r.with_color, color::highlight1), "\n");
 #endif
-        r.print("\n");
     }
 
     void operator()(const snitch::event::test_case_skipped& e) const noexcept {
         r.print(make_colored("skipped: ", r.with_color, color::skipped));
         print_location(r, e.id, e.sections, e.captures, e.location);
-        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-        r.print("\n");
+        r.print("          ", make_colored(e.message, r.with_color, color::highlight2), "\n");
     }
 
     void operator()(const snitch::event::assertion_failed& e) const noexcept {
@@ -152,14 +153,12 @@ struct default_reporter_functor {
         }
         print_location(r, e.id, e.sections, e.captures, e.location);
         print_message(r, e.data);
-        r.print("\n");
     }
 
     void operator()(const snitch::event::assertion_succeeded& e) const noexcept {
         r.print(make_colored("passed: ", r.with_color, color::pass));
         print_location(r, e.id, e.sections, e.captures, e.location);
         print_message(r, e.data);
-        r.print("\n");
     }
 };
 } // namespace
