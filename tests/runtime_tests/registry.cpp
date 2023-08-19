@@ -1087,7 +1087,11 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
+#else
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
+#endif
     }
 
     SECTION("--help") {
@@ -1167,7 +1171,11 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);
+#else
+        CHECK_RUN(false, 3u, 3u, 0u, 0u, 3u, 3u, 0u);
+#endif
     }
 
     SECTION("test filter exclusion") {
@@ -1175,7 +1183,11 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 7u, 3u, 0u, 1u, 9u, 3u, 0u);
+#else
+        CHECK_RUN(false, 7u, 3u, 0u, 1u, 3u, 3u, 0u);
+#endif
     }
 
     SECTION("test tag filter") {
