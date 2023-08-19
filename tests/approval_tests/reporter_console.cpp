@@ -26,6 +26,7 @@ TEST_CASE("console reporter", "[reporters]") {
         std::regex{R"(, ([0-9.e+\-]{12}) seconds)"},
         std::regex{R"(snitch v([0-9]+\.[0-9]+\.[0-9]+\.[0-9a-z]+))"},
         std::regex{R"(at (.+)/snitch/tests/.+:([0-9]+))"},
+        std::regex{R"(at (.+)\\snitch\\tests\\.+:([0-9]+))"},
         std::regex{R"(^finished: .+\(([0-9.e+\-]{12}s)\))"}};
 
     SECTION("default") {

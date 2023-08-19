@@ -28,7 +28,9 @@ TEST_CASE("teamcity reporter", "[reporters]") {
     const std::vector<std::regex> ignores = {
         std::regex{R"( duration='([0-9]+)')"},
         std::regex{R"( message='(.+)/snitch/tests/.+:([0-9]+))"},
-        std::regex{R"( out='(.+)/snitch/tests/.+:([0-9]+))"}};
+        std::regex{R"( message='(.+)\\snitch\\tests\\.+:([0-9]+))"},
+        std::regex{R"( out='(.+)/snitch/tests/.+:([0-9]+))"},
+        std::regex{R"( out='(.+)\\snitch\\tests\\.+:([0-9]+))"}};
 
     SECTION("default") {
         const arg_vector args{"test", "--reporter", reporter_name};
