@@ -885,7 +885,7 @@ TEST_CASE("list tests", "[registry]") {
     }
 }
 
-TEST_CASE("configure", "[registry]") {
+TEST_CASE("configure color", "[registry]") {
     mock_framework framework;
     register_tests(framework);
     console_output_catcher console;
@@ -945,6 +945,12 @@ TEST_CASE("configure", "[registry]") {
             CHECK(console.messages == contains_substring("unknown color directive"));
         }
     }
+}
+
+TEST_CASE("configure verbosity", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("verbosity = quiet") {
         const arg_vector args = {"test", "--verbosity", "quiet"};
@@ -985,6 +991,12 @@ TEST_CASE("configure", "[registry]") {
 
         CHECK(console.messages == contains_substring("unknown verbosity level"));
     }
+}
+
+TEST_CASE("configure reporter", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("reporter = console (no option)") {
         const arg_vector args = {"test", "--reporter", "console"};
