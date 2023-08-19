@@ -112,6 +112,12 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test too long message fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test NOTHROW fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
     <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
       expected throw_something(true) not to throw but it threw a std::exception; message: I threw
@@ -136,6 +142,6 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="13" failures="16" expectedFailures="0"/>
-  <OverallResultsCases successes="0" failures="14" expectedFailures="0"/>
+  <OverallResults successes="13" failures="17" expectedFailures="0"/>
+  <OverallResultsCases successes="0" failures="15" expectedFailures="0"/>
 </Catch2TestRun>

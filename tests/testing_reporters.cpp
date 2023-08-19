@@ -62,12 +62,20 @@ void register_tests_for_reporters(snitch::registry& r) {
             some_very_long_name_that_forces_lines_to_wrap);
     });
     r.add({"test too long expression pass"}, {__FILE__, __LINE__}, []() {
-        std::string super_long_string(2048, 'a');
+        std::string super_long_string(2 * snitch::max_message_length, 'a');
         SNITCH_CHECK(super_long_string == super_long_string);
     });
     r.add({"test too long expression fail"}, {__FILE__, __LINE__}, []() {
-        std::string super_long_string(2048, 'a');
+        std::string super_long_string(2 * snitch::max_message_length, 'a');
         SNITCH_CHECK(super_long_string != super_long_string);
+    });
+    r.add({"test too long message pass"}, {__FILE__, __LINE__}, []() {
+        std::string super_long_string(2 * snitch::max_message_length, 'a');
+        SNITCH_FAIL(super_long_string);
+    });
+    r.add({"test too long message fail"}, {__FILE__, __LINE__}, []() {
+        std::string super_long_string(2 * snitch::max_message_length, 'a');
+        SNITCH_FAIL(super_long_string);
     });
 
 #if SNITCH_WITH_EXCEPTIONS

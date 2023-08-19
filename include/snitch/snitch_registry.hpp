@@ -103,10 +103,10 @@ public:
     finish_report_function finish_callback = [](registry&) noexcept {};
 
     template<typename T>
-    bool append_or_print(small_string<max_message_length>& ss, T&& value) const noexcept {
+    void append_or_print(small_string<max_message_length>& ss, T&& value) const noexcept {
         const std::size_t init_size = ss.size();
         if (append(ss, value)) {
-            return true;
+            return;
         }
 
         ss.resize(init_size);
@@ -114,22 +114,23 @@ public:
         ss.clear();
 
         if (append(ss, value)) {
-            return true;
+            return;
         }
 
         if constexpr (std::is_convertible_v<std::decay_t<T>, std::string_view>) {
             ss.clear();
             this->print_callback(value);
-            return true;
         } else {
-            return false;
+            this->print_callback(ss);
+            ss.clear();
+            static_cast<void>(append(ss, "..."));
         }
     }
 
     template<typename... Args>
     void print(Args&&... args) const noexcept {
         small_string<max_message_length> message;
-        (append_or_print(message, std::forward<Args>(args)) && ...);
+        (append_or_print(message, std::forward<Args>(args)), ...);
         if (!message.empty()) {
             this->print_callback(message);
         }

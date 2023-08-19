@@ -187,6 +187,16 @@ passed: running test case "test too long expression fail"
           at */snitch/tests/testing_reporters.cpp:*
           no exception caught
 finished: test too long expression fail (*)
+starting: test too long message pass at */snitch/tests/testing_reporters.cpp:*
+failed: running test case "test too long message pass"
+          at */snitch/tests/testing_reporters.cpp:*
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
+finished: test too long message pass (*)
+starting: test too long message fail at */snitch/tests/testing_reporters.cpp:*
+failed: running test case "test too long message fail"
+          at */snitch/tests/testing_reporters.cpp:*
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
+finished: test too long message fail (*)
 starting: test NOTHROW pass at */snitch/tests/testing_reporters.cpp:*
 passed: running test case "test NOTHROW pass"
           at */snitch/tests/testing_reporters.cpp:*
@@ -356,4 +366,4 @@ passed: running test case "test SECTION & INFO"
           no exception caught
 finished: test SECTION & INFO (*)
 ==========================================
-error: some tests failed (19 out of 35 test cases, 81 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (21 out of 37 test cases, 83 assertions, 1 test cases skipped, * seconds)

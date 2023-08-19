@@ -38,6 +38,9 @@ failed: running test case "test long expression fail"
 failed: running test case "test too long expression fail"
           at */snitch/tests/testing_reporters.cpp:*
           CHECK(super_long_string != super_long_string)
+failed: running test case "test too long message fail"
+          at */snitch/tests/testing_reporters.cpp:*
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
 failed: running test case "test NOTHROW fail"
           at */snitch/tests/testing_reporters.cpp:*
           expected throw_something(true) not to throw but it threw a std::exception; message: I threw
@@ -54,4 +57,4 @@ failed: running test case "test unexpected throw fail"
           at */snitch/tests/testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
 ==========================================
-error: all tests failed (14 out of 14 test cases, 29 assertions, * seconds)
+error: all tests failed (15 out of 15 test cases, 30 assertions, * seconds)

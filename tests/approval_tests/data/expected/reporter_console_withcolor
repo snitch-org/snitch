@@ -44,6 +44,12 @@
 [1;31mfailed: [0mrunning test case "[1;35mtest too long expression fail[0m"
           at */snitch/tests/testing_reporters.cpp:*
           [1;36mCHECK(super_long_string != super_long_string)[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest too long message pass[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36maaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa[0m...
+[1;31mfailed: [0mrunning test case "[1;35mtest too long message fail[0m"
+          at */snitch/tests/testing_reporters.cpp:*
+          [1;36maaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa[0m...
 [1;31mfailed: [0mrunning test case "[1;35mtest NOTHROW fail[0m"
           at */snitch/tests/testing_reporters.cpp:*
           [1;36mexpected throw_something(true) not to throw but it threw a std::exception; message: I threw[0m
@@ -149,4 +155,4 @@
           with [1;35minfo 1[0m
           [1;36mfailure 3[0m
 ==========================================
-[1;31merror:[0m some tests failed (19 out of 35 test cases, 81 assertions, 1 test cases skipped, * seconds)
+[1;31merror:[0m some tests failed (21 out of 37 test cases, 83 assertions, 1 test cases skipped, * seconds)
