@@ -654,7 +654,7 @@ TEST_CASE("run tests", "[registry]") {
         CHECK(!test_called_hidden2);
 
         CHECK(framework.get_num_runs() == 5u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
 #else
         CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
@@ -673,7 +673,7 @@ TEST_CASE("run tests", "[registry]") {
         CHECK(!test_called_hidden2);
 
         CHECK(framework.get_num_runs() == 1u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(true, 1u, 0u, 0u, 0u, 1u, 0u, 0u);
 #else
         CHECK_RUN(true, 1u, 0u, 0u, 0u, 0u, 0u, 0u);
@@ -692,7 +692,7 @@ TEST_CASE("run tests", "[registry]") {
         CHECK(!test_called_hidden2);
 
         CHECK(framework.get_num_runs() == 3u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);
 #else
         CHECK_RUN(false, 3u, 3u, 0u, 0u, 3u, 3u, 0u);
@@ -726,7 +726,7 @@ TEST_CASE("run tests", "[registry]") {
         CHECK(!test_called_hidden2);
 
         CHECK(framework.get_num_runs() == 2u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 2u, 1u, 0u, 0u, 3u, 1u, 0u);
 #else
         CHECK_RUN(false, 2u, 1u, 0u, 0u, 1u, 1u, 0u);
@@ -745,7 +745,7 @@ TEST_CASE("run tests", "[registry]") {
         CHECK(!test_called_hidden2);
 
         CHECK(framework.get_num_runs() == 6u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 6u, 3u, 0u, 1u, 8u, 3u, 0u);
 #else
         CHECK_RUN(false, 6u, 3u, 0u, 1u, 3u, 3u, 0u);
@@ -764,7 +764,7 @@ TEST_CASE("run tests", "[registry]") {
         CHECK(test_called_hidden2);
 
         CHECK(framework.get_num_runs() == 2u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(true, 2u, 0u, 0u, 0u, 2u, 0u, 0u);
 #else
         CHECK_RUN(true, 2u, 0u, 0u, 0u, 0u, 0u, 0u);
@@ -775,7 +775,7 @@ TEST_CASE("run tests", "[registry]") {
         run_selected_tests("[may fail]", true);
 
         CHECK(framework.get_num_runs() == 2u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(true, 2u, 0u, 1u, 0u, 3u, 0u, 1u);
 #else
         CHECK_RUN(true, 2u, 0u, 1u, 0u, 1u, 0u, 1u);
@@ -786,7 +786,7 @@ TEST_CASE("run tests", "[registry]") {
         run_selected_tests("[should fail]", true);
 
         CHECK(framework.get_num_runs() == 2u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(false, 2u, 1u, 1u, 0u, 5u, 1u, 1u);
 #else
         CHECK_RUN(false, 2u, 1u, 1u, 0u, 3u, 1u, 1u);
@@ -797,7 +797,7 @@ TEST_CASE("run tests", "[registry]") {
         run_selected_tests("[may+should fail]", true);
 
         CHECK(framework.get_num_runs() == 2u);
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
         CHECK_RUN(true, 2u, 0u, 2u, 0u, 5u, 0u, 2u);
 #else
         CHECK_RUN(true, 2u, 0u, 2u, 0u, 3u, 0u, 2u);
