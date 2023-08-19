@@ -1,13 +1,13 @@
 starting test with snitch v*
 ==========================================
 allowed failure: running test case "test mayfail bad pass"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 expected failure: running test case "test shouldfail bad pass"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "test too long message pass"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
 ==========================================
 error: some tests failed (1 out of 16 test cases, 25 assertions, * seconds)

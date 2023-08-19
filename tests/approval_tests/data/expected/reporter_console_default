@@ -1,157 +1,157 @@
 starting test with snitch v*
 ==========================================
 failed: running test case "test fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 allowed failure: running test case "test mayfail bad pass"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "test shouldfail good fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           expected test to fail
 expected failure: running test case "test shouldfail bad pass"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "test no tags fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "typed test no tags fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           for type int
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "typed test no tags fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           for type float
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "typed test with tags fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           for type int
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "typed test with tags fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           for type float
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "test FAIL fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           something bad
 failed: running test case "test expression fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "test long expression fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(some_very_long_name_that_forces_lines_to_wrap != some_very_long_name_that_forces_lines_to_wrap)
           got: 1 == 1
 failed: running test case "test too long expression fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           CHECK(super_long_string != super_long_string)
 failed: running test case "test too long message pass"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
 failed: running test case "test too long message fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
 failed: running test case "test NOTHROW fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           expected throw_something(true) not to throw but it threw a std::exception; message: I threw
 failed: running test case "test THROW fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           std::runtime_error expected but no exception thrown
 failed: running test case "test THROW fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           std::system_error expected but other std::exception thrown; message: I threw
 failed: running test case "test THROW fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           could not match caught std::runtime_error with expected content: could not find 'I throws' in 'I threw'
 failed: running test case "test unexpected throw fail"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
 skipped: running test case "test SKIP"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           not interesting
 failed: running test case "test INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info
           failure
 failed: running test case "test multiple INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 1
 failed: running test case "test multiple INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           failure 2
 failed: running test case "test multiple INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           with info 2
           failure 3
 failed: running test case "test multiple INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           failure 4
 failed: running test case "test SECTION"
           in section "section"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure
 failed: running test case "test multiple SECTION"
           in section "section 1"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 1
 failed: running test case "test multiple SECTION"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 7
 failed: running test case "test multiple SECTION"
           in section "section 2"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 2
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.1"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 3
 failed: running test case "test multiple SECTION"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 7
 failed: running test case "test multiple SECTION"
           in section "section 2"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 2
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.2"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 4
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.2"
           in section "section 2.2.1"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 5
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.2"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 6
 failed: running test case "test multiple SECTION"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           failure 7
 failed: running test case "test SECTION & INFO"
           in section "section 1"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           with info 2
           failure 1
 failed: running test case "test SECTION & INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           failure 3
 failed: running test case "test SECTION & INFO"
           in section "section 2"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           with info 3
           failure 2
 failed: running test case "test SECTION & INFO"
-          at */snitch/tests/testing_reporters.cpp:*
+          at *testing_reporters.cpp:*
           with info 1
           failure 3
 ==========================================

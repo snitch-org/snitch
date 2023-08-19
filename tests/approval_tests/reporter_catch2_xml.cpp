@@ -36,8 +36,11 @@ TEST_CASE("teamcity reporter", "[reporters]") {
     const std::vector<std::regex> ignores = {
         std::regex{R"|(durationInSeconds="([0-9.e+\-]{12})")|"},
         std::regex{R"(catch2-version="([0-9]+\.[0-9]+\.[0-9]+\.[0-9a-z]+).snitch)"},
-        std::regex{R"(filename="(.+)/snitch/tests)"},
-        std::regex{R"(filename="(.+)\\snitch\\tests)"}, std::regex{R"|(line="([0-9]+)")|"}};
+        std::regex{R"(filename="(.+/snitch/tests/approval_tests/))"},
+        std::regex{R"(filename="(.+/snitch/tests/))"},
+        std::regex{R"(filename="(.+\\snitch\\tests\\approval_tests\\))"},
+        std::regex{R"(filename="(.+\\snitch\\tests\\))"},
+        std::regex{R"|(line="([0-9]+)")|"}};
 
     SECTION("default") {
         const arg_vector args{"test", "--reporter", reporter_name};

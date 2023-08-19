@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <Catch2TestRun name="test" rng-seed="0" xml-format-version="2" catch2-version="*.snitch" filters="">
-  <TestCase name="test pass" tags="[tag2][tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test pass" tags="[tag2][tag1]" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test fail" tags="[tag2][tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test fail" tags="[tag2][tag1]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -15,11 +15,11 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test mayfail good pass" tags="[tag2][tag1][!mayfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test mayfail good pass" tags="[tag2][tag1][!mayfail]" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test mayfail bad pass" tags="[tag2][tag1][!mayfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test mayfail bad pass" tags="[tag2][tag1][!mayfail]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -29,14 +29,14 @@
     </Expression>
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test shouldfail good fail" tags="[tag2][tag1][!shouldfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test shouldfail good fail" tags="[tag2][tag1][!shouldfail]" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       expected test to fail
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test shouldfail bad pass" tags="[tag2][tag1][!shouldfail]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test shouldfail bad pass" tags="[tag2][tag1][!shouldfail]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -46,28 +46,11 @@
     </Expression>
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test no tags pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test no tags pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test no tags fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Original>
-        1 == 2
-      </Original>
-      <Expanded>
-        1 != 2
-      </Expanded>
-    </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
-  </TestCase>
-  <TestCase name="typed test no tags pass &lt;int&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <OverallResult success="true" durationInSeconds="*"/>
-  </TestCase>
-  <TestCase name="typed test no tags pass &lt;float&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <OverallResult success="true" durationInSeconds="*"/>
-  </TestCase>
-  <TestCase name="typed test no tags fail &lt;int&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test no tags fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -77,8 +60,14 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="typed test no tags fail &lt;float&gt;" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="typed test no tags pass &lt;int&gt;" tags="" filename="*testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test no tags pass &lt;float&gt;" tags="" filename="*testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test no tags fail &lt;int&gt;" tags="" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -88,14 +77,8 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="typed test with tags pass &lt;int&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <OverallResult success="true" durationInSeconds="*"/>
-  </TestCase>
-  <TestCase name="typed test with tags pass &lt;float&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <OverallResult success="true" durationInSeconds="*"/>
-  </TestCase>
-  <TestCase name="typed test with tags fail &lt;int&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="typed test no tags fail &lt;float&gt;" tags="" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -105,8 +88,14 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="typed test with tags fail &lt;float&gt;" tags="[tag1]" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="typed test with tags pass &lt;int&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test with tags pass &lt;float&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="typed test with tags fail &lt;int&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -116,20 +105,31 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test SUCCEED pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="typed test with tags fail &lt;float&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test SUCCEED pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test FAIL fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test FAIL fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       something bad
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test expression pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test expression pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test expression fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test expression fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         1 == 2
       </Original>
@@ -139,11 +139,11 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test long expression pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test long expression pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test long expression fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test long expression fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         some_very_long_name_that_forces_lines_to_wrap != some_very_long_name_that_forces_lines_to_wrap
       </Original>
@@ -153,11 +153,11 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test too long expression pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test too long expression pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test too long expression fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Expression success="false" type="CHECK" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test too long expression fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
       <Original>
         super_long_string != super_long_string
       </Original>
@@ -167,68 +167,68 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test too long message pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test too long message pass" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test too long message fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test too long message fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test NOTHROW pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test NOTHROW pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test NOTHROW fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test NOTHROW fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       expected throw_something(true) not to throw but it threw a std::exception; message: I threw
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test THROW pass" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test THROW pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test THROW fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test THROW fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       std::runtime_error expected but no exception thrown
     </Failure>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       std::system_error expected but other std::exception thrown; message: I threw
     </Failure>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       could not match caught std::runtime_error with expected content: could not find &apos;I throws&apos; in &apos;I threw&apos;
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test unexpected throw fail" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test unexpected throw fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       unexpected std::exception caught; message: unexpected error
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test SKIP" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test SKIP" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test INFO" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test INFO" tags="" filename="*testing_reporters.cpp" line="*">
     <Info>
       info
     </Info>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test multiple INFO" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test multiple INFO" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 1
     </Failure>
     <Info>
       info 1
     </Info>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 2
     </Failure>
     <Info>
@@ -237,127 +237,127 @@
     <Info>
       info 2
     </Info>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 3
     </Failure>
     <Info>
       info 1
     </Info>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 4
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test SECTION" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Section name="section" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test SECTION" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section" filename="*testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
         failure
       </Failure>
     </Section>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test multiple SECTION" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Section name="section 1" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test multiple SECTION" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section 1" filename="*testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
         failure 1
       </Failure>
     </Section>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 7
     </Failure>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
         failure 2
       </Failure>
     </Section>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Section name="section 2.1" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-        <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Section name="section 2.1" filename="*testing_reporters.cpp" line="*">
+        <Failure filename="*testing_reporters.cpp" line="*">
           failure 3
         </Failure>
       </Section>
     </Section>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 7
     </Failure>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
         failure 2
       </Failure>
     </Section>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Section name="section 2.2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-        <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Section name="section 2.2" filename="*testing_reporters.cpp" line="*">
+        <Failure filename="*testing_reporters.cpp" line="*">
           failure 4
         </Failure>
       </Section>
     </Section>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Section name="section 2.2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-        <Section name="section 2.2.1" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-          <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Section name="section 2.2" filename="*testing_reporters.cpp" line="*">
+        <Section name="section 2.2.1" filename="*testing_reporters.cpp" line="*">
+          <Failure filename="*testing_reporters.cpp" line="*">
             failure 5
           </Failure>
         </Section>
       </Section>
     </Section>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-      <Section name="section 2.2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-        <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Section name="section 2.2" filename="*testing_reporters.cpp" line="*">
+        <Failure filename="*testing_reporters.cpp" line="*">
           failure 6
         </Failure>
       </Section>
     </Section>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 7
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test SECTION &amp; INFO" tags="" filename="*/snitch/tests/testing_reporters.cpp" line="*">
-    <Section name="section 1" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+  <TestCase name="test SECTION &amp; INFO" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section 1" filename="*testing_reporters.cpp" line="*">
       <Info>
         info 1
       </Info>
       <Info>
         info 2
       </Info>
-      <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
         failure 1
       </Failure>
     </Section>
     <Info>
       info 1
     </Info>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 3
     </Failure>
-    <Section name="section 2" filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
       <Info>
         info 1
       </Info>
       <Info>
         info 3
       </Info>
-      <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
         failure 2
       </Failure>
     </Section>
     <Info>
       info 1
     </Info>
-    <Failure filename="*/snitch/tests/testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
       failure 3
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test escape &lt;&gt;&amp;&quot;&apos;" tags="" filename="*/snitch/tests/approval_tests/reporter_catch2_xml.cpp" line="*">
-    <Failure filename="*/snitch/tests/approval_tests/reporter_catch2_xml.cpp" line="*">
+  <TestCase name="test escape &lt;&gt;&amp;&quot;&apos;" tags="" filename="*reporter_catch2_xml.cpp" line="*">
+    <Failure filename="*reporter_catch2_xml.cpp" line="*">
       escape &lt;&gt;&amp;&quot;&apos; in messages
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <TestCase name="test escape very long" tags="" filename="*/snitch/tests/approval_tests/reporter_catch2_xml.cpp" line="*">
-    <Failure filename="*/snitch/tests/approval_tests/reporter_catch2_xml.cpp" line="*">
+  <TestCase name="test escape very long" tags="" filename="*reporter_catch2_xml.cpp" line="*">
+    <Failure filename="*reporter_catch2_xml.cpp" line="*">
       &amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;&amp;...
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
