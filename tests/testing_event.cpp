@@ -5,61 +5,64 @@
 
 #include <algorithm>
 
+std::string_view append_to_pool(snitch::small_string_span pool, std::string_view msg) {
+    const char* start = pool.end();
+    if (!append(pool, msg)) {
+        snitch::terminate_with(
+            "message pool is full; increase size in mock_framework or event_catcher");
+    }
+
+    return std::string_view{start, msg.size()};
+}
+
 namespace {
 template<typename U, typename T>
-void copy_test_run_id(U& c, const T& e) {
-    append_or_truncate(c.name, e.name);
+void copy_test_run_id(snitch::small_string_span pool, U& c, const T& e) {
+    c.name = append_to_pool(pool, e.name);
     for (const auto& f : e.filters) {
-        c.filters.grow(1);
-        append_or_truncate(c.filters.back(), f);
+        c.filters.push_back(append_to_pool(pool, f));
     }
 }
 
 template<typename U, typename T>
-void copy_test_case_id(U& c, const T& e) {
-    append_or_truncate(c.id.name, e.id.name);
-    append_or_truncate(c.id.tags, e.id.tags);
-    append_or_truncate(c.id.type, e.id.type);
+void copy_test_case_id(snitch::small_string_span pool, U& c, const T& e) {
+    c.id.name = append_to_pool(pool, e.id.name);
+    c.id.tags = append_to_pool(pool, e.id.tags);
+    c.id.type = append_to_pool(pool, e.id.type);
 }
 
 template<typename U, typename T>
-void copy_location(U& c, const T& e) {
-    append_or_truncate(c.location.file, e.location.file);
+void copy_location(snitch::small_string_span pool, U& c, const T& e) {
+    c.location.file = append_to_pool(pool, e.location.file);
     c.location.line = e.location.line;
 }
 
 template<typename U, typename T>
-void copy_assertion_location(U& c, const T& e) {
-    copy_location(c, e);
+void copy_assertion_location(snitch::small_string_span pool, U& c, const T& e) {
+    copy_location(pool, c, e);
 
     for (const auto& ec : e.captures) {
-        c.captures.grow(1);
-        append_or_truncate(c.captures.back(), ec);
+        c.captures.push_back(append_to_pool(pool, ec));
     }
 
     for (const auto& es : e.sections) {
         c.sections.grow(1);
-        append_or_truncate(c.sections.back().id.name, es.id.name);
-        append_or_truncate(c.sections.back().id.description, es.id.description);
-        copy_location(c.sections.back(), es);
+        c.sections.back().id.name        = append_to_pool(pool, es.id.name);
+        c.sections.back().id.description = append_to_pool(pool, es.id.description);
+        copy_location(pool, c.sections.back(), es);
     }
 }
 
 template<typename U, typename T>
-void copy_assertion_data(U& c, const T& e) {
+void copy_assertion_data(snitch::small_string_span pool, U& c, const T& e) {
     std::visit(
         snitch::overload{
-            [&](std::string_view message) {
-                owning_event::string msg;
-                append_or_truncate(msg, message);
-                c.data = msg;
-            },
+            [&](std::string_view message) { c.data = append_to_pool(pool, message); },
             [&](const snitch::expression_info& exp) {
-                owning_event::expression_info info;
-                append_or_truncate(info.type, exp.type);
-                append_or_truncate(info.expected, exp.expected);
-                append_or_truncate(info.actual, exp.actual);
-                c.data = info;
+                c.data = snitch::expression_info{
+                    .type     = append_to_pool(pool, exp.type),
+                    .expected = append_to_pool(pool, exp.expected),
+                    .actual   = append_to_pool(pool, exp.actual)};
             }},
         e.data);
 }
@@ -98,35 +101,35 @@ std::size_t count_events(snitch::small_vector_span<const owning_event::data> eve
 }
 } // namespace
 
-owning_event::data deep_copy(const snitch::event::data& e) {
+owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event::data& e) {
     return std::visit(
         snitch::overload{
-            [](const snitch::event::assertion_failed& a) -> owning_event::data {
+            [&](const snitch::event::assertion_failed& a) -> owning_event::data {
                 owning_event::assertion_failed c;
-                copy_test_case_id(c, a);
-                copy_assertion_location(c, a);
-                copy_assertion_data(c, a);
+                copy_test_case_id(pool, c, a);
+                copy_assertion_location(pool, c, a);
+                copy_assertion_data(pool, c, a);
                 c.allowed  = a.allowed;
                 c.expected = a.expected;
                 return c;
             },
-            [](const snitch::event::assertion_succeeded& a) -> owning_event::data {
+            [&](const snitch::event::assertion_succeeded& a) -> owning_event::data {
                 owning_event::assertion_succeeded c;
-                copy_test_case_id(c, a);
-                copy_assertion_location(c, a);
-                copy_assertion_data(c, a);
+                copy_test_case_id(pool, c, a);
+                copy_assertion_location(pool, c, a);
+                copy_assertion_data(pool, c, a);
                 return c;
             },
-            [](const snitch::event::test_case_started& s) -> owning_event::data {
+            [&](const snitch::event::test_case_started& s) -> owning_event::data {
                 owning_event::test_case_started c;
-                copy_test_case_id(c, s);
-                copy_location(c, s);
+                copy_test_case_id(pool, c, s);
+                copy_location(pool, c, s);
                 return c;
             },
-            [](const snitch::event::test_case_ended& s) -> owning_event::data {
+            [&](const snitch::event::test_case_ended& s) -> owning_event::data {
                 owning_event::test_case_ended c;
-                copy_test_case_id(c, s);
-                copy_location(c, s);
+                copy_test_case_id(pool, c, s);
+                copy_location(pool, c, s);
                 c.assertion_count                 = s.assertion_count;
                 c.assertion_failure_count         = s.assertion_failure_count;
                 c.allowed_assertion_failure_count = s.allowed_assertion_failure_count;
@@ -138,14 +141,14 @@ owning_event::data deep_copy(const snitch::event::data& e) {
                 c.failure_allowed  = s.failure_allowed;
                 return c;
             },
-            [](const snitch::event::test_run_started& s) -> owning_event::data {
+            [&](const snitch::event::test_run_started& s) -> owning_event::data {
                 owning_event::test_run_started c;
-                copy_test_run_id(c, s);
+                copy_test_run_id(pool, c, s);
                 return c;
             },
-            [](const snitch::event::test_run_ended& s) -> owning_event::data {
+            [&](const snitch::event::test_run_ended& s) -> owning_event::data {
                 owning_event::test_run_ended c;
-                copy_test_run_id(c, s);
+                copy_test_run_id(pool, c, s);
                 c.run_count                       = s.run_count;
                 c.fail_count                      = s.fail_count;
                 c.allowed_fail_count              = s.allowed_fail_count;
@@ -159,23 +162,23 @@ owning_event::data deep_copy(const snitch::event::data& e) {
                 c.success = s.success;
                 return c;
             },
-            [](const snitch::event::test_case_skipped& s) -> owning_event::data {
+            [&](const snitch::event::test_case_skipped& s) -> owning_event::data {
                 owning_event::test_case_skipped c;
-                copy_test_case_id(c, s);
-                copy_assertion_location(c, s);
-                append_or_truncate(c.message, s.message);
+                copy_test_case_id(pool, c, s);
+                copy_assertion_location(pool, c, s);
+                append_or_truncate(pool, c.message, s.message);
                 return c;
             },
             [](const auto&) -> owning_event::data { snitch::terminate_with("event not handled"); }},
         e);
 }
 
-std::optional<owning_event::test_id> get_test_id(const owning_event::data& e) noexcept {
+std::optional<snitch::test_id> get_test_id(const owning_event::data& e) noexcept {
     return std::visit(
-        [](const auto& a) -> std::optional<owning_event::test_id> {
+        [](const auto& a) -> std::optional<snitch::test_id> {
             using event_type = std::decay_t<decltype(a)>;
             if constexpr (requires(const event_type& t) {
-                              { t.id } -> snitch::convertible_to<owning_event::test_id>;
+                              { t.id } -> snitch::convertible_to<snitch::test_id>;
                           }) {
                 return a.id;
             } else {
@@ -185,14 +188,12 @@ std::optional<owning_event::test_id> get_test_id(const owning_event::data& e) no
         e);
 }
 
-std::optional<owning_event::source_location> get_location(const owning_event::data& e) noexcept {
+std::optional<snitch::source_location> get_location(const owning_event::data& e) noexcept {
     return std::visit(
-        [](const auto& a) -> std::optional<owning_event::source_location> {
+        [](const auto& a) -> std::optional<snitch::source_location> {
             using event_type = std::decay_t<decltype(a)>;
             if constexpr (requires(const event_type& t) {
-                              {
-                                  t.location
-                                  } -> snitch::convertible_to<owning_event::source_location>;
+                              { t.location } -> snitch::convertible_to<snitch::source_location>;
                           }) {
                 return a.location;
             } else {
@@ -217,7 +218,7 @@ void mock_framework::report(const snitch::registry&, const snitch::event::data& 
         return;
     }
 
-    events.push_back(deep_copy(e));
+    events.push_back(deep_copy(string_pool, e));
 }
 
 void mock_framework::print(std::string_view) noexcept {}
@@ -283,15 +284,13 @@ bool snitch::matchers::has_expr_data::match(const owning_event::data& e) const n
                         [&](std::string_view actual_message, std::string_view expected_message) {
                             return actual_message == expected_message;
                         },
-                        [&](const owning_event::expression_info& actual_expr,
-                            const expr_data&                     expected_expr) {
+                        [&](const snitch::expression_info& actual_expr,
+                            const expr_data&               expected_expr) {
                             return actual_expr.type == expected_expr.type &&
                                    actual_expr.expected == expected_expr.expected &&
                                    actual_expr.actual == expected_expr.actual;
                         },
-                        [&](const owning_event::expression_info&, std::string_view) {
-                            return false;
-                        },
+                        [&](const snitch::expression_info&, std::string_view) { return false; },
                         [&](std::string_view, const expr_data&) { return false; }},
                     a.data, expected);
             } else {
@@ -321,8 +320,8 @@ snitch::small_string<snitch::max_message_length> snitch::matchers::has_expr_data
                                 append_or_truncate(msg, "'", expected_message, "'");
                             }
                         },
-                        [&](const owning_event::expression_info& actual_expr,
-                            const expr_data&                     expected_expr) {
+                        [&](const snitch::expression_info& actual_expr,
+                            const expr_data&               expected_expr) {
                             if (actual_expr.type != expected_expr.type) {
                                 append_or_truncate(
                                     msg, "'", actual_expr.type, "' != '", expected_expr.type, "'");
@@ -344,7 +343,7 @@ snitch::small_string<snitch::max_message_length> snitch::matchers::has_expr_data
                                 append_or_truncate(msg, " and '", expected_expr.actual, "'");
                             }
                         },
-                        [&](const owning_event::expression_info&, std::string_view) {
+                        [&](const snitch::expression_info&, std::string_view) {
                             append_or_truncate(msg, "expected message, got expression");
                         },
                         [&](std::string_view, const expr_data&) {

@@ -1,47 +1,16 @@
 namespace owning_event {
-using string = snitch::small_string<snitch::max_message_length>;
-
-struct source_location {
-    string      file = {};
-    std::size_t line = 0u;
-};
-
-struct test_id {
-    string name = {};
-    string tags = {};
-    string type = {};
-};
-
-struct section_id {
-    string name        = {};
-    string description = {};
-};
-
-struct section {
-    section_id      id       = {};
-    source_location location = {};
-};
-
-struct expression_info {
-    string type;
-    string expected;
-    string actual;
-};
-
-using assertion_data = std::variant<string, expression_info>;
-
-using filter_info  = snitch::small_vector<string, 4>;
-using section_info = snitch::small_vector<section, snitch::max_nested_sections>;
-using capture_info = snitch::small_vector<string, snitch::max_captures>;
+using filter_info  = snitch::small_vector<std::string_view, 4>;
+using section_info = snitch::small_vector<snitch::section, snitch::max_nested_sections>;
+using capture_info = snitch::small_vector<std::string_view, snitch::max_captures>;
 
 struct test_run_started {
-    string      name    = {};
-    filter_info filters = {};
+    std::string_view name    = {};
+    filter_info      filters = {};
 };
 
 struct test_run_ended {
-    string      name    = {};
-    filter_info filters = {};
+    std::string_view name    = {};
+    filter_info      filters = {};
 
     std::size_t run_count          = 0;
     std::size_t fail_count         = 0;
@@ -60,13 +29,13 @@ struct test_run_ended {
 };
 
 struct test_case_started {
-    test_id         id       = {};
-    source_location location = {};
+    snitch::test_id         id       = {};
+    snitch::source_location location = {};
 };
 
 struct test_case_ended {
-    test_id         id       = {};
-    source_location location = {};
+    snitch::test_id         id       = {};
+    snitch::source_location location = {};
 
     std::size_t assertion_count                 = 0;
     std::size_t assertion_failure_count         = 0;
@@ -83,29 +52,29 @@ struct test_case_ended {
 };
 
 struct assertion_failed {
-    test_id         id       = {};
-    section_info    sections = {};
-    capture_info    captures = {};
-    source_location location = {};
-    assertion_data  data     = {};
-    bool            expected = false;
-    bool            allowed  = false;
+    snitch::test_id         id       = {};
+    section_info            sections = {};
+    capture_info            captures = {};
+    snitch::source_location location = {};
+    snitch::assertion_data  data     = {};
+    bool                    expected = false;
+    bool                    allowed  = false;
 };
 
 struct assertion_succeeded {
-    test_id         id       = {};
-    section_info    sections = {};
-    capture_info    captures = {};
-    source_location location = {};
-    assertion_data  data     = {};
+    snitch::test_id         id       = {};
+    section_info            sections = {};
+    capture_info            captures = {};
+    snitch::source_location location = {};
+    snitch::assertion_data  data     = {};
 };
 
 struct test_case_skipped {
-    test_id         id       = {};
-    section_info    sections = {};
-    capture_info    captures = {};
-    source_location location = {};
-    string          message  = {};
+    snitch::test_id         id       = {};
+    section_info            sections = {};
+    capture_info            captures = {};
+    snitch::source_location location = {};
+    std::string_view        message  = {};
 };
 
 using data = std::variant<
@@ -118,7 +87,7 @@ using data = std::variant<
     owning_event::test_case_skipped>;
 } // namespace owning_event
 
-owning_event::data deep_copy(const snitch::event::data& e);
+owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event::data& e);
 
 template<snitch::signed_integral IndexType>
 std::size_t wrap_index(IndexType sid, std::size_t size) noexcept {
@@ -158,8 +127,8 @@ bool is_event(const owning_event::data& e) noexcept {
     return std::get_if<T>(&e) != nullptr;
 }
 
-std::optional<owning_event::test_id>         get_test_id(const owning_event::data& e) noexcept;
-std::optional<owning_event::source_location> get_location(const owning_event::data& e) noexcept;
+std::optional<snitch::test_id>         get_test_id(const owning_event::data& e) noexcept;
+std::optional<snitch::source_location> get_location(const owning_event::data& e) noexcept;
 
 struct mock_framework {
     snitch::registry registry;
@@ -169,6 +138,7 @@ struct mock_framework {
         .func  = nullptr,
         .state = snitch::impl::test_case_state::not_run};
 
+    snitch::small_string<4086>                   string_pool;
     snitch::small_vector<owning_event::data, 32> events;
     bool                                         catch_success = false;
 
@@ -237,6 +207,7 @@ struct event_catcher {
 
     snitch::impl::test_state mock_test{.reg = mock_registry, .test = mock_case};
 
+    snitch::small_string<1024>                          string_pool;
     snitch::small_vector<owning_event::data, MaxEvents> events;
 
     event_catcher() {
@@ -245,7 +216,7 @@ struct event_catcher {
     }
 
     void report(const snitch::registry&, const snitch::event::data& e) noexcept {
-        events.push_back(deep_copy(e));
+        events.push_back(deep_copy(string_pool, e));
     }
 
     template<typename T, typename IndexType>
