@@ -169,7 +169,10 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
                     r, "testStdOut",
                     {{"name", make_full_name(e.id)},
                      {"out", assertion{e.location, e.sections, e.captures, e.data}}});
-            }},
+            },
+            [&](const snitch::event::list_test_run_started&) {},
+            [&](const snitch::event::list_test_run_ended&) {},
+            [&](const snitch::event::test_case_listed& e) { r.print(make_full_name(e.id), "\n"); }},
         event);
 }
 } // namespace snitch::reporter::teamcity

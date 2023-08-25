@@ -77,6 +77,21 @@ struct test_case_skipped {
     std::string_view        message  = {};
 };
 
+struct list_test_run_started {
+    std::string_view name    = {};
+    filter_info      filters = {};
+};
+
+struct list_test_run_ended {
+    std::string_view name    = {};
+    filter_info      filters = {};
+};
+
+struct test_case_listed {
+    snitch::test_id         id       = {};
+    snitch::source_location location = {};
+};
+
 using data = std::variant<
     owning_event::test_run_started,
     owning_event::test_run_ended,
@@ -84,7 +99,10 @@ using data = std::variant<
     owning_event::test_case_ended,
     owning_event::assertion_failed,
     owning_event::assertion_succeeded,
-    owning_event::test_case_skipped>;
+    owning_event::test_case_skipped,
+    owning_event::list_test_run_started,
+    owning_event::list_test_run_ended,
+    owning_event::test_case_listed>;
 } // namespace owning_event
 
 owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event::data& e);
@@ -170,6 +188,9 @@ struct mock_framework {
     std::size_t get_num_failures() const;
     std::size_t get_num_successes() const;
     std::size_t get_num_skips() const;
+    std::size_t get_num_listed_tests() const;
+
+    bool is_test_listed(const snitch::test_id& id) const;
 };
 
 struct console_output_catcher {

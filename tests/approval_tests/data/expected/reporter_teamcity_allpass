@@ -19,6 +19,8 @@
 ##teamCity[testFinished name='typed test with tags pass <int>' duration='*']
 ##teamCity[testStarted name='typed test with tags pass <float>']
 ##teamCity[testFinished name='typed test with tags pass <float>' duration='*']
+##teamCity[testStarted name='test fixture pass']
+##teamCity[testFinished name='test fixture pass' duration='*']
 ##teamCity[testStarted name='test SUCCEED pass']
 ##teamCity[testFinished name='test SUCCEED pass' duration='*']
 ##teamCity[testStarted name='test expression pass']

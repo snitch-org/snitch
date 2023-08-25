@@ -10,4 +10,4 @@ failed: running test case "test too long message pass"
           at *testing_reporters.cpp:*
           aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
 ==========================================
-error: some tests failed (1 out of 16 test cases, 25 assertions, * seconds)
+error: some tests failed (1 out of 17 test cases, 26 assertions, * seconds)

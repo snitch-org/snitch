@@ -847,6 +847,7 @@ TEST_CASE("run tests cli", "[registry]") {
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
+        CHECK(framework.get_num_runs() == 0u);
         CHECK(console.messages == contains_substring("test [options...]"));
     }
 
@@ -855,12 +856,27 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK(framework.events.empty());
-        CHECK(console.messages == contains_substring("how are you"));
-        CHECK(console.messages == contains_substring("how many lights"));
-        CHECK(console.messages == contains_substring("drink from the cup"));
-        CHECK(console.messages == contains_substring("how many templated lights <int>"));
-        CHECK(console.messages == contains_substring("how many templated lights <float>"));
+        REQUIRE(framework.events.size() == 15u);
+        CHECK(framework.get_num_runs() == 0u);
+        CHECK(framework.get_num_listed_tests() == 13u);
+        CHECK(framework.is_test_listed({"how are you", "[tag]"}));
+        // Not testing all...
+    }
+
+    SECTION("--list-tests filtered") {
+        const arg_vector args = {"test", "--list-tests", "how*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        REQUIRE(framework.events.size() == 6u);
+        CHECK(framework.get_num_runs() == 0u);
+        CHECK(framework.get_num_listed_tests() == 4u);
+        CHECK(framework.is_test_listed({"how are you", "[tag]"}));
+        CHECK(framework.is_test_listed({"how many lights", "[tag][other_tag]"}));
+        CHECK(framework.is_test_listed(
+            {"how many templated lights", "[tag][tag with spaces]", "int"}));
+        CHECK(framework.is_test_listed(
+            {"how many templated lights", "[tag][tag with spaces]", "float"}));
     }
 
     SECTION("--list-tags") {
@@ -869,6 +885,7 @@ TEST_CASE("run tests cli", "[registry]") {
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
+        CHECK(framework.get_num_runs() == 0u);
         CHECK(console.messages == contains_substring("[tag]"));
         CHECK(console.messages == contains_substring("[skipped]"));
         CHECK(console.messages == contains_substring("[other_tag]"));
@@ -880,12 +897,11 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK(framework.events.empty());
-        CHECK(console.messages != contains_substring("how are you"));
-        CHECK(console.messages == contains_substring("how many lights"));
-        CHECK(console.messages != contains_substring("drink from the cup"));
-        CHECK(console.messages != contains_substring("how many templated lights <int>"));
-        CHECK(console.messages != contains_substring("how many templated lights <float>"));
+        REQUIRE(framework.events.size() == 4u);
+        CHECK(framework.get_num_runs() == 0u);
+        CHECK(framework.get_num_listed_tests() == 2u);
+        CHECK(framework.is_test_listed({"how many lights", "[tag][other_tag]"}));
+        CHECK(framework.is_test_listed({"hidden test 1", "[.][hidden][other_tag]"}));
     }
 
     SECTION("--list-reporters") {
@@ -896,6 +912,7 @@ TEST_CASE("run tests cli", "[registry]") {
             framework.registry.run_tests(*input);
 
             CHECK(framework.events.empty());
+            CHECK(framework.get_num_runs() == 0u);
             CHECK(console.messages == contains_substring("console"));
             CHECK(console.messages != contains_substring("custom"));
         }
@@ -908,6 +925,7 @@ TEST_CASE("run tests cli", "[registry]") {
             framework.registry.run_tests(*input);
 
             CHECK(framework.events.empty());
+            CHECK(framework.get_num_runs() == 0u);
             CHECK(console.messages == contains_substring("console"));
             CHECK(console.messages == contains_substring("custom"));
         }

@@ -73,6 +73,17 @@
     </Expression>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test fixture fail" tags="[tag with space]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test FAIL fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       something bad
@@ -142,6 +153,6 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="13" failures="17" expectedFailures="0"/>
-  <OverallResultsCases successes="0" failures="15" expectedFailures="0"/>
+  <OverallResults successes="14" failures="18" expectedFailures="0"/>
+  <OverallResultsCases successes="0" failures="16" expectedFailures="0"/>
 </Catch2TestRun>

@@ -89,14 +89,17 @@ void for_each_tag(std::string_view s, F&& callback) {
 
 template<typename F>
 void list_tests(const registry& r, F&& predicate) noexcept {
-    small_string<max_test_name_length> buffer;
+    r.report_callback(r, event::list_test_run_started{});
+
     for (const test_case& t : r.test_cases()) {
         if (!predicate(t.id)) {
             continue;
         }
 
-        cli::print(make_full_name(buffer, t.id), "\n");
+        r.report_callback(r, event::test_case_listed{t.id, t.location});
     }
+
+    r.report_callback(r, event::list_test_run_ended{});
 }
 
 void set_state(test_case& t, impl::test_case_state s) noexcept {

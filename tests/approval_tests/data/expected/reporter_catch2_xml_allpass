@@ -44,6 +44,9 @@
   <TestCase name="typed test with tags pass &lt;float&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test fixture pass" tags="[tag with space]" filename="*testing_reporters.cpp" line="*">
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test SUCCEED pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
@@ -68,6 +71,6 @@
   <TestCase name="test THROW pass" tags="" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="22" failures="1" expectedFailures="2"/>
-  <OverallResultsCases successes="13" failures="1" expectedFailures="2"/>
+  <OverallResults successes="23" failures="1" expectedFailures="2"/>
+  <OverallResultsCases successes="14" failures="1" expectedFailures="2"/>
 </Catch2TestRun>

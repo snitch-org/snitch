@@ -56,4 +56,9 @@ TEST_CASE("teamcity reporter", "[reporters]") {
         const arg_vector args{"test", "--reporter", reporter_name, "--verbosity", "full"};
         CHECK_FOR_DIFFERENCES(args, ignores, REPORTER_PREFIX "full");
     }
+
+    SECTION("list tests") {
+        const arg_vector args{"test", "--reporter", reporter_name, "--list-tests"};
+        CHECK_FOR_DIFFERENCES(args, ignores, REPORTER_PREFIX "list_tests");
+    }
 }

@@ -25,6 +25,9 @@ failed: running test case "typed test with tags fail"
           at *testing_reporters.cpp:*
           for type float
           CHECK(1 == 2), got: 1 != 2
+failed: running test case "test fixture fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
 failed: running test case "test FAIL fail"
           at *testing_reporters.cpp:*
           something bad
@@ -57,4 +60,4 @@ failed: running test case "test unexpected throw fail"
           at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
 ==========================================
-error: all tests failed (15 out of 15 test cases, 30 assertions, * seconds)
+error: all tests failed (16 out of 16 test cases, 32 assertions, * seconds)

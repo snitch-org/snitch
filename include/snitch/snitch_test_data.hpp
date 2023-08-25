@@ -184,6 +184,30 @@ struct test_case_skipped {
     std::string_view          message = {};
 };
 
+/// Fired at the start of a test listing run (application started)
+struct list_test_run_started {
+    /// Name of the test application
+    std::string_view name = {};
+    /// List of test case filters, as given in the command-line arguments
+    filter_info filters = {};
+};
+
+/// Fired for each selected test case in a test listing run
+struct test_case_listed {
+    /// Test ID
+    const test_id& id;
+    /// Test location
+    const source_location& location;
+};
+
+/// Fired at the end of a test run (application finished)
+struct list_test_run_ended {
+    /// Name of the test application
+    std::string_view name = {};
+    /// List of test case filters, as given in the command-line arguments
+    filter_info filters = {};
+};
+
 using data = std::variant<
     test_run_started,
     test_run_ended,
@@ -191,7 +215,10 @@ using data = std::variant<
     test_case_ended,
     assertion_failed,
     assertion_succeeded,
-    test_case_skipped>;
+    test_case_skipped,
+    list_test_run_started,
+    list_test_run_ended,
+    test_case_listed>;
 } // namespace snitch::event
 
 namespace snitch {

@@ -31,6 +31,9 @@
           at *testing_reporters.cpp:*
           for type [1;35mfloat[0m
           [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest fixture fail[0m"
+          at *testing_reporters.cpp:*
+          [1;36mCHECK(1 == 2)[0m, got: [1;36m1 != 2[0m
 [1;31mfailed: [0mrunning test case "[1;35mtest FAIL fail[0m"
           at *testing_reporters.cpp:*
           [1;36msomething bad[0m
@@ -155,4 +158,4 @@
           with [1;35minfo 1[0m
           [1;36mfailure 3[0m
 ==========================================
-[1;31merror:[0m some tests failed (21 out of 37 test cases, 83 assertions, 1 test cases skipped, * seconds)
+[1;31merror:[0m some tests failed (22 out of 39 test cases, 86 assertions, 1 test cases skipped, * seconds)

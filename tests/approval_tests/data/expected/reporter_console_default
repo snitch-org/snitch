@@ -31,6 +31,9 @@ failed: running test case "typed test with tags fail"
           at *testing_reporters.cpp:*
           for type float
           CHECK(1 == 2), got: 1 != 2
+failed: running test case "test fixture fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
 failed: running test case "test FAIL fail"
           at *testing_reporters.cpp:*
           something bad
@@ -155,4 +158,4 @@ failed: running test case "test SECTION & INFO"
           with info 1
           failure 3
 ==========================================
-error: some tests failed (21 out of 37 test cases, 83 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (22 out of 39 test cases, 86 assertions, 1 test cases skipped, * seconds)

@@ -38,9 +38,14 @@ TEST_CASE("teamcity reporter", "[reporters]") {
         std::regex{R"(catch2-version="([0-9]+\.[0-9]+\.[0-9]+\.[0-9a-z]+).snitch)"},
         std::regex{R"(filename="(.+/snitch/tests/approval_tests/))"},
         std::regex{R"(filename="(.+/snitch/tests/))"},
+        std::regex{R"(<File>(.+/snitch/tests/approval_tests/))"},
+        std::regex{R"(<File>(.+/snitch/tests/))"},
         std::regex{R"(filename="(.+\\snitch\\tests\\approval_tests\\))"},
         std::regex{R"(filename="(.+\\snitch\\tests\\))"},
-        std::regex{R"|(line="([0-9]+)")|"}};
+        std::regex{R"(<File>(.+\\snitch\\tests\\approval_tests\\))"},
+        std::regex{R"(<File>(.+\\snitch\\tests\\))"},
+        std::regex{R"|(line="([0-9]+)")|"},
+        std::regex{R"(<Line>([0-9]+))"}};
 
     SECTION("default") {
         const arg_vector args{"test", "--reporter", reporter_name};
@@ -65,5 +70,10 @@ TEST_CASE("teamcity reporter", "[reporters]") {
     SECTION("full output") {
         const arg_vector args{"test", "--reporter", reporter_name, "--verbosity", "full"};
         CHECK_FOR_DIFFERENCES(args, ignores, REPORTER_PREFIX "full");
+    }
+
+    SECTION("list tests") {
+        const arg_vector args{"test", "--reporter", reporter_name, "--list-tests"};
+        CHECK_FOR_DIFFERENCES(args, ignores, REPORTER_PREFIX "list_tests");
     }
 }

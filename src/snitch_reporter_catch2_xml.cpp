@@ -70,9 +70,9 @@ std::string_view get_indent(const reporter& rep) noexcept {
     return spaces.substr(0, std::min(spaces.size(), spaces_per_indent * rep.indent_level));
 }
 
-void close(reporter& rep, const registry& r, std::string_view node) noexcept {
+void close(reporter& rep, const registry& r, std::string_view name) noexcept {
     --rep.indent_level;
-    r.print(get_indent(rep), "</", node, ">\n");
+    r.print(get_indent(rep), "</", name, ">\n");
 }
 
 void print(const reporter& rep, const registry& r, std::string_view data) noexcept {
@@ -82,10 +82,10 @@ void print(const reporter& rep, const registry& r, std::string_view data) noexce
 void open(
     reporter&                        rep,
     const registry&                  r,
-    std::string_view                 node,
+    std::string_view                 name,
     std::initializer_list<key_value> args = {}) noexcept {
 
-    r.print(get_indent(rep), "<", node);
+    r.print(get_indent(rep), "<", name);
     for (const auto& arg : args) {
         r.print(" ", arg.key, "=\"", arg.value, "\"");
     }
@@ -96,14 +96,27 @@ void open(
 void node(
     const reporter&                  rep,
     const registry&                  r,
-    std::string_view                 node,
+    std::string_view                 name,
     std::initializer_list<key_value> args = {}) noexcept {
 
-    r.print(get_indent(rep), "<", node);
+    r.print(get_indent(rep), "<", name);
     for (const auto& arg : args) {
         r.print(" ", arg.key, "=\"", arg.value, "\"");
     }
     r.print("/>\n");
+}
+
+void open_close(
+    const reporter&  rep,
+    const registry&  r,
+    std::string_view name,
+    std::string_view content) noexcept {
+
+    if (content.empty()) {
+        node(rep, r, name);
+    } else {
+        r.print(get_indent(rep), "<", name, ">", content, "</", name, ">\n");
+    }
 }
 
 template<typename T>
@@ -231,6 +244,22 @@ void reporter::report(const registry& r, const snitch::event::data& event) noexc
             [&](const snitch::event::assertion_failed& e) { report_assertion(*this, r, e, false); },
             [&](const snitch::event::assertion_succeeded& e) {
                 report_assertion(*this, r, e, true);
+            },
+            [&](const snitch::event::list_test_run_started&) {
+                print(*this, r, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+                open(*this, r, "MatchingTests");
+            },
+            [&](const snitch::event::list_test_run_ended&) { close(*this, r, "MatchingTests"); },
+            [&](const snitch::event::test_case_listed& e) {
+                open(*this, r, "TestCase");
+                open_close(*this, r, "Name", make_full_name(e.id));
+                open_close(*this, r, "ClassName", make_escaped(e.id.fixture));
+                open_close(*this, r, "Tags", make_escaped(e.id.tags));
+                open(*this, r, "SourceInfo");
+                open_close(*this, r, "File", make_escaped(e.location.file));
+                open_close(*this, r, "Line", make_string(e.location.line));
+                close(*this, r, "SourceInfo");
+                close(*this, r, "TestCase");
             }},
         event);
 }

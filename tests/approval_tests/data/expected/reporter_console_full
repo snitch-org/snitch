@@ -122,6 +122,19 @@ passed: running test case "typed test with tags fail"
           for type float
           no exception caught
 finished: typed test with tags fail <float> (*)
+starting: test fixture pass at *testing_reporters.cpp:*
+passed: running test case "test fixture pass"
+          at *testing_reporters.cpp:*
+          no exception caught
+finished: test fixture pass (*)
+starting: test fixture fail at *testing_reporters.cpp:*
+failed: running test case "test fixture fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
+passed: running test case "test fixture fail"
+          at *testing_reporters.cpp:*
+          no exception caught
+finished: test fixture fail (*)
 starting: test SUCCEED pass at *testing_reporters.cpp:*
 passed: running test case "test SUCCEED pass"
           at *testing_reporters.cpp:*
@@ -366,4 +379,4 @@ passed: running test case "test SECTION & INFO"
           no exception caught
 finished: test SECTION & INFO (*)
 ==========================================
-error: some tests failed (21 out of 37 test cases, 83 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (22 out of 39 test cases, 86 assertions, 1 test cases skipped, * seconds)

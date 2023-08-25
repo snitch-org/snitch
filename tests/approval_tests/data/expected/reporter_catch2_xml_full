@@ -167,6 +167,26 @@
     </Success>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test fixture pass" tags="[tag with space]" filename="*testing_reporters.cpp" line="*">
+    <Success filename="*testing_reporters.cpp" line="*">
+      no exception caught
+    </Success>
+    <OverallResult success="true" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test fixture fail" tags="[tag with space]" filename="*testing_reporters.cpp" line="*">
+    <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
+      <Original>
+        1 == 2
+      </Original>
+      <Expanded>
+        1 != 2
+      </Expanded>
+    </Expression>
+    <Success filename="*testing_reporters.cpp" line="*">
+      no exception caught
+    </Success>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test SUCCEED pass" tags="" filename="*testing_reporters.cpp" line="*">
     <Success filename="*testing_reporters.cpp" line="*">
       something good
@@ -506,6 +526,6 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="43" failures="40" expectedFailures="2"/>
-  <OverallResultsCases successes="14" failures="23" expectedFailures="2"/>
+  <OverallResults successes="45" failures="41" expectedFailures="2"/>
+  <OverallResultsCases successes="15" failures="24" expectedFailures="2"/>
 </Catch2TestRun>

@@ -47,6 +47,12 @@ void register_tests_for_reporters(snitch::registry& r) {
         {"typed test with tags fail", "[tag1]"}, {__FILE__, __LINE__},
         []<typename T>() { SNITCH_CHECK(1 == 2); });
 
+    r.add_fixture(
+        {"MyClass", "test fixture pass", "[tag with space]"}, {__FILE__, __LINE__}, []() {});
+    r.add_fixture({"MyClass", "test fixture fail", "[tag with space]"}, {__FILE__, __LINE__}, []() {
+        SNITCH_CHECK(1 == 2);
+    });
+
     r.add({"test SUCCEED pass"}, {__FILE__, __LINE__}, []() { SNITCH_SUCCEED("something good"); });
     r.add({"test FAIL fail"}, {__FILE__, __LINE__}, []() { SNITCH_FAIL_CHECK("something bad"); });
     r.add({"test expression pass"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 1); });

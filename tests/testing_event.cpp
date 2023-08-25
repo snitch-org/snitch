@@ -169,6 +169,21 @@ owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event
                 append_or_truncate(pool, c.message, s.message);
                 return c;
             },
+            [&](const snitch::event::list_test_run_started& s) -> owning_event::data {
+                owning_event::list_test_run_started c;
+                copy_test_run_id(pool, c, s);
+                return c;
+            },
+            [&](const snitch::event::list_test_run_ended& s) -> owning_event::data {
+                owning_event::list_test_run_started c;
+                copy_test_run_id(pool, c, s);
+                return c;
+            },
+            [&](const snitch::event::test_case_listed& s) -> owning_event::data {
+                owning_event::test_case_listed c;
+                copy_test_case_id(pool, c, s);
+                return c;
+            },
             [](const auto&) -> owning_event::data { snitch::terminate_with("event not handled"); }},
         e);
 }
@@ -264,6 +279,20 @@ std::size_t mock_framework::get_num_successes() const {
 
 std::size_t mock_framework::get_num_skips() const {
     return count_events<owning_event::test_case_skipped>(events);
+}
+
+std::size_t mock_framework::get_num_listed_tests() const {
+    return count_events<owning_event::test_case_listed>(events);
+}
+
+bool mock_framework::is_test_listed(const snitch::test_id& id) const {
+    return std::find_if(events.cbegin(), events.cend(), [&](const owning_event::data& e) {
+               if (auto* t = std::get_if<owning_event::test_case_listed>(&e)) {
+                   return t->id.name == id.name && t->id.type == id.type && t->id.tags == id.tags &&
+                          t->id.fixture == id.fixture;
+               }
+               return false;
+           }) != events.cend();
 }
 
 snitch::matchers::has_expr_data::has_expr_data(std::string_view msg) : expected{msg} {}

@@ -160,6 +160,16 @@ struct default_reporter_functor {
         print_location(r, e.id, e.sections, e.captures, e.location);
         print_message(r, e.data);
     }
+
+    void operator()(const snitch::event::list_test_run_started&) const noexcept {}
+
+    void operator()(const snitch::event::list_test_run_ended&) const noexcept {}
+
+    void operator()(const snitch::event::test_case_listed& e) {
+        small_string<max_test_name_length> full_name;
+        make_full_name(full_name, e.id);
+        r.print(full_name, "\n");
+    }
 };
 } // namespace
 
