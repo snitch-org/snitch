@@ -91,7 +91,7 @@ template<typename F>
 void list_tests(const registry& r, F&& predicate) noexcept {
     small_string<max_test_name_length> buffer;
     for (const test_case& t : r.test_cases()) {
-        if (!predicate(t)) {
+        if (!predicate(t.id)) {
             continue;
         }
 
@@ -584,34 +584,28 @@ bool registry::run_tests(std::string_view run_name) noexcept {
     return run_selected_tests(run_name, filter_strings, filter);
 }
 
-bool registry::run_tests(const cli::input& args) noexcept {
+namespace {
+bool run_tests_impl(registry& r, const cli::input& args) noexcept {
     if (get_option(args, "--help")) {
-        cli::print("\n");
         cli::print_help(args.executable);
         return true;
     }
 
-    if (get_option(args, "--list-tests")) {
-        list_all_tests();
-        return true;
-    }
-
     if (auto opt = get_option(args, "--list-tests-with-tag")) {
-        list_tests_with_tag(*opt->value);
+        r.list_tests_with_tag(*opt->value);
         return true;
     }
 
     if (get_option(args, "--list-tags")) {
-        list_all_tags();
+        r.list_all_tags();
         return true;
     }
 
     if (get_option(args, "--list-reporters")) {
-        list_all_reporters();
+        r.list_all_reporters();
         return true;
     }
 
-    bool success = false;
     if (get_positional_argument(args, "test regex").has_value()) {
         small_vector<std::string_view, max_command_line_args> filter_strings;
         const auto add_filter_string = [&](std::string_view filter) noexcept {
@@ -643,13 +637,26 @@ bool registry::run_tests(const cli::input& args) noexcept {
             return selected.value();
         };
 
-        success = run_selected_tests(args.executable, filter_strings, filter);
+        if (get_option(args, "--list-tests")) {
+            impl::list_tests(r, filter);
+            return true;
+        } else {
+            return r.run_selected_tests(args.executable, filter_strings, filter);
+        }
     } else {
-        success = run_tests(args.executable);
+        if (get_option(args, "--list-tests")) {
+            r.list_all_tests();
+            return true;
+        } else {
+            return r.run_tests(args.executable);
+        }
     }
+}
+} // namespace
 
+bool registry::run_tests(const cli::input& args) noexcept {
+    bool success = run_tests_impl(*this, args);
     finish_callback(*this);
-
     return success;
 }
 
@@ -823,12 +830,12 @@ void registry::list_all_tags() const {
 }
 
 void registry::list_all_tests() const noexcept {
-    impl::list_tests(*this, [](const impl::test_case&) { return true; });
+    impl::list_tests(*this, [](const test_id&) { return true; });
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
-    impl::list_tests(*this, [&](const impl::test_case& t) {
-        const auto result = is_filter_match_tags(t.id.tags, tag);
+    impl::list_tests(*this, [&](const test_id& id) {
+        const auto result = is_filter_match_tags(id.tags, tag);
         return result == filter_result::included || result == filter_result::not_excluded;
     });
 }
