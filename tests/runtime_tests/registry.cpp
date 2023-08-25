@@ -80,7 +80,7 @@ TEST_CASE("add template test", "[registry]") {
 
         if (with_type_list) {
             framework.registry.add_with_type_list<snitch::type_list<int, float>>(
-                "how many lights", "[tag]", {__FILE__, __LINE__}, []<typename T>() {
+                {"how many lights", "[tag]"}, {__FILE__, __LINE__}, []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -91,7 +91,7 @@ TEST_CASE("add template test", "[registry]") {
                 });
         } else {
             framework.registry.add_with_types<int, float>(
-                "how many lights", "[tag]", {__FILE__, __LINE__}, []<typename T>() {
+                {"how many lights", "[tag]"}, {__FILE__, __LINE__}, []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -318,7 +318,7 @@ void register_tests(mock_framework& framework) {
     });
 
     framework.registry.add_with_types<int, float>(
-        "how many templated lights", "[tag][tag with spaces]", {__FILE__, __LINE__},
+        {"how many templated lights", "[tag][tag with spaces]"}, {__FILE__, __LINE__},
         []<typename T>() {
             if constexpr (std::is_same_v<T, int>) {
                 test_called_int = true;

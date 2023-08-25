@@ -221,7 +221,8 @@ std::string_view registry::add_reporter(
     return name;
 }
 
-const char* registry::add(const test_id& id, const source_location& location, impl::test_ptr func) {
+const char*
+registry::add_impl(const test_id& id, const source_location& location, impl::test_ptr func) {
     if (test_list.available() == 0u) {
         using namespace snitch::impl;
         print(
@@ -246,6 +247,17 @@ const char* registry::add(const test_id& id, const source_location& location, im
     }
 
     return id.name.data();
+}
+
+const char*
+registry::add(const impl::name_and_tags& id, const source_location& location, impl::test_ptr func) {
+    return add_impl({.name = id.name, .tags = id.tags}, location, func);
+}
+
+const char* registry::add_fixture(
+    const impl::fixture_name_and_tags& id, const source_location& location, impl::test_ptr func) {
+
+    return add_impl({.name = id.name, .tags = id.tags, .fixture = id.fixture}, location, func);
 }
 
 namespace {

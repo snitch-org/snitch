@@ -36,15 +36,15 @@ void register_tests_for_reporters(snitch::registry& r) {
     r.add({"test no tags fail"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 2); });
 
     r.add_with_types<int, float>(
-        "typed test no tags pass", "", {__FILE__, __LINE__}, []<typename T>() {});
+        {"typed test no tags pass"}, {__FILE__, __LINE__}, []<typename T>() {});
     r.add_with_types<int, float>(
-        "typed test no tags fail", "", {__FILE__, __LINE__},
+        {"typed test no tags fail"}, {__FILE__, __LINE__},
         []<typename T>() { SNITCH_CHECK(1 == 2); });
 
     r.add_with_types<int, float>(
-        "typed test with tags pass", "[tag1]", {__FILE__, __LINE__}, []<typename T>() {});
+        {"typed test with tags pass", "[tag1]"}, {__FILE__, __LINE__}, []<typename T>() {});
     r.add_with_types<int, float>(
-        "typed test with tags fail", "[tag1]", {__FILE__, __LINE__},
+        {"typed test with tags fail", "[tag1]"}, {__FILE__, __LINE__},
         []<typename T>() { SNITCH_CHECK(1 == 2); });
 
     r.add({"test SUCCEED pass"}, {__FILE__, __LINE__}, []() { SNITCH_SUCCEED("something good"); });

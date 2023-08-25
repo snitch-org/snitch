@@ -27,6 +27,8 @@ struct test_id {
     std::string_view tags = {};
     /// Name of the type for which this test case is instanciated (templated test cases only)
     std::string_view type = {};
+    /// Name of the fixture class from which the test case is instanciated (method test cases only)
+    std::string_view fixture = {};
 };
 
 /// Identies a section

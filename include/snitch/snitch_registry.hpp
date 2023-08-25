@@ -36,6 +36,17 @@ constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS
 } // namespace snitch
 
 namespace snitch::impl {
+struct name_and_tags {
+    std::string_view name = {};
+    std::string_view tags = {};
+};
+
+struct fixture_name_and_tags {
+    std::string_view fixture = {};
+    std::string_view name    = {};
+    std::string_view tags    = {};
+};
+
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept;
 
@@ -102,6 +113,7 @@ public:
     report_function        report_callback = &snitch::reporter::console::report;
     finish_report_function finish_callback = [](registry&) noexcept {};
 
+    // Internal API; do not use.
     template<typename T>
     void append_or_print(small_string<max_message_length>& ss, T&& value) const noexcept {
         const std::size_t init_size = ss.size();
@@ -149,29 +161,62 @@ public:
         const report_function&                           report,
         const std::optional<finish_report_function>&     finish);
 
+    // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char* add(const test_id& id, const source_location& location, impl::test_ptr func);
+    const char* add_impl(const test_id& id, const source_location& location, impl::test_ptr func);
 
+    // Internal API; do not use.
+    // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
+    const char*
+    add(const impl::name_and_tags& id, const source_location& location, impl::test_ptr func);
+
+    // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    const char* add_with_types(
-        std::string_view       name,
-        std::string_view       tags,
-        const source_location& location,
-        const F&               func) {
+    const char*
+    add_with_types(const impl::name_and_tags& id, const source_location& location, const F& func) {
         return (
-            add({name, tags, type_name<Args>}, location, impl::to_test_case_ptr<Args>(func)), ...);
+            add_impl(
+                {id.name, id.tags, type_name<Args>}, location, impl::to_test_case_ptr<Args>(func)),
+            ...);
     }
 
+    // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
     const char* add_with_type_list(
-        std::string_view       name,
-        std::string_view       tags,
-        const source_location& location,
-        const F&               func) {
+        const impl::name_and_tags& id, const source_location& location, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
-            return this->add_with_types<Args...>(name, tags, location, func);
+            return this->add_with_types<Args...>(id, location, func);
+        }(type_list<T>{});
+    }
+
+    // Internal API; do not use.
+    // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
+    const char* add_fixture(
+        const impl::fixture_name_and_tags& id,
+        const source_location&             location,
+        impl::test_ptr                     func);
+
+    // Internal API; do not use.
+    // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
+    template<typename... Args, typename F>
+    const char* add_fixture_with_types(
+        const impl::fixture_name_and_tags& id, const source_location& location, const F& func) {
+        return (
+            add_impl(
+                {id.name, id.tags, type_name<Args>, id.fixture}, location,
+                impl::to_test_case_ptr<Args>(func)),
+            ...);
+    }
+
+    // Internal API; do not use.
+    // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
+    template<typename T, typename F>
+    const char* add_fixture_with_type_list(
+        const impl::fixture_name_and_tags& id, const source_location& location, const F& func) {
+        return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
+            return this->add_fixture_with_types<Args...>(id, location, func);
         }(type_list<T>{});
     }
 
