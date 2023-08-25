@@ -335,7 +335,8 @@ constexpr expected_arguments ignored_args = {
 
 constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
 
-constexpr const char* program_description = "Test runner (snitch v" SNITCH_FULL_VERSION ")";
+constexpr const char* program_description =
+    "Test runner (snitch v" SNITCH_FULL_VERSION " | compatible with Catch2 v3.4.0)";
 }} // namespace snitch::impl
 
 namespace snitch::cli {
