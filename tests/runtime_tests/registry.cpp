@@ -368,9 +368,8 @@ TEST_CASE("run tests", "[registry]") {
     const auto run_selected_tests = [&](std::string_view filter, bool tags) {
         const snitch::small_vector<std::string_view, 1> filter_strings = {filter};
         const auto filter_function = [&](const snitch::test_id& id) noexcept {
-            return (tags ? snitch::is_filter_match_tags(id.tags, filter)
-                         : snitch::is_filter_match_name(id.name, filter)) ==
-                   snitch::filter_result::included;
+            return tags ? snitch::is_filter_match_tags(id.tags, filter).included
+                        : snitch::is_filter_match_name(id.name, filter).included;
         };
         framework.registry.run_selected_tests("test_app", filter_strings, filter_function);
     };
@@ -943,24 +942,96 @@ TEST_CASE("run tests cli", "[registry]") {
 #endif
     }
 
+    SECTION("test filter multiple AND") {
+        const arg_vector args = {"test", "how many*", "*templated*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 2u, 2u, 0u, 0u, 4u, 2u, 0u);
+#else
+        CHECK_RUN(false, 2u, 2u, 0u, 0u, 2u, 2u, 0u);
+#endif
+    }
+
+    SECTION("test filter multiple OR") {
+        const arg_vector args = {"test", "how many*,*are you"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 3u, 2u, 0u, 0u, 5u, 2u, 0u);
+#else
+        CHECK_RUN(false, 3u, 2u, 0u, 0u, 2u, 2u, 0u);
+#endif
+    }
+
     SECTION("test filter exclusion") {
         const arg_vector args = {"test", "~*fail"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_RUN(false, 7u, 3u, 0u, 1u, 9u, 3u, 0u);
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
 #else
-        CHECK_RUN(false, 7u, 3u, 0u, 1u, 3u, 3u, 0u);
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
 #endif
     }
 
-    SECTION("test tag filter") {
+    SECTION("test filter hidden") {
+        const arg_vector args = {"test", "hidden test*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(true, 2u, 0u, 0u, 0u, 2u, 0u, 0u);
+#else
+        CHECK_RUN(true, 2u, 0u, 0u, 0u, 0u, 0u, 0u);
+#endif
+    }
+
+    SECTION("test filter tag") {
         const arg_vector args = {"test", "[skipped]"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
         CHECK_RUN(true, 1u, 0u, 0u, 1u, 0u, 0u, 0u);
+    }
+
+    SECTION("test filter multiple tags") {
+        const arg_vector args = {"test", "[other_tag][tag]"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 1u, 0u, 0u, 2u, 1u, 0u, 0u);
+#else
+        CHECK_RUN(false, 1u, 0u, 0u, 1u, 1u, 0u, 0u);
+#endif
+    }
+
+    SECTION("test filter tag AND name") {
+        const arg_vector args = {"test", "[tag]", "*many lights"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 2u, 1u, 0u);
+#else
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 1u, 1u, 0u);
+#endif
+    }
+
+    SECTION("test filter tag OR name") {
+        const arg_vector args = {"test", "[other_tag],how are*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 3u, 1u, 0u, 0u, 4u, 1u, 0u);
+#else
+        CHECK_RUN(false, 3u, 1u, 0u, 0u, 1u, 1u, 0u);
+#endif
     }
 }
 
@@ -981,7 +1052,7 @@ TEST_CASE("run tests cli readme example", "[registry]") {
     framework.registry.add({"abd"}, {__FILE__, __LINE__}, []() { readme_test_called[5] = true; });
     framework.registry.add({"abcd"}, {__FILE__, __LINE__}, []() { readme_test_called[6] = true; });
 
-    const arg_vector args = {"test", "a*", "~*d", "abcd"};
+    const arg_vector args = {"test", "a*", "~*d,abcd"};
     auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
     framework.registry.run_tests(*input);
 

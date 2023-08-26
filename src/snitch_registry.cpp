@@ -160,31 +160,57 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) no
 } // namespace snitch::impl
 
 namespace snitch {
+filter_result filter_result_and(filter_result first, filter_result second) noexcept {
+    // AND favours exclusion over inclusion, then explicit over implicit.
+    if (!first.included && second.included) {
+        return first;
+    } else if (first.included && !second.included) {
+        return second;
+    } else if (!first.implicit) {
+        return first;
+    } else {
+        return second;
+    }
+}
+
+filter_result filter_result_or(filter_result first, filter_result second) noexcept {
+    // OR favours inclusion over exclusion, then explicit over implicit.
+    if (first.included && !second.included) {
+        return first;
+    } else if (!first.included && second.included) {
+        return second;
+    } else if (!first.implicit) {
+        return first;
+    } else {
+        return second;
+    }
+}
+
 filter_result is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
-    filter_result match_action    = filter_result::included;
-    filter_result no_match_action = filter_result::not_included;
+    filter_result match_action    = {.included = true, .implicit = false};
+    filter_result no_match_action = {.included = false, .implicit = true};
     if (filter.starts_with('~')) {
-        filter          = filter.substr(1);
-        match_action    = filter_result::excluded;
-        no_match_action = filter_result::not_excluded;
+        filter = filter.substr(1);
+        std::swap(match_action.included, no_match_action.included);
     }
 
     return is_match(name, filter) ? match_action : no_match_action;
 }
 
 filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
-    filter_result match_action    = filter_result::included;
-    filter_result no_match_action = filter_result::not_included;
+    filter_result match_action    = {.included = true, .implicit = false};
+    filter_result no_match_action = {.included = false, .implicit = true};
     if (filter.starts_with('~')) {
-        filter          = filter.substr(1);
-        match_action    = filter_result::excluded;
-        no_match_action = filter_result::not_excluded;
+        filter = filter.substr(1);
+        std::swap(match_action.included, no_match_action.included);
     }
 
     bool match = false;
     impl::for_each_tag(tags, [&](const impl::tags::parsed_tag& v) {
-        if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && is_match(*vs, filter)) {
-            match = true;
+        if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr) {
+            if (is_match(*vs, filter)) {
+                match = true;
+            }
         }
     });
 
@@ -614,34 +640,51 @@ bool run_tests_impl(registry& r, const cli::input& args) noexcept {
     }
 
     if (get_positional_argument(args, "test regex").has_value()) {
+        // Gather all filters in a local array (for faster iteration and for event reporting).
         small_vector<std::string_view, max_command_line_args> filter_strings;
         const auto add_filter_string = [&](std::string_view filter) noexcept {
             filter_strings.push_back(filter);
         };
         for_each_positional_argument(args, "test regex", add_filter_string);
 
+        // This buffer will be reused to evaluate the full name of each test.
         small_string<max_test_name_length> buffer;
 
         const auto filter = [&](const test_id& id) noexcept {
-            std::optional<bool> selected;
+            // Start with no result.
+            std::optional<filter_result> result;
+
             for (const auto& filter : filter_strings) {
-                switch (is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter)) {
-                case filter_result::included: selected = true; break;
-                case filter_result::excluded: selected = false; break;
-                case filter_result::not_included:
-                    if (!selected.has_value()) {
-                        selected = false;
-                    }
-                    break;
-                case filter_result::not_excluded:
-                    if (!selected.has_value()) {
-                        selected = true;
-                    }
+                // Evaluate each filter.
+                const filter_result sub_result =
+                    is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter);
+
+                if (!result.has_value()) {
+                    // The first filter initialises the result.
+                    result = sub_result;
+                } else {
+                    // Subsequent filters are combined with the current result using AND.
+                    result = filter_result_and(*result, sub_result);
+                }
+
+                if (!result->included) {
+                    // Optimisation; we can short-circuit at the first exclusion.
                     break;
                 }
             }
 
-            return selected.value();
+            if (result->included) {
+                if (!result->implicit) {
+                    // Explicit inclusion always selects the test.
+                    return true;
+                } else {
+                    // Implicit inclusion only selects non-hidden tests.
+                    return !impl::has_hidden_tag(id.tags);
+                }
+            } else {
+                // Exclusion always discards the test, regardless if it is explicit or implicit.
+                return false;
+            }
         };
 
         if (get_option(args, "--list-tests")) {
@@ -843,7 +886,7 @@ void registry::list_all_tests() const noexcept {
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
     impl::list_tests(*this, [&](const test_id& id) {
         const auto result = is_filter_match_tags(id.tags, tag);
-        return result == filter_result::included || result == filter_result::not_excluded;
+        return result.included;
     });
 }
 

@@ -862,7 +862,7 @@ All callback functions are optional except `REPORT`. If a callback is unused, si
 An example can be found in `include/snitch_reporter_teamcity.hpp` / `src/snitch_reporter_teamcity.cpp`.
 
 
-### Default main function
+### Default main function and command-line API
 
 The default `main()` function provided in _snitch_ offers the following command-line API:
  - positional arguments for filtering tests by name, see below.
@@ -875,10 +875,10 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
  - `   --color <always|default|never>`: enable/disable colors in the default reporter.
 
-The following options are provided for compability with *Catch2*:
+The following options are provided for compatibility with *Catch2*:
  - `   --colour-mode <ansi|default|none>`: enable/disable colors in the default reporter.
 
-The positional arguments are used to select which tests to run. If no positional argument is given, all tests will be run, except those that are explicitly hidden with special tags (see [Tags](#tags)). If at least one filter is provided, then hidden tests will no longer be excluded by default. This reproduces the behavior of _Catch2_.
+The positional arguments are used to select which tests to run. If no positional argument is given, all test cases will be run, except those that are explicitly hidden with special tags (see [Tags](#tags), and see also the note below on filtering hidden tests).
 
 A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
  - `ab*` will include all test cases with names starting with `ab`.
@@ -887,28 +887,33 @@ A filter may contain any number of "wildcard" character, `*`, which can represen
  - `abcd` will only include the test case with name `abcd`.
  - `*` will include all test cases.
 
-If a filter starts with `~`, then it is interpreted as an exclusion:
- - `~ab*` will exclude all test cases with names starting with `ab`.
- - `~*cd` will exclude all test cases with names ending with `cd`.
- - `~ab*cd` will exclude all test cases with names starting with `ab` and ending with `cd`.
- - `~abcd` will exclude the test case with name `abcd`.
- - `~*` will exclude all test cases.
+If a filter starts with `~`, the meaning of the filter is negated. For example `~ab*` will include all test cases with name not starting with `ab`.
 
-If a filter starts with `[` or `~[`, then it applies to the test case tags, else it applies to the test case name. This behavior can be bypassed by escaping the bracket `\[`, in which case the filter applies to the test case name again (see note below on escaping).
+By default, a filter applies to the test case name (which includes the test type for templated tests, using the format `name <type>`). However, if a filter starts with `[` or `~[`, then it applies to the test case tags instead. This behavior can be bypassed by escaping the bracket `\[`, in which case the filter applies to the test case name again (see note below on escaping).
 
-Finally, if more than one filter is provided, then filters are applied one after the other, in the order provided. As in _Catch2_, a filter will include (or exclude with `~`) the tests that match the inclusion (or exclusion) pattern, but will leave the status of tests that do not match the filter unchanged. Filters on test names and tags can be mixed. For example, the table below shows which test is included (1) or excluded (0) after applying the three filters `a* ~*d abcd`:
+Finally, if multiple filters are provided, they are combined using the following logic:
+ - When provided as separate command line arguments, e.g., `"<filter1>" "<filter2>"`, the filters are combined with an "AND" operation (tests must match both filters to be selected).
+ - When provided as a single comma-separated command line argument, e.g., `"<filter1>,<filter2>"`, the filters are combined with an "OR" operation (tests must match either of the filters to be selected).
+ - For tag filters only, when multiple tags are specified in the same command line argument, e.g., `"[<filter1>][<filter2>]"`, the tag filters are combined with an "AND" operation (test tags must match both filters to be selected).
 
-| Test name | Initial |  Apply `a*` | State | Apply `~*d` | State | Apply `abcd` | State |
-|-----------|---------| ------------|-------|-------------|-------|--------------|-------|
-| `a`       | 0       |  1          | 1     |             | 1     |              | 1     |
-| `b`       | 0       |             | 0     |             | 0     |              | 0     |
-| `c`       | 0       |             | 0     |             | 0     |              | 0     |
-| `d`       | 0       |             | 0     | 0           | 0     |              | 0     |
-| `abc`     | 0       |  1          | 1     |             | 1     |              | 1     |
-| `abd`     | 0       |  1          | 1     | 0           | 0     |              | 0     |
-| `abcd`    | 0       |  1          | 1     | 0           | 0     | 1            | 1     |
+Name and tag filters can be used in any combination. For example:
+ - `ab* ~abc*` will include all tests with name starting with `ab` and not starting with `abc`
+ - `ab*,*cd` will include all tests with name starting with `ab` or ending with `cd`
+ - `ab*,~[x]` will include all tests with name starting with `ab` or not having tag `[x]`
 
-**Note:** To match the actual character `*` in a test name, the `*` in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
+To summarize, here are some examples with the equivalent C++ boolean logic (where `f` is any filter):
+
+| CLI test filters  | C++ boolean equivalent  |
+|-------------------|-------------------------|
+| `f`               | `f`                     |
+| `~f`              | `!f`                    |
+| `f1 f2`           | `f1 && f2`              |
+| `f1 f2 f3 ...`    | `f1 && f2 && f3 && ...` |
+| `f1,f2`           | `f1 || f2`              |
+| `f1,f2,f3,...`    | `f1 || f2 || f3 || ...` |
+| `f1,f2 f3`        | `(f1 || f2) && f3`      |
+
+**Note 1:** To match the actual characters `*`, `,`, `[`, `]`, or `\` in a test name, the character in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
 
 | Bash    | _snitch_ | matches                                     |
 |---------|----------|---------------------------------------------|
@@ -918,6 +923,8 @@ Finally, if more than one filter is provided, then filters are applied one after
 | `\\\\*` | `\\*`    | any name starting with the `\` character    |
 | `[a*`   | `[a*`    | any tag starting with `[a`                  |
 | `\\[a*` | `\[a*`   | any name starting with `[a`                 |
+
+**Note 2:** Hidden test cases are treated differently from normal test cases. For a hidden test to be run, it must be *explicitly included* with the chosen filters. This means that the test case a) must not have been excluded by any filter, and b) must have matched at least one non-negated filter. For example, if a hidden test is named `abc`, it will not be run with the filter `~b*` ("all tests except those starting with `b`") even though its name would be a match; it was only matched "implicitly", by not being excluded. It will, however, be run with the filter `a*` ("all tests starting with `a`"), since this is an explicit match. This is somewhat subtle, but prevents more confusing results. If in doubt, hidden test cases can always be explicitly selected with the `[.]` filter tag, and explicitly excluded with the `~[.]` filter tag.
 
 
 ### Using your own main function

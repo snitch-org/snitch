@@ -65,7 +65,14 @@ namespace snitch {
 template<typename... Args>
 struct type_list {};
 
-enum class filter_result { included, excluded, not_included, not_excluded };
+struct filter_result {
+    bool included = false;
+    bool implicit = false;
+};
+
+[[nodiscard]] filter_result filter_result_and(filter_result first, filter_result second) noexcept;
+
+[[nodiscard]] filter_result filter_result_or(filter_result first, filter_result second) noexcept;
 
 [[nodiscard]] filter_result
 is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
