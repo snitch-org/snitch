@@ -43,11 +43,11 @@ void for_each_raw_tag(std::string_view s, F&& callback) {
 }
 
 namespace tags {
-struct ignored {};
+struct hidden {};
 struct may_fail {};
 struct should_fail {};
 
-using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail>;
+using parsed_tag = std::variant<std::string_view, hidden, may_fail, should_fail>;
 } // namespace tags
 
 // Requires: s contains a well-formed list of tags, each of length <= max_tag_length.
@@ -56,15 +56,15 @@ void for_each_tag(std::string_view s, F&& callback) {
     small_string<max_tag_length> buffer;
 
     for_each_raw_tag(s, [&](std::string_view t) {
-        // Look for "ignore" tags, which is either "[.]"
+        // Look for "hidden" tags, which is either "[.]"
         // or a tag starting with ".", like "[.integration]".
         if (t == "[.]"sv) {
-            // This is a pure "ignore" tag, add this to the list of special tags.
-            callback(tags::parsed_tag{tags::ignored{}});
+            // This is a pure "hidden" tag, add this to the list of special tags.
+            callback(tags::parsed_tag{tags::hidden{}});
         } else if (t.starts_with("[."sv)) {
-            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
+            // This is a combined "hidden" + normal tag, add the "hidden" to the list of special
             // tags, and continue with the normal tag.
-            callback(tags::parsed_tag{tags::ignored{}});
+            callback(tags::parsed_tag{tags::hidden{}});
             callback(tags::parsed_tag{std::string_view("[.]")});
 
             buffer.clear();
@@ -85,6 +85,18 @@ void for_each_tag(std::string_view s, F&& callback) {
 
         callback(tags::parsed_tag(t));
     });
+}
+
+// Requires: s contains a well-formed list of tags, each of length <= max_tag_length.
+bool has_hidden_tag(std::string_view tags) {
+    bool hidden = false;
+    impl::for_each_tag(tags, [&](const impl::tags::parsed_tag& s) {
+        if (std::holds_alternative<impl::tags::hidden>(s)) {
+            hidden = true;
+        }
+    });
+
+    return hidden;
 }
 
 template<typename F>
@@ -572,16 +584,8 @@ bool registry::run_selected_tests(
 }
 
 bool registry::run_tests(std::string_view run_name) noexcept {
-    const auto filter = [](const test_id& id) {
-        bool selected = true;
-        impl::for_each_tag(id.tags, [&](const impl::tags::parsed_tag& s) {
-            if (std::holds_alternative<impl::tags::ignored>(s)) {
-                selected = false;
-            }
-        });
-
-        return selected;
-    };
+    // The default run simply filters out the hidden tests.
+    const auto filter = [](const test_id& id) { return !impl::has_hidden_tag(id.tags); };
 
     const small_vector<std::string_view, 1> filter_strings = {};
     return run_selected_tests(run_name, filter_strings, filter);
