@@ -233,12 +233,12 @@ is_filter_match_id(std::string_view name, std::string_view tags, std::string_vie
     std::optional<filter_result> result;
 
     // Evaluate each filter (comma-separated).
-    std::size_t last_tag = 0;
+    std::size_t comma_pos = 0;
     do {
-        last_tag = find_first_not_escaped(filter, ',');
+        comma_pos = find_first_not_escaped(filter, ',');
 
         const filter_result sub_result =
-            is_filter_match_id_single(name, tags, filter.substr(0, last_tag));
+            is_filter_match_id_single(name, tags, filter.substr(0, comma_pos));
 
         if (!result.has_value()) {
             // The first filter initialises the result.
@@ -255,10 +255,10 @@ is_filter_match_id(std::string_view name, std::string_view tags, std::string_vie
             break;
         }
 
-        if (last_tag != std::string_view::npos) {
-            filter.remove_prefix(last_tag + 1);
+        if (comma_pos != std::string_view::npos) {
+            filter.remove_prefix(comma_pos + 1);
         }
-    } while (last_tag != std::string_view::npos || filter.empty());
+    } while (comma_pos != std::string_view::npos);
 
     return *result;
 }

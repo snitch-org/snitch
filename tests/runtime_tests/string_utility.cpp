@@ -1052,4 +1052,8 @@ TEST_CASE("is_filter_match_id", "[utility]") {
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,[tag2]"sv) == EI);
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,~[tag3]"sv) == II);
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,~[tag1]"sv) == EE);
+
+    // Pathologic cases
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "ab*,"sv) == EI);
+    CHECK(is_filter_match_id(""sv, "[tag1][tag2]"sv, "ab*,"sv) == EI);
 }
