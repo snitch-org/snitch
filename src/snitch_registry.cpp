@@ -197,7 +197,7 @@ filter_result is_filter_match_name(std::string_view name, std::string_view filte
     return is_match(name, filter) ? match_action : no_match_action;
 }
 
-filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+filter_result is_filter_match_tags_single(std::string_view tags, std::string_view filter) noexcept {
     filter_result match_action    = {.included = true, .implicit = false};
     filter_result no_match_action = {.included = false, .implicit = true};
     if (filter.starts_with('~')) {
@@ -215,6 +215,43 @@ filter_result is_filter_match_tags(std::string_view tags, std::string_view filte
     });
 
     return match ? match_action : no_match_action;
+}
+
+filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+    // Start with no result.
+    std::optional<filter_result> result;
+
+    // Evaluate each tag filter (one after the other, e.g. "[tag1][tag2]").
+    std::size_t end_pos = 0;
+    do {
+        end_pos = find_first_not_escaped(filter, ']');
+        if (end_pos != std::string_view::npos) {
+            ++end_pos;
+        }
+
+        const filter_result sub_result =
+            is_filter_match_tags_single(tags, filter.substr(0, end_pos));
+
+        if (!result.has_value()) {
+            // The first filter initialises the result.
+            result = sub_result;
+        } else {
+            // Subsequent filters are combined with the current result using AND.
+            result = filter_result_and(*result, sub_result);
+        }
+
+        if (!result->included) {
+            // Optimisation; we can short-circuit at the first exclusion.
+            // It does not matter if it is implicit or explicit, they are treated the same.
+            break;
+        }
+
+        if (end_pos != std::string_view::npos) {
+            filter.remove_prefix(end_pos);
+        }
+    } while (end_pos != std::string_view::npos && !filter.empty());
+
+    return *result;
 }
 
 filter_result is_filter_match_id_single(

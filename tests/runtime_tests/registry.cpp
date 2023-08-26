@@ -1004,9 +1004,9 @@ TEST_CASE("run tests cli", "[registry]") {
         framework.registry.run_tests(*input);
 
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_RUN(false, 1u, 0u, 0u, 2u, 1u, 0u, 0u);
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 2u, 1u, 0u);
 #else
-        CHECK_RUN(false, 1u, 0u, 0u, 1u, 1u, 0u, 0u);
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 1u, 1u, 0u);
 #endif
     }
 

@@ -994,6 +994,7 @@ TEST_CASE("is_filter_match", "[utility]") {
 }
 
 TEST_CASE("is_filter_match_tag", "[utility]") {
+    // Single filters (matches)
     CHECK(is_filter_match_tags("[tag1]"sv, "[tag1]"sv) == EI);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag1]"sv) == EI);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag2]"sv) == EI);
@@ -1009,6 +1010,7 @@ TEST_CASE("is_filter_match_tag", "[utility]") {
     CHECK(is_filter_match_tags("[tag1][!shouldfail]"sv, "[!shouldfail]"sv) == EI);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[!shouldfail]"sv) == II);
 
+    // Single filters (non-matches)
     CHECK(is_filter_match_tags("[tag1]"sv, "[tag2]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag3]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tug*]*"sv) == IE);
@@ -1016,10 +1018,25 @@ TEST_CASE("is_filter_match_tag", "[utility]") {
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag1]"sv) == EE);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag2]"sv) == EE);
 
-    // Catch2 would say these are EI, not IE.
+    // TODO: Catch2 would say these are EI, not IE.
     CHECK(is_filter_match_tags("[.tag1][tag2]"sv, "[.tag1]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag1]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag2]"sv) == IE);
+
+    // All possible AND combinations
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag1][tag2]"sv) == EI);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag2][tag1]"sv) == EI);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag3]~[tag4]"sv) == II);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag4]~[tag3]"sv) == II);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag1]~[tag2]"sv) == EE);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag2][tag1]"sv) == EE);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag3][tag4]"sv) == IE);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag4][tag3]"sv) == IE);
+
+    // Partial matches
+    CHECK(is_filter_match_tags("[tag1][tag2][tag3]"sv, "[tag1][tag2]"sv) == EI);
+    CHECK(is_filter_match_tags("[tag1][tag2][tag3]"sv, "[tag2][tag3]"sv) == EI);
+    CHECK(is_filter_match_tags("[tag1][tag2][tag3]"sv, "[tag1][tag3]"sv) == EI);
 }
 
 TEST_CASE("is_filter_match_id", "[utility]") {
