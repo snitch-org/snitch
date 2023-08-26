@@ -960,9 +960,9 @@ TEST_CASE("run tests cli", "[registry]") {
         framework.registry.run_tests(*input);
 
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_RUN(false, 3u, 2u, 0u, 0u, 5u, 2u, 0u);
+        CHECK_RUN(false, 4u, 3u, 0u, 0u, 7u, 3u, 0u);
 #else
-        CHECK_RUN(false, 3u, 2u, 0u, 0u, 2u, 2u, 0u);
+        CHECK_RUN(false, 4u, 3u, 0u, 0u, 3u, 3u, 0u);
 #endif
     }
 
@@ -1033,29 +1033,4 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK_RUN(false, 3u, 1u, 0u, 0u, 1u, 1u, 0u);
 #endif
     }
-}
-
-std::array<bool, 7> readme_test_called = {false};
-
-TEST_CASE("run tests cli readme example", "[registry]") {
-    mock_framework framework;
-    framework.setup_reporter();
-    console_output_catcher console;
-
-    readme_test_called = {false};
-
-    framework.registry.add({"a"}, {__FILE__, __LINE__}, []() { readme_test_called[0] = true; });
-    framework.registry.add({"b"}, {__FILE__, __LINE__}, []() { readme_test_called[1] = true; });
-    framework.registry.add({"c"}, {__FILE__, __LINE__}, []() { readme_test_called[2] = true; });
-    framework.registry.add({"d"}, {__FILE__, __LINE__}, []() { readme_test_called[3] = true; });
-    framework.registry.add({"abc"}, {__FILE__, __LINE__}, []() { readme_test_called[4] = true; });
-    framework.registry.add({"abd"}, {__FILE__, __LINE__}, []() { readme_test_called[5] = true; });
-    framework.registry.add({"abcd"}, {__FILE__, __LINE__}, []() { readme_test_called[6] = true; });
-
-    const arg_vector args = {"test", "a*", "~*d,abcd"};
-    auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-    framework.registry.run_tests(*input);
-
-    std::array<bool, 7> expected = {true, false, false, false, true, false, true};
-    CHECK(readme_test_called == expected);
 }

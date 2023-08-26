@@ -217,13 +217,50 @@ filter_result is_filter_match_tags(std::string_view tags, std::string_view filte
     return match ? match_action : no_match_action;
 }
 
-filter_result
-is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+filter_result is_filter_match_id_single(
+    std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+
     if (filter.starts_with('[') || filter.starts_with("~[")) {
         return is_filter_match_tags(tags, filter);
     } else {
         return is_filter_match_name(name, filter);
     }
+}
+
+filter_result
+is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+    // Start with no result.
+    std::optional<filter_result> result;
+
+    // Evaluate each filter (comma-separated).
+    std::size_t last_tag = 0;
+    do {
+        last_tag = find_first_not_escaped(filter, ',');
+
+        const filter_result sub_result =
+            is_filter_match_id_single(name, tags, filter.substr(0, last_tag));
+
+        if (!result.has_value()) {
+            // The first filter initialises the result.
+            result = sub_result;
+        } else {
+            // Subsequent filters are combined with the current result using OR.
+            result = filter_result_or(*result, sub_result);
+        }
+
+        if (result->included && !result->implicit) {
+            // Optimisation; we can short-circuit at the first explicit inclusion.
+            // We can't short-circuit on implicit inclusion, because there could still be an
+            // explicit inclusion coming, and we want to know (for hidden tests).
+            break;
+        }
+
+        if (last_tag != std::string_view::npos) {
+            filter.remove_prefix(last_tag + 1);
+        }
+    } while (last_tag != std::string_view::npos || filter.empty());
+
+    return *result;
 }
 } // namespace snitch
 
@@ -654,8 +691,8 @@ bool run_tests_impl(registry& r, const cli::input& args) noexcept {
             // Start with no result.
             std::optional<filter_result> result;
 
+            // Evaluate each filter (provided as separate command-line argument).
             for (const auto& filter : filter_strings) {
-                // Evaluate each filter.
                 const filter_result sub_result =
                     is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter);
 
@@ -669,6 +706,7 @@ bool run_tests_impl(registry& r, const cli::input& args) noexcept {
 
                 if (!result->included) {
                     // Optimisation; we can short-circuit at the first exclusion.
+                    // It does not matter if it is implicit or explicit, they are treated the same.
                     break;
                 }
             }

@@ -73,6 +73,27 @@ bool replace_all(
     }
 }
 
+std::size_t find_first_not_escaped(std::string_view str, char c) noexcept {
+    for (std::size_t i = 0; i < str.size(); ++i) {
+        bool escaped = false;
+        if (str[i] == '\\') {
+            // Escaped character, look ahead by one
+            ++i;
+            if (i >= str.size()) {
+                break;
+            }
+
+            escaped = true;
+        }
+
+        if (!escaped && str[i] == c) {
+            return i;
+        }
+    }
+
+    return std::string_view::npos;
+}
+
 bool is_match(std::string_view string, std::string_view regex) noexcept {
     // An empty regex matches any string; early exit.
     // An empty string matches an empty regex (exit here) or any regex containing

@@ -949,6 +949,15 @@ TEST_CASE("is_match", "[utility]") {
     }
 }
 
+TEST_CASE("find_first_not_escaped", "[utility]") {
+    CHECK(snitch::find_first_not_escaped("abc"sv, 'b') == 1u);
+    CHECK(snitch::find_first_not_escaped("abc"sv, 'd') == std::string_view::npos);
+    CHECK(snitch::find_first_not_escaped("a\\bc"sv, 'b') == std::string_view::npos);
+    CHECK(snitch::find_first_not_escaped("a\\bc\\b"sv, 'b') == std::string_view::npos);
+    CHECK(snitch::find_first_not_escaped("a\\\\bc"sv, 'b') == 3u);
+    CHECK(snitch::find_first_not_escaped("abc\\"sv, 'd') == std::string_view::npos);
+}
+
 using snitch::filter_result;
 using snitch::is_filter_match_id;
 using snitch::is_filter_match_name;
@@ -964,6 +973,12 @@ bool operator==(const filter_result& first, const filter_result& second) noexcep
     return first.included == second.included && first.implicit == second.implicit;
 }
 } // namespace
+
+namespace snitch {
+bool append(small_string_span ss, const filter_result& r) noexcept {
+    return append(ss, r.implicit ? "I" : "E") && append(ss, r.included ? "I" : "E");
+}
+} // namespace snitch
 
 TEST_CASE("is_filter_match", "[utility]") {
     CHECK(is_filter_match_name("abc"sv, "abc"sv) == EI);
@@ -998,14 +1013,17 @@ TEST_CASE("is_filter_match_tag", "[utility]") {
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tag3]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[tug*]*"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2]"sv, "[.]"sv) == IE);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag1]"sv) == EE);
+    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag2]"sv) == EE);
+
+    // Catch2 would say these are EI, not IE.
     CHECK(is_filter_match_tags("[.tag1][tag2]"sv, "[.tag1]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag1]"sv) == IE);
     CHECK(is_filter_match_tags("[tag1][tag2][.]"sv, "[.tag2]"sv) == IE);
-    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag1]"sv) == EE);
-    CHECK(is_filter_match_tags("[tag1][tag2]"sv, "~[tag2]"sv) == EE);
 }
 
 TEST_CASE("is_filter_match_id", "[utility]") {
+    // Single filters
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "abc"sv) == EI);
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "~abc"sv) == EE);
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "ab*"sv) == EI);
@@ -1015,4 +1033,23 @@ TEST_CASE("is_filter_match_id", "[utility]") {
     CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "~[tag3]"sv) == II);
     CHECK(is_filter_match_id("[weird]"sv, "[tag1][tag2]"sv, "\\[weird]"sv) == EI);
     CHECK(is_filter_match_id("[weird]"sv, "[tag1][tag2]"sv, "[weird]"sv) == IE);
+    CHECK(is_filter_match_id("a,b"sv, "[tag1][tag2]"sv, "a\\,b"sv) == EI);
+    CHECK(is_filter_match_id("a,b"sv, "[tag1][tag2]"sv, "ab\\,"sv) == IE);
+    CHECK(is_filter_match_id("a,b"sv, "[tag1][tag2]"sv, "ab\\"sv) == IE);
+
+    // All possible OR combinations
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "ab*,cd*"sv) == EI);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "cd*,ab*"sv) == EI);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "~db*,cd*"sv) == II);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "cd*,~db*"sv) == II);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "cd*,~ab*"sv) == EE);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "~ab*,cd*"sv) == EE);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "cd*,db*"sv) == IE);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,cd*"sv) == IE);
+
+    // Mix and match name and tags
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "ab*,[tag3]"sv) == EI);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,[tag2]"sv) == EI);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,~[tag3]"sv) == II);
+    CHECK(is_filter_match_id("abc"sv, "[tag1][tag2]"sv, "db*,~[tag1]"sv) == EE);
 }
