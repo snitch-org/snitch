@@ -35,10 +35,12 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Built-in reporters](#built-in-reporters)
         - [Overriding the default reporter](#overriding-the-default-reporter)
         - [Registering a new reporter](#registering-a-new-reporter)
-    - [Default main function](#default-main-function)
+    - [Command-line API](#command-line-api)
+    - [Selecting which tests to run](#selecting-which-tests-to-run)
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
     - [Header-only build](#header-only-build)
+    - [IDE integrations](#ide-integrations)
     - [`clang-format` support](#clang-format-support)
 - [Contributing](#contributing)
 - [Why _snitch_?](#why-_snitch_)
@@ -122,7 +124,7 @@ include(FetchContent)
 
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-                     GIT_TAG        v1.0.0) # update version number if needed
+                     GIT_TAG        v1.0.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
 set(YOUR_TEST_FILES
@@ -145,7 +147,7 @@ include(FetchContent)
 
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-                     GIT_TAG        v1.0.0) # update version number if needed
+                     GIT_TAG        v1.0.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
 set(YOUR_TEST_FILES
@@ -166,29 +168,18 @@ See the documentation for the [header-only mode](#header-only-build) for more in
 
 ## Example build configuration with meson
 
-First, [meson build](https://mesonbuild.com/)
-needs a
-[`subprojects`](https://mesonbuild.com/Subprojects.html#using-a-subproject)
-directory in your project source root
-for dependencies. Create this directory if it does not exist, then, from within your project source root, run:
+
+First, [meson build](https://mesonbuild.com/) needs a [`subprojects`](https://mesonbuild.com/Subprojects.html#using-a-subproject) directory in your project source root for dependencies. Create this directory if it does not exist, then, from within your project source root, run:
 
 ```bash
 > meson wrap install snitch
 ```
 
-This downloads a
-[_wrap file_](https://mesonbuild.com/Wrap-dependency-system-manual.html#wrap-format),
-`snitch.wrap`, from
-[WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
-to the `subprojects` directory.
-A `[provide]` section declares `snitch = snitch_dep`,
-and that guides meson's
-[`wrap` dependency system](https://mesonbuild.com/Wrap-dependency-system-manual.html)
-to use a _snitch_ install,
-if found, or to download _snitch_ as a fallback.
+This downloads a [_wrap file_](https://mesonbuild.com/Wrap-dependency-system-manual.html#wrap-format), `snitch.wrap`, from [WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
+to the `subprojects` directory. A `[provide]` section declares `snitch = snitch_dep`,
+and that guides meson's [`wrap` dependency system](https://mesonbuild.com/Wrap-dependency-system-manual.html) to use a _snitch_ install, if found, or to download _snitch_ as a fallback.
 
-The provided `snitch_dep` dependency is retrieved and used
-in a `meson.build` script, e.g.:
+The provided `snitch_dep` dependency is retrieved and used in a `meson.build` script, e.g.:
 
 ```python
 snitch_dep = dependency('snitch')
@@ -196,9 +187,7 @@ snitch_dep = dependency('snitch')
 test('mytest', executable('test','test.cpp',dependencies:snitch_dep) )
 ```
 
-Alternatively, you can `git clone` _snitch_ directly to `subprojects/snitch`.
-A wrap file is then optional.
-You can retrieve the dependency directly (as is necessary in meson < v0.54):
+Alternatively, you can `git clone` _snitch_ directly to `subprojects/snitch`. A wrap file is then optional. You can retrieve the dependency directly (as is necessary in meson < v0.54):
 
 ```python
 snitch_dep = subproject('snitch').get_variable('snitch_dep')
@@ -765,7 +754,7 @@ Note that _snitch_ small strings have a fixed capacity; once this capacity is re
 ### Reporters
 
 By default, _snitch_ will report the test results to the standard output, using its own report format. There are two ways you can override this:
- - Register a new reporter with `REGISTER_REPORTER(...)` and select it from the command line. This is more flexible as you can change which reporter to use without re-compiling, but it requires a bit more boilerplate. See [Registering a new reporter](#registering-a-new-reporter). A list of standard reporters is provided with *snitch* and enabled by default; see [Built-in reporters](#built-in-reporters).
+ - Register a new reporter with `REGISTER_REPORTER(...)` and select it from the command-line. This is more flexible as you can change which reporter to use without re-compiling, but it requires a bit more boilerplate. See [Registering a new reporter](#registering-a-new-reporter). A list of standard reporters is provided with _snitch_ and enabled by default; see [Built-in reporters](#built-in-reporters).
  - Override the default reporter by directly supplying your own callback function to the test registry. This is simpler but requires [using your own main function](#using-your-own-main-function), and is only a good option if the reporter never needs to change. See [Overriding the default reporter](#overriding-the-default-reporter).
 
 In both cases, the core of the reporter is its "report" callback function. It is a `noexcept` function, taking two arguments:
@@ -785,15 +774,15 @@ It may be necessary to override the default verbosity when the reporter is initi
 
 #### Built-in reporters
 
-With the default build configuration, *snitch* provides the following built-in reporters. They can all be disabled by turning off the CMake option `SNITCH_WITH_ALL_REPORTERS` or Meson option `with_all_reporters`, then enabled individually with specific build options if desired.
+With the default build configuration, _snitch_ provides the following built-in reporters. They can all be disabled by turning off the CMake option `SNITCH_WITH_ALL_REPORTERS` or Meson option `with_all_reporters`, then enabled individually with specific build options if desired.
  - `console`: This is the default reporter, always present.
  - `teamcity`: Reports events in a format suitable for JetBrains TeamCity.
- - `xml`: Reports events in the *Catch2* XML format. Provided for compatibility with *Catch2*.
+ - `xml`: Reports events in the _Catch2_ XML format. Provided for compatibility with _Catch2_.
 
 
 #### Overriding the default reporter
 
-The default reporter callback can be registered either as a free function, a stateless lambda, or a member function. This is the reporter that is used if no `--reporter` option is passed to the command line. You can register your own callback as follows:
+The default reporter callback can be registered either as a free function, a stateless lambda, or a member function. This is the reporter that is used if no `--reporter` option is passed to the command-line. You can register your own callback as follows:
 
 ```c++
 // Free function.
@@ -837,35 +826,35 @@ If you need to use a reporter member function, please make sure that the reporte
 
 #### Registering a new reporter
 
-There are two macros available to register a new repoter: `REGISTER_REPORTER` and `REGISTER_REPORTER_CALLBACKS`. The former registers a reporter class or struct, and is useful for statefull reporters. The latter registers a reporter as a series of callback functions, which only need defining as needed. Both offer the same functionality, and you can simply choose the one that is most convenient for you.
+There are two macros available to register a new reporter: `REGISTER_REPORTER` and `REGISTER_REPORTER_CALLBACKS`. The former registers a reporter class or struct, and is useful for stateful reporters. The latter registers a reporter as a series of callback functions, which only need defining as needed. Both offer the same functionality, and you can simply choose the one that is most convenient for you.
 
 `REGISTER_REPORTER(NAME, TYPE);`
 
-This must be called at namespace, global, or class scope; not inside a function or another test case. This registers a new reporter with name `NAME` (which is used to select it from the command line), and type `TYPE`. The type must define:
+This must be called at namespace, global, or class scope; not inside a function or another test case. This registers a new reporter with name `NAME` (which is used to select it from the command-line), and type `TYPE`. The type must define:
  - A constructor taking a `snitch::registry&`, called when the reporter is selected.
- - A `configure(snitch::registry&, std::string_view, std::string_view)` member function, called for each reporter option from the command line.
- - A `report(const snitch::registry&, const snitch::event::data&)` member function. It is the main report callback, and should be implemented as described in the [Reporters](#reporters) section.
+ - A `bool configure(snitch::registry&, std::string_view k, std::string_view v)` member function, called for each reporter option from the command-line. It is called once for each of the options provided on the command-line, with `k` the name of the option, and `v` its value. The function is expected to return `false` if the option was unknown, and `true` otherwise.
+ - A `void report(const snitch::registry&, const snitch::event::data&)` member function. It is the main report callback, and should be implemented as described in the [Reporters](#reporters) section.
 
-An example can be found in `include/snitch_catch2_xml.hpp`.
+An example can be found in [`include/snitch_catch2_xml.hpp`](include/snitch_catch2_xml.hpp) / [`src/snitch_catch2_xml.cpp`](src/snitch_catch2_xml.cpp).
 
 
 `REGISTER_REPORTER_CALLBACKS(NAME, INIT, CONFIG, REPORT, FINISH);`
 
 This is similar to `REGISTER_REPORTER`, but takes four separate callback functions instead of a single type as argument. The four callback functions are:
- - `INIT` has signature `void(snitch::registry& r) noexcept` and is used to initialise the reporter. It is called once when the reporter is selected.
- - `CONFIG` has signature `bool(snitch::registry& r, std::string_view k, std::string_view v) noexcept` and is used to configure the reporter. It is called once for each of the options provided on the command line, with `k` the name of the option, and `v` its value. The function is expected to return `false` if the option was unknown, and `true` otherwise.
+ - `INIT` has signature `void(snitch::registry& r) noexcept` and is used to initialize the reporter. It is called once when the reporter is selected.
+ - `CONFIG` has signature `bool(snitch::registry& r, std::string_view k, std::string_view v) noexcept` and is used to configure the reporter. It is called once for each of the options provided on the command-line, with `k` the name of the option, and `v` its value. The function is expected to return `false` if the option was unknown, and `true` otherwise.
  - `REPORT` has signature `void(const snitch::registry& r, const snitch::event::data& e) noexcept`. It is the main report callback, as described in [Reporters](#reporters).
  - `FINISH` has signature `void(snitch::registry& r) noexcept` and is used to close the reporter. It is called once when the tests are finished running.
 
 All callback functions are optional except `REPORT`. If a callback is unused, simply specify the function as `{}`. Otherwise, please refer to [Overriding the default reporter](#overriding-the-default-reporter) for instructions on how to specify your own callback functions.
 
-An example can be found in `include/snitch_reporter_teamcity.hpp` / `src/snitch_reporter_teamcity.cpp`.
+An example can be found in [`include/snitch_reporter_teamcity.hpp`](include/snitch_reporter_teamcity.hpp) / [`src/snitch_reporter_teamcity.cpp`](src/snitch_reporter_teamcity.cpp).
 
 
-### Default main function and command-line API
+### Command-line API
 
-The default `main()` function provided in _snitch_ offers the following command-line API:
- - positional arguments for filtering tests by name, see below.
+_snitch_ offers the following command-line API:
+ - positional arguments for filtering tests by name, see next section.
  - `-h,--help`: show command-line help.
  - `-l,--list-tests`: list all tests.
  - `   --list-tags`: list all tags.
@@ -875,10 +864,13 @@ The default `main()` function provided in _snitch_ offers the following command-
  - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
  - `   --color <always|default|never>`: enable/disable colors in the default reporter.
 
-The following options are provided for compatibility with *Catch2*:
+The following options are provided for compatibility with _Catch2_:
  - `   --colour-mode <ansi|default|none>`: enable/disable colors in the default reporter.
 
-The positional arguments are used to select which tests to run. If no positional argument is given, all test cases will be run, except those that are explicitly hidden with special tags (see [Tags](#tags), and see also the note below on filtering hidden tests).
+
+### Selecting which tests to run
+
+The command-line arguments (other than options starting with `--`) are used to select which tests to run. If no positional argument is given, all test cases will be run, except those that are explicitly hidden with special tags (see [Tags](#tags), and see also the note below on filtering hidden tests). Otherwise, each argument is a "filter" that is applied to the list of test cases.
 
 A filter may contain any number of "wildcard" character, `*`, which can represent zero or more characters. For example:
  - `ab*` will include all test cases with names starting with `ab`.
@@ -889,19 +881,16 @@ A filter may contain any number of "wildcard" character, `*`, which can represen
 
 If a filter starts with `~`, the meaning of the filter is negated. For example `~ab*` will include all test cases with name not starting with `ab`.
 
+A filter can contain white spaces, however be mindful that your shell will require the filter to be surrounded by quotes to treat it as a single command-line argument (e.g., `./snitch_app "some test"`).
+
 By default, a filter applies to the test case name (which includes the test type for templated tests, using the format `name <type>`). However, if a filter starts with `[` or `~[`, then it applies to the test case tags instead. This behavior can be bypassed by escaping the bracket `\[`, in which case the filter applies to the test case name again (see note below on escaping).
 
 Finally, if multiple filters are provided, they are combined using the following logic:
- - When provided as separate command line arguments, e.g., `"<filter1>" "<filter2>"`, the filters are combined with an "AND" operation (tests must match both filters to be selected).
- - When provided as a single comma-separated command line argument, e.g., `"<filter1>,<filter2>"`, the filters are combined with an "OR" operation (tests must match either of the filters to be selected).
- - For tag filters only, when multiple tags are specified in the same command line argument, e.g., `"[<filter1>][<filter2>]"`, the tag filters are combined with an "AND" operation (test tags must match both filters to be selected).
+ - When provided as separate command-line arguments, e.g., `"<filter1>" "<filter2>"`, the filters are combined with an "AND" operation (tests must match both filters to be selected).
+ - When provided as a single comma-separated command-line argument, e.g., `"<filter1>,<filter2>"`, the filters are combined with an "OR" operation (tests must match either of the filters to be selected).
+ - For tag filters only, when multiple tags are specified in the same command-line argument, e.g., `"[<filter1>][<filter2>]"`, the tag filters are combined with an "AND" operation (test tags must match both filters to be selected).
 
-Name and tag filters can be used in any combination. For example:
- - `ab* ~abc*` will include all tests with name starting with `ab` and not starting with `abc`
- - `ab*,*cd` will include all tests with name starting with `ab` or ending with `cd`
- - `ab*,~[x]` will include all tests with name starting with `ab` or not having tag `[x]`
-
-To summarize, here are some examples with the equivalent C++ boolean logic (where `f` is any filter):
+Name and tag filters can be used in any combination. To summarize, here are some examples with the equivalent C++ boolean logic (where `f*` represents a filter):
 
 | CLI test filters  | C++ boolean equivalent  |
 |-------------------|-------------------------|
@@ -951,23 +940,23 @@ Here is a recommended `main()` function that replicates the default behavior of 
 
 ```c++
 int main(int argc, char* argv[]) {
-    // Parse the command line arguments.
+    // Parse the command-line arguments.
     std::optional<snitch::cli::input> args = snitch::cli::parse_arguments(argc, argv);
     if (!args) {
         // Parsing failed, an error has been reported, just return.
         return 1;
     }
 
-    // Configure snitch using command line options.
+    // Configure snitch using command-line options.
     // You can then override the configuration below, or just remove this call to disable
-    // command line options entirely.
+    // command-line options entirely.
     snitch::tests.configure(*args);
 
     // Your own initialization code goes here.
     // ...
 
     // Actually run the tests.
-    // This will apply any filtering specified on the command line.
+    // This will apply any filtering specified on the command-line.
     return snitch::tests.run_tests(*args) ? 0 : 1;
 }
 ```
@@ -1005,6 +994,15 @@ To use _snitch_ as header-only in your code, simply include `snitch_all.hpp` ins
 #include <snitch_all.hpp>
 ```
 
+### IDE integrations
+
+There are no IDE integrations created specifically for _snitch_. However, since _snitch_ implements most of the _Catch2_ command-line API, _Catch2_ integrations tend to work for _snitch_ test applications as well. See in particular:
+ - [Visual Studio Code](https://code.visualstudio.com/) and the [C++ TestMate](https://marketplace.visualstudio.com/items?itemName=matepek.vscode-catch2-test-adapter) extension. Tested successfully on 26/08/2023.*
+ - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) and the [_Catch2_ Test Adapter](https://marketplace.visualstudio.com/items?itemName=JohnnyHendriks.ext01) extension. Could not get it to work even with _Catch2_...
+ - [CLion](https://www.jetbrains.com/clion/) using the builtin _Catch2_ configuration. Tested partially on 20/08/2023 (I don't have a CLion license).
+
+Feel free to report any issues you encounter using these IDE integrations; If you would like to contribute
+
 
 ### `clang-format` support
 
@@ -1021,14 +1019,14 @@ SpaceBeforeParens: ControlStatementsExceptControlMacros
 Contributions to the source code are always welcome! Simply follow the rules laid out below. If you are not familiar with contributing to an open-source project, feel free to open a [Discussion](https://github.com/cschreib/snitch/discussions/categories/ideas) and ask for guidance. Regardless, you will receive help all the way, and particularly during the code review.
 
 The process:
- - If you are considering adding a feature from *Catch2* that *snitch* currently does not support, please check the [*Catch2* support roadmap](doc/comparison_catch2.md) first.
+ - If you are considering adding a feature from _Catch2_ that _snitch_ currently does not support, please check the [_Catch2_ support roadmap](doc/comparison_catch2.md) first.
  - Please check the [Issue Tracker](https://github.com/cschreib/snitch/issues) for any issue (open or closed) related to the feature you would like to add, or the problem you would like to solve. Read the discussion that has taken place there, if any, and check if any decision was taken that would be incompatible with your planned contribution.
  - If the path is clear, fork this repository and commit your changes to your own fork.
  - Use "atomic" commits (check that the code compiles before committing) and reasonably clear commit messages (no "WIP"). Linear history is preferred (i.e., avoid merge commits), but will not be enforced.
- - Check your code mostly follows the [*snitch* C++ Coding Guidelines](doc/coding_guidelines.md).
+ - Check your code mostly follows the [_snitch_ C++ Coding Guidelines](doc/coding_guidelines.md).
  - Run `clang-format` on your code before committing. The `.clang-format` file at the root of this repository contains all the formatting rules, and will be used automatically.
  - Add tests to cover your new code if applicable (see the `tests` sub-folder).
- - Run the *snitch* tests and fix any failure if you can (CMake can run them for you if you ask it to "build" the `snitch_runtime_tests_run` target, otherwise just run manually `build/tests/snitch_runtime_tests`).
+ - Run the _snitch_ tests and fix any failure if you can (CMake can run them for you if you ask it to "build" the `snitch_runtime_tests_run` target, otherwise just run manually `build/tests/snitch_runtime_tests`).
  - Open a [Pull Request](https://github.com/cschreib/snitch/pulls), with a description of what you are trying to do.
  - If there are issues you were unable to solve on your own (e.g., tests failing for reasons you do not understand, or high-impact design decisions), please feel free to open the pull request as a "draft", and highlight the areas that you need help with in the description. Once the issues are addressed, you can take your Pull Request out of draft mode.
  - Your code will then be reviewed, and the reviewer(s) may leave comments and suggestions. It is up to you to act on these comments and suggestions, and commit any required code changes. It's OK to push back on a suggestion if you have a good reason; don't always assume the reviewer is right.
