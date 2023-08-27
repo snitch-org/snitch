@@ -1,3 +1,5 @@
+#include <memory>
+
 namespace owning_event {
 using filter_info  = snitch::small_vector<std::string_view, 4>;
 using section_info = snitch::small_vector<snitch::section, snitch::max_nested_sections>;
@@ -149,16 +151,24 @@ std::optional<snitch::test_id>         get_test_id(const owning_event::data& e) 
 std::optional<snitch::source_location> get_location(const owning_event::data& e) noexcept;
 
 struct mock_framework {
-    snitch::registry registry;
+    struct large_data {
+        snitch::registry                             registry;
+        snitch::small_string<4086>                   string_pool;
+        snitch::small_vector<owning_event::data, 32> events;
+    };
+
+    // Put large data on the heap; this can consume too much stack.
+    std::unique_ptr<large_data>                   data        = std::make_unique<large_data>();
+    snitch::registry&                             registry    = data->registry;
+    snitch::small_string<4086>&                   string_pool = data->string_pool;
+    snitch::small_vector<owning_event::data, 32>& events      = data->events;
 
     snitch::impl::test_case test_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
         .state = snitch::impl::test_case_state::not_run};
 
-    snitch::small_string<4086>                   string_pool;
-    snitch::small_vector<owning_event::data, 32> events;
-    bool                                         catch_success = false;
+    bool catch_success = false;
 
     mock_framework() noexcept;
 
@@ -194,7 +204,14 @@ struct mock_framework {
 };
 
 struct console_output_catcher {
-    snitch::small_string<4086>                              messages = {};
+    struct large_data {
+        snitch::small_string<4086> messages;
+    };
+
+    // Put large data on the heap; this can consume too much stack.
+    std::unique_ptr<large_data> data     = std::make_unique<large_data>();
+    snitch::small_string<4086>& messages = data->messages;
+
     snitch::small_function<void(std::string_view) noexcept> prev_print;
 
     console_output_catcher() : prev_print(snitch::cli::console_print) {
@@ -219,21 +236,28 @@ struct cli_input {
 
 template<std::size_t MaxEvents>
 struct event_catcher {
-    snitch::registry mock_registry;
+    struct large_data {
+        snitch::registry                                    registry;
+        snitch::small_string<1024>                          string_pool;
+        snitch::small_vector<owning_event::data, MaxEvents> events;
+    };
+
+    // Put large data on the heap; this can consume too much stack.
+    std::unique_ptr<large_data>                          data     = std::make_unique<large_data>();
+    snitch::registry&                                    registry = data->registry;
+    snitch::small_string<1024>&                          string_pool = data->string_pool;
+    snitch::small_vector<owning_event::data, MaxEvents>& events      = data->events;
 
     snitch::impl::test_case mock_case{
         .id    = {"mock_test", "[mock_tag]", "mock_type"},
         .func  = nullptr,
         .state = snitch::impl::test_case_state::not_run};
 
-    snitch::impl::test_state mock_test{.reg = mock_registry, .test = mock_case};
-
-    snitch::small_string<1024>                          string_pool;
-    snitch::small_vector<owning_event::data, MaxEvents> events;
+    snitch::impl::test_state mock_test{.reg = registry, .test = mock_case};
 
     event_catcher() {
-        mock_registry.report_callback = {*this, snitch::constant<&event_catcher::report>{}};
-        mock_registry.verbose         = snitch::registry::verbosity::full;
+        registry.report_callback = {*this, snitch::constant<&event_catcher::report>{}};
+        registry.verbose         = snitch::registry::verbosity::full;
     }
 
     void report(const snitch::registry&, const snitch::event::data& e) noexcept {
