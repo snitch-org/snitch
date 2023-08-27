@@ -14,6 +14,7 @@ set(SNITCH_MAX_CAPTURE_LENGTH       256  CACHE STRING "Maximum length of a captu
 set(SNITCH_MAX_UNIQUE_TAGS          1024 CACHE STRING "Maximum number of unique tags in a test application.")
 set(SNITCH_MAX_COMMAND_LINE_ARGS    1024 CACHE STRING "Maximum number of command line arguments to a test application.")
 set(SNITCH_MAX_REGISTERED_REPORTERS 8    CACHE STRING "Maximum number of registered reporter that can be selected from the command line.")
+set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file path when writing output to file.")
 
 # Feature toggles.
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
@@ -61,6 +62,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_console.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_error_handling.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_expression.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_file.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_fixed_point.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_function.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_check.hpp
@@ -92,6 +94,7 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_file.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp

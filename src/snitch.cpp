@@ -3,6 +3,7 @@
 #include "snitch_cli.cpp"
 #include "snitch_console.cpp"
 #include "snitch_error_handling.cpp"
+#include "snitch_file.cpp"
 #include "snitch_main.cpp"
 #include "snitch_matcher.cpp"
 #include "snitch_registry.cpp"

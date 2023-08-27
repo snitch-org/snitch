@@ -10,6 +10,7 @@ option('max_capture_length'       ,type: 'integer' ,value: 256 , description: 'M
 option('max_unique_tags'          ,type: 'integer' ,value: 1024, description: 'Maximum number of unique tags in a test application.')
 option('max_command_line_args'    ,type: 'integer' ,value: 1024, description: 'Maximum number of command line arguments to a test application.')
 option('max_registered_reporters' ,type: 'integer' ,value: 8   , description: 'Maximum number of registered reporter that can be selected from the command line.')
+option('max_path_length'          ,type: 'integer' ,value: 1024, description: 'Maximum length of a file path when writing output to file.')
 
 # Feature toggles.
 option('define_main'                     ,type: 'boolean' ,value: true, description: 'Define main() in snitch -- disable to provide your own main() function.')

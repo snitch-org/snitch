@@ -28,6 +28,7 @@ conf_data = configuration_data({
   'SNITCH_MAX_UNIQUE_TAGS'          : get_option('max_unique_tags'),
   'SNITCH_MAX_COMMAND_LINE_ARGS'    : get_option('max_command_line_args'),
   'SNITCH_MAX_REGISTERED_REPORTERS' : get_option('max_registered_reporters'),
+  'SNITCH_MAX_PATH_LENGTH'          : get_option('max_path_length')
 
   'SNITCH_DEFINE_MAIN'                     : get_option('define_main').to_int(),
   'SNITCH_WITH_EXCEPTIONS'                 : get_option('with_exceptions').to_int(),

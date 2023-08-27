@@ -9,6 +9,7 @@
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_error_handling.hpp"
 #include "snitch/snitch_expression.hpp"
+#include "snitch/snitch_file.hpp"
 #include "snitch/snitch_fixed_point.hpp"
 #include "snitch/snitch_function.hpp"
 #include "snitch/snitch_macros_check.hpp"
