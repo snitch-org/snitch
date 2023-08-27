@@ -4,6 +4,8 @@
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_test_data.hpp"
 
+#include <string_view>
+
 namespace snitch::reporter::console {
 void initialize(registry& r) noexcept;
 

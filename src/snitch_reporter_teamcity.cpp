@@ -9,9 +9,7 @@
 #    include "snitch/snitch_string_utility.hpp"
 #    include "snitch/snitch_test_data.hpp"
 
-#    include <cstddef>
 #    include <initializer_list>
-#    include <string_view>
 
 namespace snitch::reporter::teamcity {
 namespace {

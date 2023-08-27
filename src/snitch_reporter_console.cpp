@@ -8,8 +8,6 @@
 #include "snitch/snitch_string_utility.hpp"
 #include "snitch/snitch_test_data.hpp"
 
-#include <string_view>
-
 namespace snitch::reporter::console {
 namespace {
 using namespace std::literals;

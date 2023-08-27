@@ -8,7 +8,6 @@
 #    include "snitch/snitch_test_data.hpp"
 
 #    include <cstddef>
-#    include <initializer_list>
 #    include <string_view>
 
 namespace snitch::reporter::catch2_xml {

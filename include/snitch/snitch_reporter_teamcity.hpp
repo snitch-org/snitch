@@ -7,6 +7,8 @@
 
 #    include "snitch/snitch_test_data.hpp"
 
+#    include <string_view>
+
 namespace snitch::reporter::teamcity {
 void initialize(registry& r) noexcept;
 
