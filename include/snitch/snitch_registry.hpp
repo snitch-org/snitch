@@ -58,8 +58,8 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 
 struct abort_exception {};
 
-void parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
-void parse_color_option(registry& reg, std::string_view color_option) noexcept;
+bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
+bool parse_color_option(registry& reg, std::string_view color_option) noexcept;
 } // namespace snitch::impl
 
 namespace snitch {
@@ -273,7 +273,8 @@ public:
 
     bool run_tests(const cli::input& args) noexcept;
 
-    void configure(const cli::input& args) noexcept;
+    // Requires: output file path (if configured) is valid
+    void configure(const cli::input& args);
 
     void list_all_tests() const noexcept;
 

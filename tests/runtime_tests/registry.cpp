@@ -2,6 +2,8 @@
 #include "testing_assertions.hpp"
 #include "testing_event.hpp"
 
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
 
 using namespace std::literals;
@@ -820,6 +822,42 @@ TEST_CASE("configure reporter", "[registry]") {
 
         CHECK(console.messages == contains_substring("unknown reporter 'fantasio', using default"));
     }
+}
+
+TEST_CASE("configure output", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
+    console_output_catcher console;
+
+    SECTION("valid") {
+        const arg_vector args = {"test", "--out", "test_output.txt"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+        framework.registry.run_tests(*input);
+
+        CHECK(console.messages.empty());
+
+        std::ifstream file("test_output.txt");
+        std::string   line;
+        std::getline(file, line);
+
+        CHECK(line == snitch::matchers::contains_substring{"starting test with snitch"});
+
+        std::filesystem::remove("test_output.txt");
+    }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("bad path") {
+        assertion_exception_enabler enabler;
+
+        const arg_vector args = {"test", "--out", ""};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+        CHECK_THROWS_WHAT(
+            framework.registry.configure(*input), assertion_exception,
+            "output file could not be opened for writing");
+    }
+#endif
 }
 
 TEST_CASE("run tests cli", "[registry][cli]") {

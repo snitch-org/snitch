@@ -10,12 +10,12 @@ file_writer::file_writer(std::string_view path) {
     // Unfortunately, fopen() needs a null-terminated string, so need a copy...
     small_string<max_path_length + 1> null_terminated_path;
     if (!append(null_terminated_path, path)) {
-        terminate_with("output file path is too long");
+        assertion_failed("output file path is too long");
     }
 
     file_handle = std::fopen(null_terminated_path.data(), "w");
     if (file_handle == nullptr) {
-        terminate_with("output file could not be opened for writing");
+        assertion_failed("output file could not be opened for writing");
     }
 }
 
