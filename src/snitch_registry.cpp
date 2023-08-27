@@ -863,44 +863,53 @@ void parse_reporter(
     r.finish_callback = iter->finish;
 }
 
-void parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept {
+bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept {
     if (color_option == "ansi") {
         reg.with_color = true;
+        return true;
     } else if (color_option == "none") {
         reg.with_color = false;
+        return true;
     } else if (color_option == "default") {
         // Nothing to do.
+        return false;
     } else {
         using namespace snitch::impl;
         cli::print(
             make_colored("warning:", reg.with_color, color::warning),
             " unknown color directive; please use one of ansi|default|none\n");
+        return false;
     }
 }
 
-void parse_color_option(registry& reg, std::string_view color_option) noexcept {
+bool parse_color_option(registry& reg, std::string_view color_option) noexcept {
     if (color_option == "always") {
         reg.with_color = true;
+        return true;
     } else if (color_option == "never") {
         reg.with_color = false;
+        return true;
     } else if (color_option == "default") {
         // Nothing to do.
+        return false;
     } else {
         using namespace snitch::impl;
         cli::print(
             make_colored("warning:", reg.with_color, color::warning),
             " unknown color directive; please use one of always|default|never\n");
+        return false;
     }
 }
 } // namespace impl
 
-void registry::configure(const cli::input& args) noexcept {
+void registry::configure(const cli::input& args) {
+    bool color_override = false;
     if (auto opt = get_option(args, "--colour-mode")) {
-        impl::parse_colour_mode_option(*this, *opt->value);
+        color_override = impl::parse_colour_mode_option(*this, *opt->value);
     }
 
     if (auto opt = get_option(args, "--color")) {
-        impl::parse_color_option(*this, *opt->value);
+        color_override = impl::parse_color_option(*this, *opt->value) || color_override;
     }
 
     if (auto opt = get_option(args, "--verbosity")) {
@@ -921,7 +930,12 @@ void registry::configure(const cli::input& args) noexcept {
     }
 
     if (auto opt = get_option(args, "--out")) {
-        file_writer    = impl::file_writer{*opt->value};
+        file_writer = impl::file_writer{*opt->value};
+
+        if (!color_override) {
+            with_color = false;
+        }
+
         print_callback = {*file_writer, snitch::constant<&impl::file_writer::write>{}};
     }
 
