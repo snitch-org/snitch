@@ -43,7 +43,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [IDE integrations](#ide-integrations)
     - [`clang-format` support](#clang-format-support)
 - [Contributing](#contributing)
-- [Why _snitch_?](#why-_snitch_)
+- [Why then name _snitch_?](#why-then-name-_snitch_)
 
 <!-- /MarkdownTOC -->
 
@@ -166,6 +166,7 @@ One (and only one!) of your test files needs to include _snitch_ as:
 
 See the documentation for the [header-only mode](#header-only-build) for more information. This will include the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
 
+
 ## Example build configuration with meson
 
 
@@ -205,6 +206,7 @@ then you can configure with:
 
 And this disables the build step that generates the single-header file "`snitch_all.hpp`".
 
+
 ## Benchmark
 
 The following benchmarks were done using real-world tests from another library ([_observable_unique_ptr_](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were run on a desktop with the following specs:
@@ -232,27 +234,28 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 3.3s     | 42s      | 2.1s      | 0s         |
-| Build tests     | 65s      | 75s      | 76s       | 117s       |
-| Build all       | 69s      | 117s     | 78s       | 117s       |
-| Run tests       | 35ms     | 67ms     | 63ms      | 14ms       |
-| Library size    | 6.5MB    | 33.5MB   | 2.8MB     | 0MB        |
-| Executable size | 34.4MB   | 47.7MB   | 38.6MB    | 51.8MB     |
+| Build framework | 3.6s     | 42s      | 2.1s      | 0s         |
+| Build tests     | 66s      | 75s      | 76s       | 117s       |
+| Build all       | 70s      | 117s     | 78s       | 117s       |
+| Run tests       | 36ms     | 67ms     | 63ms      | 14ms       |
+| Library size    | 7.6MB    | 33.5MB   | 2.8MB     | 0MB        |
+| Executable size | 35.2MB   | 47.7MB   | 38.6MB    | 51.8MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 4.4s     | 48s      | 3.7s      | 0s         |
-| Build tests     | 141s     | 233s     | 210s      | 289s       |
-| Build all       | 145s     | 281s     | 214s      | 289s       |
-| Run tests       | 24ms     | 37ms     | 42ms      | 5ms        |
-| Library size    | 1.12MB   | 2.5MB    | 0.39MB    | 0MB        |
-| Executable size | 9.7MB    | 17.4MB   | 15.5MB    | 11.4MB     |
+| Build framework | 4.7s     | 48s      | 3.7s      | 0s         |
+| Build tests     | 143s     | 233s     | 210s      | 289s       |
+| Build all       | 148s     | 281s     | 214s      | 289s       |
+| Run tests       | 25ms     | 37ms     | 42ms      | 5ms        |
+| Library size    | 1.32MB   | 2.5MB    | 0.39MB    | 0MB        |
+| Executable size | 9.9MB    | 17.4MB   | 15.5MB    | 11.4MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
  - _Boost UT_ was unable to compile and pass the tests without modifications to its implementation (issues were reported).
+
 
 ## Documentation
 
@@ -266,7 +269,7 @@ Given that _snitch_ mostly offers a subset of the _Catch2_ API, why would anyone
 
  - _snitch_ has a much smaller compile-time footprint than _Catch2_, see the benchmarks above. If your tested code is very cheap to compile, but you have a large number of tests and/or assertions, your compilation time may be dominated by the testing framework implementation (this is the case in the benchmarks). If the compilation time with _Catch2_ becomes prohibitive or annoying, you can give _snitch_ a try to see if it improves it.
 
- - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use one of the supported build systems.
+ - _snitch_ can be used as a header-only library. This may be relevant for very small projects, or projects that do not use one of the supported build systems. Note however that doing so will likely nullify any compile-time advantage over alternative testing libraries; this is not recommended if compilation time is a concern.
 
  - _snitch_ has better reporting of typed tests (template test cases). While _Catch2_ will only report the type index in the test type list, _snitch_ will actually report the type name. This makes it easier to find which type generated a failure.
 
@@ -748,7 +751,7 @@ If you cannot write your serialization function in this way (or for optimal spee
  - growing the string span by this amount using `ss.grow(n)` or `ss.resize(old_size + n)`,
  - actually writing the textual representation of your value into the raw character array, accessible between `ss.begin() + old_size` and `ss.end()`.
 
-Note that _snitch_ small strings have a fixed capacity; once this capacity is reached, the string cannot grow further, and the output must be truncated. This will normally be indicated by a `...` at the end of the strings being reported (this is automatically added by _snitch_; you do not need to do this yourself). If this happens, depending on which string was truncated, there are a number of compilation options that can be modified to increase the maximum string length. See `CMakeLists.txt`, or at the top of `snitch.hpp`, for a complete list.
+Note that _snitch_ small strings have a fixed capacity; once this capacity is reached, the string cannot grow further, and the output must be truncated. This will normally be indicated by a `...` at the end of the strings being reported (this is automatically added by _snitch_; you do not need to do this yourself). If this happens, depending on which string was truncated, there are a number of compilation options that can be modified to increase the maximum string length. See `CMakeLists.txt`, or `snitch_config.hpp`, or the top of `snitch_all.hpp`, for a complete list.
 
 
 ### Reporters
@@ -761,10 +764,12 @@ In both cases, the core of the reporter is its "report" callback function. It is
  - a reference to the `snitch::registry` that generated the event
  - a reference to the `snitch::event::data` containing the event data. This type is a `std::variant`; use `std::visit` to act on the event.
 
+Most events are generated during the course of a normal test run. The only exceptions are `list_test_run_started`, `list_test_run_ended`, and `test_case_listed`, which are generated when listing tests (`--list-tests` option).
+
 When receiving a test event, the event object will only contain non-owning references (e.g., in the form of string views) to the actual event data. These references are only valid until the report function returns; after this, the event data will be destroyed or overwritten. If you need persistent access to this data (e.g., because your reporting format requires reporting the data at a different time than when the event is generated), you must explicitly copy the relevant data, and not the references. For example, for strings, this could involve creating a `std::string` (or `snitch::small_string`) from the `std::string_view` stored in the event object.
 
 Finally, note that events being sent to the reporter are affected by the chosen verbosity:
- - `quiet`: `assertion_failed` and `test_case_skipped` only.
+ - `quiet`: `assertion_failed`, `test_case_skipped`, `list_test_run_started`, `list_test_run_ended`, and `test_case_listed` only.
  - `normal`: same as `quiet`, plus `test_run_started` and `test_run_ended`.
  - `high`: same as `normal`, plus `test_case_started` and `test_case_ended`.
  - `full`: same as `high`, plus `assertion_succeeded` (i.e., all events).
@@ -1034,6 +1039,6 @@ The process:
  - Job done! Congratulations.
 
 
-## Why _snitch_?
+## Why then name _snitch_?
 
 Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
