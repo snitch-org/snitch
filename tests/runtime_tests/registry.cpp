@@ -837,9 +837,11 @@ TEST_CASE("configure output", "[registry]") {
 
         CHECK(console.messages.empty());
 
-        std::ifstream file("test_output.txt");
-        std::string   line;
-        std::getline(file, line);
+        std::string line;
+        {
+            std::ifstream file("test_output.txt");
+            std::getline(file, line);
+        }
 
         CHECK(line == snitch::matchers::contains_substring{"starting test with snitch"});
 
