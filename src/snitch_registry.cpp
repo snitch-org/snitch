@@ -920,6 +920,11 @@ void registry::configure(const cli::input& args) noexcept {
         }
     }
 
+    if (auto opt = get_option(args, "--out")) {
+        file_writer    = impl::file_writer{*opt->value};
+        print_callback = {*file_writer, snitch::constant<&impl::file_writer::write>{}};
+    }
+
     if (auto opt = get_option(args, "--reporter")) {
         impl::parse_reporter(*this, registered_reporters, *opt->value);
     }

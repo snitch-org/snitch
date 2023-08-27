@@ -867,6 +867,7 @@ _snitch_ offers the following command-line API:
  - `   --list-reporters`: list all registered reporters.
  - `-r,--reporter <reporter[::key=value]*>`: choose which reporter to use to output the test events.
  - `-v,--verbosity <quiet|normal|high|full>`: select level of detail for test events.
+ - `-o,--output <path>`: save test output to a file rather than the standard output.
  - `   --color <always|default|never>`: enable/disable colors in the default reporter.
 
 The following options are provided for compatibility with _Catch2_:

@@ -7,6 +7,7 @@
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_error_handling.hpp"
 #include "snitch/snitch_expression.hpp"
+#include "snitch/snitch_file.hpp"
 #include "snitch/snitch_function.hpp"
 #include "snitch/snitch_reporter_console.hpp"
 #include "snitch/snitch_string.hpp"
@@ -105,6 +106,9 @@ class registry {
 
     // Contains all registered reporters.
     small_vector<registered_reporter, max_registered_reporters> registered_reporters;
+
+    // Used when writing output to file.
+    std::optional<impl::file_writer> file_writer;
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
