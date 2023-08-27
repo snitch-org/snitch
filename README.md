@@ -1003,8 +1003,8 @@ To use _snitch_ as header-only in your code, simply include `snitch_all.hpp` ins
 ### IDE integrations
 
 There are no IDE integrations created specifically for _snitch_. However, since _snitch_ implements most of the _Catch2_ command-line API, _Catch2_ integrations tend to work for _snitch_ test applications as well. See in particular:
- - [Visual Studio Code](https://code.visualstudio.com/) and the [C++ TestMate](https://marketplace.visualstudio.com/items?itemName=matepek.vscode-catch2-test-adapter) extension. Tested successfully on 26/08/2023.*
- - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) and the [_Catch2_ Test Adapter](https://marketplace.visualstudio.com/items?itemName=JohnnyHendriks.ext01) extension. Could not get it to work even with _Catch2_...
+ - [Visual Studio Code](https://code.visualstudio.com/) and the [C++ TestMate](https://marketplace.visualstudio.com/items?itemName=matepek.vscode-catch2-test-adapter) extension. Tested successfully on 26/08/2023.
+ - [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) and the [_Catch2_ Test Adapter](https://marketplace.visualstudio.com/items?itemName=JohnnyHendriks.ext01) extension. Tested successfully on 27/08/2023.
  - [CLion](https://www.jetbrains.com/clion/) using the builtin _Catch2_ configuration. Tested partially on 20/08/2023 (I don't have a CLion license).
 
 Feel free to report any issues you encounter using these IDE integrations; If you would like to contribute
