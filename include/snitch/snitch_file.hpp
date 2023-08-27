@@ -13,6 +13,8 @@ class file_writer {
     void* file_handle = nullptr;
 
 public:
+    constexpr file_writer() noexcept = default;
+
     // Requires: permission to write to the given path, path length less than max_path_length
     explicit file_writer(std::string_view path);
 
