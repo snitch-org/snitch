@@ -1006,9 +1006,5 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
     return registered_reporters;
 }
 
-constinit registry tests = []() {
-    registry r;
-    r.with_color = SNITCH_DEFAULT_WITH_COLOR == 1;
-    return r;
-}();
+constinit registry tests;
 } // namespace snitch

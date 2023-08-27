@@ -112,7 +112,7 @@ class registry {
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
-    bool with_color                                            = true;
+    bool with_color                                            = SNITCH_DEFAULT_WITH_COLOR == 1;
 
     using print_function             = snitch::print_function;
     using initialize_report_function = snitch::initialize_report_function;
