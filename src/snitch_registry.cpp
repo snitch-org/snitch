@@ -780,8 +780,15 @@ bool run_tests_impl(registry& r, const cli::input& args) noexcept {
 } // namespace
 
 bool registry::run_tests(const cli::input& args) noexcept {
-    bool success = run_tests_impl(*this, args);
+    // Run tests.
+    const bool success = run_tests_impl(*this, args);
+
+    // Tell the current reporter we are done.
     finish_callback(*this);
+
+    // Close the output file, if any.
+    file_writer.reset();
+
     return success;
 }
 
