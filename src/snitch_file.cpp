@@ -13,7 +13,15 @@ file_writer::file_writer(std::string_view path) {
         assertion_failed("output file path is too long");
     }
 
+#if defined(_MSC_VER)
+    // MSVC thinks std::fopen is unsafe.
+    std::FILE* tmp_handle = nullptr;
+    fopen_s(&tmp_handle, null_terminated_path.data(), "w");
+    file_handle = tmp_handle;
+#else
     file_handle = std::fopen(null_terminated_path.data(), "w");
+#endif
+
     if (file_handle == nullptr) {
         assertion_failed("output file could not be opened for writing");
     }
