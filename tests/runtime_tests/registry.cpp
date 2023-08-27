@@ -822,7 +822,7 @@ TEST_CASE("configure reporter", "[registry]") {
     }
 }
 
-TEST_CASE("run tests cli", "[registry]") {
+TEST_CASE("run tests cli", "[registry][cli]") {
     mock_framework framework;
     framework.setup_reporter();
     register_tests(framework);
@@ -849,6 +849,13 @@ TEST_CASE("run tests cli", "[registry]") {
         CHECK(framework.get_num_runs() == 0u);
         CHECK(console.messages == contains_substring("test [options...]"));
     }
+}
+
+TEST_CASE("list stuff cli", "[registry][cli]") {
+    mock_framework framework;
+    framework.setup_reporter();
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("--list-tests") {
         const arg_vector args = {"test", "--list-tests"};
@@ -929,6 +936,13 @@ TEST_CASE("run tests cli", "[registry]") {
             CHECK(console.messages == contains_substring("custom"));
         }
     }
+}
+
+TEST_CASE("run tests filtered cli", "[registry][cli]") {
+    mock_framework framework;
+    framework.setup_reporter();
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("test filter") {
         const arg_vector args = {"test", "how many*"};
