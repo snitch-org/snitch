@@ -28,7 +28,7 @@ function(add_platform_definitions TARGET)
         target_compile_options(${TARGET} PRIVATE /WX)
         target_compile_options(${TARGET} PRIVATE /EHs)
         # Increase default stack size to match default for Linux
-        target_compile_options(${TARGET} PRIVATE "/F 8388608")
+        target_link_options(${TARGET} PRIVATE /STACK:8388608)
     endif()
 
     if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
