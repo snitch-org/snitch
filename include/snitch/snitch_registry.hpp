@@ -185,7 +185,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    SNITCH_EXPORT const char*
+    const char*
     add_with_types(const impl::name_and_tags& id, const source_location& location, const F& func) {
         return (
             add_impl(
@@ -196,7 +196,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
-    SNITCH_EXPORT const char* add_with_type_list(
+    const char* add_with_type_list(
         const impl::name_and_tags& id, const source_location& location, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
             return this->add_with_types<Args...>(id, location, func);
@@ -213,7 +213,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    SNITCH_EXPORT const char* add_fixture_with_types(
+    const char* add_fixture_with_types(
         const impl::fixture_name_and_tags& id, const source_location& location, const F& func) {
         return (
             add_impl(
@@ -225,7 +225,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
-    SNITCH_EXPORT const char* add_fixture_with_type_list(
+    const char* add_fixture_with_type_list(
         const impl::fixture_name_and_tags& id, const source_location& location, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
             return this->add_fixture_with_types<Args...>(id, location, func);
