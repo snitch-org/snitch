@@ -76,6 +76,13 @@ else()
     set(RUNTIME_TEST_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/runtime_tests)
 endif()
 
+function(copy_shared_library TARGET)
+    if (BUILD_SHARED_LIBS AND WIN32)
+        add_custom_command(TARGET ${TARGET} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:snitch-testlib> $<TARGET_FILE_DIR:${TARGET}>)
+    endif()
+endfunction()
+
 include(FetchContent)
 
 set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
@@ -101,6 +108,7 @@ add_platform_definitions(snitch_runtime_tests)
 target_compile_features(snitch_runtime_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests PUBLIC
     SNITCH_WITH_SHORTHAND_MACROS=0)
+copy_shared_library(snitch_runtime_tests)
 
 add_custom_target(snitch_runtime_tests_run
     COMMAND snitch_runtime_tests
@@ -123,6 +131,7 @@ add_platform_definitions(snitch_approval_tests)
 target_compile_features(snitch_approval_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_approval_tests PUBLIC
     SNITCH_WITH_SHORTHAND_MACROS=0)
+copy_shared_library(snitch_approval_tests)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     # Add approval test data to the preload-file list
@@ -148,6 +157,7 @@ add_platform_definitions(snitch_runtime_tests_self)
 target_compile_features(snitch_runtime_tests_self PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests_self PUBLIC
     SNITCH_TEST_WITH_SNITCH)
+copy_shared_library(snitch_runtime_tests_self)
 
 add_custom_target(snitch_runtime_tests_self_run
     COMMAND snitch_runtime_tests_self
