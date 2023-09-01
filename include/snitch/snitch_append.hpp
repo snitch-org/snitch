@@ -25,12 +25,12 @@ static_assert(
 } // namespace snitch
 
 namespace snitch::impl {
-[[nodiscard]] bool append_fast(small_string_span ss, std::string_view str) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, const void* ptr) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, large_uint_t i) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, large_int_t i) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, float f) noexcept;
-[[nodiscard]] bool append_fast(small_string_span ss, double f) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, std::string_view str) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, const void* ptr) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, large_uint_t i) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, large_int_t i) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, float f) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, double f) noexcept;
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, std::string_view str) noexcept {
     const bool        could_fit  = str.size() <= ss.available();

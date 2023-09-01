@@ -48,7 +48,7 @@ struct fixture_name_and_tags {
     std::string_view tags    = {};
 };
 
-std::string_view
+SNITCH_EXPORT std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept;
 
 template<typename T, typename F>
@@ -293,7 +293,7 @@ public:
     SNITCH_EXPORT small_vector_span<const registered_reporter> reporters() const noexcept;
 };
 
-extern constinit registry tests;
+SNITCH_EXPORT extern constinit registry tests;
 } // namespace snitch
 
 #endif

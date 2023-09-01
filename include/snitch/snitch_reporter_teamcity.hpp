@@ -10,9 +10,9 @@
 #    include <string_view>
 
 namespace snitch::reporter::teamcity {
-void initialize(registry& r) noexcept;
+SNITCH_EXPORT void initialize(registry& r) noexcept;
 
-void report(const registry& r, const snitch::event::data& event) noexcept;
+SNITCH_EXPORT void report(const registry& r, const snitch::event::data& event) noexcept;
 } // namespace snitch::reporter::teamcity
 
 #endif
