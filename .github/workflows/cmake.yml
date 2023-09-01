@@ -22,7 +22,7 @@ jobs:
         - { name: Ubuntu GCC noexcept,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='-fno-exceptions'"}
         - { name: Ubuntu GCC notime,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_WITH_TIMINGS=0"}
         - { name: Ubuntu GCC nounity,     os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_UNITY_BUILD=0"}
-        - { name: Ubuntu GCC header-only, os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_HEADER_ONLY=1"}
+        - { name: Ubuntu GCC header-only, os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "header-only",        cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_HEADER_ONLY=1"}
         - { name: Ubuntu GCC shared,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DBUILD_SHARED_LIBS=1"}
         - { name: Ubuntu Clang,           os: ubuntu-latest,  publish: true,  compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++'"}
         - { name: Ubuntu Clang noexcept,  os: ubuntu-latest,  publish: false, compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++ -fno-exceptions'"}
@@ -120,20 +120,12 @@ jobs:
       run: cmake --build . --config ${{matrix.build-type}} --target install
 
     # In action-zip, all paths are relative to ${{github.workspace}}
-    - name: Zip full build
+    - name: Zip build
       if: matrix.build-type == 'Release' && matrix.platform.publish && github.ref == 'refs/heads/main'
       uses: vimtor/action-zip@v1
       with:
         files: install/ LICENSE
         dest: snitch-${{matrix.platform.build}}.zip
-
-    # In action-zip, all paths are relative to ${{github.workspace}}
-    - name: Zip header-only
-      if: matrix.build-type == 'Release' && matrix.platform.publish && github.ref == 'refs/heads/main'
-      uses: vimtor/action-zip@v1
-      with:
-        files: install/include/snitch/snitch_all.hpp LICENSE
-        dest: snitch-header-only.zip
 
     - name: Upload build as an artifact
       if: matrix.build-type == 'Release' && matrix.platform.publish && github.ref == 'refs/heads/main'
@@ -142,5 +134,4 @@ jobs:
         name: snitch-build
         path: |
           ${{github.workspace}}/snitch-${{matrix.platform.build}}.zip
-          ${{github.workspace}}/snitch-header-only.zip
 
