@@ -37,57 +37,6 @@ function(add_platform_definitions TARGET)
     endif()
 endfunction()
 
-# We need to use a different snitch configuration for tests, so we can't reuse
-# the library that was built at the higher level. We need to create a local copy
-# here.
-function(configure_snitch_for_tests CHOSEN_INTERFACE)
-    target_compile_definitions(snitch-testlib ${CHOSEN_INTERFACE}
-        SNITCH_MAX_TEST_CASES=200
-        SNITCH_MAX_EXPR_LENGTH=128
-        SNITCH_MAX_MESSAGE_LENGTH=128
-        SNITCH_MAX_TEST_NAME_LENGTH=128
-        SNITCH_MAX_CAPTURE_LENGTH=128
-        SNITCH_DEFINE_MAIN=0)
-endfunction()
-
-if (NOT SNITCH_HEADER_ONLY)
-    # Build as a standard library (static or dynamic) with header.
-    add_library(snitch-testlib
-        ${SNITCH_INCLUDES}
-        ${SNITCH_SOURCES})
-    add_dependencies(snitch-testlib snitch)
-
-    target_compile_features(snitch-testlib PUBLIC cxx_std_20)
-    target_include_directories(snitch-testlib PUBLIC
-        ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/src
-        ${PROJECT_BINARY_DIR})
-
-    if (BUILD_SHARED_LIBS)
-        target_compile_definitions(snitch-testlib PRIVATE SNITCH_EXPORTS)
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR MINGW)
-            # Nothing to do; default is already to hide symbols unless exported.
-        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
-            CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
-            CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-            # Set default visibility to "hidden" so only exported symbols are visible.
-            target_compile_options(snitch-testlib PRIVATE -fvisibility=hidden)
-            target_compile_options(snitch-testlib PRIVATE -fvisibility-inlines-hidden)
-        endif()
-    endif()
-
-    configure_snitch_for_tests(PUBLIC)
-else()
-    add_library(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
-    add_dependencies(snitch-testlib snitch)
-
-    target_compile_features(snitch-testlib INTERFACE cxx_std_20)
-    target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
-
-    configure_snitch_for_tests(INTERFACE)
-    target_compile_definitions(snitch-testlib INTERFACE SNITCH_TEST_HEADER_ONLY)
-endif()
-
 set(TEST_UTILITY_FILES
     ${PROJECT_SOURCE_DIR}/tests/testing.cpp
     ${PROJECT_SOURCE_DIR}/tests/testing_event.cpp
