@@ -165,7 +165,7 @@ public:
     }
 
     // Requires: number of reporters + 1 <= max_registered_reporters.
-    std::string_view add_reporter(
+    SNITCH_EXPORT std::string_view add_reporter(
         std::string_view                                 name,
         const std::optional<initialize_report_function>& initialize,
         const std::optional<configure_report_function>&  configure,
@@ -174,17 +174,18 @@ public:
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char* add_impl(const test_id& id, const source_location& location, impl::test_ptr func);
+    SNITCH_EXPORT const char*
+    add_impl(const test_id& id, const source_location& location, impl::test_ptr func);
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char*
+    SNITCH_EXPORT const char*
     add(const impl::name_and_tags& id, const source_location& location, impl::test_ptr func);
 
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    const char*
+    SNITCH_EXPORT const char*
     add_with_types(const impl::name_and_tags& id, const source_location& location, const F& func) {
         return (
             add_impl(
@@ -195,7 +196,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
-    const char* add_with_type_list(
+    SNITCH_EXPORT const char* add_with_type_list(
         const impl::name_and_tags& id, const source_location& location, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
             return this->add_with_types<Args...>(id, location, func);
@@ -204,7 +205,7 @@ public:
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char* add_fixture(
+    SNITCH_EXPORT const char* add_fixture(
         const impl::fixture_name_and_tags& id,
         const source_location&             location,
         impl::test_ptr                     func);
@@ -212,7 +213,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename... Args, typename F>
-    const char* add_fixture_with_types(
+    SNITCH_EXPORT const char* add_fixture_with_types(
         const impl::fixture_name_and_tags& id, const source_location& location, const F& func) {
         return (
             add_impl(
@@ -224,7 +225,7 @@ public:
     // Internal API; do not use.
     // Requires: number of tests + added tests <= max_test_cases, well-formed test ID.
     template<typename T, typename F>
-    const char* add_fixture_with_type_list(
+    SNITCH_EXPORT const char* add_fixture_with_type_list(
         const impl::fixture_name_and_tags& id, const source_location& location, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
             return this->add_fixture_with_types<Args...>(id, location, func);
@@ -232,14 +233,14 @@ public:
     }
 
     // Internal API; do not use.
-    void report_assertion(
+    SNITCH_EXPORT void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
     // Internal API; do not use.
-    void report_assertion(
+    SNITCH_EXPORT void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
@@ -247,14 +248,14 @@ public:
         std::string_view          message2) const noexcept;
 
     // Internal API; do not use.
-    void report_assertion(
+    SNITCH_EXPORT void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         const impl::expression&   exp) const noexcept;
 
     // Internal API; do not use.
-    void report_skipped(
+    SNITCH_EXPORT void report_skipped(
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
@@ -271,25 +272,25 @@ public:
         const filter_info&                                   filter_strings,
         const small_function<bool(const test_id&) noexcept>& filter) noexcept;
 
-    bool run_tests(const cli::input& args) noexcept;
+    SNITCH_EXPORT bool run_tests(const cli::input& args) noexcept;
 
     // Requires: output file path (if configured) is valid
-    void configure(const cli::input& args);
+    SNITCH_EXPORT void configure(const cli::input& args);
 
-    void list_all_tests() const noexcept;
+    SNITCH_EXPORT void list_all_tests() const noexcept;
 
     // Requires: number unique tags <= max_unique_tags.
-    void list_all_tags() const;
+    SNITCH_EXPORT void list_all_tags() const;
 
-    void list_tests_with_tag(std::string_view tag) const noexcept;
+    SNITCH_EXPORT void list_tests_with_tag(std::string_view tag) const noexcept;
 
-    void list_all_reporters() const noexcept;
+    SNITCH_EXPORT void list_all_reporters() const noexcept;
 
-    small_vector_span<impl::test_case>       test_cases() noexcept;
-    small_vector_span<const impl::test_case> test_cases() const noexcept;
+    SNITCH_EXPORT small_vector_span<impl::test_case> test_cases() noexcept;
+    SNITCH_EXPORT small_vector_span<const impl::test_case> test_cases() const noexcept;
 
-    small_vector_span<registered_reporter>       reporters() noexcept;
-    small_vector_span<const registered_reporter> reporters() const noexcept;
+    SNITCH_EXPORT small_vector_span<registered_reporter> reporters() noexcept;
+    SNITCH_EXPORT small_vector_span<const registered_reporter> reporters() const noexcept;
 };
 
 extern constinit registry tests;
