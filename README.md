@@ -172,7 +172,6 @@ See the documentation for the [header-only build](#header-only-build) for more i
 
 ## Example build configuration with meson
 
-
 First, [meson build](https://mesonbuild.com/) needs a [`subprojects`](https://mesonbuild.com/Subprojects.html#using-a-subproject) directory in your project source root for dependencies. Create this directory if it does not exist, then, from within your project source root, run:
 
 ```bash
