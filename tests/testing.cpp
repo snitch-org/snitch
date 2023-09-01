@@ -9,5 +9,6 @@
 
 #if defined(SNITCH_TEST_WITH_SNITCH) && !defined(SNITCH_TEST_HEADER_ONLY)
 #    undef SNITCH_EXPORT
+#    define SNITCH_EXPORT
 #    include "snitch_main.cpp"
 #endif
