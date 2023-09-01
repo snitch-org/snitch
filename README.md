@@ -713,7 +713,9 @@ When the _snitch_ framework needs to serialize a value to a string, it does so w
 
 Built-in serialization functions are provided for all fundamental types: integers, enums (serialized as their underlying integer type), floating point, booleans, standard `string_view` and `char*`, and raw pointers.
 
-If you want to serialize custom types not supported out of the box by _snitch_, you need to provide your own `append()` function. This function must be placed in the same namespace as your custom type or in the `snitch` namespace, so it can be found by ADL. In most cases, this function can be written in terms of serialization of fundamental types, and won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
+If you want to serialize custom types not supported out of the box by _snitch_, you need to provide your own `append()` function. This function must be placed in the same namespace as your custom type or in the `snitch` namespace, so it can be [found by ADL (argument-dependent lookup)](https://en.cppreference.com/w/cpp/language/adl). ADL rules can be complex to follow, so if in doubt, simply define your `append()` function in the `snitch` namespace.
+
+In most cases, the `append()` function can be written in terms of serialization of fundamental types which are already supported by _snitch_, and therefore won't require low-level string manipulation. For example, to serialize a structure representing the 3D coordinates of a point:
 
 ```c++
 namespace my_namespace {
@@ -723,7 +725,7 @@ namespace my_namespace {
         float z;
     };
 
-    bool append(small_string_span ss, const vec3d& v) {
+    bool append(snitch::small_string_span ss, const vec3d& v) {
         return append(ss, "{", v.x, ",", v.y, ",", v.z, "}");
     }
 }
@@ -740,7 +742,7 @@ namespace my_namespace {
         std::string toString() const;
     };
 
-    bool append(small_string_span ss, const MyClass& c) {
+    bool append(snitch::small_string_span ss, const MyClass& c) {
         return append(ss, c.toString());
     }
 }
