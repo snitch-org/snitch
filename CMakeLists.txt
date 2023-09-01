@@ -49,6 +49,8 @@ else()
     set(SNITCH_FULL_VERSION "${PROJECT_VERSION}")
 endif()
 
+set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
+
 # Create configure file to store CMake build parameter
 configure_file("${PROJECT_SOURCE_DIR}/include/snitch/snitch_config.hpp.config"
                "${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp")
@@ -125,6 +127,19 @@ if (SNITCH_CREATE_LIBRARY)
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+
+    if (BUILD_SHARED_LIBS)
+        target_compile_definitions(snitch PRIVATE SNITCH_EXPORTS)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR MINGW)
+            # Nothing to do; default is already to hide symbols unless exported.
+        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+            # Set default visibility to "hidden" so only exported symbols are visible.
+            target_compile_options(snitch PRIVATE -fvisibility=hidden)
+            target_compile_options(snitch PRIVATE -fvisibility-inlines-hidden)
+        endif()
+    endif()
 
     install(
         FILES ${SNITCH_INCLUDES}
