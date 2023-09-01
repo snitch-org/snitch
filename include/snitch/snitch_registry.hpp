@@ -48,7 +48,7 @@ struct fixture_name_and_tags {
     std::string_view tags    = {};
 };
 
-std::string_view
+SNITCH_EXPORT std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept;
 
 template<typename T, typename F>
@@ -58,8 +58,8 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 
 struct abort_exception {};
 
-bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
-bool parse_color_option(registry& reg, std::string_view color_option) noexcept;
+SNITCH_EXPORT bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
+SNITCH_EXPORT bool parse_color_option(registry& reg, std::string_view color_option) noexcept;
 } // namespace snitch::impl
 
 namespace snitch {
@@ -71,17 +71,19 @@ struct filter_result {
     bool implicit = false;
 };
 
-[[nodiscard]] filter_result filter_result_and(filter_result first, filter_result second) noexcept;
+SNITCH_EXPORT [[nodiscard]] filter_result
+filter_result_and(filter_result first, filter_result second) noexcept;
 
-[[nodiscard]] filter_result filter_result_or(filter_result first, filter_result second) noexcept;
+SNITCH_EXPORT [[nodiscard]] filter_result
+filter_result_or(filter_result first, filter_result second) noexcept;
 
-[[nodiscard]] filter_result
+SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
 
-[[nodiscard]] filter_result
+SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
 
-[[nodiscard]] filter_result
+SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept;
 
 using print_function  = small_function<void(std::string_view) noexcept>;
@@ -165,7 +167,7 @@ public:
     }
 
     // Requires: number of reporters + 1 <= max_registered_reporters.
-    std::string_view add_reporter(
+    SNITCH_EXPORT std::string_view add_reporter(
         std::string_view                                 name,
         const std::optional<initialize_report_function>& initialize,
         const std::optional<configure_report_function>&  configure,
@@ -174,11 +176,12 @@ public:
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char* add_impl(const test_id& id, const source_location& location, impl::test_ptr func);
+    SNITCH_EXPORT const char*
+    add_impl(const test_id& id, const source_location& location, impl::test_ptr func);
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char*
+    SNITCH_EXPORT const char*
     add(const impl::name_and_tags& id, const source_location& location, impl::test_ptr func);
 
     // Internal API; do not use.
@@ -204,7 +207,7 @@ public:
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.
-    const char* add_fixture(
+    SNITCH_EXPORT const char* add_fixture(
         const impl::fixture_name_and_tags& id,
         const source_location&             location,
         impl::test_ptr                     func);
@@ -232,14 +235,14 @@ public:
     }
 
     // Internal API; do not use.
-    void report_assertion(
+    SNITCH_EXPORT void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
     // Internal API; do not use.
-    void report_assertion(
+    SNITCH_EXPORT void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
@@ -247,52 +250,52 @@ public:
         std::string_view          message2) const noexcept;
 
     // Internal API; do not use.
-    void report_assertion(
+    SNITCH_EXPORT void report_assertion(
         bool                      success,
         impl::test_state&         state,
         const assertion_location& location,
         const impl::expression&   exp) const noexcept;
 
     // Internal API; do not use.
-    void report_skipped(
+    SNITCH_EXPORT void report_skipped(
         impl::test_state&         state,
         const assertion_location& location,
         std::string_view          message) const noexcept;
 
     // Internal API; do not use.
-    impl::test_state run(impl::test_case& test) noexcept;
+    SNITCH_EXPORT impl::test_state run(impl::test_case& test) noexcept;
 
     // Internal API; do not use.
-    bool run_tests(std::string_view run_name) noexcept;
+    SNITCH_EXPORT bool run_tests(std::string_view run_name) noexcept;
 
     // Internal API; do not use.
-    bool run_selected_tests(
+    SNITCH_EXPORT bool run_selected_tests(
         std::string_view                                     run_name,
         const filter_info&                                   filter_strings,
         const small_function<bool(const test_id&) noexcept>& filter) noexcept;
 
-    bool run_tests(const cli::input& args) noexcept;
+    SNITCH_EXPORT bool run_tests(const cli::input& args) noexcept;
 
     // Requires: output file path (if configured) is valid
-    void configure(const cli::input& args);
+    SNITCH_EXPORT void configure(const cli::input& args);
 
-    void list_all_tests() const noexcept;
+    SNITCH_EXPORT void list_all_tests() const noexcept;
 
     // Requires: number unique tags <= max_unique_tags.
-    void list_all_tags() const;
+    SNITCH_EXPORT void list_all_tags() const;
 
-    void list_tests_with_tag(std::string_view tag) const noexcept;
+    SNITCH_EXPORT void list_tests_with_tag(std::string_view tag) const noexcept;
 
-    void list_all_reporters() const noexcept;
+    SNITCH_EXPORT void list_all_reporters() const noexcept;
 
-    small_vector_span<impl::test_case>       test_cases() noexcept;
-    small_vector_span<const impl::test_case> test_cases() const noexcept;
+    SNITCH_EXPORT small_vector_span<impl::test_case> test_cases() noexcept;
+    SNITCH_EXPORT small_vector_span<const impl::test_case> test_cases() const noexcept;
 
-    small_vector_span<registered_reporter>       reporters() noexcept;
-    small_vector_span<const registered_reporter> reporters() const noexcept;
+    SNITCH_EXPORT small_vector_span<registered_reporter> reporters() noexcept;
+    SNITCH_EXPORT small_vector_span<const registered_reporter> reporters() const noexcept;
 };
 
-extern constinit registry tests;
+SNITCH_EXPORT extern constinit registry tests;
 } // namespace snitch
 
 #endif

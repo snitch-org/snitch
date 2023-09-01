@@ -10,11 +10,11 @@ namespace snitch {
 // Maximum length of error messages.
 constexpr std::size_t max_message_length = SNITCH_MAX_MESSAGE_LENGTH;
 
-[[noreturn]] void terminate_with(std::string_view msg) noexcept;
+[[noreturn]] SNITCH_EXPORT void terminate_with(std::string_view msg) noexcept;
 
-extern small_function<void(std::string_view)> assertion_failed_handler;
+SNITCH_EXPORT extern small_function<void(std::string_view)> assertion_failed_handler;
 
-[[noreturn]] void assertion_failed(std::string_view msg);
+[[noreturn]] SNITCH_EXPORT void assertion_failed(std::string_view msg);
 } // namespace snitch
 
 #endif

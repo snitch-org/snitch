@@ -16,16 +16,18 @@ enum class match_status { failed, matched };
 namespace snitch {
 template<typename T, typename U>
 concept matcher_for = requires(const T& m, const U& value) {
-    { m.match(value) } -> convertible_to<bool>;
-    { m.describe_match(value, matchers::match_status{}) } -> convertible_to<std::string_view>;
-};
+                          { m.match(value) } -> convertible_to<bool>;
+                          {
+                              m.describe_match(value, matchers::match_status{})
+                              } -> convertible_to<std::string_view>;
+                      };
 } // namespace snitch
 
 namespace snitch::impl {
 template<typename T>
 concept exception_with_what = requires(const T& e) {
-    { e.what() } -> convertible_to<std::string_view>;
-};
+                                  { e.what() } -> convertible_to<std::string_view>;
+                              };
 
 template<typename T, typename M>
 [[nodiscard]] constexpr auto match(T&& value, M&& matcher) noexcept {
@@ -44,12 +46,12 @@ namespace snitch::matchers {
 struct contains_substring {
     std::string_view substring_pattern;
 
-    explicit contains_substring(std::string_view pattern) noexcept;
+    SNITCH_EXPORT explicit contains_substring(std::string_view pattern) noexcept;
 
-    bool match(std::string_view message) const noexcept;
+    SNITCH_EXPORT bool match(std::string_view message) const noexcept;
 
-    small_string<max_message_length>
-    describe_match(std::string_view message, match_status status) const noexcept;
+    SNITCH_EXPORT small_string<max_message_length>
+                  describe_match(std::string_view message, match_status status) const noexcept;
 };
 
 template<typename T, std::size_t N>
@@ -95,7 +97,7 @@ template<typename T, typename... Args>
 is_any_of(T, Args...) -> is_any_of<T, sizeof...(Args) + 1>;
 
 struct with_what_contains : private contains_substring {
-    explicit with_what_contains(std::string_view pattern) noexcept;
+    SNITCH_EXPORT explicit with_what_contains(std::string_view pattern) noexcept;
 
     template<snitch::impl::exception_with_what E>
     bool match(const E& e) const noexcept {

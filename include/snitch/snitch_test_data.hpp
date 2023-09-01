@@ -274,11 +274,11 @@ struct test_state {
 #endif
 };
 
-test_state& get_current_test() noexcept;
+SNITCH_EXPORT test_state& get_current_test() noexcept;
 
-test_state* try_get_current_test() noexcept;
+SNITCH_EXPORT test_state* try_get_current_test() noexcept;
 
-void set_current_test(test_state* current) noexcept;
+SNITCH_EXPORT void set_current_test(test_state* current) noexcept;
 } // namespace snitch::impl
 
 #endif

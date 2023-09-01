@@ -19,12 +19,12 @@ struct scoped_capture {
     }
 };
 
-std::string_view extract_next_name(std::string_view& names) noexcept;
+SNITCH_EXPORT std::string_view extract_next_name(std::string_view& names) noexcept;
 
 struct test_state;
 
 // Requires: number of captures < max_captures.
-small_string<max_capture_length>& add_capture(test_state& state);
+SNITCH_EXPORT small_string<max_capture_length>& add_capture(test_state& state);
 
 // Requires: number of captures < max_captures.
 template<string_appendable T>

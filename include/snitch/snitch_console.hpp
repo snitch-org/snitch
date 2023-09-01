@@ -7,7 +7,7 @@
 #include <string_view>
 
 namespace snitch::impl {
-void stdout_print(std::string_view message) noexcept;
+SNITCH_EXPORT void stdout_print(std::string_view message) noexcept;
 
 using color_t = std::string_view;
 

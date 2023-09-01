@@ -65,6 +65,10 @@ with open(main_source) as src:
             input_filenames.append(os.path.join(root_dir, 'src', file.group(1)))
 
 with open(os.path.join(output_dir, output_filename), 'w') as output_file:
+    # Add preamble
+    output_file.write('#ifndef SNITCH_ALL_HPP\n')
+    output_file.write('#define SNITCH_ALL_HPP\n')
+
     file_count = 0
     for input_filename in input_filenames:
         # Add guard for implementation files
@@ -86,3 +90,5 @@ with open(os.path.join(output_dir, output_filename), 'w') as output_file:
         file_count += 1
         if file_count != len(input_filenames):
             output_file.write('\n')
+
+    output_file.write('\n#endif\n')

@@ -7,11 +7,11 @@
 #include <string_view>
 
 namespace snitch::reporter::console {
-void initialize(registry& r) noexcept;
+SNITCH_EXPORT void initialize(registry& r) noexcept;
 
-bool configure(registry&, std::string_view, std::string_view) noexcept;
+SNITCH_EXPORT bool configure(registry&, std::string_view, std::string_view) noexcept;
 
-void report(const registry& r, const snitch::event::data& event) noexcept;
+SNITCH_EXPORT void report(const registry& r, const snitch::event::data& event) noexcept;
 } // namespace snitch::reporter::console
 
 #endif

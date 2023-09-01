@@ -13,20 +13,21 @@ class file_writer {
     void* file_handle = nullptr;
 
 public:
-    constexpr file_writer() noexcept = default;
+    SNITCH_EXPORT constexpr file_writer() noexcept = default;
 
     // Requires: permission to write to the given path, path length less than max_path_length
-    explicit file_writer(std::string_view path);
+    SNITCH_EXPORT explicit file_writer(std::string_view path);
 
     file_writer(const file_writer&)            = delete;
     file_writer& operator=(const file_writer&) = delete;
 
-    file_writer(file_writer&& other) noexcept;
-    file_writer& operator=(file_writer&& other) noexcept;
+    SNITCH_EXPORT file_writer(file_writer&& other) noexcept;
 
-    ~file_writer();
+    SNITCH_EXPORT file_writer& operator=(file_writer&& other) noexcept;
 
-    void write(std::string_view message) noexcept;
+    SNITCH_EXPORT ~file_writer();
+
+    SNITCH_EXPORT void write(std::string_view message) noexcept;
 };
 } // namespace snitch::impl
 

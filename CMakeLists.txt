@@ -29,10 +29,9 @@ set(SNITCH_WITH_TEAMCITY_REPORTER          OFF CACHE BOOL "Allow the TeamCity re
 set(SNITCH_WITH_CATCH2_XML_REPORTER        OFF CACHE BOOL "Allow the Catch2 XML reporter to be selected from the command line -- enable if needed.")
 
 # Building and packaging options; not part of the library API.
-set(SNITCH_CREATE_HEADER_ONLY ON  CACHE BOOL "Create a single-header header-only version of snitch.")
-set(SNITCH_CREATE_LIBRARY     ON  CACHE BOOL "Build a compiled library version of snitch.")
-set(SNITCH_UNITY_BUILD        ON  CACHE BOOL "Build sources as single file instead of separate files (faster full build).")
-set(SNITCH_DO_TEST            OFF CACHE BOOL "Build tests.")
+set(SNITCH_HEADER_ONLY OFF CACHE BOOL "Create a single-header header-only version of snitch.")
+set(SNITCH_UNITY_BUILD ON  CACHE BOOL "Build sources as single file instead of separate files (faster full build).")
+set(SNITCH_DO_TEST     OFF CACHE BOOL "Build tests.")
 
 # Figure out git hash, if any
 execute_process(
@@ -47,6 +46,10 @@ if (GIT_COMMAND_SUCCESS EQUAL 0)
     set(SNITCH_FULL_VERSION "${PROJECT_VERSION}.${GIT_COMMIT_HASH}")
 else()
     set(SNITCH_FULL_VERSION "${PROJECT_VERSION}")
+endif()
+
+if (NOT SNITCH_HEADER_ONLY)
+    set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
 endif()
 
 # Create configure file to store CMake build parameter
@@ -111,12 +114,24 @@ else()
     set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
 endif()
 
-if (SNITCH_CREATE_LIBRARY)
-    # Build as a standard library (static or dynamic) with header.
-    add_library(snitch
-        ${SNITCH_INCLUDES}
-        ${SNITCH_SOURCES})
+function(configure_snitch_exports TARGET)
+    if (BUILD_SHARED_LIBS)
+        target_compile_definitions(${TARGET} PRIVATE SNITCH_EXPORTS)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR MINGW)
+            # Nothing to do; default is already to hide symbols unless exported.
+        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+            # Set default visibility to "hidden" so only exported symbols are visible.
+            target_compile_options(${TARGET} PRIVATE -fvisibility=hidden)
+            target_compile_options(${TARGET} PRIVATE -fvisibility-inlines-hidden)
+        endif()
+    endif()
+endfunction()
 
+if (NOT SNITCH_HEADER_ONLY)
+    # Build as a standard library (static or dynamic) with header.
+    add_library(snitch ${SNITCH_INCLUDES} ${SNITCH_SOURCES})
     add_library(snitch::snitch ALIAS snitch)
     set_target_properties(snitch PROPERTIES EXPORT_NAME snitch::snitch)
 
@@ -126,15 +141,15 @@ if (SNITCH_CREATE_LIBRARY)
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
+    configure_snitch_exports(snitch)
+
     install(
         FILES ${SNITCH_INCLUDES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
-endif()
-
-if (SNITCH_CREATE_HEADER_ONLY)
+else()
+    # Build as a header-only library.
     find_package(Python3)
 
-    # Build as a header-only library.
     add_custom_command(
         COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/make_snitch_all.py" "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}"
         VERBATIM
@@ -145,14 +160,14 @@ if (SNITCH_CREATE_HEADER_ONLY)
             ${SNITCH_SOURCES_INDIVIDUAL}
             ${PROJECT_SOURCE_DIR}/make_snitch_all.py)
 
-    add_library(snitch-header-only INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
-    add_library(snitch::snitch-header-only ALIAS snitch-header-only)
-    set_target_properties(snitch-header-only PROPERTIES EXPORT_NAME snitch::snitch-header-only)
+    add_library(snitch INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+    add_library(snitch::snitch ALIAS snitch)
+    set_target_properties(snitch PROPERTIES EXPORT_NAME snitch::snitch)
 
-    target_include_directories(snitch-header-only INTERFACE
+    target_compile_features(snitch INTERFACE cxx_std_20)
+    target_include_directories(snitch INTERFACE
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
-    target_compile_features(snitch-header-only INTERFACE cxx_std_20)
 
     install(
         FILES ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
@@ -160,13 +175,7 @@ if (SNITCH_CREATE_HEADER_ONLY)
 endif()
 
 # Setup CMake config file
-if (SNITCH_CREATE_LIBRARY AND SNITCH_CREATE_HEADER_ONLY)
-    install(TARGETS snitch snitch-header-only EXPORT snitch-targets)
-elseif (SNITCH_CREATE_LIBRARY)
-    install(TARGETS snitch EXPORT snitch-targets)
-elseif (SNITCH_CREATE_HEADER_ONLY)
-    install(TARGETS snitch-header-only EXPORT snitch-targets)
-endif()
+install(TARGETS snitch EXPORT snitch-targets)
 
 install(EXPORT snitch-targets
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
@@ -188,5 +197,41 @@ install(FILES
 # Setup tests
 if (SNITCH_DO_TEST)
     enable_testing()
+
+    # We need to use a different snitch configuration for tests, so we can't reuse
+    # the library that was built above. Create a copy.
+    function(configure_snitch_for_tests TARGET CHOSEN_INTERFACE)
+        target_compile_definitions(${TARGET} ${CHOSEN_INTERFACE}
+            SNITCH_MAX_TEST_CASES=200
+            SNITCH_MAX_EXPR_LENGTH=128
+            SNITCH_MAX_MESSAGE_LENGTH=128
+            SNITCH_MAX_TEST_NAME_LENGTH=128
+            SNITCH_MAX_CAPTURE_LENGTH=128
+            SNITCH_DEFINE_MAIN=0)
+    endfunction()
+
+    if (NOT SNITCH_HEADER_ONLY)
+        add_library(snitch-testlib ${SNITCH_INCLUDES} ${SNITCH_SOURCES})
+        add_dependencies(snitch-testlib snitch)
+
+        target_compile_features(snitch-testlib PUBLIC cxx_std_20)
+        target_include_directories(snitch-testlib PUBLIC
+            ${PROJECT_SOURCE_DIR}/include
+            ${PROJECT_SOURCE_DIR}/src
+            ${PROJECT_BINARY_DIR})
+
+        configure_snitch_exports(snitch-testlib)
+        configure_snitch_for_tests(snitch-testlib PUBLIC)
+    else()
+        add_library(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+        add_dependencies(snitch-testlib snitch)
+
+        target_compile_features(snitch-testlib INTERFACE cxx_std_20)
+        target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
+
+        configure_snitch_for_tests(snitch-testlib INTERFACE)
+        target_compile_definitions(snitch-testlib INTERFACE SNITCH_TEST_HEADER_ONLY)
+    endif()
+
     add_subdirectory(tests)
 endif()

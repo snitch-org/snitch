@@ -36,12 +36,13 @@ constexpr bool append_or_truncate(small_string_span ss, Args&&... args) noexcept
     return true;
 }
 
-[[nodiscard]] bool replace_all(
+SNITCH_EXPORT [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
 
-[[nodiscard]] std::size_t find_first_not_escaped(std::string_view str, char c) noexcept;
+SNITCH_EXPORT [[nodiscard]] std::size_t
+find_first_not_escaped(std::string_view str, char c) noexcept;
 
-[[nodiscard]] bool is_match(std::string_view string, std::string_view regex) noexcept;
+SNITCH_EXPORT [[nodiscard]] bool is_match(std::string_view string, std::string_view regex) noexcept;
 } // namespace snitch
 
 #endif

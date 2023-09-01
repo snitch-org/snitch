@@ -10,10 +10,10 @@ struct section_entry_checker {
     test_state& state;
     bool        entered = false;
 
-    ~section_entry_checker();
+    SNITCH_EXPORT ~section_entry_checker();
 
     // Requires: number of sections < max_nested_sections.
-    explicit operator bool();
+    SNITCH_EXPORT explicit operator bool();
 };
 } // namespace snitch::impl
 
