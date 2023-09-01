@@ -2,7 +2,7 @@
 #include "snitch/snitch_registry.hpp"
 
 #if SNITCH_DEFINE_MAIN
-int main(int argc, char* argv[]) {
+SNITCH_EXPORT int main(int argc, char* argv[]) {
     std::optional<snitch::cli::input> args = snitch::cli::parse_arguments(argc, argv);
     if (!args) {
         return 1;
