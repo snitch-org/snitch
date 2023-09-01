@@ -50,8 +50,8 @@ struct contains_substring {
 
     SNITCH_EXPORT bool match(std::string_view message) const noexcept;
 
-    small_string<max_message_length>
-        SNITCH_EXPORT describe_match(std::string_view message, match_status status) const noexcept;
+    SNITCH_EXPORT small_string<max_message_length>
+                  describe_match(std::string_view message, match_status status) const noexcept;
 };
 
 template<typename T, std::size_t N>
