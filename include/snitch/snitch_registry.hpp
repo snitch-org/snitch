@@ -58,8 +58,8 @@ constexpr test_ptr to_test_case_ptr(const F&) noexcept {
 
 struct abort_exception {};
 
-bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
-bool parse_color_option(registry& reg, std::string_view color_option) noexcept;
+SNITCH_EXPORT bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept;
+SNITCH_EXPORT bool parse_color_option(registry& reg, std::string_view color_option) noexcept;
 } // namespace snitch::impl
 
 namespace snitch {
@@ -71,17 +71,19 @@ struct filter_result {
     bool implicit = false;
 };
 
-[[nodiscard]] filter_result filter_result_and(filter_result first, filter_result second) noexcept;
+SNITCH_EXPORT [[nodiscard]] filter_result
+filter_result_and(filter_result first, filter_result second) noexcept;
 
-[[nodiscard]] filter_result filter_result_or(filter_result first, filter_result second) noexcept;
+SNITCH_EXPORT [[nodiscard]] filter_result
+filter_result_or(filter_result first, filter_result second) noexcept;
 
-[[nodiscard]] filter_result
+SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_name(std::string_view name, std::string_view filter) noexcept;
 
-[[nodiscard]] filter_result
+SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
 
-[[nodiscard]] filter_result
+SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept;
 
 using print_function  = small_function<void(std::string_view) noexcept>;
@@ -261,13 +263,13 @@ public:
         std::string_view          message) const noexcept;
 
     // Internal API; do not use.
-    impl::test_state run(impl::test_case& test) noexcept;
+    SNITCH_EXPORT impl::test_state run(impl::test_case& test) noexcept;
 
     // Internal API; do not use.
-    bool run_tests(std::string_view run_name) noexcept;
+    SNITCH_EXPORT bool run_tests(std::string_view run_name) noexcept;
 
     // Internal API; do not use.
-    bool run_selected_tests(
+    SNITCH_EXPORT bool run_selected_tests(
         std::string_view                                     run_name,
         const filter_info&                                   filter_strings,
         const small_function<bool(const test_id&) noexcept>& filter) noexcept;
