@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(snitch LANGUAGES CXX VERSION 1.1.1)
+project(snitch LANGUAGES CXX VERSION 1.2.0)
 
 # Maximum lengths.
-set(SNITCH_MAX_TEST_CASES        5000 CACHE STRING "Maximum number of test cases in a test application.")
-set(SNITCH_MAX_NESTED_SECTIONS   8    CACHE STRING "Maximum depth of nested sections in a test case.")
-set(SNITCH_MAX_EXPR_LENGTH       1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
-set(SNITCH_MAX_MESSAGE_LENGTH    1024 CACHE STRING "Maximum length of error or status messages.")
-set(SNITCH_MAX_TEST_NAME_LENGTH  1024 CACHE STRING "Maximum length of a test case name.")
-set(SNITCH_MAX_TAG_LENGTH        256  CACHE STRING "Maximum length of a test tag.")
-set(SNITCH_MAX_CAPTURES          8    CACHE STRING "Maximum number of captured expressions in a test case.")
-set(SNITCH_MAX_CAPTURE_LENGTH    256  CACHE STRING "Maximum length of a captured expression.")
-set(SNITCH_MAX_UNIQUE_TAGS       1024 CACHE STRING "Maximum number of unique tags in a test application.")
-set(SNITCH_MAX_COMMAND_LINE_ARGS 1024 CACHE STRING "Maximum number of command line arguments to a test application.")
+set(SNITCH_MAX_TEST_CASES           5000 CACHE STRING "Maximum number of test cases in a test application.")
+set(SNITCH_MAX_NESTED_SECTIONS      8    CACHE STRING "Maximum depth of nested sections in a test case.")
+set(SNITCH_MAX_EXPR_LENGTH          1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
+set(SNITCH_MAX_MESSAGE_LENGTH       1024 CACHE STRING "Maximum length of error or status messages.")
+set(SNITCH_MAX_TEST_NAME_LENGTH     1024 CACHE STRING "Maximum length of a test case name.")
+set(SNITCH_MAX_TAG_LENGTH           256  CACHE STRING "Maximum length of a test tag.")
+set(SNITCH_MAX_CAPTURES             8    CACHE STRING "Maximum number of captured expressions in a test case.")
+set(SNITCH_MAX_CAPTURE_LENGTH       256  CACHE STRING "Maximum length of a captured expression.")
+set(SNITCH_MAX_UNIQUE_TAGS          1024 CACHE STRING "Maximum number of unique tags in a test application.")
+set(SNITCH_MAX_COMMAND_LINE_ARGS    1024 CACHE STRING "Maximum number of command line arguments to a test application.")
+set(SNITCH_MAX_REGISTERED_REPORTERS 8    CACHE STRING "Maximum number of registered reporter that can be selected from the command line.")
+set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file path when writing output to file.")
 
 # Feature toggles.
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
@@ -22,6 +24,9 @@ set(SNITCH_WITH_SHORTHAND_MACROS           ON  CACHE BOOL "Use short names for t
 set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST     ON  CACHE BOOL "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")
 set(SNITCH_DEFAULT_WITH_COLOR              ON  CACHE BOOL "Enable terminal colors by default -- can also be controlled by command line interface.")
 set(SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS OFF CACHE BOOL "Enable expression decomposition even for successful assertions -- more expensive.")
+set(SNITCH_WITH_ALL_REPORTERS              ON  CACHE BOOL "Allow all built-in reporters to be selected from the command line -- disable for faster compilation.")
+set(SNITCH_WITH_TEAMCITY_REPORTER          OFF CACHE BOOL "Allow the TeamCity reporter to be selected from the command line -- enable if needed.")
+set(SNITCH_WITH_CATCH2_XML_REPORTER        OFF CACHE BOOL "Allow the Catch2 XML reporter to be selected from the command line -- enable if needed.")
 
 # Building and packaging options; not part of the library API.
 set(SNITCH_CREATE_HEADER_ONLY ON  CACHE BOOL "Create a single-header header-only version of snitch.")
@@ -57,6 +62,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_console.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_error_handling.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_expression.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_file.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_fixed_point.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_function.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_check.hpp
@@ -65,15 +71,18 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_constexpr.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_exceptions.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_misc.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_reporter.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_test_case.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_utility.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_macros_warnings.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_matcher.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_registry.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_catch2_xml.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_console.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_reporter_teamcity.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_section.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
-    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_teamcity.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_test_data.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_name.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
@@ -85,9 +94,13 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_console.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_error_handling.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_file.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_matcher.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_registry.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporter_catch2_xml.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporter_console.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_reporter_teamcity.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)

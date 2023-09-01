@@ -63,6 +63,7 @@ std::optional<cli::input> parse_arguments(
     int                       argc,
     const char* const         argv[],
     const expected_arguments& expected,
+    const expected_arguments& ignored,
     const parser_settings&    settings = parser_settings{}) noexcept {
 
     std::optional<cli::input> ret(std::in_place);
@@ -148,6 +149,22 @@ std::optional<cli::input> parse_arguments(
                 cli::print(
                     make_colored("warning:", settings.with_color, color::warning),
                     " unknown command line argument '", arg, "'\n");
+            }
+
+            // Not a supported argument; figure out if this is a known argument (e.g. from Catch2)
+            // and whether we need to ignore the next item if it is an option.
+            for (std::size_t arg_index = 0; arg_index < ignored.size(); ++arg_index) {
+                const auto& e = ignored[arg_index];
+
+                if (std::find(e.names.cbegin(), e.names.cend(), arg) == e.names.cend()) {
+                    continue;
+                }
+
+                if (has_value(e)) {
+                    argi += 1;
+                }
+
+                break;
             }
         } else {
             // If no dash, this is a positional argument.
@@ -280,15 +297,46 @@ constexpr expected_arguments expected_args = {
     {{"-l", "--list-tests"},    {},                         "List tests by name"},
     {{"--list-tags"},           {},                         "List tags by name"},
     {{"--list-tests-with-tag"}, {"tag"},                    "List tests by name with a given tag"},
+    {{"--list-reporters"},      {},                         "List available test reporters (see --reporter)"},
+    {{"-r", "--reporter"},      {"reporter[::key=value]*"}, "Choose which reporter to use to output the test results"},
     {{"-v", "--verbosity"},     {"quiet|normal|high|full"}, "Define how much gets sent to the standard output"},
-    {{"--color"},               {"always|never"},           "Enable/disable color in output"},
+    {{"-o", "--out"},           {"path"},                   "Saves output to a file given as 'path'"},
+    {{"--color"},               {"always|default|never"},   "Enable/disable color in output"},
+    {{"--colour-mode"},         {"ansi|default|none"},      "Enable/disable color in output (for compatibility with Catch2)"},
     {{"-h", "--help"},          {},                         "Print help"},
     {{},                        {"test regex"},             "A regex to select which test cases to run", argument_type::repeatable}};
+
+// For compatibility with Catch2; unused.
+// This is used just to swallow the argument and its parameters.
+// The argument will still be reported as unknown.
+constexpr expected_arguments ignored_args = {
+    {{"-s", "--success"},           {}, ""},
+    {{"-b", "--break"},             {}, ""},
+    {{"-e", "--nothrow"},           {}, ""},
+    {{"-i", "--invisibles"},        {}, ""},
+    {{"-n", "--name"},              {}, ""},
+    {{"-a", "--abort"},             {}, ""},
+    {{"-x", "--abortx"},            {"x"}, ""},
+    {{"-w", "--warn"},              {"x"}, ""},
+    {{"-d", "--durations"},         {"x"}, ""},
+    {{"-D", "--min-duration"},      {"x"}, ""},
+    {{"-f", "--input-file"},        {"x"}, ""},
+    {{"-#", "--filenames-as-tags"}, {"x"}, ""},
+    {{"-c", "--section"},           {"x"}, ""},
+    {{"--list-listeners"},          {}, ""},
+    {{"--order"},                   {"x"}, ""},
+    {{"--rng-seed"},                {"x"}, ""},
+    {{"--libidentify"},             {}, ""},
+    {{"--wait-for-keypress"},       {"x"}, ""},
+    {{"--shard-count"},             {"x"}, ""},
+    {{"--shard-index"},             {"x"}, ""},
+    {{"--allow-running-no-tests"},  {}, ""}};
 // clang-format on
 
 constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
 
-constexpr const char* program_description = "Test runner (snitch v" SNITCH_FULL_VERSION ")";
+constexpr const char* program_description =
+    "Test runner (snitch v" SNITCH_FULL_VERSION " | compatible with Catch2 v3.4.0)";
 }} // namespace snitch::impl
 
 namespace snitch::cli {
@@ -301,8 +349,9 @@ void print_help(std::string_view program_name) noexcept {
 }
 
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
-    std::optional<cli::input> ret_args =
-        parse_arguments(argc, argv, impl::expected_args, {.with_color = impl::with_color_default});
+    std::optional<cli::input> ret_args = parse_arguments(
+        argc, argv, impl::expected_args, impl::ignored_args,
+        {.with_color = impl::with_color_default});
 
     if (!ret_args) {
         print("\n");

@@ -15,12 +15,21 @@
 
 #define SNITCH_EXPR(TYPE, EXPECTED, ...)                                                           \
     auto SNITCH_CURRENT_EXPRESSION =                                                               \
-        (snitch::impl::expression_extractor<EXPECTED>{TYPE "(" #__VA_ARGS__ ")"} <= __VA_ARGS__)   \
+        (snitch::impl::expression_extractor<EXPECTED>{TYPE, #__VA_ARGS__} <= __VA_ARGS__)          \
             .to_expression()
 
 #define SNITCH_IS_DECOMPOSABLE(...)                                                                \
     snitch::impl::is_decomposable<decltype((snitch::impl::expression_extractor<true>{              \
+                                                std::declval<std::string_view>(),                  \
                                                 std::declval<std::string_view>()} <= __VA_ARGS__)  \
                                                .to_expression())>
+
+#define SNITCH_REPORT_EXPRESSION(MAYBE_ABORT)                                                      \
+    SNITCH_CURRENT_TEST.reg.report_assertion(                                                      \
+        SNITCH_CURRENT_EXPRESSION.success, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},              \
+        SNITCH_CURRENT_EXPRESSION);                                                                \
+    if (!SNITCH_CURRENT_EXPRESSION.success) {                                                      \
+        MAYBE_ABORT;                                                                               \
+    }
 
 #endif

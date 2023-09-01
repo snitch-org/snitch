@@ -1,94 +1,73 @@
 #include "testing.hpp"
+#include "testing_assertions.hpp"
 #include "testing_event.hpp"
 
+#include <filesystem>
+#include <fstream>
 #include <stdexcept>
 
 using namespace std::literals;
 using snitch::matchers::contains_substring;
 
 namespace {
-bool        test_called           = false;
-bool        test_called_other_tag = false;
-bool        test_called_skipped   = false;
-bool        test_called_int       = false;
-bool        test_called_float     = false;
-bool        test_called_hidden1   = false;
-bool        test_called_hidden2   = false;
-std::size_t failure_line          = 0u;
-
-enum class reporter { print, custom };
+bool test_called           = false;
+bool test_called_other_tag = false;
+bool test_called_skipped   = false;
+bool test_called_int       = false;
+bool test_called_float     = false;
+bool test_called_hidden1   = false;
+bool test_called_hidden2   = false;
 } // namespace
 
 TEST_CASE("add regular test", "[registry]") {
     mock_framework framework;
 
     test_called = false;
-    framework.registry.add({"how many lights", "[tag]"}, []() { test_called = true; });
+    framework.registry.add(
+        {"how many lights", "[tag]"}, {__FILE__, __LINE__}, []() { test_called = true; });
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
     CHECK(test.id.name == "how many lights"sv);
     CHECK(test.id.tags == "[tag]"sv);
     CHECK(test.id.type == ""sv);
     REQUIRE(test.func != nullptr);
 
-    SECTION("run default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
+    framework.setup_reporter();
+    framework.registry.run(test);
 
-        CHECK(test_called == true);
-        CHECK(framework.messages == contains_substring("starting: how many lights"));
-        CHECK(framework.messages == contains_substring("finished: how many lights"));
-    }
-
-    SECTION("run custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        CHECK(test_called == true);
-        REQUIRE(framework.events.size() == 2u);
-        CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
-        CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
-        CHECK_EVENT_TEST_ID(framework.events[0], test.id);
-        CHECK_EVENT_TEST_ID(framework.events[1], test.id);
-    }
+    CHECK(test_called == true);
+    REQUIRE(framework.events.size() == 2u);
+    CHECK(framework.is_event<owning_event::test_case_started>(0));
+    CHECK(framework.is_event<owning_event::test_case_ended>(1));
+    CHECK_EVENT_TEST_ID(framework.events[0], test.id);
+    CHECK_EVENT_TEST_ID(framework.events[1], test.id);
 }
 
 TEST_CASE("add regular test no tags", "[registry]") {
     mock_framework framework;
 
     test_called = false;
-    framework.registry.add({"how many lights"}, []() { test_called = true; });
+    framework.registry.add({"how many lights"}, {__FILE__, __LINE__}, []() { test_called = true; });
 
     REQUIRE(framework.get_num_registered_tests() == 1u);
 
-    auto& test = *framework.registry.begin();
+    auto& test = framework.registry.test_cases()[0];
     CHECK(test.id.name == "how many lights"sv);
     CHECK(test.id.tags == ""sv);
     CHECK(test.id.type == ""sv);
     REQUIRE(test.func != nullptr);
 
-    SECTION("run default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
+    framework.setup_reporter();
+    framework.registry.run(test);
 
-        CHECK(test_called == true);
-        CHECK(framework.messages == contains_substring("starting: how many lights"));
-        CHECK(framework.messages == contains_substring("finished: how many lights"));
-    }
-
-    SECTION("run custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        CHECK(test_called == true);
-        REQUIRE(framework.events.size() == 2u);
-        CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
-        CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
-        CHECK_EVENT_TEST_ID(framework.events[0], test.id);
-        CHECK_EVENT_TEST_ID(framework.events[1], test.id);
-    }
+    CHECK(test_called == true);
+    REQUIRE(framework.events.size() == 2u);
+    CHECK(framework.is_event<owning_event::test_case_started>(0u));
+    CHECK(framework.is_event<owning_event::test_case_ended>(1u));
+    CHECK_EVENT_TEST_ID(framework.events[0], test.id);
+    CHECK_EVENT_TEST_ID(framework.events[1], test.id);
 }
 
 TEST_CASE("add template test", "[registry]") {
@@ -103,7 +82,7 @@ TEST_CASE("add template test", "[registry]") {
 
         if (with_type_list) {
             framework.registry.add_with_type_list<snitch::type_list<int, float>>(
-                "how many lights", "[tag]", []<typename T>() {
+                {"how many lights", "[tag]"}, {__FILE__, __LINE__}, []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -114,7 +93,7 @@ TEST_CASE("add template test", "[registry]") {
                 });
         } else {
             framework.registry.add_with_types<int, float>(
-                "how many lights", "[tag]", []<typename T>() {
+                {"how many lights", "[tag]"}, {__FILE__, __LINE__}, []<typename T>() {
                     if constexpr (std::is_same_v<T, int>) {
                         test_called_int = true;
                     } else if constexpr (std::is_same_v<T, float>) {
@@ -127,446 +106,195 @@ TEST_CASE("add template test", "[registry]") {
 
         REQUIRE(framework.get_num_registered_tests() == 2u);
 
-        auto& test1 = *framework.registry.begin();
+        auto& test1 = framework.registry.test_cases()[0];
         CHECK(test1.id.name == "how many lights"sv);
         CHECK(test1.id.tags == "[tag]"sv);
         CHECK(test1.id.type == "int"sv);
         REQUIRE(test1.func != nullptr);
 
-        auto& test2 = *(framework.registry.begin() + 1);
+        auto& test2 = framework.registry.test_cases()[1];
         CHECK(test2.id.name == "how many lights"sv);
         CHECK(test2.id.tags == "[tag]"sv);
         CHECK(test2.id.type == "float"sv);
         REQUIRE(test2.func != nullptr);
 
-        SECTION("run int default reporter") {
-            framework.setup_print();
-            framework.registry.run(test1);
+        framework.setup_reporter();
 
-            CHECK(test_called == false);
-            CHECK(test_called_int == true);
-            CHECK(test_called_float == false);
-            CHECK(framework.messages == contains_substring("starting: how many lights <int>"));
-            CHECK(framework.messages == contains_substring("finished: how many lights <int>"));
-        }
-
-        SECTION("run float default reporter") {
-            framework.setup_print();
-            framework.registry.run(test2);
-
-            CHECK(test_called == false);
-            CHECK(test_called_int == false);
-            CHECK(test_called_float == true);
-            CHECK(framework.messages == contains_substring("starting: how many lights <float>"));
-            CHECK(framework.messages == contains_substring("finished: how many lights <float>"));
-        }
-
-        SECTION("run int custom reporter") {
-            framework.setup_reporter();
+        SECTION("run int") {
             framework.registry.run(test1);
 
             CHECK(test_called == false);
             CHECK(test_called_int == true);
             CHECK(test_called_float == false);
             REQUIRE(framework.events.size() == 2u);
-            CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
-            CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
+            CHECK(framework.is_event<owning_event::test_case_started>(0));
+            CHECK(framework.is_event<owning_event::test_case_ended>(1));
             CHECK_EVENT_TEST_ID(framework.events[0], test1.id);
             CHECK_EVENT_TEST_ID(framework.events[1], test1.id);
         }
 
-        SECTION("run float custom reporter") {
-            framework.setup_reporter();
+        SECTION("run float") {
             framework.registry.run(test2);
 
             CHECK(test_called == false);
             CHECK(test_called_int == false);
             CHECK(test_called_float == true);
             REQUIRE(framework.events.size() == 2u);
-            CHECK(framework.events[0].event_type == event_deep_copy::type::test_case_started);
-            CHECK(framework.events[1].event_type == event_deep_copy::type::test_case_ended);
+            CHECK(framework.is_event<owning_event::test_case_started>(0));
+            CHECK(framework.is_event<owning_event::test_case_ended>(1));
             CHECK_EVENT_TEST_ID(framework.events[0], test2.id);
             CHECK_EVENT_TEST_ID(framework.events[1], test2.id);
         }
     }
 }
 
-SNITCH_WARNING_PUSH
-SNITCH_WARNING_DISABLE_UNREACHABLE
+namespace { namespace my_reporter {
+bool init_called      = false;
+bool configure_result = true;
+bool configure_called = false;
+bool report_called    = false;
+bool finish_called    = false;
 
-TEST_CASE("report FAIL_CHECK regular", "[registry]") {
-    mock_framework framework;
-
-    framework.registry.add({"how many lights", "[tag]"}, []() {
-        // clang-format off
-        failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
-        // clang-format on
-    });
-
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("there are four lights"));
-    }
-
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
-    }
+void init(snitch::registry&) noexcept {
+    init_called = true;
+}
+bool configure(snitch::registry&, std::string_view, std::string_view) noexcept {
+    configure_called = true;
+    return configure_result;
+}
+void report(const snitch::registry&, const snitch::event::data&) noexcept {
+    report_called = true;
+}
+void finish(snitch::registry&) noexcept {
+    finish_called = true;
 }
 
-TEST_CASE("report FAIL_CHECK template", "[registry]") {
-    mock_framework framework;
-
-    framework.registry.add_with_types<int>("how many lights", "[tag]", []<typename TestType>() {
-        // clang-format off
-        failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
-        // clang-format on
-    });
-
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("for type int"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("there are four lights"));
-    }
-
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
-    }
+void register_one_test(snitch::registry& r) {
+    r.add({"the test", "[tag]"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 2); });
 }
+}} // namespace ::my_reporter
 
-TEST_CASE("report FAIL_CHECK section", "[registry]") {
-    mock_framework framework;
+TEST_CASE("add reporter", "[registry]") {
+    mock_framework         framework;
+    console_output_catcher console;
+    my_reporter::register_one_test(framework.registry);
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
-        SNITCH_SECTION("ask nicely") {
-            // clang-format off
-            failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
-            // clang-format on
-        }
-    });
+    my_reporter::init_called      = false;
+    my_reporter::configure_result = true;
+    my_reporter::configure_called = false;
+    my_reporter::report_called    = false;
+    my_reporter::finish_called    = false;
 
-    auto& test = *framework.registry.begin();
+    SECTION("full") {
+        framework.registry.add_reporter(
+            "custom", &my_reporter::init, &my_reporter::configure, &my_reporter::report,
+            &my_reporter::finish);
 
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
 
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("in section \"ask nicely\""));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("there are four lights"));
+        CHECK(my_reporter::init_called);
+        CHECK(my_reporter::configure_called);
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+
+        framework.registry.run_tests(*input);
+
+        CHECK(my_reporter::report_called);
+        CHECK(my_reporter::finish_called);
     }
 
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
+    SECTION("no init") {
+        framework.registry.add_reporter(
+            "custom", {}, &my_reporter::configure, &my_reporter::report, &my_reporter::finish);
 
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
-        REQUIRE(failure.sections.size() == 1u);
-        REQUIRE(failure.sections[0] == "ask nicely"sv);
-    }
-}
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
 
-TEST_CASE("report FAIL_CHECK capture", "[registry]") {
-    mock_framework framework;
+        CHECK(!my_reporter::init_called);
+        CHECK(my_reporter::configure_called);
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
-        int number_of_lights = 3;
-        SNITCH_CAPTURE(number_of_lights);
-        // clang-format off
-        failure_line = __LINE__; SNITCH_FAIL_CHECK("there are four lights");
-        // clang-format on
-    });
+        framework.registry.run_tests(*input);
 
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("with number_of_lights := 3"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("there are four lights"));
+        CHECK(my_reporter::report_called);
+        CHECK(my_reporter::finish_called);
     }
 
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
+    SECTION("no config") {
+        framework.registry.add_reporter(
+            "custom", &my_reporter::init, {}, &my_reporter::report, &my_reporter::finish);
 
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("there are four lights"));
-        REQUIRE(failure.captures.size() == 1u);
-        REQUIRE(failure.captures[0] == "number_of_lights := 3"sv);
-    }
-}
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
 
-TEST_CASE("report CHECK", "[registry]") {
-    mock_framework framework;
+        CHECK(my_reporter::init_called);
+        CHECK(!my_reporter::configure_called);
+        CHECK(console.messages == contains_substring("unknown reporter option 'arg'"));
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
-        int number_of_lights = 4;
-        // clang-format off
-        failure_line = __LINE__; SNITCH_CHECK(number_of_lights == 3);
-        // clang-format on
-    });
+        framework.registry.run_tests(*input);
 
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("number_of_lights == 3"));
-        CHECK(framework.messages == contains_substring("4 != 3"));
+        CHECK(my_reporter::report_called);
+        CHECK(my_reporter::finish_called);
     }
 
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
+    SECTION("no finish") {
+        framework.registry.add_reporter(
+            "custom", &my_reporter::init, &my_reporter::configure, &my_reporter::report, {});
 
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
-        CHECK(failure.message == contains_substring("number_of_lights == 3"));
-        CHECK(failure.message == contains_substring("4 != 3"));
+        const arg_vector args = {"test", "--reporter", "custom::arg=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(my_reporter::init_called);
+        CHECK(my_reporter::configure_called);
+        CHECK(!my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
+
+        framework.registry.run_tests(*input);
+
+        CHECK(my_reporter::report_called);
+        CHECK(!my_reporter::finish_called);
     }
-}
-
-TEST_CASE("report CHECK success", "[registry]") {
-    mock_framework framework;
-    framework.catch_success = true;
-
-    framework.registry.add({"how many fingers", "[tag]"}, []() {
-        int number_of_fingers = 5;
-        // clang-format off
-        failure_line = __LINE__; SNITCH_CHECK(number_of_fingers == 5);
-        // clang-format on
-    });
-
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many fingers"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("number_of_fingers == 5"));
-#if SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS
-        CHECK(framework.messages == contains_substring("5 == 5"));
-#else
-        CHECK(framework.messages != contains_substring("5 == 5"));
-#endif
-    }
-
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        REQUIRE(framework.get_num_successes() == 1u);
-        auto success_opt = framework.get_success_event(0u);
-        REQUIRE(success_opt.has_value());
-        const auto& success = success_opt.value();
-        CHECK_EVENT_TEST_ID(success, test.id);
-        CHECK_EVENT_LOCATION(success, __FILE__, failure_line);
-        CHECK(success.message == contains_substring("number_of_fingers == 5"));
-#if SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS
-        CHECK(success.message == contains_substring("5 == 5"));
-#else
-        CHECK(success.message != contains_substring("5 == 5"));
-#endif
-    }
-}
 
 #if SNITCH_WITH_EXCEPTIONS
-TEST_CASE("report REQUIRE_THROWS_AS", "[registry]") {
-    mock_framework framework;
+    SECTION("max number reached") {
+        assertion_exception_enabler enabler;
 
-    framework.registry.add({"how many lights", "[tag]"}, []() {
-        auto ask_how_many_lights = [] { throw std::runtime_error{"there are four lights"}; };
-        // clang-format off
-        failure_line = __LINE__; SNITCH_REQUIRE_THROWS_AS(ask_how_many_lights(), std::logic_error);
-        // clang-format on
-    });
+        std::array<snitch::small_string<32>, snitch::max_registered_reporters> names = {};
+        for (std::size_t i = framework.registry.reporters().size();
+             i < snitch::max_registered_reporters; ++i) {
+            append_or_truncate(names[i], "dummy", i);
+            framework.registry.add_reporter(names[i], {}, {}, &my_reporter::report, {});
+        }
 
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
+        CHECK_THROWS_WHAT(
+            framework.registry.add_reporter("toomuch", {}, {}, &my_reporter::report, {}),
+            assertion_exception, "max number of reporters reached");
         CHECK(
-            framework.messages ==
-            contains_substring("std::logic_error expected but other std::exception thrown"));
-        CHECK(framework.messages == contains_substring("there are four lights"));
+            console.messages ==
+            contains_substring("max number of reporters reached; "
+                               "please increase 'SNITCH_MAX_REGISTERED_REPORTERS'"));
     }
 
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
+    SECTION("bad name") {
+        assertion_exception_enabler enabler;
 
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, __FILE__, failure_line);
+        CHECK_THROWS_WHAT(
+            framework.registry.add_reporter("bad::name", {}, {}, &my_reporter::report, {}),
+            assertion_exception, "invalid reporter name");
         CHECK(
-            failure.message ==
-            contains_substring("std::logic_error expected but other std::exception thrown"));
-        CHECK(failure.message == contains_substring("there are four lights"));
+            console.messages == contains_substring("reporter name cannot contains '::' "
+                                                   "(trying to register 'bad::name')"));
     }
-}
-
-TEST_CASE("report unhandled std::exception", "[registry]") {
-    mock_framework framework;
-
-    framework.registry.add(
-        {"how many lights", "[tag]"}, []() { throw std::runtime_error("error message"); });
-
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("<snitch internal>:0"));
-        CHECK(
-            framework.messages ==
-            contains_substring("unhandled std::exception caught; message: error message"));
-    }
-
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, "<snitch internal>", 0u);
-        CHECK(
-            failure.message ==
-            contains_substring("unhandled std::exception caught; message: error message"));
-    }
-}
-
-TEST_CASE("report unhandled unknown exception", "[registry]") {
-    mock_framework framework;
-
-    framework.registry.add({"how many lights", "[tag]"}, []() { throw 42; });
-
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("<snitch internal>:0"));
-        CHECK(framework.messages == contains_substring("unhandled unknown exception caught"));
-    }
-
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        REQUIRE(framework.get_num_failures() == 1u);
-        auto failure_opt = framework.get_failure_event(0u);
-        REQUIRE(failure_opt.has_value());
-        const auto& failure = failure_opt.value();
-        CHECK_EVENT_TEST_ID(failure, test.id);
-        CHECK_EVENT_LOCATION(failure, "<snitch internal>", 0u);
-        CHECK(failure.message == contains_substring("unhandled unknown exception caught"));
-    }
-}
 #endif
-
-TEST_CASE("report SKIP", "[registry]") {
-    mock_framework framework;
-
-    framework.registry.add({"how many lights", "[tag]"}, []() {
-        // clang-format off
-        failure_line = __LINE__; SNITCH_SKIP_CHECK("there are four lights");
-        // clang-format on
-    });
-
-    auto& test = *framework.registry.begin();
-
-    SECTION("default reporter") {
-        framework.setup_print();
-        framework.registry.run(test);
-
-        CHECK(framework.messages == contains_substring("how many lights"));
-        CHECK(framework.messages == contains_substring("registry.cpp"));
-        CHECK(framework.messages == contains_substring("there are four lights"));
-    }
-
-    SECTION("custom reporter") {
-        framework.setup_reporter();
-        framework.registry.run(test);
-
-        REQUIRE(framework.get_num_skips() == 1u);
-        auto skip_opt = framework.get_skip_event();
-        REQUIRE(skip_opt.has_value());
-        const auto& skip = skip_opt.value();
-        CHECK_EVENT_TEST_ID(skip, test.id);
-        CHECK_EVENT_LOCATION(skip, __FILE__, failure_line);
-        CHECK(skip.message == contains_substring("there are four lights"));
-    }
 }
-
-SNITCH_WARNING_POP
 
 namespace {
 void register_tests(mock_framework& framework) {
@@ -578,20 +306,22 @@ void register_tests(mock_framework& framework) {
     test_called_hidden1   = false;
     test_called_hidden2   = false;
 
-    framework.registry.add({"how are you", "[tag]"}, []() { test_called = true; });
+    framework.registry.add(
+        {"how are you", "[tag]"}, {__FILE__, __LINE__}, []() { test_called = true; });
 
-    framework.registry.add({"how many lights", "[tag][other_tag]"}, []() {
+    framework.registry.add({"how many lights", "[tag][other_tag]"}, {__FILE__, __LINE__}, []() {
         test_called_other_tag = true;
         SNITCH_FAIL_CHECK("there are four lights");
     });
 
-    framework.registry.add({"drink from the cup", "[tag][skipped]"}, []() {
+    framework.registry.add({"drink from the cup", "[tag][skipped]"}, {__FILE__, __LINE__}, []() {
         test_called_skipped = true;
         SNITCH_SKIP_CHECK("not thirsty");
     });
 
     framework.registry.add_with_types<int, float>(
-        "how many templated lights", "[tag][tag with spaces]", []<typename T>() {
+        {"how many templated lights", "[tag][tag with spaces]"}, {__FILE__, __LINE__},
+        []<typename T>() {
             if constexpr (std::is_same_v<T, int>) {
                 test_called_int = true;
                 SNITCH_FAIL_CHECK("there are four lights (int)");
@@ -601,31 +331,35 @@ void register_tests(mock_framework& framework) {
             }
         });
 
-    framework.registry.add(
-        {"hidden test 1", "[.][hidden][other_tag]"}, []() { test_called_hidden1 = true; });
-
-    framework.registry.add({"hidden test 2", "[.hidden]"}, []() { test_called_hidden2 = true; });
-
-    framework.registry.add({"may fail that does not fail", "[.][may fail][!mayfail]"}, []() {});
-
-    framework.registry.add({"may fail that does fail", "[.][may fail][!mayfail]"}, []() {
-        SNITCH_FAIL_CHECK("it did fail");
+    framework.registry.add({"hidden test 1", "[.][hidden][other_tag]"}, {__FILE__, __LINE__}, []() {
+        test_called_hidden1 = true;
     });
 
     framework.registry.add(
-        {"should fail that does not fail", "[.][should fail][!shouldfail]"}, []() {});
-
-    framework.registry.add({"should fail that does fail", "[.][should fail][!shouldfail]"}, []() {
-        SNITCH_FAIL_CHECK("it did fail");
-    });
+        {"hidden test 2", "[.hidden]"}, {__FILE__, __LINE__}, []() { test_called_hidden2 = true; });
 
     framework.registry.add(
-        {"may+should fail that does not fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {"may fail that does not fail", "[.][may fail][!mayfail]"}, {__FILE__, __LINE__}, []() {});
+
+    framework.registry.add(
+        {"may fail that does fail", "[.][may fail][!mayfail]"}, {__FILE__, __LINE__},
+        []() { SNITCH_FAIL_CHECK("it did fail"); });
+
+    framework.registry.add(
+        {"should fail that does not fail", "[.][should fail][!shouldfail]"}, {__FILE__, __LINE__},
         []() {});
 
     framework.registry.add(
-        {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {"should fail that does fail", "[.][should fail][!shouldfail]"}, {__FILE__, __LINE__},
         []() { SNITCH_FAIL_CHECK("it did fail"); });
+
+    framework.registry.add(
+        {"may+should fail that does not fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {__FILE__, __LINE__}, []() {});
+
+    framework.registry.add(
+        {"may+should fail that does fail", "[.][may+should fail][!mayfail][!shouldfail]"},
+        {__FILE__, __LINE__}, []() { SNITCH_FAIL_CHECK("it did fail"); });
 }
 } // namespace
 
@@ -633,238 +367,177 @@ TEST_CASE("run tests", "[registry]") {
     mock_framework framework;
     register_tests(framework);
 
-    for (auto r : {reporter::print, reporter::custom}) {
-        if (r == reporter::print) {
-            framework.setup_print();
-        } else {
-            framework.setup_reporter();
-        }
+    const auto run_selected_tests = [&](std::string_view filter, bool tags) {
+        const snitch::small_vector<std::string_view, 1> filter_strings = {filter};
+        const auto filter_function = [&](const snitch::test_id& id) noexcept {
+            return tags ? snitch::is_filter_match_tags(id.tags, filter).included
+                        : snitch::is_filter_match_name(id.name, filter).included;
+        };
+        framework.registry.run_selected_tests("test_app", filter_strings, filter_function);
+    };
 
-        INFO((r == reporter::print ? "default reporter" : "custom reporter"));
+    framework.setup_reporter();
 
-        SECTION("run tests") {
-            framework.registry.run_tests("test_app");
+    SECTION("run tests") {
+        framework.registry.run_tests("test_app");
 
-            CHECK(test_called);
-            CHECK(test_called_other_tag);
-            CHECK(test_called_skipped);
-            CHECK(test_called_int);
-            CHECK(test_called_float);
-            CHECK(!test_called_hidden1);
-            CHECK(!test_called_hidden2);
+        CHECK(test_called);
+        CHECK(test_called_other_tag);
+        CHECK(test_called_skipped);
+        CHECK(test_called_int);
+        CHECK(test_called_float);
+        CHECK(!test_called_hidden1);
+        CHECK(!test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("some tests failed (3 out of 5 test cases, 3 assertions, 1 "
-                                       "test cases skipped"));
-            } else {
-                CHECK(framework.get_num_runs() == 5u);
-                CHECK_RUN(false, 5u, 3u, 1u, 3u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 5u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
+#else
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
+#endif
+    }
 
-        SECTION("run tests filtered all pass") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*are you") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests filtered all pass") {
+        run_selected_tests("*are you", false);
 
-            CHECK(test_called);
-            CHECK(!test_called_other_tag);
-            CHECK(!test_called_skipped);
-            CHECK(!test_called_int);
-            CHECK(!test_called_float);
-            CHECK(!test_called_hidden1);
-            CHECK(!test_called_hidden2);
+        CHECK(test_called);
+        CHECK(!test_called_other_tag);
+        CHECK(!test_called_skipped);
+        CHECK(!test_called_int);
+        CHECK(!test_called_float);
+        CHECK(!test_called_hidden1);
+        CHECK(!test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("all tests passed (1 test cases, 0 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 1u);
-                CHECK_RUN(true, 1u, 0u, 0u, 0u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 1u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(true, 1u, 0u, 0u, 0u, 1u, 0u, 0u);
+#else
+        CHECK_RUN(true, 1u, 0u, 0u, 0u, 0u, 0u, 0u);
+#endif
+    }
 
-        SECTION("run tests filtered all failed") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*lights*") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests filtered all failed") {
+        run_selected_tests("*lights*", false);
 
-            CHECK(!test_called);
-            CHECK(test_called_other_tag);
-            CHECK(!test_called_skipped);
-            CHECK(test_called_int);
-            CHECK(test_called_float);
-            CHECK(!test_called_hidden1);
-            CHECK(!test_called_hidden2);
+        CHECK(!test_called);
+        CHECK(test_called_other_tag);
+        CHECK(!test_called_skipped);
+        CHECK(test_called_int);
+        CHECK(test_called_float);
+        CHECK(!test_called_hidden1);
+        CHECK(!test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("some tests failed (3 out of 3 test cases, 3 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 3u);
-                CHECK_RUN(false, 3u, 3u, 0u, 3u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 3u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);
+#else
+        CHECK_RUN(false, 3u, 3u, 0u, 0u, 3u, 3u, 0u);
+#endif
+    }
 
-        SECTION("run tests filtered all skipped") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_name(id.name, "*cup") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests filtered all skipped") {
+        run_selected_tests("*cup", false);
 
-            CHECK(!test_called);
-            CHECK(!test_called_other_tag);
-            CHECK(test_called_skipped);
-            CHECK(!test_called_int);
-            CHECK(!test_called_float);
-            CHECK(!test_called_hidden1);
-            CHECK(!test_called_hidden2);
+        CHECK(!test_called);
+        CHECK(!test_called_other_tag);
+        CHECK(test_called_skipped);
+        CHECK(!test_called_int);
+        CHECK(!test_called_float);
+        CHECK(!test_called_hidden1);
+        CHECK(!test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("all tests passed (1 test cases, 0 assertions, 1 "
-                                       "test cases skipped"));
-            } else {
-                CHECK(framework.get_num_runs() == 1u);
-                CHECK_RUN(true, 1u, 0u, 1u, 0u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 1u);
+        CHECK_RUN(true, 1u, 0u, 0u, 1u, 0u, 0u, 0u);
+    }
 
-        SECTION("run tests filtered tags") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[other_tag]") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests filtered tags") {
+        run_selected_tests("[other_tag]", true);
 
-            CHECK(!test_called);
-            CHECK(test_called_other_tag);
-            CHECK(!test_called_skipped);
-            CHECK(!test_called_int);
-            CHECK(!test_called_float);
-            CHECK(test_called_hidden1);
-            CHECK(!test_called_hidden2);
+        CHECK(!test_called);
+        CHECK(test_called_other_tag);
+        CHECK(!test_called_skipped);
+        CHECK(!test_called_int);
+        CHECK(!test_called_float);
+        CHECK(test_called_hidden1);
+        CHECK(!test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("some tests failed (1 out of 2 test cases, 1 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(false, 2u, 1u, 0u, 1u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 2u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 2u, 1u, 0u, 0u, 3u, 1u, 0u);
+#else
+        CHECK_RUN(false, 2u, 1u, 0u, 0u, 1u, 1u, 0u);
+#endif
+    }
 
-        SECTION("run tests filtered tags wildcard") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "*tag]") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests filtered tags wildcard") {
+        run_selected_tests("*tag]", true);
 
-            CHECK(test_called);
-            CHECK(test_called_other_tag);
-            CHECK(test_called_skipped);
-            CHECK(test_called_int);
-            CHECK(test_called_float);
-            CHECK(test_called_hidden1);
-            CHECK(!test_called_hidden2);
+        CHECK(test_called);
+        CHECK(test_called_other_tag);
+        CHECK(test_called_skipped);
+        CHECK(test_called_int);
+        CHECK(test_called_float);
+        CHECK(test_called_hidden1);
+        CHECK(!test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("some tests failed (3 out of 6 test cases, 3 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 6u);
-                CHECK_RUN(false, 6u, 3u, 1u, 3u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 6u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 6u, 3u, 0u, 1u, 8u, 3u, 0u);
+#else
+        CHECK_RUN(false, 6u, 3u, 0u, 1u, 3u, 3u, 0u);
+#endif
+    }
 
-        SECTION("run tests special tag [.]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[hidden]") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests special tag [.]") {
+        run_selected_tests("[hidden]", true);
 
-            CHECK(!test_called);
-            CHECK(!test_called_other_tag);
-            CHECK(!test_called_skipped);
-            CHECK(!test_called_int);
-            CHECK(!test_called_float);
-            CHECK(test_called_hidden1);
-            CHECK(test_called_hidden2);
+        CHECK(!test_called);
+        CHECK(!test_called_other_tag);
+        CHECK(!test_called_skipped);
+        CHECK(!test_called_int);
+        CHECK(!test_called_float);
+        CHECK(test_called_hidden1);
+        CHECK(test_called_hidden2);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("all tests passed (2 test cases, 0 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(true, 2u, 0u, 0u, 0u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 2u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(true, 2u, 0u, 0u, 0u, 2u, 0u, 0u);
+#else
+        CHECK_RUN(true, 2u, 0u, 0u, 0u, 0u, 0u, 0u);
+#endif
+    }
 
-        SECTION("run tests special tag [!mayfail]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[may fail]") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests special tag [!mayfail]") {
+        run_selected_tests("[may fail]", true);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("all tests passed (2 test cases, 1 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(true, 2u, 0u, 0u, 1u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 2u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(true, 2u, 0u, 1u, 0u, 3u, 0u, 1u);
+#else
+        CHECK_RUN(true, 2u, 0u, 1u, 0u, 1u, 0u, 1u);
+#endif
+    }
 
-        SECTION("run tests special tag [!shouldfail]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[should fail]") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests special tag [!shouldfail]") {
+        run_selected_tests("[should fail]", true);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("some tests failed (1 out of 2 test cases, 1 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(false, 2u, 1u, 0u, 1u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 2u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 2u, 1u, 1u, 0u, 5u, 1u, 1u);
+#else
+        CHECK_RUN(false, 2u, 1u, 1u, 0u, 3u, 1u, 1u);
+#endif
+    }
 
-        SECTION("run tests special tag [!shouldfail][!mayfail]") {
-            framework.registry.run_selected_tests(
-                "test_app", [](const snitch::test_id& id) noexcept {
-                    return snitch::is_filter_match_tags(id.tags, "[may+should fail]") ==
-                           snitch::filter_result::included;
-                });
+    SECTION("run tests special tag [!shouldfail][!mayfail]") {
+        run_selected_tests("[may+should fail]", true);
 
-            if (r == reporter::print) {
-                CHECK(
-                    framework.messages ==
-                    contains_substring("all tests passed (2 test cases, 1 assertions"));
-            } else {
-                CHECK(framework.get_num_runs() == 2u);
-                CHECK_RUN(true, 2u, 0u, 0u, 1u);
-            }
-        }
+        CHECK(framework.get_num_runs() == 2u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(true, 2u, 0u, 2u, 0u, 5u, 0u, 2u);
+#else
+        CHECK_RUN(true, 2u, 0u, 2u, 0u, 3u, 0u, 2u);
+#endif
     }
 }
 
@@ -948,34 +621,72 @@ TEST_CASE("list tests", "[registry]") {
     }
 }
 
-TEST_CASE("configure", "[registry]") {
+TEST_CASE("configure color", "[registry]") {
     mock_framework framework;
     register_tests(framework);
     console_output_catcher console;
 
     SECTION("color = always") {
-        const arg_vector args = {"test", "--color", "always"};
-        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-        framework.registry.configure(*input);
+        for (const auto& args :
+             {arg_vector{"test", "--color", "always"},
+              arg_vector{"test", "--colour-mode", "ansi"}}) {
 
-        CHECK(framework.registry.with_color == true);
+            SECTION(args[2]) {
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(framework.registry.with_color == true);
+            }
+        }
     }
 
     SECTION("color = never") {
-        const arg_vector args = {"test", "--color", "never"};
-        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-        framework.registry.configure(*input);
+        for (const auto& args :
+             {arg_vector{"test", "--color", "never"},
+              arg_vector{"test", "--colour-mode", "none"}}) {
 
-        CHECK(framework.registry.with_color == false);
+            SECTION(args[2]) {
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(framework.registry.with_color == false);
+            }
+        }
+    }
+
+    SECTION("color = default") {
+        for (const auto& args :
+             {arg_vector{"test", "--color", "default"},
+              arg_vector{"test", "--colour-mode", "default"}}) {
+
+            SECTION(args[2]) {
+                bool prev = framework.registry.with_color;
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(framework.registry.with_color == prev);
+            }
+        }
     }
 
     SECTION("color = bad") {
-        const arg_vector args = {"test", "--color", "bad"};
-        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-        framework.registry.configure(*input);
+        for (const auto& args :
+             {arg_vector{"test", "--color", "bad"}, arg_vector{"test", "--colour-mode", "bad"}}) {
+            auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+            framework.registry.configure(*input);
 
-        CHECK(console.messages == contains_substring("unknown color directive"));
+            CHECK(console.messages == contains_substring("unknown color directive"));
+        }
     }
+}
+
+TEST_CASE("configure verbosity", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("verbosity = quiet") {
         const arg_vector args = {"test", "--verbosity", "quiet"};
@@ -1018,9 +729,142 @@ TEST_CASE("configure", "[registry]") {
     }
 }
 
-TEST_CASE("run tests cli", "[registry]") {
+TEST_CASE("configure reporter", "[registry]") {
     mock_framework framework;
-    framework.setup_reporter_and_print();
+    register_tests(framework);
+    console_output_catcher console;
+
+    SECTION("reporter = console (no option)") {
+        const arg_vector args = {"test", "--reporter", "console"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(console.messages != contains_substring("error"));
+    }
+
+    SECTION("reporter = console (with option)") {
+        const arg_vector args = {"test", "--reporter", "console::color=never"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.with_color = true;
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.with_color == false);
+    }
+
+    SECTION("reporter = console (multiple options)") {
+        const arg_vector args = {"test", "--reporter", "console::color=never::colour-mode=none"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.with_color = false;
+        framework.registry.configure(*input);
+
+        CHECK(framework.registry.with_color == false);
+    }
+
+    SECTION("reporter = console (unknown option)") {
+        const arg_vector args = {"test", "--reporter", "console::abcd=never"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(console.messages == contains_substring("unknown reporter option 'abcd'"));
+    }
+
+    SECTION("reporter = console (bad: missing value)") {
+        const arg_vector args = {"test", "--reporter", "console::abcdnever"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(
+            console.messages ==
+            contains_substring(
+                "badly formatted reporter option 'abcdnever'; expected 'key=value'"));
+    }
+
+    SECTION("reporter = console (bad: empty option)") {
+        const arg_vector args = {"test", "--reporter", "console::=value"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(
+            console.messages ==
+            contains_substring("badly formatted reporter option '=value'; expected 'key=value'"));
+    }
+
+    SECTION("reporter = console (bad: only equal)") {
+        const arg_vector args = {"test", "--reporter", "console::="};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(
+            console.messages ==
+            contains_substring("badly formatted reporter option '='; expected 'key=value'"));
+    }
+
+    SECTION("reporter = bad colons") {
+        for (const auto& args :
+             {arg_vector{"test", "--reporter", ""}, arg_vector{"test", "--reporter", ":"},
+              arg_vector{"test", "--reporter", "::"}, arg_vector{"test", "--reporter", ":::"},
+              arg_vector{"test", "--reporter", "::::"}}) {
+
+            SECTION(args[2]) {
+                auto input =
+                    snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+                framework.registry.configure(*input);
+
+                CHECK(console.messages == contains_substring("invalid reporter"));
+            }
+        }
+    }
+
+    SECTION("reporter = unknown") {
+        const arg_vector args = {"test", "--reporter", "fantasio"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+
+        CHECK(console.messages == contains_substring("unknown reporter 'fantasio', using default"));
+    }
+}
+
+TEST_CASE("configure output", "[registry]") {
+    mock_framework framework;
+    register_tests(framework);
+    console_output_catcher console;
+
+    SECTION("valid") {
+        const arg_vector args = {"test", "--out", "test_output.txt"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+        framework.registry.run_tests(*input);
+
+        CHECK(console.messages.empty());
+
+        std::string line;
+        {
+            std::ifstream file("test_output.txt");
+            std::getline(file, line);
+        }
+
+        CHECK(line == snitch::matchers::contains_substring{"starting test with snitch"});
+
+        std::filesystem::remove("test_output.txt");
+    }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("bad path") {
+        assertion_exception_enabler enabler;
+
+        const arg_vector args = {"test", "--out", ""};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+        CHECK_THROWS_WHAT(
+            framework.registry.configure(*input), assertion_exception,
+            "output file could not be opened for writing");
+    }
+#endif
+}
+
+TEST_CASE("run tests cli", "[registry][cli]") {
+    mock_framework framework;
+    framework.setup_reporter();
     register_tests(framework);
     console_output_catcher console;
 
@@ -1029,7 +873,11 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(false, 5u, 3u, 1u, 3u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
+#else
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
+#endif
     }
 
     SECTION("--help") {
@@ -1038,20 +886,43 @@ TEST_CASE("run tests cli", "[registry]") {
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
+        CHECK(framework.get_num_runs() == 0u);
         CHECK(console.messages == contains_substring("test [options...]"));
     }
+}
+
+TEST_CASE("list stuff cli", "[registry][cli]") {
+    mock_framework framework;
+    framework.setup_reporter();
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("--list-tests") {
         const arg_vector args = {"test", "--list-tests"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK(framework.events.empty());
-        CHECK(console.messages == contains_substring("how are you"));
-        CHECK(console.messages == contains_substring("how many lights"));
-        CHECK(console.messages == contains_substring("drink from the cup"));
-        CHECK(console.messages == contains_substring("how many templated lights <int>"));
-        CHECK(console.messages == contains_substring("how many templated lights <float>"));
+        REQUIRE(framework.events.size() == 15u);
+        CHECK(framework.get_num_runs() == 0u);
+        CHECK(framework.get_num_listed_tests() == 13u);
+        CHECK(framework.is_test_listed({"how are you", "[tag]"}));
+        // Not testing all...
+    }
+
+    SECTION("--list-tests filtered") {
+        const arg_vector args = {"test", "--list-tests", "how*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+        REQUIRE(framework.events.size() == 6u);
+        CHECK(framework.get_num_runs() == 0u);
+        CHECK(framework.get_num_listed_tests() == 4u);
+        CHECK(framework.is_test_listed({"how are you", "[tag]"}));
+        CHECK(framework.is_test_listed({"how many lights", "[tag][other_tag]"}));
+        CHECK(framework.is_test_listed(
+            {"how many templated lights", "[tag][tag with spaces]", "int"}));
+        CHECK(framework.is_test_listed(
+            {"how many templated lights", "[tag][tag with spaces]", "float"}));
     }
 
     SECTION("--list-tags") {
@@ -1060,6 +931,7 @@ TEST_CASE("run tests cli", "[registry]") {
         framework.registry.run_tests(*input);
 
         CHECK(framework.events.empty());
+        CHECK(framework.get_num_runs() == 0u);
         CHECK(console.messages == contains_substring("[tag]"));
         CHECK(console.messages == contains_substring("[skipped]"));
         CHECK(console.messages == contains_substring("[other_tag]"));
@@ -1071,20 +943,81 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK(framework.events.empty());
-        CHECK(console.messages != contains_substring("how are you"));
-        CHECK(console.messages == contains_substring("how many lights"));
-        CHECK(console.messages != contains_substring("drink from the cup"));
-        CHECK(console.messages != contains_substring("how many templated lights <int>"));
-        CHECK(console.messages != contains_substring("how many templated lights <float>"));
+        REQUIRE(framework.events.size() == 4u);
+        CHECK(framework.get_num_runs() == 0u);
+        CHECK(framework.get_num_listed_tests() == 2u);
+        CHECK(framework.is_test_listed({"how many lights", "[tag][other_tag]"}));
+        CHECK(framework.is_test_listed({"hidden test 1", "[.][hidden][other_tag]"}));
     }
+
+    SECTION("--list-reporters") {
+        const arg_vector args = {"test", "--list-reporters"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+
+        SECTION("default") {
+            framework.registry.run_tests(*input);
+
+            CHECK(framework.events.empty());
+            CHECK(framework.get_num_runs() == 0u);
+            CHECK(console.messages == contains_substring("console"));
+            CHECK(console.messages != contains_substring("custom"));
+        }
+
+        SECTION("with custom reporter") {
+            framework.registry.add_reporter(
+                "custom", {}, {},
+                [](const snitch::registry&, const snitch::event::data&) noexcept {}, {});
+
+            framework.registry.run_tests(*input);
+
+            CHECK(framework.events.empty());
+            CHECK(framework.get_num_runs() == 0u);
+            CHECK(console.messages == contains_substring("console"));
+            CHECK(console.messages == contains_substring("custom"));
+        }
+    }
+}
+
+TEST_CASE("run tests filtered cli", "[registry][cli]") {
+    mock_framework framework;
+    framework.setup_reporter();
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("test filter") {
         const arg_vector args = {"test", "how many*"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(false, 3u, 3u, 0u, 3u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 3u, 3u, 0u, 0u, 6u, 3u, 0u);
+#else
+        CHECK_RUN(false, 3u, 3u, 0u, 0u, 3u, 3u, 0u);
+#endif
+    }
+
+    SECTION("test filter multiple AND") {
+        const arg_vector args = {"test", "how many*", "*templated*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 2u, 2u, 0u, 0u, 4u, 2u, 0u);
+#else
+        CHECK_RUN(false, 2u, 2u, 0u, 0u, 2u, 2u, 0u);
+#endif
+    }
+
+    SECTION("test filter multiple OR") {
+        const arg_vector args = {"test", "how many*,*are you"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 4u, 3u, 0u, 0u, 7u, 3u, 0u);
+#else
+        CHECK_RUN(false, 4u, 3u, 0u, 0u, 3u, 3u, 0u);
+#endif
     }
 
     SECTION("test filter exclusion") {
@@ -1092,39 +1025,66 @@ TEST_CASE("run tests cli", "[registry]") {
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(false, 7u, 3u, 1u, 3u);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 7u, 3u, 0u);
+#else
+        CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
+#endif
     }
 
-    SECTION("test tag filter") {
+    SECTION("test filter hidden") {
+        const arg_vector args = {"test", "hidden test*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
+
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(true, 2u, 0u, 0u, 0u, 2u, 0u, 0u);
+#else
+        CHECK_RUN(true, 2u, 0u, 0u, 0u, 0u, 0u, 0u);
+#endif
+    }
+
+    SECTION("test filter tag") {
         const arg_vector args = {"test", "[skipped]"};
         auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
         framework.registry.run_tests(*input);
 
-        CHECK_RUN(true, 1u, 0u, 1u, 0u);
+        CHECK_RUN(true, 1u, 0u, 0u, 1u, 0u, 0u, 0u);
     }
-}
 
-std::array<bool, 7> readme_test_called = {false};
+    SECTION("test filter multiple tags") {
+        const arg_vector args = {"test", "[other_tag][tag]"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
 
-TEST_CASE("run tests cli readme example", "[registry]") {
-    mock_framework framework;
-    framework.setup_reporter_and_print();
-    console_output_catcher console;
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 2u, 1u, 0u);
+#else
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 1u, 1u, 0u);
+#endif
+    }
 
-    readme_test_called = {false};
+    SECTION("test filter tag AND name") {
+        const arg_vector args = {"test", "[tag]", "*many lights"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
 
-    framework.registry.add({"a"}, []() { readme_test_called[0] = true; });
-    framework.registry.add({"b"}, []() { readme_test_called[1] = true; });
-    framework.registry.add({"c"}, []() { readme_test_called[2] = true; });
-    framework.registry.add({"d"}, []() { readme_test_called[3] = true; });
-    framework.registry.add({"abc"}, []() { readme_test_called[4] = true; });
-    framework.registry.add({"abd"}, []() { readme_test_called[5] = true; });
-    framework.registry.add({"abcd"}, []() { readme_test_called[6] = true; });
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 2u, 1u, 0u);
+#else
+        CHECK_RUN(false, 1u, 1u, 0u, 0u, 1u, 1u, 0u);
+#endif
+    }
 
-    const arg_vector args = {"test", "a*", "~*d", "abcd"};
-    auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
-    framework.registry.run_tests(*input);
+    SECTION("test filter tag OR name") {
+        const arg_vector args = {"test", "[other_tag],how are*"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.run_tests(*input);
 
-    std::array<bool, 7> expected = {true, false, false, false, true, false, true};
-    CHECK(readme_test_called == expected);
+#if SNITCH_WITH_EXCEPTIONS
+        CHECK_RUN(false, 3u, 1u, 0u, 0u, 4u, 1u, 0u);
+#else
+        CHECK_RUN(false, 3u, 1u, 0u, 0u, 1u, 1u, 0u);
+#endif
+    }
 }

@@ -10,13 +10,9 @@
 // Testing framework implementation.
 // ---------------------------------
 
-namespace snitch::impl { namespace {
+namespace snitch::impl {
+namespace {
 using namespace std::literals;
-
-bool is_at_least(registry::verbosity verbose, registry::verbosity required) noexcept {
-    using underlying_type = std::underlying_type_t<registry::verbosity>;
-    return static_cast<underlying_type>(verbose) >= static_cast<underlying_type>(required);
-}
 
 // Requires: s contains a well-formed list of tags.
 template<typename F>
@@ -47,11 +43,11 @@ void for_each_raw_tag(std::string_view s, F&& callback) {
 }
 
 namespace tags {
-struct ignored {};
+struct hidden {};
 struct may_fail {};
 struct should_fail {};
 
-using parsed_tag = std::variant<std::string_view, ignored, may_fail, should_fail>;
+using parsed_tag = std::variant<std::string_view, hidden, may_fail, should_fail>;
 } // namespace tags
 
 // Requires: s contains a well-formed list of tags, each of length <= max_tag_length.
@@ -60,15 +56,15 @@ void for_each_tag(std::string_view s, F&& callback) {
     small_string<max_tag_length> buffer;
 
     for_each_raw_tag(s, [&](std::string_view t) {
-        // Look for "ignore" tags, which is either "[.]"
+        // Look for "hidden" tags, which is either "[.]"
         // or a tag starting with ".", like "[.integration]".
         if (t == "[.]"sv) {
-            // This is a pure "ignore" tag, add this to the list of special tags.
-            callback(tags::parsed_tag{tags::ignored{}});
+            // This is a pure "hidden" tag, add this to the list of special tags.
+            callback(tags::parsed_tag{tags::hidden{}});
         } else if (t.starts_with("[."sv)) {
-            // This is a combined "ignore" + normal tag, add the "ignore" to the list of special
+            // This is a combined "hidden" + normal tag, add the "hidden" to the list of special
             // tags, and continue with the normal tag.
-            callback(tags::parsed_tag{tags::ignored{}});
+            callback(tags::parsed_tag{tags::hidden{}});
             callback(tags::parsed_tag{std::string_view("[.]")});
 
             buffer.clear();
@@ -91,6 +87,61 @@ void for_each_tag(std::string_view s, F&& callback) {
     });
 }
 
+// Requires: s contains a well-formed list of tags, each of length <= max_tag_length.
+bool has_hidden_tag(std::string_view tags) {
+    bool hidden = false;
+    impl::for_each_tag(tags, [&](const impl::tags::parsed_tag& s) {
+        if (std::holds_alternative<impl::tags::hidden>(s)) {
+            hidden = true;
+        }
+    });
+
+    return hidden;
+}
+
+template<typename F>
+void list_tests(const registry& r, F&& predicate) noexcept {
+    r.report_callback(r, event::list_test_run_started{});
+
+    for (const test_case& t : r.test_cases()) {
+        if (!predicate(t.id)) {
+            continue;
+        }
+
+        r.report_callback(r, event::test_case_listed{t.id, t.location});
+    }
+
+    r.report_callback(r, event::list_test_run_ended{});
+}
+
+void set_state(test_case& t, impl::test_case_state s) noexcept {
+    if (static_cast<std::underlying_type_t<impl::test_case_state>>(t.state) <
+        static_cast<std::underlying_type_t<impl::test_case_state>>(s)) {
+        t.state = s;
+    }
+}
+
+snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcept {
+    switch (s) {
+    case impl::test_case_state::success: return snitch::test_case_state::success;
+    case impl::test_case_state::failed: return snitch::test_case_state::failed;
+    case impl::test_case_state::allowed_fail: return snitch::test_case_state::allowed_fail;
+    case impl::test_case_state::skipped: return snitch::test_case_state::skipped;
+    default: terminate_with("test case state cannot be exposed to the public");
+    }
+}
+
+small_vector<std::string_view, max_captures>
+make_capture_buffer(const capture_state& captures) noexcept {
+    small_vector<std::string_view, max_captures> captures_buffer;
+    for (const auto& c : captures) {
+        captures_buffer.push_back(c);
+    }
+
+    return captures_buffer;
+}
+} // namespace
+
 std::string_view
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
     buffer.clear();
@@ -106,224 +157,198 @@ make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) no
 
     return buffer.str();
 }
-
-template<typename F>
-void list_tests(const registry& r, F&& predicate) noexcept {
-    small_string<max_test_name_length> buffer;
-    for (const test_case& t : r) {
-        if (!predicate(t)) {
-            continue;
-        }
-
-        cli::print(make_full_name(buffer, t.id), "\n");
-    }
-}
-
-void set_state(test_case& t, impl::test_case_state s) noexcept {
-    if (static_cast<std::underlying_type_t<impl::test_case_state>>(t.state) <
-        static_cast<std::underlying_type_t<impl::test_case_state>>(s)) {
-        t.state = s;
-    }
-}
-
-snitch::test_case_state convert_to_public_state(impl::test_case_state s) noexcept {
-    switch (s) {
-    case impl::test_case_state::success: return snitch::test_case_state::success;
-    case impl::test_case_state::failed: return snitch::test_case_state::failed;
-    case impl::test_case_state::skipped: return snitch::test_case_state::skipped;
-    default: terminate_with("test case state cannot be exposed to the public");
-    }
-}
-
-small_vector<std::string_view, max_captures>
-make_capture_buffer(const capture_state& captures) noexcept {
-    small_vector<std::string_view, max_captures> captures_buffer;
-    for (const auto& c : captures) {
-        captures_buffer.push_back(c);
-    }
-
-    return captures_buffer;
-}
-}} // namespace snitch::impl
+} // namespace snitch::impl
 
 namespace snitch {
+filter_result filter_result_and(filter_result first, filter_result second) noexcept {
+    // AND favours exclusion over inclusion, then explicit over implicit.
+    if (!first.included && second.included) {
+        return first;
+    } else if (first.included && !second.included) {
+        return second;
+    } else if (!first.implicit) {
+        return first;
+    } else {
+        return second;
+    }
+}
+
+filter_result filter_result_or(filter_result first, filter_result second) noexcept {
+    // OR favours inclusion over exclusion, then explicit over implicit.
+    if (first.included && !second.included) {
+        return first;
+    } else if (!first.included && second.included) {
+        return second;
+    } else if (!first.implicit) {
+        return first;
+    } else {
+        return second;
+    }
+}
+
 filter_result is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
-    filter_result match_action    = filter_result::included;
-    filter_result no_match_action = filter_result::not_included;
+    filter_result match_action    = {.included = true, .implicit = false};
+    filter_result no_match_action = {.included = false, .implicit = true};
     if (filter.starts_with('~')) {
-        filter          = filter.substr(1);
-        match_action    = filter_result::excluded;
-        no_match_action = filter_result::not_excluded;
+        filter = filter.substr(1);
+        std::swap(match_action.included, no_match_action.included);
     }
 
     return is_match(name, filter) ? match_action : no_match_action;
 }
 
-filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
-    filter_result match_action    = filter_result::included;
-    filter_result no_match_action = filter_result::not_included;
+filter_result is_filter_match_tags_single(std::string_view tags, std::string_view filter) noexcept {
+    filter_result match_action    = {.included = true, .implicit = false};
+    filter_result no_match_action = {.included = false, .implicit = true};
     if (filter.starts_with('~')) {
-        filter          = filter.substr(1);
-        match_action    = filter_result::excluded;
-        no_match_action = filter_result::not_excluded;
+        filter = filter.substr(1);
+        std::swap(match_action.included, no_match_action.included);
     }
 
     bool match = false;
     impl::for_each_tag(tags, [&](const impl::tags::parsed_tag& v) {
-        if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr && is_match(*vs, filter)) {
-            match = true;
+        if (auto* vs = std::get_if<std::string_view>(&v); vs != nullptr) {
+            if (is_match(*vs, filter)) {
+                match = true;
+            }
         }
     });
 
     return match ? match_action : no_match_action;
 }
 
-filter_result is_filter_match_id(const test_id& id, std::string_view filter) noexcept {
+filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+    // Start with no result.
+    std::optional<filter_result> result;
+
+    // Evaluate each tag filter (one after the other, e.g. "[tag1][tag2]").
+    std::size_t end_pos = 0;
+    do {
+        end_pos = find_first_not_escaped(filter, ']');
+        if (end_pos != std::string_view::npos) {
+            ++end_pos;
+        }
+
+        const filter_result sub_result =
+            is_filter_match_tags_single(tags, filter.substr(0, end_pos));
+
+        if (!result.has_value()) {
+            // The first filter initialises the result.
+            result = sub_result;
+        } else {
+            // Subsequent filters are combined with the current result using AND.
+            result = filter_result_and(*result, sub_result);
+        }
+
+        if (!result->included) {
+            // Optimisation; we can short-circuit at the first exclusion.
+            // It does not matter if it is implicit or explicit, they are treated the same.
+            break;
+        }
+
+        if (end_pos != std::string_view::npos) {
+            filter.remove_prefix(end_pos);
+        }
+    } while (end_pos != std::string_view::npos && !filter.empty());
+
+    return *result;
+}
+
+filter_result is_filter_match_id_single(
+    std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+
     if (filter.starts_with('[') || filter.starts_with("~[")) {
-        return is_filter_match_tags(id.tags, filter);
+        return is_filter_match_tags(tags, filter);
     } else {
-        return is_filter_match_name(id.name, filter);
+        return is_filter_match_name(name, filter);
     }
+}
+
+filter_result
+is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+    // Start with no result.
+    std::optional<filter_result> result;
+
+    // Evaluate each filter (comma-separated).
+    std::size_t comma_pos = 0;
+    do {
+        comma_pos = find_first_not_escaped(filter, ',');
+
+        const filter_result sub_result =
+            is_filter_match_id_single(name, tags, filter.substr(0, comma_pos));
+
+        if (!result.has_value()) {
+            // The first filter initialises the result.
+            result = sub_result;
+        } else {
+            // Subsequent filters are combined with the current result using OR.
+            result = filter_result_or(*result, sub_result);
+        }
+
+        if (result->included && !result->implicit) {
+            // Optimisation; we can short-circuit at the first explicit inclusion.
+            // We can't short-circuit on implicit inclusion, because there could still be an
+            // explicit inclusion coming, and we want to know (for hidden tests).
+            break;
+        }
+
+        if (comma_pos != std::string_view::npos) {
+            filter.remove_prefix(comma_pos + 1);
+        }
+    } while (comma_pos != std::string_view::npos);
+
+    return *result;
 }
 } // namespace snitch
 
-namespace snitch::impl {
-namespace {
-void print_location(
-    const registry&           r,
-    const test_id&            id,
-    const section_info&       sections,
-    const capture_info&       captures,
-    const assertion_location& location) noexcept {
-
-    r.print("running test case \"", make_colored(id.name, r.with_color, color::highlight1), "\"\n");
-
-    for (auto& section : sections) {
-        r.print(
-            "          in section \"", make_colored(section.name, r.with_color, color::highlight1),
-            "\"\n");
-    }
-
-    r.print("          at ", location.file, ":", location.line, "\n");
-
-    if (!id.type.empty()) {
-        r.print(
-            "          for type ", make_colored(id.type, r.with_color, color::highlight1), "\n");
-    }
-
-    for (auto& capture : captures) {
-        r.print("          with ", make_colored(capture, r.with_color, color::highlight1), "\n");
-    }
-}
-
-struct default_reporter_functor {
-    const registry& r;
-
-    void operator()(const snitch::event::test_run_started& e) const noexcept {
-        r.print(
-            make_colored("starting ", r.with_color, color::highlight2),
-            make_colored(e.name, r.with_color, color::highlight1),
-            make_colored(" with ", r.with_color, color::highlight2),
-            make_colored("snitch v" SNITCH_FULL_VERSION "\n", r.with_color, color::highlight1));
-        r.print("==========================================\n");
-    }
-
-    void operator()(const snitch::event::test_run_ended& e) const noexcept {
-        r.print("==========================================\n");
-
-        if (e.success) {
-            r.print(
-                make_colored("success:", r.with_color, color::pass), " all tests passed (",
-                e.run_count, " test cases, ", e.assertion_count, " assertions");
-        } else {
-            r.print(
-                make_colored("error:", r.with_color, color::fail), " some tests failed (",
-                e.fail_count, " out of ", e.run_count, " test cases, ", e.assertion_count,
-                " assertions");
-        }
-
-        if (e.skip_count > 0) {
-            r.print(", ", e.skip_count, " test cases skipped");
-        }
-
-#if SNITCH_WITH_TIMINGS
-        r.print(", ", e.duration, " seconds");
-#endif
-
-        r.print(")\n");
-    }
-
-    void operator()(const snitch::event::test_case_started& e) const noexcept {
-        small_string<max_test_name_length> full_name;
-        make_full_name(full_name, e.id);
-
-        r.print(
-            make_colored("starting:", r.with_color, color::status), " ",
-            make_colored(full_name, r.with_color, color::highlight1));
-        r.print("\n");
-    }
-
-    void operator()(const snitch::event::test_case_ended& e) const noexcept {
-        small_string<max_test_name_length> full_name;
-        make_full_name(full_name, e.id);
-
-#if SNITCH_WITH_TIMINGS
-        r.print(
-            make_colored("finished:", r.with_color, color::status), " ",
-            make_colored(full_name, r.with_color, color::highlight1), " (", e.duration, "s)");
-#else
-        r.print(
-            make_colored("finished:", r.with_color, color::status), " ",
-            make_colored(full_name, r.with_color, color::highlight1));
-#endif
-        r.print("\n");
-    }
-
-    void operator()(const snitch::event::test_case_skipped& e) const noexcept {
-        r.print(make_colored("skipped: ", r.with_color, color::skipped));
-        print_location(r, e.id, e.sections, e.captures, e.location);
-        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-        r.print("\n");
-    }
-
-    void operator()(const snitch::event::assertion_failed& e) const noexcept {
-        if (e.expected) {
-            r.print(make_colored("expected failure: ", r.with_color, color::pass));
-        } else {
-            r.print(make_colored("failed: ", r.with_color, color::fail));
-        }
-        print_location(r, e.id, e.sections, e.captures, e.location);
-        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-        r.print("\n");
-    }
-
-    void operator()(const snitch::event::assertion_succeeded& e) const noexcept {
-        r.print(make_colored("passed: ", r.with_color, color::pass));
-        print_location(r, e.id, e.sections, e.captures, e.location);
-        r.print("          ", make_colored(e.message, r.with_color, color::highlight2));
-        r.print("\n");
-    }
-};
-} // namespace
-
-void default_reporter(const registry& r, const event::data& event) noexcept {
-    std::visit(default_reporter_functor{r}, event);
-}
-} // namespace snitch::impl
-
 namespace snitch {
-const char* registry::add(const test_id& id, impl::test_ptr func) {
+std::string_view registry::add_reporter(
+    std::string_view                                 name,
+    const std::optional<initialize_report_function>& initialize,
+    const std::optional<configure_report_function>&  configure,
+    const report_function&                           report,
+    const std::optional<finish_report_function>&     finish) {
+
+    if (registered_reporters.available() == 0u) {
+        using namespace snitch::impl;
+        print(
+            make_colored("error:", with_color, color::fail),
+            " max number of reporters reached; "
+            "please increase 'SNITCH_MAX_REGISTERED_REPORTERS' (currently ",
+            max_registered_reporters, ").\n");
+        assertion_failed("max number of reporters reached");
+    }
+
+    if (name.find("::") != std::string_view::npos) {
+        using namespace snitch::impl;
+        print(
+            make_colored("error:", with_color, color::fail),
+            " reporter name cannot contains '::' (trying to register '", name, "')\n.");
+        assertion_failed("invalid reporter name");
+    }
+
+    registered_reporters.push_back(registered_reporter{
+        name, initialize.value_or([](registry&) noexcept {}),
+        configure.value_or(
+            [](registry&, std::string_view, std::string_view) noexcept { return false; }),
+        report, finish.value_or([](registry&) noexcept {})});
+
+    return name;
+}
+
+const char*
+registry::add_impl(const test_id& id, const source_location& location, impl::test_ptr func) {
     if (test_list.available() == 0u) {
         using namespace snitch::impl;
         print(
             make_colored("error:", with_color, color::fail),
             " max number of test cases reached; "
             "please increase 'SNITCH_MAX_TEST_CASES' (currently ",
-            max_test_cases, ")\n.");
+            max_test_cases, ").\n");
         assertion_failed("max number of test cases reached");
     }
 
-    test_list.push_back(impl::test_case{id, func});
+    test_list.push_back(impl::test_case{id, location, func});
 
     small_string<max_test_name_length> buffer;
     if (impl::make_full_name(buffer, test_list.back().id).empty()) {
@@ -339,37 +364,70 @@ const char* registry::add(const test_id& id, impl::test_ptr func) {
     return id.name.data();
 }
 
+const char*
+registry::add(const impl::name_and_tags& id, const source_location& location, impl::test_ptr func) {
+    return add_impl({.name = id.name, .tags = id.tags}, location, func);
+}
+
+const char* registry::add_fixture(
+    const impl::fixture_name_and_tags& id, const source_location& location, impl::test_ptr func) {
+
+    return add_impl({.name = id.name, .tags = id.tags, .fixture = id.fixture}, location, func);
+}
+
+namespace {
+void register_assertion(bool success, impl::test_state& state) {
+    ++state.asserts;
+
+    if (!success) {
+        if (state.may_fail || state.should_fail) {
+            ++state.allowed_failures;
+            impl::set_state(state.test, impl::test_case_state::allowed_fail);
+        } else {
+            ++state.failures;
+            impl::set_state(state.test, impl::test_case_state::failed);
+        }
+    }
+}
+
+void report_assertion_impl(
+    const registry&           r,
+    bool                      success,
+    impl::test_state&         state,
+    const assertion_location& location,
+    const assertion_data&     data) noexcept {
+
+    if (state.test.state == impl::test_case_state::skipped) {
+        return;
+    }
+
+    register_assertion(success, state);
+
+    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+
+    if (success) {
+        if (r.verbose >= registry::verbosity::full) {
+            r.report_callback(
+                r, event::assertion_succeeded{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, data});
+        }
+    } else {
+        r.report_callback(
+            r, event::assertion_failed{
+                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
+                   data, state.should_fail, state.may_fail});
+    }
+}
+} // namespace
+
 void registry::report_assertion(
     bool                      success,
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
 
-    if (state.test.state == impl::test_case_state::skipped) {
-        return;
-    }
-
-    ++state.asserts;
-
-    if (!success && !state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::full)) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
-        }
-    } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    }
+    report_assertion_impl(*this, success, state, location, message);
 }
 
 void registry::report_assertion(
@@ -383,30 +441,9 @@ void registry::report_assertion(
         return;
     }
 
-    ++state.asserts;
-
-    if (!success && !state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
-
-    if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::full)) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
-        }
-    } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    }
+    report_assertion_impl(*this, success, state, location, message);
 }
 
 void registry::report_assertion(
@@ -419,43 +456,14 @@ void registry::report_assertion(
         return;
     }
 
-    ++state.asserts;
-
-    if (!success && !state.may_fail) {
-        impl::set_state(state.test, impl::test_case_state::failed);
-    }
-
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
-
-    small_string<max_message_length> message_buffer;
-    std::string_view                 message;
-    if (!exp.actual.empty()) {
-        append_or_truncate(message_buffer, exp.expected, ", got ", exp.actual);
-        message = message_buffer.str();
-    } else {
-        message = exp.expected;
-    }
-
-    if (success) {
-        if (impl::is_at_least(verbose, registry::verbosity::full)) {
-            report_callback(
-                *this, event::assertion_succeeded{
-                           state.test.id, state.sections.current_section, captures_buffer.span(),
-                           location, message});
-        }
-    } else {
-        report_callback(
-            *this, event::assertion_failed{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message, state.should_fail, state.may_fail});
-    }
+    report_assertion_impl(
+        *this, success, state, location, expression_info{exp.type, exp.expected, exp.actual});
 }
 
 void registry::report_skipped(
     impl::test_state&         state,
     const assertion_location& location,
     std::string_view          message) const noexcept {
-
     impl::set_state(state.test, impl::test_case_state::skipped);
 
     const auto captures_buffer = impl::make_capture_buffer(state.captures);
@@ -467,8 +475,8 @@ void registry::report_skipped(
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
-    if (impl::is_at_least(verbose, registry::verbosity::high)) {
-        report_callback(*this, event::test_case_started{test.id});
+    if (verbose >= registry::verbosity::high) {
+        report_callback(*this, event::test_case_started{test.id, test.location});
     }
 
     test.state = impl::test_case_state::success;
@@ -508,17 +516,15 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 #if SNITCH_WITH_EXCEPTIONS
         try {
             test.func();
+            report_assertion(true, state, test.location, "no exception caught");
         } catch (const impl::abort_exception&) {
             // Test aborted, assume its state was already set accordingly.
         } catch (const std::exception& e) {
             report_assertion(
-                false, state, {"<snitch internal>", 0},
-                "unhandled std::exception caught; message: ", e.what());
-            --state.asserts; // this doesn't count as a user assert, undo the increment
+                false, state, test.location,
+                "unexpected std::exception caught; message: ", e.what());
         } catch (...) {
-            report_assertion(
-                false, state, {"<snitch internal>", 0}, "unhandled unknown exception caught");
-            --state.asserts; // this doesn't count as a user assert, undo the increment
+            report_assertion(false, state, test.location, "unexpected unknown exception caught");
         }
 #else
         test.func();
@@ -536,15 +542,11 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     } while (!state.sections.levels.empty() && state.test.state != impl::test_case_state::skipped);
 
     if (state.should_fail) {
-        if (state.test.state == impl::test_case_state::success) {
-            state.should_fail = false;
-            report_assertion(
-                false, state, {"<snitch internal>", 0}, "expected test to fail, but it passed");
-            --state.asserts; // this doesn't count as a user assert, undo the increment
-            state.should_fail = true;
-        } else if (state.test.state == impl::test_case_state::failed) {
-            state.test.state = impl::test_case_state::success;
-        }
+        state.should_fail = false;
+        report_assertion(
+            state.test.state == impl::test_case_state::allowed_fail, state, test.location,
+            "expected test to fail");
+        state.should_fail = true;
     }
 
 #if SNITCH_WITH_TIMINGS
@@ -552,20 +554,26 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     state.duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
-    if (impl::is_at_least(verbose, registry::verbosity::high)) {
+    if (verbose >= registry::verbosity::high) {
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_case_ended{
-                       .id              = test.id,
-                       .assertion_count = state.asserts,
-                       .state           = impl::convert_to_public_state(state.test.state),
-                       .duration        = state.duration});
+                       .id                              = test.id,
+                       .location                        = test.location,
+                       .assertion_count                 = state.asserts,
+                       .assertion_failure_count         = state.failures,
+                       .allowed_assertion_failure_count = state.allowed_failures,
+                       .state    = impl::convert_to_public_state(state.test.state),
+                       .duration = state.duration});
 #else
         report_callback(
             *this, event::test_case_ended{
-                       .id              = test.id,
-                       .assertion_count = state.asserts,
-                       .state           = impl::convert_to_public_state(state.test.state)});
+                       .id                              = test.id,
+                       .location                        = test.location,
+                       .assertion_count                 = state.asserts,
+                       .assertion_failure_count         = state.failures,
+                       .allowed_assertion_failure_count = state.allowed_failures,
+                       .state = impl::convert_to_public_state(state.test.state)});
 #endif
     }
 
@@ -576,24 +584,29 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 
 bool registry::run_selected_tests(
     std::string_view                                     run_name,
+    const filter_info&                                   filter_strings,
     const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
 
-    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
-        report_callback(*this, event::test_run_started{run_name});
+    if (verbose >= registry::verbosity::normal) {
+        report_callback(
+            *this, event::test_run_started{.name = run_name, .filters = filter_strings});
     }
 
-    bool        success         = true;
-    std::size_t run_count       = 0;
-    std::size_t fail_count      = 0;
-    std::size_t skip_count      = 0;
-    std::size_t assertion_count = 0;
+    bool        success                         = true;
+    std::size_t run_count                       = 0;
+    std::size_t fail_count                      = 0;
+    std::size_t allowed_fail_count              = 0;
+    std::size_t skip_count                      = 0;
+    std::size_t assertion_count                 = 0;
+    std::size_t assertion_failure_count         = 0;
+    std::size_t allowed_assertion_failure_count = 0;
 
 #if SNITCH_WITH_TIMINGS
     using clock     = std::chrono::steady_clock;
     auto time_start = clock::now();
 #endif
 
-    for (impl::test_case& t : *this) {
+    for (impl::test_case& t : this->test_cases()) {
         if (!predicate(t.id)) {
             continue;
         }
@@ -602,10 +615,16 @@ bool registry::run_selected_tests(
 
         ++run_count;
         assertion_count += state.asserts;
+        assertion_failure_count += state.failures;
+        allowed_assertion_failure_count += state.allowed_failures;
 
         switch (t.state) {
         case impl::test_case_state::success: {
             // Nothing to do
+            break;
+        }
+        case impl::test_case_state::allowed_fail: {
+            ++allowed_fail_count;
             break;
         }
         case impl::test_case_state::failed: {
@@ -629,27 +648,35 @@ bool registry::run_selected_tests(
     float duration = std::chrono::duration<float>(time_end - time_start).count();
 #endif
 
-    if (impl::is_at_least(verbose, registry::verbosity::normal)) {
+    if (verbose >= registry::verbosity::normal) {
 #if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_run_ended{
-                       .name            = run_name,
-                       .run_count       = run_count,
-                       .fail_count      = fail_count,
-                       .skip_count      = skip_count,
-                       .assertion_count = assertion_count,
-                       .duration        = duration,
-                       .success         = success,
+                       .name                            = run_name,
+                       .filters                         = filter_strings,
+                       .run_count                       = run_count,
+                       .fail_count                      = fail_count,
+                       .allowed_fail_count              = allowed_fail_count,
+                       .skip_count                      = skip_count,
+                       .assertion_count                 = assertion_count,
+                       .assertion_failure_count         = assertion_failure_count,
+                       .allowed_assertion_failure_count = allowed_assertion_failure_count,
+                       .duration                        = duration,
+                       .success                         = success,
                    });
 #else
         report_callback(
             *this, event::test_run_ended{
-                       .name            = run_name,
-                       .run_count       = run_count,
-                       .fail_count      = fail_count,
-                       .skip_count      = skip_count,
-                       .assertion_count = assertion_count,
-                       .success         = success});
+                       .name                            = run_name,
+                       .filters                         = filter_strings,
+                       .run_count                       = run_count,
+                       .fail_count                      = fail_count,
+                       .allowed_fail_count              = allowed_fail_count,
+                       .skip_count                      = skip_count,
+                       .assertion_count                 = assertion_count,
+                       .assertion_failure_count         = assertion_failure_count,
+                       .allowed_assertion_failure_count = allowed_assertion_failure_count,
+                       .success                         = success});
 #endif
     }
 
@@ -657,86 +684,239 @@ bool registry::run_selected_tests(
 }
 
 bool registry::run_tests(std::string_view run_name) noexcept {
-    const auto filter = [](const test_id& id) {
-        bool selected = true;
-        impl::for_each_tag(id.tags, [&](const impl::tags::parsed_tag& s) {
-            if (std::holds_alternative<impl::tags::ignored>(s)) {
-                selected = false;
-            }
-        });
+    // The default run simply filters out the hidden tests.
+    const auto filter = [](const test_id& id) { return !impl::has_hidden_tag(id.tags); };
 
-        return selected;
-    };
-
-    return run_selected_tests(run_name, filter);
+    const small_vector<std::string_view, 1> filter_strings = {};
+    return run_selected_tests(run_name, filter_strings, filter);
 }
 
-bool registry::run_tests(const cli::input& args) noexcept {
+namespace {
+bool run_tests_impl(registry& r, const cli::input& args) noexcept {
     if (get_option(args, "--help")) {
-        cli::print("\n");
         cli::print_help(args.executable);
         return true;
     }
 
-    if (get_option(args, "--list-tests")) {
-        list_all_tests();
-        return true;
-    }
-
     if (auto opt = get_option(args, "--list-tests-with-tag")) {
-        list_tests_with_tag(*opt->value);
+        r.list_tests_with_tag(*opt->value);
         return true;
     }
 
     if (get_option(args, "--list-tags")) {
-        list_all_tags();
+        r.list_all_tags();
+        return true;
+    }
+
+    if (get_option(args, "--list-reporters")) {
+        r.list_all_reporters();
         return true;
     }
 
     if (get_positional_argument(args, "test regex").has_value()) {
-        const auto filter = [&](const test_id& id) noexcept {
-            std::optional<bool> selected;
+        // Gather all filters in a local array (for faster iteration and for event reporting).
+        small_vector<std::string_view, max_command_line_args> filter_strings;
+        const auto add_filter_string = [&](std::string_view filter) noexcept {
+            filter_strings.push_back(filter);
+        };
+        for_each_positional_argument(args, "test regex", add_filter_string);
 
-            const auto callback = [&](std::string_view filter) noexcept {
-                switch (is_filter_match_id(id, filter)) {
-                case filter_result::included: selected = true; break;
-                case filter_result::excluded: selected = false; break;
-                case filter_result::not_included:
-                    if (!selected.has_value()) {
-                        selected = false;
-                    }
-                    break;
-                case filter_result::not_excluded:
-                    if (!selected.has_value()) {
-                        selected = true;
-                    }
+        // This buffer will be reused to evaluate the full name of each test.
+        small_string<max_test_name_length> buffer;
+
+        const auto filter = [&](const test_id& id) noexcept {
+            // Start with no result.
+            std::optional<filter_result> result;
+
+            // Evaluate each filter (provided as separate command-line argument).
+            for (const auto& filter : filter_strings) {
+                const filter_result sub_result =
+                    is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter);
+
+                if (!result.has_value()) {
+                    // The first filter initialises the result.
+                    result = sub_result;
+                } else {
+                    // Subsequent filters are combined with the current result using AND.
+                    result = filter_result_and(*result, sub_result);
+                }
+
+                if (!result->included) {
+                    // Optimisation; we can short-circuit at the first exclusion.
+                    // It does not matter if it is implicit or explicit, they are treated the same.
                     break;
                 }
-            };
+            }
 
-            for_each_positional_argument(args, "test regex", callback);
-
-            return selected.value();
+            if (result->included) {
+                if (!result->implicit) {
+                    // Explicit inclusion always selects the test.
+                    return true;
+                } else {
+                    // Implicit inclusion only selects non-hidden tests.
+                    return !impl::has_hidden_tag(id.tags);
+                }
+            } else {
+                // Exclusion always discards the test, regardless if it is explicit or implicit.
+                return false;
+            }
         };
 
-        return run_selected_tests(args.executable, filter);
+        if (get_option(args, "--list-tests")) {
+            impl::list_tests(r, filter);
+            return true;
+        } else {
+            return r.run_selected_tests(args.executable, filter_strings, filter);
+        }
     } else {
-        return run_tests(args.executable);
+        if (get_option(args, "--list-tests")) {
+            r.list_all_tests();
+            return true;
+        } else {
+            return r.run_tests(args.executable);
+        }
+    }
+}
+} // namespace
+
+bool registry::run_tests(const cli::input& args) noexcept {
+    // Run tests.
+    const bool success = run_tests_impl(*this, args);
+
+    // Tell the current reporter we are done.
+    finish_callback(*this);
+
+    // Close the output file, if any.
+    file_writer.reset();
+
+    return success;
+}
+
+namespace impl {
+void parse_reporter(
+    registry&                                    r,
+    small_vector_span<const registered_reporter> reporters,
+    std::string_view                             arg) noexcept {
+
+    if (arg.empty() || arg[0] == ':') {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", r.with_color, color::warning), " invalid reporter '", arg,
+            "', using default\n");
+        return;
+    }
+
+    // Isolate reporter name and options
+    std::string_view reporter_name = arg;
+    std::string_view options;
+    if (auto option_pos = reporter_name.find("::"); option_pos != std::string_view::npos) {
+        options       = reporter_name.substr(option_pos);
+        reporter_name = reporter_name.substr(0, option_pos);
+    }
+
+    // Locate reporter
+    auto iter = std::find_if(reporters.begin(), reporters.end(), [&](const auto& reporter) {
+        return reporter.name == reporter_name;
+    });
+
+    if (iter == reporters.end()) {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", r.with_color, color::warning), " unknown reporter '",
+            reporter_name, "', using default\n");
+        cli::print(make_colored("note:", r.with_color, color::status), " available reporters:\n");
+        for (const auto& reporter : reporters) {
+            cli::print(
+                make_colored("note:", r.with_color, color::status), "  ", reporter.name, "\n");
+        }
+        return;
+    }
+
+    // Initialise reporter now, so we can configure it.
+    iter->initialize(r);
+
+    // Configure reporter
+    auto option_pos = options.find("::");
+    while (option_pos != std::string_view::npos) {
+        option_pos = options.find("::", 2);
+        if (option_pos != std::string_view::npos) {
+            options = options.substr(option_pos);
+        }
+
+        std::string_view option = options.substr(2, option_pos);
+
+        auto equal_pos = option.find("=");
+        if (equal_pos == std::string_view::npos || equal_pos == 0) {
+            using namespace snitch::impl;
+            cli::print(
+                make_colored("warning:", r.with_color, color::warning),
+                " badly formatted reporter option '", option, "'; expected 'key=value'\n");
+            continue;
+        }
+
+        std::string_view option_name  = option.substr(0, equal_pos);
+        std::string_view option_value = option.substr(equal_pos + 1);
+
+        if (!iter->configure(r, option_name, option_value)) {
+            using namespace snitch::impl;
+            cli::print(
+                make_colored("warning:", r.with_color, color::warning),
+                " unknown reporter option '", option_name, "'\n");
+        }
+    }
+
+    // Register reporter callbacks
+    r.report_callback = iter->callback;
+    r.finish_callback = iter->finish;
+}
+
+bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept {
+    if (color_option == "ansi") {
+        reg.with_color = true;
+        return true;
+    } else if (color_option == "none") {
+        reg.with_color = false;
+        return true;
+    } else if (color_option == "default") {
+        // Nothing to do.
+        return false;
+    } else {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", reg.with_color, color::warning),
+            " unknown color directive; please use one of ansi|default|none\n");
+        return false;
     }
 }
 
-void registry::configure(const cli::input& args) noexcept {
+bool parse_color_option(registry& reg, std::string_view color_option) noexcept {
+    if (color_option == "always") {
+        reg.with_color = true;
+        return true;
+    } else if (color_option == "never") {
+        reg.with_color = false;
+        return true;
+    } else if (color_option == "default") {
+        // Nothing to do.
+        return false;
+    } else {
+        using namespace snitch::impl;
+        cli::print(
+            make_colored("warning:", reg.with_color, color::warning),
+            " unknown color directive; please use one of always|default|never\n");
+        return false;
+    }
+}
+} // namespace impl
+
+void registry::configure(const cli::input& args) {
+    bool color_override = false;
+    if (auto opt = get_option(args, "--colour-mode")) {
+        color_override = impl::parse_colour_mode_option(*this, *opt->value);
+    }
+
     if (auto opt = get_option(args, "--color")) {
-        if (*opt->value == "always") {
-            with_color = true;
-        } else if (*opt->value == "never") {
-            with_color = false;
-        } else {
-            using namespace snitch::impl;
-            cli::print(
-                make_colored("warning:", with_color, color::warning),
-                " unknown color directive; please use one of always|never\n");
-        }
+        color_override = impl::parse_color_option(*this, *opt->value) || color_override;
     }
 
     if (auto opt = get_option(args, "--verbosity")) {
@@ -755,6 +935,20 @@ void registry::configure(const cli::input& args) noexcept {
                 " unknown verbosity level; please use one of quiet|normal|high|full\n");
         }
     }
+
+    if (auto opt = get_option(args, "--out")) {
+        file_writer = impl::file_writer{*opt->value};
+
+        if (!color_override) {
+            with_color = false;
+        }
+
+        print_callback = {*file_writer, snitch::constant<&impl::file_writer::write>{}};
+    }
+
+    if (auto opt = get_option(args, "--reporter")) {
+        impl::parse_reporter(*this, registered_reporters, *opt->value);
+    }
 }
 
 void registry::list_all_tags() const {
@@ -769,7 +963,7 @@ void registry::list_all_tags() const {
                             make_colored("error:", with_color, color::fail),
                             " max number of tags reached; "
                             "please increase 'SNITCH_MAX_UNIQUE_TAGS' (currently ",
-                            max_unique_tags, ")\n.");
+                            max_unique_tags, ").\n");
                         assertion_failed("max number of unique tags reached");
                     }
 
@@ -787,35 +981,37 @@ void registry::list_all_tags() const {
 }
 
 void registry::list_all_tests() const noexcept {
-    impl::list_tests(*this, [](const impl::test_case&) { return true; });
+    impl::list_tests(*this, [](const test_id&) { return true; });
 }
 
 void registry::list_tests_with_tag(std::string_view tag) const noexcept {
-    impl::list_tests(*this, [&](const impl::test_case& t) {
-        const auto result = is_filter_match_tags(t.id.tags, tag);
-        return result == filter_result::included || result == filter_result::not_excluded;
+    impl::list_tests(*this, [&](const test_id& id) {
+        const auto result = is_filter_match_tags(id.tags, tag);
+        return result.included;
     });
 }
 
-impl::test_case* registry::begin() noexcept {
-    return test_list.begin();
+void registry::list_all_reporters() const noexcept {
+    for (const auto& r : registered_reporters) {
+        cli::print(r.name, "\n");
+    }
 }
 
-impl::test_case* registry::end() noexcept {
-    return test_list.end();
+small_vector_span<impl::test_case> registry::test_cases() noexcept {
+    return test_list;
 }
 
-const impl::test_case* registry::begin() const noexcept {
-    return test_list.begin();
+small_vector_span<const impl::test_case> registry::test_cases() const noexcept {
+    return test_list;
 }
 
-const impl::test_case* registry::end() const noexcept {
-    return test_list.end();
+small_vector_span<registered_reporter> registry::reporters() noexcept {
+    return registered_reporters;
 }
 
-constinit registry tests = []() {
-    registry r;
-    r.with_color = SNITCH_DEFAULT_WITH_COLOR == 1;
-    return r;
-}();
+small_vector_span<const registered_reporter> registry::reporters() const noexcept {
+    return registered_reporters;
+}
+
+constinit registry tests;
 } // namespace snitch

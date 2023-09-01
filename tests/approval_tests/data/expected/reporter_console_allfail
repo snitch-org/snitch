@@ -1,0 +1,63 @@
+starting test with snitch v*
+==========================================
+failed: running test case "test fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "test shouldfail good fail"
+          at *testing_reporters.cpp:*
+          expected test to fail
+failed: running test case "test no tags fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "typed test no tags fail"
+          at *testing_reporters.cpp:*
+          for type int
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "typed test no tags fail"
+          at *testing_reporters.cpp:*
+          for type float
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "typed test with tags fail"
+          at *testing_reporters.cpp:*
+          for type int
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "typed test with tags fail"
+          at *testing_reporters.cpp:*
+          for type float
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "test fixture fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "test FAIL fail"
+          at *testing_reporters.cpp:*
+          something bad
+failed: running test case "test expression fail"
+          at *testing_reporters.cpp:*
+          CHECK(1 == 2), got: 1 != 2
+failed: running test case "test long expression fail"
+          at *testing_reporters.cpp:*
+          CHECK(some_very_long_name_that_forces_lines_to_wrap != some_very_long_name_that_forces_lines_to_wrap)
+          got: 1 == 1
+failed: running test case "test too long expression fail"
+          at *testing_reporters.cpp:*
+          CHECK(super_long_string != super_long_string)
+failed: running test case "test too long message fail"
+          at *testing_reporters.cpp:*
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
+failed: running test case "test NOTHROW fail"
+          at *testing_reporters.cpp:*
+          expected throw_something(true) not to throw but it threw a std::exception; message: I threw
+failed: running test case "test THROW fail"
+          at *testing_reporters.cpp:*
+          std::runtime_error expected but no exception thrown
+failed: running test case "test THROW fail"
+          at *testing_reporters.cpp:*
+          std::system_error expected but other std::exception thrown; message: I threw
+failed: running test case "test THROW fail"
+          at *testing_reporters.cpp:*
+          could not match caught std::runtime_error with expected content: could not find 'I throws' in 'I threw'
+failed: running test case "test unexpected throw fail"
+          at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+==========================================
+error: all tests failed (16 out of 16 test cases, 32 assertions, * seconds)

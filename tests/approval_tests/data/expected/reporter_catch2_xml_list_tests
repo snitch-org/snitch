@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MatchingTests>
+  <TestCase>
+    <Name>test pass</Name>
+    <ClassName/>
+    <Tags>[tag2][tag1]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test fail</Name>
+    <ClassName/>
+    <Tags>[tag2][tag1]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test mayfail good pass</Name>
+    <ClassName/>
+    <Tags>[tag2][tag1][!mayfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test mayfail bad pass</Name>
+    <ClassName/>
+    <Tags>[tag2][tag1][!mayfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test shouldfail good fail</Name>
+    <ClassName/>
+    <Tags>[tag2][tag1][!shouldfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test shouldfail bad pass</Name>
+    <ClassName/>
+    <Tags>[tag2][tag1][!shouldfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test no tags pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test no tags fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test no tags pass &lt;int&gt;</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test no tags pass &lt;float&gt;</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test no tags fail &lt;int&gt;</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test no tags fail &lt;float&gt;</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test with tags pass &lt;int&gt;</Name>
+    <ClassName/>
+    <Tags>[tag1]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test with tags pass &lt;float&gt;</Name>
+    <ClassName/>
+    <Tags>[tag1]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test with tags fail &lt;int&gt;</Name>
+    <ClassName/>
+    <Tags>[tag1]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>typed test with tags fail &lt;float&gt;</Name>
+    <ClassName/>
+    <Tags>[tag1]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test fixture pass</Name>
+    <ClassName>MyClass</ClassName>
+    <Tags>[tag with space]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test fixture fail</Name>
+    <ClassName>MyClass</ClassName>
+    <Tags>[tag with space]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SUCCEED pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test FAIL fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test expression pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test expression fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test long expression pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test long expression fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test too long expression pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test too long expression fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test too long message pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test too long message fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test NOTHROW pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test NOTHROW fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test THROW pass</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test THROW fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test unexpected throw fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SKIP</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test INFO</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test multiple INFO</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SECTION</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test multiple SECTION</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SECTION &amp; INFO</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test escape &lt;&gt;&amp;&quot;&apos;</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*reporter_catch2_xml.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test escape very long</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*reporter_catch2_xml.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+</MatchingTests>

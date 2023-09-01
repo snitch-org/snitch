@@ -170,15 +170,15 @@ public:
         return capacity() - size();
     }
     constexpr std::size_t size() const noexcept {
-        return *data_size;
+        return data_size != nullptr ? *data_size : 0;
     }
     constexpr bool empty() const noexcept {
-        return *data_size == 0;
+        return data_size == nullptr || *data_size == 0;
     }
 
     // Requires: !empty().
     constexpr const ElemType& back() const {
-        if (*data_size == 0) {
+        if (empty()) {
             assertion_failed("back() called on empty vector");
         }
 

@@ -114,7 +114,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == false);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value), got false"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value"sv, "false"sv);
     }
 
     SECTION("bool !true") {
@@ -129,7 +129,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == true);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(!value), got false"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "!value"sv, "false"sv);
     }
 
     SECTION("bool !false") {
@@ -168,7 +168,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value"sv, "0"sv);
     }
 
     SECTION("integer pre increment") {
@@ -195,7 +195,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value++), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value++"sv, "0"sv);
     }
 
     SECTION("integer expression * pass") {
@@ -270,7 +270,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 * value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "2 * value"sv, "0"sv);
     }
 
     SECTION("integer expression / fail") {
@@ -285,7 +285,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == 5);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 / value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "2 / value"sv, "0"sv);
     }
 
     SECTION("integer expression + fail") {
@@ -300,7 +300,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == -2);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 + value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "2 + value"sv, "0"sv);
     }
 
     SECTION("integer expression - fail") {
@@ -315,7 +315,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == 2);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 - value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "2 - value"sv, "0"sv);
     }
 
     SECTION("integer expression % fail") {
@@ -330,7 +330,7 @@ TEST_CASE("check unary", "[test macros]") {
         }
 
         CHECK(value == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(2 % value), got 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "2 % value"sv, "0"sv);
     }
 }
 
@@ -437,7 +437,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2), got 0 != 1"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 == value2"sv, "0 != 1"sv);
     }
 
     SECTION("integer != fail") {
@@ -454,7 +454,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 != value2), got 0 == 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 != value2"sv, "0 == 0"sv);
     }
 
     SECTION("integer < fail") {
@@ -471,7 +471,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 < value2), got 1 >= 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 < value2"sv, "1 >= 0"sv);
     }
 
     SECTION("integer > fail") {
@@ -488,7 +488,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 > value2), got 0 <= 1"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 > value2"sv, "0 <= 1"sv);
     }
 
     SECTION("integer <= fail") {
@@ -505,7 +505,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 <= value2), got 1 > 0"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 <= value2"sv, "1 > 0"sv);
     }
 
     SECTION("integer >= fail") {
@@ -522,7 +522,7 @@ TEST_CASE("check binary", "[test macros]") {
 
         CHECK(value1 == 0);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 >= value2), got 0 < 1"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 >= value2"sv, "0 < 1"sv);
     }
 }
 
@@ -547,7 +547,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 <=> value2 != 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 <=> value2 != 0"sv, ""sv);
     }
 
     SECTION("with operator &&") {
@@ -564,7 +564,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == 1 && value2 == 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 == 1 && value2 == 0"sv, ""sv);
     }
 
     SECTION("with operator ||") {
@@ -581,7 +581,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
 
         CHECK(value1 == 2);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == 1 || value2 == 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK", "value1 == 1 || value2 == 0"sv, ""sv);
     }
 
     SECTION("with operator =") {
@@ -596,7 +596,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value = 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value = 0"sv, ""sv);
     }
 
     SECTION("with operator +=") {
@@ -611,7 +611,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value += -1)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value += -1"sv, ""sv);
     }
 
     SECTION("with operator -=") {
@@ -626,7 +626,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value -= 1)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value -= 1"sv, ""sv);
     }
 
     SECTION("with operator *=") {
@@ -641,7 +641,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value *= 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value *= 0"sv, ""sv);
     }
 
     SECTION("with operator /=") {
@@ -656,7 +656,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value /= 10)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value /= 10"sv, ""sv);
     }
 
     SECTION("with operator ^") {
@@ -671,7 +671,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value ^ 1)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value ^ 1"sv, ""sv);
     }
 
     SECTION("with operator &") {
@@ -686,7 +686,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value & 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value & 0"sv, ""sv);
     }
 
     SECTION("with operator |") {
@@ -701,7 +701,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         }
 
         CHECK(value == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value | 0)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value | 0"sv, ""sv);
     }
 
     SECTION("with multiple comparisons") {
@@ -719,7 +719,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
 
         CHECK(value1 == 2);
         CHECK(value2 == 1);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 == value3)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 == value2 == value3"sv, ""sv);
     }
 
     SECTION("with final ^") {
@@ -738,7 +738,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         CHECK(value1 == 2);
         CHECK(value2 == 1);
         CHECK(value3 == false);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 ^ value3)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 == value2 ^ value3"sv, ""sv);
     }
 
     SECTION("with two final ^") {
@@ -759,7 +759,8 @@ TEST_CASE("check no decomposition", "[test macros]") {
         CHECK(value2 == 1);
         CHECK(value3 == false);
         CHECK(value4 == false);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(value1 == value2 ^ value3 ^ value4)"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CHECK"sv, "value1 == value2 ^ value3 ^ value4"sv, ""sv);
     }
 
     SECTION("with operator , (int,int)") {
@@ -776,7 +777,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
 
         CHECK(value1 == 2);
         CHECK(value2 == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(++value1, ++value2)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "++value1, ++value2"sv, ""sv);
     }
 }
 
@@ -813,7 +814,8 @@ TEST_CASE("check false", "[test macros]") {
 
         CHECK(value1 == 1);
         CHECK(value2 == 0);
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK_FALSE(value1 >= value2), got 1 >= 0"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CHECK_FALSE"sv, "value1 >= value2"sv, "1 >= 0"sv);
     }
 
     SECTION("matcher pass") {
@@ -838,8 +840,9 @@ TEST_CASE("check false", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK_FALSE(\"hello\"sv == snitch::matchers::contains_substring{\"lo\"}), got found 'lo' in 'hello'"sv);
+            catcher, failure_line, "CHECK_FALSE",
+            "\"hello\"sv == snitch::matchers::contains_substring{\"lo\"}"sv,
+            "found 'lo' in 'hello'"sv);
     }
 }
 
@@ -889,8 +892,8 @@ TEST_CASE("check that", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK_THAT(i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+            catcher, failure_line, "CHECK_THAT"sv, "i, snitch::matchers::is_even{}"sv,
+            "input value 9 is not even; remainder: 1"sv);
     }
 }
 
@@ -907,7 +910,7 @@ TEST_CASE("check misc", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(unary_long_string{})"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "unary_long_string{}"sv, ""sv);
     }
 
     SECTION("out of space binary lhs") {
@@ -929,7 +932,8 @@ TEST_CASE("check misc", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(string1.str() == string2.str())"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CHECK"sv, "string1.str() == string2.str()"sv, ""sv);
     }
 
     SECTION("out of space binary rhs") {
@@ -951,7 +955,8 @@ TEST_CASE("check misc", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(string1.str() == string2.str())"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CHECK"sv, "string1.str() == string2.str()"sv, ""sv);
     }
 
     SECTION("out of space binary op") {
@@ -973,7 +978,8 @@ TEST_CASE("check misc", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK(string1.str() == string2.str())"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CHECK"sv, "string1.str() == string2.str()"sv, ""sv);
     }
 
     SECTION("non copiable non movable pass") {
@@ -996,8 +1002,8 @@ TEST_CASE("check misc", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK(non_relocatable(1) == non_relocatable(2)), got non_relocatable{1} != non_relocatable{2}"sv);
+            catcher, failure_line, "CHECK"sv, "non_relocatable(1) == non_relocatable(2)"sv,
+            "non_relocatable{1} != non_relocatable{2}"sv);
     }
 
     SECTION("non appendable fail") {
@@ -1011,7 +1017,7 @@ TEST_CASE("check misc", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line, "CHECK(non_appendable(1) == non_appendable(2)), got ? != ?"sv);
+            catcher, failure_line, "CHECK"sv, "non_appendable(1) == non_appendable(2)", "? != ?"sv);
     }
 
     SECTION("matcher fail lhs") {
@@ -1025,8 +1031,8 @@ TEST_CASE("check misc", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK(snitch::matchers::long_matcher_always_fails{} == \"hello\"sv)"sv);
+            catcher, failure_line, "CHECK"sv,
+            "snitch::matchers::long_matcher_always_fails{} == \"hello\"sv"sv, ""sv);
     }
 
     SECTION("matcher fail rhs") {
@@ -1040,8 +1046,8 @@ TEST_CASE("check misc", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK(\"hello\"sv == snitch::matchers::long_matcher_always_fails{})"sv);
+            catcher, failure_line, "CHECK"sv,
+            "\"hello\"sv == snitch::matchers::long_matcher_always_fails{}"sv, ""sv);
     }
 
     SECTION("out of space matcher lhs") {
@@ -1055,8 +1061,9 @@ TEST_CASE("check misc", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK(snitch::matchers::contains_substring{\"foo\"} == \"hello\"sv), got could not find 'foo' in 'hello'"sv);
+            catcher, failure_line, "CHECK"sv,
+            "snitch::matchers::contains_substring{\"foo\"} == \"hello\"sv"sv,
+            "could not find 'foo' in 'hello'"sv);
     }
 
     SECTION("out of space matcher rhs") {
@@ -1070,8 +1077,9 @@ TEST_CASE("check misc", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CHECK(\"hello\"sv == snitch::matchers::contains_substring{\"foo\"}), got could not find 'foo' in 'hello'"sv);
+            catcher, failure_line, "CHECK"sv,
+            "\"hello\"sv == snitch::matchers::contains_substring{\"foo\"}"sv,
+            "could not find 'foo' in 'hello'"sv);
     }
 }
 
@@ -1099,7 +1107,7 @@ TEST_CASE("consteval check", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK(i == 10), got 9 != 10"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK"sv, "i == 10"sv, "9 != 10"sv);
     }
 
     SECTION("not decomposable pass") {
@@ -1123,7 +1131,7 @@ TEST_CASE("consteval check", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK(i == 10 || i == 8)"sv);
+        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK"sv, "i == 10 || i == 8"sv, ""sv);
     }
 
     // This triggers a compile-time error, so we can't enable it.
@@ -1168,7 +1176,8 @@ TEST_CASE("consteval check false", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK_FALSE(i == 9), got 9 == 9"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CONSTEVAL_CHECK_FALSE"sv, "i == 9"sv, "9 == 9"sv);
     }
 
     SECTION("not decomposable pass") {
@@ -1192,7 +1201,8 @@ TEST_CASE("consteval check false", "[test macros]") {
             // clang-format on
         }
 
-        CHECK_EXPR_FAILURE(catcher, failure_line, "CONSTEVAL_CHECK_FALSE(i == 10 || i == 9)"sv);
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "CONSTEVAL_CHECK_FALSE"sv, "i == 10 || i == 9"sv, ""sv);
     }
 }
 
@@ -1221,8 +1231,8 @@ TEST_CASE("consteval check that", "[test macros]") {
         }
 
         CHECK_EXPR_FAILURE(
-            catcher, failure_line,
-            "CONSTEVAL_CHECK_THAT(i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+            catcher, failure_line, "CONSTEVAL_CHECK_THAT"sv, "i, snitch::matchers::is_even{}"sv,
+            "input value 9 is not even; remainder: 1"sv);
     }
 }
 
@@ -1252,11 +1262,11 @@ TEST_CASE("constexpr check", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
-            "CONSTEXPR_CHECK[compile-time](i == 10), got 9 != 10"sv);
+            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK[compile-time]"sv,
+            "i == 10"sv, "9 != 10"sv);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[1u], failure_line,
-            "CONSTEXPR_CHECK[run-time](i == 10), got 9 != 10"sv);
+            catcher, catcher.events[1u], failure_line, "CONSTEXPR_CHECK[run-time]"sv, "i == 10"sv,
+            "9 != 10"sv);
     }
 
     SECTION("not decomposable pass") {
@@ -1282,11 +1292,11 @@ TEST_CASE("constexpr check", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
-            "CONSTEXPR_CHECK[compile-time](i == 10 || i == 8)"sv);
+            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK[compile-time]"sv,
+            "i == 10 || i == 8"sv, ""sv);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[1u], failure_line,
-            "CONSTEXPR_CHECK[run-time](i == 10 || i == 8)"sv);
+            catcher, catcher.events[1u], failure_line, "CONSTEXPR_CHECK[run-time]"sv,
+            "i == 10 || i == 8"sv, ""sv);
     }
 
     SECTION("compile-time failure only") {
@@ -1311,8 +1321,8 @@ TEST_CASE("constexpr check", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
-            "CONSTEXPR_CHECK[compile-time](compile_time_bug{}.foo()), got false"sv);
+            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK[compile-time]"sv,
+            "compile_time_bug{}.foo()", "false"sv);
     }
 
     SECTION("run-time failure only") {
@@ -1337,8 +1347,8 @@ TEST_CASE("constexpr check", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[1u], failure_line,
-            "CONSTEXPR_CHECK[run-time](compile_time_bug{}.foo()), got false"sv);
+            catcher, catcher.events[1u], failure_line, "CONSTEXPR_CHECK[run-time]"sv,
+            "compile_time_bug{}.foo()"sv, "false"sv);
     }
 
     // This triggers a compile-time error, so we can't enable it.
@@ -1385,11 +1395,11 @@ TEST_CASE("constexpr check false", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
-            "CONSTEXPR_CHECK_FALSE[compile-time](i == 9), got 9 == 9"sv);
+            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK_FALSE[compile-time]"sv,
+            "i == 9"sv, "9 == 9"sv);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[1u], failure_line,
-            "CONSTEXPR_CHECK_FALSE[run-time](i == 9), got 9 == 9"sv);
+            catcher, catcher.events[1u], failure_line, "CONSTEXPR_CHECK_FALSE[run-time]"sv,
+            "i == 9"sv, "9 == 9"sv);
     }
 
     SECTION("not decomposable pass") {
@@ -1415,11 +1425,11 @@ TEST_CASE("constexpr check false", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
-            "CONSTEXPR_CHECK_FALSE[compile-time](i == 10 || i == 9)"sv);
+            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK_FALSE[compile-time]"sv,
+            "i == 10 || i == 9"sv, ""sv);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[1u], failure_line,
-            "CONSTEXPR_CHECK_FALSE[run-time](i == 10 || i == 9)"sv);
+            catcher, catcher.events[1u], failure_line, "CONSTEXPR_CHECK_FALSE[run-time]"sv,
+            "i == 10 || i == 9"sv, ""sv);
     }
 }
 
@@ -1449,11 +1459,11 @@ TEST_CASE("constexpr check that", "[test macros]") {
 
         CONSTEXPR_CHECK_EXPR_FAILURE_2(catcher);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[0u], failure_line,
-            "CONSTEXPR_CHECK_THAT[compile-time](i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+            catcher, catcher.events[0u], failure_line, "CONSTEXPR_CHECK_THAT[compile-time]"sv,
+            "i, snitch::matchers::is_even{}"sv, "input value 9 is not even; remainder: 1"sv);
         CHECK_EVENT_FAILURE(
-            catcher, catcher.events[1u], failure_line,
-            "CONSTEXPR_CHECK_THAT[run-time](i, snitch::matchers::is_even{}), got input value 9 is not even; remainder: 1"sv);
+            catcher, catcher.events[1u], failure_line, "CONSTEXPR_CHECK_THAT[run-time]"sv,
+            "i, snitch::matchers::is_even{}"sv, "input value 9 is not even; remainder: 1"sv);
     }
 }
 

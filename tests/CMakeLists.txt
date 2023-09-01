@@ -28,7 +28,7 @@ function(add_platform_definitions TARGET)
         target_compile_options(${TARGET} PRIVATE /WX)
         target_compile_options(${TARGET} PRIVATE /EHs)
         # Increase default stack size to match default for Linux
-        target_compile_options(${TARGET} PRIVATE "/F 8388608")
+        target_link_options(${TARGET} PRIVATE /STACK:8388608)
     endif()
 
     if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
@@ -46,8 +46,12 @@ function(configure_snitch_for_tests TARGET)
         SNITCH_MAX_CAPTURE_LENGTH=128)
 endfunction()
 
-set(RUNTIME_TEST_FILES
+set(TEST_UTILITY_FILES
     ${PROJECT_SOURCE_DIR}/tests/testing_event.cpp
+    ${PROJECT_SOURCE_DIR}/tests/testing_reporters.cpp)
+
+set(RUNTIME_TEST_FILES
+    ${TEST_UTILITY_FILES}
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
@@ -62,6 +66,23 @@ set(RUNTIME_TEST_FILES
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/registry.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/macros.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/regressions.cpp)
+
+set(APPROVAL_TEST_FILES
+    ${TEST_UTILITY_FILES}
+    ${PROJECT_SOURCE_DIR}/tests/approval_tests/reporter_catch2_xml.cpp
+    ${PROJECT_SOURCE_DIR}/tests/approval_tests/reporter_console.cpp
+    ${PROJECT_SOURCE_DIR}/tests/approval_tests/reporter_teamcity.cpp)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+    # For Emcripten, we need the working directory to be where the binaries are created,
+    # because Emscripten will generate *.data files there that we need to load.
+    # We don't have access to the filesystem otherwise.
+    set(APPROVAL_TEST_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    set(RUNTIME_TEST_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+else()
+    set(APPROVAL_TEST_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/approval_tests)
+    set(RUNTIME_TEST_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/runtime_tests)
+endif()
 
 include(FetchContent)
 
@@ -99,9 +120,45 @@ target_compile_definitions(snitch_runtime_tests PUBLIC
 
 add_custom_target(snitch_runtime_tests_run
     COMMAND snitch_runtime_tests
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${RUNTIME_TEST_WORKING_DIRECTORY}
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
+
+# Test snitch with doctest (approval tests).
+# Note: DO NOT target_link_libraries(snitch::snitch)!
+# The pre-built library won't be built with configure_snitch_for_tests().
+# Use add_dependencies() to ensure the proper build order, and include the
+# sources directly in this project so they can be built with the wanted
+# configuration.
+add_executable(snitch_approval_tests
+    ${APPROVAL_TEST_FILES}
+    ${SNITCH_SOURCES})
+target_include_directories(snitch_approval_tests PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/tests)
+target_link_libraries(snitch_approval_tests PRIVATE
+    doctest::doctest
+    doctest::doctest_with_main)
+add_dependencies(snitch_approval_tests snitch::snitch)
+add_platform_definitions(snitch_approval_tests)
+configure_snitch_for_tests(snitch_approval_tests)
+target_compile_features(snitch_approval_tests PUBLIC cxx_std_20)
+target_compile_definitions(snitch_approval_tests PUBLIC
+    SNITCH_DEFINE_MAIN=0
+    SNITCH_WITH_SHORTHAND_MACROS=0)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+    # Add approval test data to the preload-file list
+    target_link_options(snitch_approval_tests PUBLIC
+        "SHELL:--preload-file ${PROJECT_SOURCE_DIR}/tests/approval_tests/data@data")
+endif()
+
+add_custom_target(snitch_approval_tests_run
+    COMMAND snitch_approval_tests
+    WORKING_DIRECTORY ${APPROVAL_TEST_WORKING_DIRECTORY}
+    SOURCES ${APPROVAL_TEST_FILES})
+set_target_properties(snitch_approval_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
 # Test snitch with itself.
 # Note: DO NOT target_link_libraries(snitch::snitch)!
@@ -125,7 +182,7 @@ target_compile_definitions(snitch_runtime_tests_self PUBLIC
 
 add_custom_target(snitch_runtime_tests_self_run
     COMMAND snitch_runtime_tests_self
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${RUNTIME_TEST_WORKING_DIRECTORY}
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
 
@@ -148,6 +205,6 @@ target_compile_definitions(snitch_runtime_tests_self_header_only PUBLIC
 
 add_custom_target(snitch_runtime_tests_self_header_only_run
     COMMAND snitch_runtime_tests_self_header_only
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${RUNTIME_TEST_WORKING_DIRECTORY}
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_self_header_only_run PROPERTIES EXCLUDE_FROM_ALL True)

@@ -47,9 +47,14 @@ input_filenames = list(include for include, children in header_map.items() if le
 
 # Add other headers iteratively.
 while len(input_filenames) < len(header_map):
+    last_length = len(input_filenames)
+
     for include, children in header_map.items():
         if not include in input_filenames and all(child in input_filenames for child in children):
             input_filenames.append(include)
+
+    if len(input_filenames) == last_length:
+        raise Exception('Circular include pattern detected')
 
 # Add implementation.
 main_source = os.path.join(root_dir, 'src', 'snitch.cpp')

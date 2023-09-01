@@ -75,7 +75,7 @@ section_entry_checker::operator bool() {
          state.sections.depth < state.sections.levels.size())) {
 
         level.previous_section_id = level.current_section_id;
-        state.sections.current_section.push_back(section);
+        state.sections.current_section.push_back(data);
         entered = true;
         return true;
     }
