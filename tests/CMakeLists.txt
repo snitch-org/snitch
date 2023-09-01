@@ -37,16 +37,59 @@ function(add_platform_definitions TARGET)
     endif()
 endfunction()
 
-function(configure_snitch_for_tests TARGET)
-    target_compile_definitions(${TARGET} PUBLIC
+# We need to use a different snitch configuration for tests, so we can't reuse
+# the library that was built at the higher level. We need to create a local copy
+# here.
+function(configure_snitch_for_tests CHOSEN_INTERFACE)
+    target_compile_definitions(snitch-testlib ${CHOSEN_INTERFACE}
         SNITCH_MAX_TEST_CASES=200
         SNITCH_MAX_EXPR_LENGTH=128
         SNITCH_MAX_MESSAGE_LENGTH=128
         SNITCH_MAX_TEST_NAME_LENGTH=128
-        SNITCH_MAX_CAPTURE_LENGTH=128)
+        SNITCH_MAX_CAPTURE_LENGTH=128
+        SNITCH_DEFINE_MAIN=0)
 endfunction()
 
+if (NOT SNITCH_HEADER_ONLY)
+    # Build as a standard library (static or dynamic) with header.
+    add_library(snitch-testlib
+        ${SNITCH_INCLUDES}
+        ${SNITCH_SOURCES})
+    add_dependencies(snitch-testlib snitch)
+
+    target_compile_features(snitch-testlib PUBLIC cxx_std_20)
+    target_include_directories(snitch-testlib PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_BINARY_DIR})
+
+    if (BUILD_SHARED_LIBS)
+        target_compile_definitions(snitch-testlib PRIVATE SNITCH_EXPORTS)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR MINGW)
+            # Nothing to do; default is already to hide symbols unless exported.
+        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+            # Set default visibility to "hidden" so only exported symbols are visible.
+            target_compile_options(snitch-testlib PRIVATE -fvisibility=hidden)
+            target_compile_options(snitch-testlib PRIVATE -fvisibility-inlines-hidden)
+        endif()
+    endif()
+
+    configure_snitch_for_tests(PUBLIC)
+else()
+    add_library(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+    add_dependencies(snitch-testlib snitch)
+
+    target_compile_features(snitch-testlib INTERFACE cxx_std_20)
+    target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
+
+    configure_snitch_for_tests(INTERFACE)
+    target_compile_definitions(snitch-testlib INTERFACE SNITCH_TEST_HEADER_ONLY)
+endif()
+
 set(TEST_UTILITY_FILES
+    ${PROJECT_SOURCE_DIR}/tests/testing.cpp
     ${PROJECT_SOURCE_DIR}/tests/testing_event.cpp
     ${PROJECT_SOURCE_DIR}/tests/testing_reporters.cpp)
 
@@ -95,27 +138,19 @@ FetchContent_Declare(doctest
 FetchContent_MakeAvailable(doctest)
 
 # Test snitch with doctest.
-# Note: DO NOT target_link_libraries(snitch::snitch)!
-# The pre-built library won't be built with configure_snitch_for_tests().
-# Use add_dependencies() to ensure the proper build order, and include the
-# sources directly in this project so they can be built with the wanted
-# configuration.
 add_executable(snitch_runtime_tests
-    ${RUNTIME_TEST_FILES}
-    ${SNITCH_SOURCES})
+    ${RUNTIME_TEST_FILES})
 target_include_directories(snitch_runtime_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_runtime_tests PRIVATE
+    snitch-testlib
     doctest::doctest
     doctest::doctest_with_main)
-add_dependencies(snitch_runtime_tests snitch::snitch)
 add_platform_definitions(snitch_runtime_tests)
-configure_snitch_for_tests(snitch_runtime_tests)
 target_compile_features(snitch_runtime_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests PUBLIC
-    SNITCH_DEFINE_MAIN=0
     SNITCH_WITH_SHORTHAND_MACROS=0)
 
 add_custom_target(snitch_runtime_tests_run
@@ -125,27 +160,19 @@ add_custom_target(snitch_runtime_tests_run
 set_target_properties(snitch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
 # Test snitch with doctest (approval tests).
-# Note: DO NOT target_link_libraries(snitch::snitch)!
-# The pre-built library won't be built with configure_snitch_for_tests().
-# Use add_dependencies() to ensure the proper build order, and include the
-# sources directly in this project so they can be built with the wanted
-# configuration.
 add_executable(snitch_approval_tests
-    ${APPROVAL_TEST_FILES}
-    ${SNITCH_SOURCES})
+    ${APPROVAL_TEST_FILES})
 target_include_directories(snitch_approval_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_approval_tests PRIVATE
+    snitch-testlib
     doctest::doctest
     doctest::doctest_with_main)
-add_dependencies(snitch_approval_tests snitch::snitch)
 add_platform_definitions(snitch_approval_tests)
-configure_snitch_for_tests(snitch_approval_tests)
 target_compile_features(snitch_approval_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_approval_tests PUBLIC
-    SNITCH_DEFINE_MAIN=0
     SNITCH_WITH_SHORTHAND_MACROS=0)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
@@ -161,21 +188,14 @@ add_custom_target(snitch_approval_tests_run
 set_target_properties(snitch_approval_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
 # Test snitch with itself.
-# Note: DO NOT target_link_libraries(snitch::snitch)!
-# The pre-built library won't be built with configure_snitch_for_tests().
-# Use add_dependencies() to ensure the proper build order, and include the
-# sources directly in this project so they can be built with the wanted
-# configuration.
 add_executable(snitch_runtime_tests_self
-    ${RUNTIME_TEST_FILES}
-    ${SNITCH_SOURCES})
+    ${RUNTIME_TEST_FILES})
 target_include_directories(snitch_runtime_tests_self PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/tests)
-add_dependencies(snitch_runtime_tests_self snitch::snitch)
+target_link_libraries(snitch_runtime_tests_self PRIVATE snitch-testlib)
 add_platform_definitions(snitch_runtime_tests_self)
-configure_snitch_for_tests(snitch_runtime_tests_self)
 target_compile_features(snitch_runtime_tests_self PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests_self PUBLIC
     SNITCH_TEST_WITH_SNITCH)
@@ -185,26 +205,3 @@ add_custom_target(snitch_runtime_tests_self_run
     WORKING_DIRECTORY ${RUNTIME_TEST_WORKING_DIRECTORY}
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_self_run PROPERTIES EXCLUDE_FROM_ALL True)
-
-# Test header-only snitch with itself.
-# Note: Fine to use target_link_libraries(snitch::snitch-header-only);
-# nothing is pre-built in this target, the configuration can be changed.
-add_executable(snitch_runtime_tests_self_header_only
-    ${PROJECT_SOURCE_DIR}/tests/testing.cpp
-    ${RUNTIME_TEST_FILES})
-target_include_directories(snitch_runtime_tests_self_header_only PRIVATE
-    ${PROJECT_SOURCE_DIR}/tests)
-target_link_libraries(snitch_runtime_tests_self_header_only PRIVATE
-    snitch::snitch-header-only)
-add_platform_definitions(snitch_runtime_tests_self_header_only)
-configure_snitch_for_tests(snitch_runtime_tests_self_header_only)
-target_compile_features(snitch_runtime_tests_self_header_only PUBLIC cxx_std_20)
-target_compile_definitions(snitch_runtime_tests_self_header_only PUBLIC
-    SNITCH_TEST_WITH_SNITCH
-    SNITCH_TEST_HEADER_ONLY)
-
-add_custom_target(snitch_runtime_tests_self_header_only_run
-    COMMAND snitch_runtime_tests_self_header_only
-    WORKING_DIRECTORY ${RUNTIME_TEST_WORKING_DIRECTORY}
-    SOURCES ${RUNTIME_TEST_FILES})
-set_target_properties(snitch_runtime_tests_self_header_only_run PROPERTIES EXCLUDE_FROM_ALL True)

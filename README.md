@@ -55,6 +55,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Compiles template-heavy tests at least 50% faster than other testing frameworks (see Release [benchmarks](#benchmark)).
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
  - Limited subset of the [_Catch2_](https://github.com/catchorg/Catch2) API, see [Comparison with _Catch2_](#detailed-comparison-with-catch2).
+ - [IDE integrations](#ide-integrations) using existing _Catch2_ plugins/adaptors.
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Matchers use a different API (see [Matchers](#matchers) below).
    - Additional macros for testing [`constexpr`](#run-time-and-compile-time) and [`consteval`](#compile-time) expressions.
@@ -145,6 +146,8 @@ Here is an example CMake file to download _snitch_ and define a test application
 ```cmake
 include(FetchContent)
 
+set(SNITCH_HEADER_ONLY 1)
+
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
                      GIT_TAG        v1.0.0) # update version number as needed
@@ -155,7 +158,7 @@ set(YOUR_TEST_FILES
   )
 
 add_executable(my_tests ${YOUR_TEST_FILES})
-target_link_libraries(my_tests PRIVATE snitch::snitch-header-only)
+target_link_libraries(my_tests PRIVATE snitch::snitch)
 ```
 
 One (and only one!) of your test files needs to include _snitch_ as:
@@ -164,7 +167,7 @@ One (and only one!) of your test files needs to include _snitch_ as:
 #include <snitch_all.hpp>
 ```
 
-See the documentation for the [header-only mode](#header-only-build) for more information. This will include the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
+See the documentation for the [header-only build](#header-only-build) for more information. This will include the definition of `main()` [unless otherwise specified](#using-your-own-main-function).
 
 
 ## Example build configuration with meson
