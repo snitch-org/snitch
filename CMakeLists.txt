@@ -49,7 +49,11 @@ else()
 endif()
 
 if (NOT SNITCH_HEADER_ONLY)
-    set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
+    if (DEFINED BUILD_SHARED_LIBS)
+        set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
+    else()
+        set(SNITCH_SHARED_LIBRARY 0)
+    endif()
 endif()
 
 # Create configure file to store CMake build parameter
