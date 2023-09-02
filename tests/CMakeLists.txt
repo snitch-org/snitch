@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+
 function(add_platform_definitions TARGET)
     target_compile_features(${TARGET} INTERFACE cxx_std_20)
     if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
