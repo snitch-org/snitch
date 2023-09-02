@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.14)
 
 project(snitch LANGUAGES CXX VERSION 1.2.0)
 
@@ -48,7 +48,7 @@ else()
     set(SNITCH_FULL_VERSION "${PROJECT_VERSION}")
 endif()
 
-if (NOT SNITCH_HEADER_ONLY)
+if (NOT SNITCH_HEADER_ONLY AND DEFINED BUILD_SHARED_LIBS)
     set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
 endif()
 
