@@ -79,7 +79,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNITCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install
+      run: ${{matrix.platform.cmakepp}} cmake .. -DCMAKE_BUILD_TYPE=${{matrix.build-type}} ${{matrix.platform.flags}} -DSNITCH_DO_TEST=1 -DCMAKE_INSTALL_PREFIX=../install --warn-uninitialized -Wdev -Werror=dev
 
     - name: Build
       shell: bash

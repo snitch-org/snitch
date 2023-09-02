@@ -48,12 +48,8 @@ else()
     set(SNITCH_FULL_VERSION "${PROJECT_VERSION}")
 endif()
 
-if (NOT SNITCH_HEADER_ONLY)
-    if (DEFINED BUILD_SHARED_LIBS)
-        set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
-    else()
-        set(SNITCH_SHARED_LIBRARY 0)
-    endif()
+if (NOT SNITCH_HEADER_ONLY AND DEFINED BUILD_SHARED_LIBS)
+    set(SNITCH_SHARED_LIBRARY ${BUILD_SHARED_LIBS})
 endif()
 
 # Create configure file to store CMake build parameter
