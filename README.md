@@ -125,7 +125,7 @@ include(FetchContent)
 
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-                     GIT_TAG        v1.0.0) # update version number as needed
+                     GIT_TAG        v1.2.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
 set(YOUR_TEST_FILES
@@ -150,7 +150,7 @@ set(SNITCH_HEADER_ONLY 1)
 
 FetchContent_Declare(snitch
                      GIT_REPOSITORY https://github.com/cschreib/snitch.git
-                     GIT_TAG        v1.0.0) # update version number as needed
+                     GIT_TAG        v1.2.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
 set(YOUR_TEST_FILES
@@ -158,7 +158,7 @@ set(YOUR_TEST_FILES
   )
 
 add_executable(my_tests ${YOUR_TEST_FILES})
-target_link_libraries(my_tests PRIVATE snitch::snitch)
+target_link_libraries(my_tests PRIVATE snitch::snitch-header-only)
 ```
 
 One (and only one!) of your test files needs to include _snitch_ as:

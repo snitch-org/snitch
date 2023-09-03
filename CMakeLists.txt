@@ -131,23 +131,24 @@ endfunction()
 
 if (NOT SNITCH_HEADER_ONLY)
     # Build as a standard library (static or dynamic) with header.
-    add_library(snitch ${SNITCH_INCLUDES} ${SNITCH_SOURCES})
-    add_library(snitch::snitch ALIAS snitch)
-    set_target_properties(snitch PROPERTIES EXPORT_NAME snitch::snitch)
+    set(SNITCH_TARGET_NAME snitch)
 
-    target_compile_features(snitch PUBLIC cxx_std_20)
-    target_include_directories(snitch PUBLIC
+    add_library(${SNITCH_TARGET_NAME} ${SNITCH_INCLUDES} ${SNITCH_SOURCES})
+    target_compile_features(${SNITCH_TARGET_NAME} PUBLIC cxx_std_20)
+    target_include_directories(${SNITCH_TARGET_NAME} PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
-    configure_snitch_exports(snitch)
+    configure_snitch_exports(${SNITCH_TARGET_NAME})
 
     install(
         FILES ${SNITCH_INCLUDES}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 else()
     # Build as a header-only library.
+    set(SNITCH_TARGET_NAME snitch-header-only)
+
     find_package(Python3)
 
     add_custom_command(
@@ -160,12 +161,9 @@ else()
             ${SNITCH_SOURCES_INDIVIDUAL}
             ${PROJECT_SOURCE_DIR}/make_snitch_all.py)
 
-    add_library(snitch INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
-    add_library(snitch::snitch ALIAS snitch)
-    set_target_properties(snitch PROPERTIES EXPORT_NAME snitch::snitch)
-
-    target_compile_features(snitch INTERFACE cxx_std_20)
-    target_include_directories(snitch INTERFACE
+    add_library(${SNITCH_TARGET_NAME} INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+    target_compile_features(${SNITCH_TARGET_NAME} INTERFACE cxx_std_20)
+    target_include_directories(${SNITCH_TARGET_NAME} INTERFACE
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
 
@@ -174,13 +172,17 @@ else()
         DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
 endif()
 
-# Setup CMake config file
-install(TARGETS snitch EXPORT snitch-targets)
+# Common properties
+add_library(snitch::${SNITCH_TARGET_NAME} ALIAS ${SNITCH_TARGET_NAME})
+set_target_properties(${SNITCH_TARGET_NAME} PROPERTIES EXPORT_NAME snitch::${SNITCH_TARGET_NAME})
 
-install(EXPORT snitch-targets
+# Setup CMake config file
+install(TARGETS ${SNITCH_TARGET_NAME} EXPORT ${SNITCH_TARGET_NAME}-targets)
+
+install(EXPORT ${SNITCH_TARGET_NAME}-targets
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
 
-export(EXPORT snitch-targets)
+export(EXPORT ${SNITCH_TARGET_NAME}-targets)
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
@@ -212,7 +214,6 @@ if (SNITCH_DO_TEST)
 
     if (NOT SNITCH_HEADER_ONLY)
         add_library(snitch-testlib ${SNITCH_INCLUDES} ${SNITCH_SOURCES})
-        add_dependencies(snitch-testlib snitch)
 
         target_compile_features(snitch-testlib PUBLIC cxx_std_20)
         target_include_directories(snitch-testlib PUBLIC
@@ -224,7 +225,6 @@ if (SNITCH_DO_TEST)
         configure_snitch_for_tests(snitch-testlib PUBLIC)
     else()
         add_library(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
-        add_dependencies(snitch-testlib snitch)
 
         target_compile_features(snitch-testlib INTERFACE cxx_std_20)
         target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
@@ -232,6 +232,11 @@ if (SNITCH_DO_TEST)
         configure_snitch_for_tests(snitch-testlib INTERFACE)
         target_compile_definitions(snitch-testlib INTERFACE SNITCH_TEST_HEADER_ONLY)
     endif()
+
+    # This dependency is not strictly needed, but it makes developing easier:
+    # if the "real" library fails to build, we won't try to compile the version
+    # used in the tests.
+    add_dependencies(snitch-testlib ${SNITCH_TARGET_NAME})
 
     add_subdirectory(tests)
 endif()
