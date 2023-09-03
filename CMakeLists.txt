@@ -214,7 +214,6 @@ if (SNITCH_DO_TEST)
 
     if (NOT SNITCH_HEADER_ONLY)
         add_library(snitch-testlib ${SNITCH_INCLUDES} ${SNITCH_SOURCES})
-        add_dependencies(snitch-testlib snitch)
 
         target_compile_features(snitch-testlib PUBLIC cxx_std_20)
         target_include_directories(snitch-testlib PUBLIC
@@ -226,7 +225,6 @@ if (SNITCH_DO_TEST)
         configure_snitch_for_tests(snitch-testlib PUBLIC)
     else()
         add_library(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
-        add_dependencies(snitch-testlib snitch)
 
         target_compile_features(snitch-testlib INTERFACE cxx_std_20)
         target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
@@ -234,6 +232,11 @@ if (SNITCH_DO_TEST)
         configure_snitch_for_tests(snitch-testlib INTERFACE)
         target_compile_definitions(snitch-testlib INTERFACE SNITCH_TEST_HEADER_ONLY)
     endif()
+
+    # This dependency is not strictly needed, but it makes developing easier:
+    # if the "real" library fails to build, we won't try to compile the version
+    # used in the tests.
+    add_dependencies(snitch-testlib ${SNITCH_TARGET_NAME})
 
     add_subdirectory(tests)
 endif()
