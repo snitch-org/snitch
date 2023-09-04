@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(snitch LANGUAGES CXX VERSION 1.2.1)
+project(snitch LANGUAGES CXX VERSION 1.2.2)
 
 # Maximum lengths.
 set(SNITCH_MAX_TEST_CASES           5000 CACHE STRING "Maximum number of test cases in a test application.")
@@ -161,7 +161,14 @@ else()
             ${SNITCH_SOURCES_INDIVIDUAL}
             ${PROJECT_SOURCE_DIR}/make_snitch_all.py)
 
-    add_library(${SNITCH_TARGET_NAME} INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+    add_custom_target(snitch-header-only-impl ALL
+        DEPENDS ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+
+    add_library(${SNITCH_TARGET_NAME} INTERFACE)
+    add_dependencies(${SNITCH_TARGET_NAME} snitch-header-only-impl)
+    target_sources(${SNITCH_TARGET_NAME} INTERFACE
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
     target_compile_features(${SNITCH_TARGET_NAME} INTERFACE cxx_std_20)
     target_include_directories(${SNITCH_TARGET_NAME} INTERFACE
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
@@ -224,7 +231,11 @@ if (SNITCH_DO_TEST)
         configure_snitch_exports(snitch-testlib)
         configure_snitch_for_tests(snitch-testlib PUBLIC)
     else()
-        add_library(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp)
+        add_library(snitch-testlib INTERFACE)
+        add_dependencies(snitch-testlib snitch-header-only-impl)
+        target_sources(snitch-testlib INTERFACE
+            $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
 
         target_compile_features(snitch-testlib INTERFACE cxx_std_20)
         target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
