@@ -1,4 +1,4 @@
-name: CI_meson
+name: meson
 
 on:
   workflow_dispatch:

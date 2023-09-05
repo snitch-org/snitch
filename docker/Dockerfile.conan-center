@@ -1,0 +1,74 @@
+# NOTE: This Dockerfile is meant to test the integration of snitch in the Conan center.
+# You can use it to get a hint on how to fetch snitch with Conan (v1 or v2).
+
+# -------------------------------------------
+# Base images
+# -------------------------------------------
+# Base image with build tools
+FROM ubuntu:latest AS snitch-dev-base
+RUN apt update && apt install -y g++ python3 python3-pip python-is-python3 git wget rsync bash
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.15.7/cmake-3.15.7-Linux-x86_64.tar.gz && \
+    tar -xvzf cmake-3.15.7-Linux-x86_64.tar.gz && \
+    rm cmake-3.15.7-Linux-x86_64.tar.gz
+ENV PATH=$PATH:/cmake-3.15.7-Linux-x86_64/bin
+
+# Image with cloned conan center repo
+FROM snitch-dev-base AS snitch-conan-repo
+ARG GIT_BRANCH
+RUN git clone https://github.com/cschreib/conan-center-index.git && cd conan-center-index && git checkout ${GIT_BRANCH}
+
+# -------------------------------------------
+# Conan v1
+# -------------------------------------------
+FROM snitch-dev-base AS snitch-conan-v1-base
+RUN pip install conan==1.59
+RUN conan config install https://github.com/conan-io/hooks.git -sf hooks -tf hooks && \
+    conan config set hooks.conan-center
+COPY --from=snitch-conan-repo /conan-center-index/recipes/snitch /conan-center-index/recipes/snitch
+
+# Static
+FROM snitch-conan-v1-base AS snitch-conan-v1-static
+ARG SNITCH_VERSION
+RUN cd /conan-center-index/recipes/snitch && \
+    conan create all/conanfile.py snitch/${SNITCH_VERSION}@ -pr:b=default -pr:h=default && \
+    conan test all/test_v1_package/conanfile.py snitch/${SNITCH_VERSION}@ -pr:b=default -pr:h=default
+
+# Header-only
+FROM snitch-conan-v1-base AS snitch-conan-v1-header-only
+ARG SNITCH_VERSION
+RUN cd /conan-center-index/recipes/snitch && \
+    conan create all/conanfile.py snitch/${SNITCH_VERSION}@ -pr:b=default -pr:h=default -o snitch:header_only=True && \
+    conan test all/test_v1_package/conanfile.py snitch/${SNITCH_VERSION}@ -pr:b=default -pr:h=default -o snitch:header_only=True
+
+# Shared
+FROM snitch-conan-v1-base AS snitch-conan-v1-shared
+ARG SNITCH_VERSION
+RUN cd /conan-center-index/recipes/snitch && \
+    conan create all/conanfile.py snitch/${SNITCH_VERSION}@ -pr:b=default -pr:h=default -o snitch:shared=True && \
+    conan test all/test_v1_package/conanfile.py snitch/${SNITCH_VERSION}@ -pr:b=default -pr:h=default -o snitch:shared=True
+
+# -------------------------------------------
+# Conan v2
+# -------------------------------------------
+FROM snitch-dev-base AS snitch-conan-v2-base
+RUN pip install conan==2.0
+RUN conan profile detect
+COPY --from=snitch-conan-repo /conan-center-index/recipes/snitch /conan-center-index/recipes/snitch
+
+# Static
+FROM snitch-conan-v2-base AS snitch-conan-v2-static
+ARG SNITCH_VERSION
+RUN cd /conan-center-index/recipes/snitch && \
+    conan create all/conanfile.py --version ${SNITCH_VERSION} -s compiler.cppstd=20
+
+# Header-only
+FROM snitch-conan-v2-base AS snitch-conan-v2-header-only
+ARG SNITCH_VERSION
+RUN cd /conan-center-index/recipes/snitch && \
+    conan create all/conanfile.py --version ${SNITCH_VERSION} -s compiler.cppstd=20 -o snitch/${SNITCH_VERSION}:header_only=True
+
+# Shared
+FROM snitch-conan-v2-base AS snitch-conan-v2-shared
+ARG SNITCH_VERSION
+RUN cd /conan-center-index/recipes/snitch && \
+    conan create all/conanfile.py --version ${SNITCH_VERSION} -s compiler.cppstd=20 -o snitch/${SNITCH_VERSION}:shared=True
