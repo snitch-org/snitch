@@ -1,4 +1,4 @@
-name: CI
+name: cmake
 
 on:
   workflow_dispatch:
@@ -11,9 +11,80 @@ env:
   EM_VERSION: 3.1.35
   EM_CACHE_FOLDER: 'emsdk-cache'
   CODECOV_TOKEN: 'f8197851-e753-4291-a835-2d76090f2c92'
+  CMAKE_INSTALL_VERSION: 3.14.7
 
 jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Install Ubuntu GCC static,      flags: "", test-flags: ""}
+        - { name: Install Ubuntu GCC header-only, flags: "-DSNITCH_HEADER_ONLY=1", test-flags: "-DHEADER_ONLY=yes"}
+        - { name: Install Ubuntu GCC shared,      flags: "-DBUILD_SHARED_LIBS=1", test-flags: ""}
+        build-type:
+        - Release
+
+    name: ${{matrix.platform.name}} ${{matrix.build-type}}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Setup GCC
+      shell: bash
+      run: |
+        sudo apt install g++-11
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
+        sudo update-alternatives --set gcc /usr/bin/gcc-11
+
+    - name: Setup CMake
+      shell: bash
+      run: |
+        wget -q https://github.com/Kitware/CMake/releases/download/v${CMAKE_INSTALL_VERSION}/cmake-${CMAKE_INSTALL_VERSION}-Linux-x86_64.tar.gz
+        tar -xvzf cmake-${CMAKE_INSTALL_VERSION}-Linux-x86_64.tar.gz -C "${{github.workspace}}"
+        echo "${{github.workspace}}/cmake-${CMAKE_INSTALL_VERSION}-Linux-x86_64/bin" >> ${GITHUB_PATH}
+
+    - name: Create Build Environment
+      shell: bash
+      run: |
+        cmake --version
+        cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install ${{matrix.platform.flags}}
+
+    - name: Build
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --parallel 2
+
+    - name: Install
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: make install
+
+    - name: Build test
+      shell: bash
+      working-directory: ${{github.workspace}}/tests/install_tests
+      run: |
+        cmake -E make_directory build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{github.workspace}}/install ${{matrix.platform.test-flags}}
+        cmake --build .
+
+    - name: Run test
+      shell: bash
+      working-directory: ${{github.workspace}}/tests/install_tests
+      run: ./build/standalone
+
   build:
+    needs: install
     strategy:
       fail-fast: false
       matrix:
