@@ -37,14 +37,14 @@
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
-            true, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                           \
+            true, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                        \
     } while (0)
 
 #define SNITCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
-            false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                          \
+            false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                       \
         SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
@@ -52,14 +52,14 @@
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
-            false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                          \
+            false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                       \
     } while (0)
 
 #define SNITCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+            SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                              \
         SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
@@ -67,7 +67,7 @@
     do {                                                                                           \
         auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
         SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNITCH_CURRENT_TEST, {__FILE__, __LINE__}, (MESSAGE));                                 \
+            SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                              \
     } while (0)
 
 #define SNITCH_REQUIRE_THAT_IMPL(CHECK, MAYBE_ABORT, EXPR, ...)                                    \

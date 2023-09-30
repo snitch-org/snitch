@@ -14,25 +14,25 @@
             try {                                                                                  \
                 static_cast<void>(EXPRESSION);                                                     \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                              \
+                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
                     #__VA_ARGS__ " expected but no exception thrown");                             \
                 MAYBE_ABORT;                                                                       \
             } catch (const __VA_ARGS__&) {                                                         \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    true, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                               \
+                    true, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                            \
                     #__VA_ARGS__ " was thrown as expected");                                       \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         #__VA_ARGS__ " expected but other std::exception thrown; message: ",       \
                         e.what());                                                                 \
                     MAYBE_ABORT;                                                                   \
                 } catch (...) {                                                                    \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         #__VA_ARGS__ " expected but other unknown exception thrown");              \
                     MAYBE_ABORT;                                                                   \
                 }                                                                                  \
@@ -50,21 +50,21 @@
             try {                                                                                  \
                 static_cast<void>(EXPRESSION);                                                     \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                              \
+                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
                     #EXCEPTION " expected but no exception thrown");                               \
                 MAYBE_ABORT;                                                                       \
             } catch (const EXCEPTION& e) {                                                         \
                 auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                          \
                 if (!SNITCH_TEMP_MATCHER.match(e)) {                                               \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         "could not match caught " #EXCEPTION " with expected content: ",           \
                         SNITCH_TEMP_MATCHER.describe_match(                                        \
                             e, snitch::matchers::match_status::failed));                           \
                     MAYBE_ABORT;                                                                   \
                 } else {                                                                           \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        true, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                           \
+                        true, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                        \
                         "caught " #EXCEPTION " matched expected content: ",                        \
                         SNITCH_TEMP_MATCHER.describe_match(                                        \
                             e, snitch::matchers::match_status::matched));                          \
@@ -74,13 +74,13 @@
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         #EXCEPTION " expected but other std::exception thrown; message: ",         \
                         e.what());                                                                 \
                     MAYBE_ABORT;                                                                   \
                 } catch (...) {                                                                    \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         #EXCEPTION " expected but other unknown exception thrown");                \
                     MAYBE_ABORT;                                                                   \
                 }                                                                                  \
@@ -98,20 +98,20 @@
             try {                                                                                  \
                 static_cast<void>(__VA_ARGS__);                                                    \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    true, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                               \
+                    true, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                            \
                     #__VA_ARGS__ " did not throw");                                                \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
                 } catch (const std::exception& e) {                                                \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         "expected " #__VA_ARGS__                                                   \
                         " not to throw but it threw a std::exception; message: ",                  \
                         e.what());                                                                 \
                 } catch (...) {                                                                    \
                     SNITCH_CURRENT_TEST.reg.report_assertion(                                      \
-                        false, SNITCH_CURRENT_TEST, {__FILE__, __LINE__},                          \
+                        false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                       \
                         "expected " #__VA_ARGS__                                                   \
                         " not to throw but it threw an unknown exception");                        \
                 }                                                                                  \

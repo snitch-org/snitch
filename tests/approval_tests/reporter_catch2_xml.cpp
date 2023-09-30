@@ -11,10 +11,10 @@ using snitch::matchers::contains_substring;
 TEST_CASE("teamcity reporter", "[reporters]") {
     mock_framework framework;
     register_tests_for_reporters(framework.registry);
-    framework.registry.add({"test escape <>&\"'"}, {__FILE__, __LINE__}, [] {
+    framework.registry.add({"test escape <>&\"'"}, SNITCH_CURRENT_LOCATION, [] {
         SNITCH_FAIL("escape <>&\"' in messages");
     });
-    framework.registry.add({"test escape very long"}, {__FILE__, __LINE__}, [] {
+    framework.registry.add({"test escape very long"}, SNITCH_CURRENT_LOCATION, [] {
         SNITCH_FAIL(std::string(2 * snitch::max_message_length, '&'));
     });
 

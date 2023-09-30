@@ -19,84 +19,87 @@ void register_tests_for_reporters(snitch::registry& r) {
     // To avoid unnecessary changes to the approval test data, please add new tests only at the
     // end of this list.
 
-    r.add({"test pass", "[tag2][tag1]"}, {__FILE__, __LINE__}, []() {});
-    r.add({"test fail", "[tag2][tag1]"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 2); });
+    r.add({"test pass", "[tag2][tag1]"}, SNITCH_CURRENT_LOCATION, []() {});
+    r.add({"test fail", "[tag2][tag1]"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_CHECK(1 == 2); });
 
-    r.add({"test mayfail good pass", "[tag2][tag1][!mayfail]"}, {__FILE__, __LINE__}, []() {});
-    r.add({"test mayfail bad pass", "[tag2][tag1][!mayfail]"}, {__FILE__, __LINE__}, []() {
+    r.add({"test mayfail good pass", "[tag2][tag1][!mayfail]"}, SNITCH_CURRENT_LOCATION, []() {});
+    r.add({"test mayfail bad pass", "[tag2][tag1][!mayfail]"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK(1 == 2);
     });
     r.add(
-        {"test shouldfail good fail", "[tag2][tag1][!shouldfail]"}, {__FILE__, __LINE__}, []() {});
-    r.add({"test shouldfail bad pass", "[tag2][tag1][!shouldfail]"}, {__FILE__, __LINE__}, []() {
+        {"test shouldfail good fail", "[tag2][tag1][!shouldfail]"}, SNITCH_CURRENT_LOCATION,
+        []() {});
+    r.add({"test shouldfail bad pass", "[tag2][tag1][!shouldfail]"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK(1 == 2);
     });
 
-    r.add({"test no tags pass"}, {__FILE__, __LINE__}, []() {});
-    r.add({"test no tags fail"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 2); });
+    r.add({"test no tags pass"}, SNITCH_CURRENT_LOCATION, []() {});
+    r.add({"test no tags fail"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_CHECK(1 == 2); });
 
     r.add_with_types<int, float>(
-        {"typed test no tags pass"}, {__FILE__, __LINE__}, []<typename T>() {});
+        {"typed test no tags pass"}, SNITCH_CURRENT_LOCATION, []<typename T>() {});
     r.add_with_types<int, float>(
-        {"typed test no tags fail"}, {__FILE__, __LINE__},
+        {"typed test no tags fail"}, SNITCH_CURRENT_LOCATION,
         []<typename T>() { SNITCH_CHECK(1 == 2); });
 
     r.add_with_types<int, float>(
-        {"typed test with tags pass", "[tag1]"}, {__FILE__, __LINE__}, []<typename T>() {});
+        {"typed test with tags pass", "[tag1]"}, SNITCH_CURRENT_LOCATION, []<typename T>() {});
     r.add_with_types<int, float>(
-        {"typed test with tags fail", "[tag1]"}, {__FILE__, __LINE__},
+        {"typed test with tags fail", "[tag1]"}, SNITCH_CURRENT_LOCATION,
         []<typename T>() { SNITCH_CHECK(1 == 2); });
 
     r.add_fixture(
-        {"MyClass", "test fixture pass", "[tag with space]"}, {__FILE__, __LINE__}, []() {});
-    r.add_fixture({"MyClass", "test fixture fail", "[tag with space]"}, {__FILE__, __LINE__}, []() {
-        SNITCH_CHECK(1 == 2);
-    });
+        {"MyClass", "test fixture pass", "[tag with space]"}, SNITCH_CURRENT_LOCATION, []() {});
+    r.add_fixture(
+        {"MyClass", "test fixture fail", "[tag with space]"}, SNITCH_CURRENT_LOCATION,
+        []() { SNITCH_CHECK(1 == 2); });
 
-    r.add({"test SUCCEED pass"}, {__FILE__, __LINE__}, []() { SNITCH_SUCCEED("something good"); });
-    r.add({"test FAIL fail"}, {__FILE__, __LINE__}, []() { SNITCH_FAIL_CHECK("something bad"); });
-    r.add({"test expression pass"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 1); });
-    r.add({"test expression fail"}, {__FILE__, __LINE__}, []() { SNITCH_CHECK(1 == 2); });
-    r.add({"test long expression pass"}, {__FILE__, __LINE__}, []() {
+    r.add(
+        {"test SUCCEED pass"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_SUCCEED("something good"); });
+    r.add(
+        {"test FAIL fail"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_FAIL_CHECK("something bad"); });
+    r.add({"test expression pass"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_CHECK(1 == 1); });
+    r.add({"test expression fail"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_CHECK(1 == 2); });
+    r.add({"test long expression pass"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK(
             some_very_long_name_that_forces_lines_to_wrap ==
             some_very_long_name_that_forces_lines_to_wrap);
     });
-    r.add({"test long expression fail"}, {__FILE__, __LINE__}, []() {
+    r.add({"test long expression fail"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK(
             some_very_long_name_that_forces_lines_to_wrap !=
             some_very_long_name_that_forces_lines_to_wrap);
     });
-    r.add({"test too long expression pass"}, {__FILE__, __LINE__}, []() {
+    r.add({"test too long expression pass"}, SNITCH_CURRENT_LOCATION, []() {
         std::string super_long_string(2 * snitch::max_message_length, 'a');
         SNITCH_CHECK(super_long_string == super_long_string);
     });
-    r.add({"test too long expression fail"}, {__FILE__, __LINE__}, []() {
+    r.add({"test too long expression fail"}, SNITCH_CURRENT_LOCATION, []() {
         std::string super_long_string(2 * snitch::max_message_length, 'a');
         SNITCH_CHECK(super_long_string != super_long_string);
     });
-    r.add({"test too long message pass"}, {__FILE__, __LINE__}, []() {
+    r.add({"test too long message pass"}, SNITCH_CURRENT_LOCATION, []() {
         std::string super_long_string(2 * snitch::max_message_length, 'a');
         SNITCH_FAIL(super_long_string);
     });
-    r.add({"test too long message fail"}, {__FILE__, __LINE__}, []() {
+    r.add({"test too long message fail"}, SNITCH_CURRENT_LOCATION, []() {
         std::string super_long_string(2 * snitch::max_message_length, 'a');
         SNITCH_FAIL(super_long_string);
     });
 
 #if SNITCH_WITH_EXCEPTIONS
-    r.add({"test NOTHROW pass"}, {__FILE__, __LINE__}, []() {
+    r.add({"test NOTHROW pass"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK_NOTHROW(throw_something(false));
     });
-    r.add({"test NOTHROW fail"}, {__FILE__, __LINE__}, []() {
+    r.add({"test NOTHROW fail"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK_NOTHROW(throw_something(true));
     });
-    r.add({"test THROW pass"}, {__FILE__, __LINE__}, []() {
+    r.add({"test THROW pass"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK_THROWS_MATCHES(
             throw_something(true), std::runtime_error,
             snitch::matchers::with_what_contains{"I threw"});
     });
-    r.add({"test THROW fail"}, {__FILE__, __LINE__}, []() {
+    r.add({"test THROW fail"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_CHECK_THROWS_MATCHES(
             throw_something(false), std::runtime_error,
             snitch::matchers::with_what_contains{"I threw"});
@@ -108,19 +111,19 @@ void register_tests_for_reporters(snitch::registry& r) {
             snitch::matchers::with_what_contains{"I throws"});
     });
 
-    r.add({"test unexpected throw fail"}, {__FILE__, __LINE__}, []() {
+    r.add({"test unexpected throw fail"}, SNITCH_CURRENT_LOCATION, []() {
         throw std::runtime_error("unexpected error");
     });
 #endif
 
-    r.add({"test SKIP"}, {__FILE__, __LINE__}, []() { SNITCH_SKIP("not interesting"); });
+    r.add({"test SKIP"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_SKIP("not interesting"); });
 
-    r.add({"test INFO"}, {__FILE__, __LINE__}, []() {
+    r.add({"test INFO"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_INFO("info");
         SNITCH_FAIL_CHECK("failure");
     });
 
-    r.add({"test multiple INFO"}, {__FILE__, __LINE__}, []() {
+    r.add({"test multiple INFO"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_FAIL_CHECK("failure 1");
         SNITCH_INFO("info 1");
         SNITCH_FAIL_CHECK("failure 2");
@@ -131,13 +134,13 @@ void register_tests_for_reporters(snitch::registry& r) {
         SNITCH_FAIL_CHECK("failure 4");
     });
 
-    r.add({"test SECTION"}, {__FILE__, __LINE__}, []() {
+    r.add({"test SECTION"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_SECTION("section") {
             SNITCH_FAIL_CHECK("failure");
         }
     });
 
-    r.add({"test multiple SECTION"}, {__FILE__, __LINE__}, []() {
+    r.add({"test multiple SECTION"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_SECTION("section 1") {
             SNITCH_FAIL_CHECK("failure 1");
         }
@@ -157,7 +160,7 @@ void register_tests_for_reporters(snitch::registry& r) {
         SNITCH_FAIL_CHECK("failure 7");
     });
 
-    r.add({"test SECTION & INFO"}, {__FILE__, __LINE__}, []() {
+    r.add({"test SECTION & INFO"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_INFO("info 1");
         SNITCH_SECTION("section 1") {
             SNITCH_INFO("info 2");
