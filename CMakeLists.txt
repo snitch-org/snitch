@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(snitch LANGUAGES CXX VERSION 1.2.2)
+project(snitch LANGUAGES CXX VERSION 1.2.3)
 
 # Maximum lengths.
 set(SNITCH_MAX_TEST_CASES           5000 CACHE STRING "Maximum number of test cases in a test application.")
