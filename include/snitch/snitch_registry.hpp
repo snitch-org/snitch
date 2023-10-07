@@ -86,12 +86,12 @@ is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept;
 SNITCH_EXPORT [[nodiscard]] filter_result
 is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept;
 
-using print_function  = small_function<void(std::string_view) noexcept>;
-using report_function = small_function<void(const registry&, const event::data&) noexcept>;
+using print_function  = function_ref<void(std::string_view) noexcept>;
+using report_function = function_ref<void(const registry&, const event::data&) noexcept>;
 using configure_report_function =
-    small_function<bool(registry&, std::string_view, std::string_view) noexcept>;
-using initialize_report_function = small_function<void(registry&) noexcept>;
-using finish_report_function     = small_function<void(registry&) noexcept>;
+    function_ref<bool(registry&, std::string_view, std::string_view) noexcept>;
+using initialize_report_function = function_ref<void(registry&) noexcept>;
+using finish_report_function     = function_ref<void(registry&) noexcept>;
 
 struct registered_reporter {
     std::string_view           name;
@@ -270,9 +270,9 @@ public:
 
     // Internal API; do not use.
     SNITCH_EXPORT bool run_selected_tests(
-        std::string_view                                     run_name,
-        const filter_info&                                   filter_strings,
-        const small_function<bool(const test_id&) noexcept>& filter) noexcept;
+        std::string_view                                   run_name,
+        const filter_info&                                 filter_strings,
+        const function_ref<bool(const test_id&) noexcept>& filter) noexcept;
 
     SNITCH_EXPORT bool run_tests(const cli::input& args) noexcept;
 

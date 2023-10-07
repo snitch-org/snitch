@@ -17,10 +17,10 @@ namespace snitch {
     assertion_failed_handler(msg);
 
     // The assertion handler should either spin, throw, or terminate, but never return.
-    // We cannot enforce [[noreturn]] through the small_function wrapper. So just in case
+    // We cannot enforce [[noreturn]] through the function_ref wrapper. So just in case
     // it accidentally returns, we terminate.
     std::terminate();
 }
 
-small_function<void(std::string_view)> assertion_failed_handler = &terminate_with;
+function_ref<void(std::string_view)> assertion_failed_handler = &terminate_with;
 } // namespace snitch

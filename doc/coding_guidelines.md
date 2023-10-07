@@ -23,7 +23,7 @@ Rationale:
 *snitch* code must not directly or indirectly allocate heap (or "free store") memory while running tests. This means that a number of common C++ STL classes cannot be used (at least not with the default allocator):
  - `std::string`: use `std::string_view` (for constant strings) or `snitch::small_string` (for variable strings) instead.
  - `std::vector`, `std::map`, `std::set`, and their variants: use `std::array` (for fixed size arrays) or `snitch::small_vector` (for variable size arrays) instead.
- - `std::function`: use `snitch::small_function` instead.
+ - `std::function`: use `snitch::function_ref` instead.
  - `std::unique_ptr`, `std::shared_ptr`: use values on the stack, and raw pointers for non-owning references.
 
 Unfortunately, the standard does not generally specify if a function or class allocates heap memory or not. We can make reasonable guesses for simple cases; in particular the following are fine to use:

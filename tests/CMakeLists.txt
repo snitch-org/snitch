@@ -46,20 +46,20 @@ set(TEST_UTILITY_FILES
 
 set(RUNTIME_TEST_FILES
     ${TEST_UTILITY_FILES}
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_function.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/matchers.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/skip.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/capture.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/section.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/cli.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/registry.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/function_ref.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/macros.cpp
-    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/regressions.cpp)
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/matchers.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/registry.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/regressions.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/section.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/skip.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp)
 
 set(APPROVAL_TEST_FILES
     ${TEST_UTILITY_FILES}

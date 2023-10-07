@@ -25,12 +25,12 @@ struct constant {
 namespace snitch::impl {
 template<typename T>
 struct function_traits {
-    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
+    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for function_ref");
 };
 
 template<typename T, bool Noexcept>
 struct function_traits_base {
-    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for small_function");
+    static_assert(!std::is_same_v<T, T>, "incorrect template parameter for function_ref");
 };
 
 template<typename Ret, typename... Args>
@@ -108,28 +108,28 @@ struct function_traits<Ret(Args...)> {
 
 namespace snitch {
 template<typename T>
-class small_function;
+class function_ref;
 
 namespace impl {
 template<typename T>
-struct is_small_function : std::false_type {};
+struct is_function_ref : std::false_type {};
 
 template<typename T>
-struct is_small_function<small_function<T>> : std::true_type {};
+struct is_function_ref<function_ref<T>> : std::true_type {};
 
 template<typename T>
-concept not_small_function = !is_small_function<T>::value;
+concept not_function_ref = !is_function_ref<T>::value;
 
 template<typename T, typename FunPtr>
-concept function_ptr_or_stateless_lambda = not_small_function<T> && convertible_to<T, FunPtr>;
+concept function_ptr_or_stateless_lambda = not_function_ref<T> && convertible_to<T, FunPtr>;
 
 template<typename T, typename FunPtr>
-concept functor = not_small_function<T> && !function_ptr_or_stateless_lambda<T, FunPtr> &&
+concept functor = not_function_ref<T> && !function_ptr_or_stateless_lambda<T, FunPtr> &&
                   requires { &T::operator(); };
 } // namespace impl
 
 template<typename T>
-class small_function {
+class function_ref {
     using traits = impl::function_traits<T>;
 
 public:
@@ -155,38 +155,38 @@ private:
     data_type data;
 
 public:
-    constexpr small_function(const small_function&) noexcept            = default;
-    constexpr small_function& operator=(const small_function&) noexcept = default;
+    constexpr function_ref(const function_ref&) noexcept            = default;
+    constexpr function_ref& operator=(const function_ref&) noexcept = default;
 
     template<impl::function_ptr_or_stateless_lambda<function_ptr> FunctionType>
-    constexpr small_function(const FunctionType& obj) noexcept :
+    constexpr function_ref(const FunctionType& obj) noexcept :
         data{static_cast<function_ptr>(obj)} {}
 
     template<impl::functor<function_ptr> FunctorType>
-    constexpr small_function(FunctorType& obj) noexcept :
-        small_function(obj, constant<&FunctorType::operator()>{}) {}
+    constexpr function_ref(FunctorType& obj) noexcept :
+        function_ref(obj, constant<&FunctorType::operator()>{}) {}
 
     template<impl::functor<function_ptr> FunctorType>
-    constexpr small_function(const FunctorType& obj) noexcept :
-        small_function(obj, constant<&FunctorType::operator()>{}) {}
+    constexpr function_ref(const FunctorType& obj) noexcept :
+        function_ref(obj, constant<&FunctorType::operator()>{}) {}
 
     // Prevent inadvertently using temporary stateful lambda; not supported at the moment.
     template<impl::functor<function_ptr> FunctorType>
-    constexpr small_function(FunctorType&& obj) noexcept = delete;
+    constexpr function_ref(FunctorType&& obj) noexcept = delete;
 
     template<typename ObjectType, auto MemberFunction>
-    constexpr small_function(ObjectType& obj, constant<MemberFunction>) noexcept :
+    constexpr function_ref(ObjectType& obj, constant<MemberFunction>) noexcept :
         data{function_and_data_ptr{
             &obj, traits::template to_free_function<ObjectType, MemberFunction>()}} {}
 
     template<typename ObjectType, auto MemberFunction>
-    constexpr small_function(const ObjectType& obj, constant<MemberFunction>) noexcept :
+    constexpr function_ref(const ObjectType& obj, constant<MemberFunction>) noexcept :
         data{function_and_const_data_ptr{
             &obj, traits::template to_const_free_function<ObjectType, MemberFunction>()}} {}
 
     // Prevent inadvertently using temporary object; not supported at the moment.
     template<typename ObjectType, auto M>
-    constexpr small_function(ObjectType&& obj, constant<M>) noexcept = delete;
+    constexpr function_ref(ObjectType&& obj, constant<M>) noexcept = delete;
 
     template<typename... CArgs>
     constexpr return_type operator()(CArgs&&... args) const noexcept(traits::is_noexcept) {

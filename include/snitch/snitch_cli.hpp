@@ -31,7 +31,7 @@ struct input {
     small_vector<argument, max_command_line_args> arguments  = {};
 };
 
-SNITCH_EXPORT extern small_function<void(std::string_view) noexcept> console_print;
+SNITCH_EXPORT extern function_ref<void(std::string_view) noexcept> console_print;
 
 template<typename... Args>
 void print(Args&&... args) noexcept {
@@ -51,9 +51,9 @@ SNITCH_EXPORT std::optional<cli::argument>
               get_positional_argument(const cli::input& args, std::string_view name) noexcept;
 
 SNITCH_EXPORT void for_each_positional_argument(
-    const cli::input&                                      args,
-    std::string_view                                       name,
-    const small_function<void(std::string_view) noexcept>& callback) noexcept;
+    const cli::input&                                    args,
+    std::string_view                                     name,
+    const function_ref<void(std::string_view) noexcept>& callback) noexcept;
 } // namespace snitch::cli
 
 #endif

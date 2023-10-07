@@ -340,7 +340,7 @@ constexpr const char* program_description =
 }} // namespace snitch::impl
 
 namespace snitch::cli {
-small_function<void(std::string_view) noexcept> console_print = &snitch::impl::stdout_print;
+function_ref<void(std::string_view) noexcept> console_print = &snitch::impl::stdout_print;
 
 void print_help(std::string_view program_name) noexcept {
     print_help(
@@ -391,9 +391,9 @@ get_positional_argument(const cli::input& args, std::string_view name) noexcept 
 }
 
 void for_each_positional_argument(
-    const cli::input&                                      args,
-    std::string_view                                       name,
-    const small_function<void(std::string_view) noexcept>& callback) noexcept {
+    const cli::input&                                    args,
+    std::string_view                                     name,
+    const function_ref<void(std::string_view) noexcept>& callback) noexcept {
 
     auto iter = args.arguments.cbegin();
     while (iter != args.arguments.cend()) {

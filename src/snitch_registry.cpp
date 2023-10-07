@@ -583,9 +583,9 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 }
 
 bool registry::run_selected_tests(
-    std::string_view                                     run_name,
-    const filter_info&                                   filter_strings,
-    const small_function<bool(const test_id&) noexcept>& predicate) noexcept {
+    std::string_view                                   run_name,
+    const filter_info&                                 filter_strings,
+    const function_ref<bool(const test_id&) noexcept>& predicate) noexcept {
 
     if (verbose >= registry::verbosity::normal) {
         report_callback(
