@@ -212,7 +212,7 @@ struct console_output_catcher {
     std::unique_ptr<large_data> data     = std::make_unique<large_data>();
     snitch::small_string<4086>& messages = data->messages;
 
-    snitch::small_function<void(std::string_view) noexcept> prev_print;
+    snitch::function_ref<void(std::string_view) noexcept> prev_print;
 
     console_output_catcher() : prev_print(snitch::cli::console_print) {
         snitch::cli::console_print = {*this, snitch::constant<&console_output_catcher::print>{}};

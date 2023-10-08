@@ -63,7 +63,7 @@ struct type_holder {};
 // MSVC has a bug that prevents us from writing the test nicely. Work around it.
 // https://developercommunity.visualstudio.com/t/Parameter-pack-argument-is-not-recognize/10191888
 template<typename R, typename... Args>
-void call_function(snitch::small_function<R(Args...) noexcept>& f) {
+void call_function(snitch::function_ref<R(Args...) noexcept>& f) {
     if constexpr (std::is_same_v<R, void>) {
         std::apply(f, std::tuple<Args...>{});
     } else {
@@ -73,7 +73,7 @@ void call_function(snitch::small_function<R(Args...) noexcept>& f) {
 } // namespace
 
 TEMPLATE_TEST_CASE(
-    "small function",
+    "function reference",
     "[utility]",
     function_0_void,
     function_0_int,
@@ -87,7 +87,7 @@ TEMPLATE_TEST_CASE(
         constexpr std::size_t expected_instances = sizeof...(Args) > 0 ? 3u : 0u;
 
         SECTION("from free function") {
-            snitch::small_function<TestType> f = &test_class<TestType>::method_static;
+            snitch::function_ref<TestType> f = &test_class<TestType>::method_static;
 
             call_function(f);
 
@@ -99,8 +99,8 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from non-const member function") {
-            test_class<TestType>             obj;
-            snitch::small_function<TestType> f = {
+            test_class<TestType>           obj;
+            snitch::function_ref<TestType> f = {
                 obj, snitch::constant<&test_class<TestType>::method>{}};
 
             call_function(f);
@@ -113,8 +113,8 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from const member function") {
-            const test_class<TestType>       obj;
-            snitch::small_function<TestType> f = {
+            const test_class<TestType>     obj;
+            snitch::function_ref<TestType> f = {
                 obj, snitch::constant<&test_class<TestType>::method_const>{}};
 
             call_function(f);
@@ -127,8 +127,8 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from stateless lambda") {
-            snitch::small_function<TestType> f =
-                snitch::small_function<TestType>{[](Args...) noexcept -> R {
+            snitch::function_ref<TestType> f =
+                snitch::function_ref<TestType>{[](Args...) noexcept -> R {
                     function_called = true;
                     if constexpr (!std::is_same_v<R, void>) {
                         return 45;
@@ -153,7 +153,7 @@ TEMPLATE_TEST_CASE(
                 }
             };
 
-            snitch::small_function<TestType> f = snitch::small_function<TestType>{lambda};
+            snitch::function_ref<TestType> f = snitch::function_ref<TestType>{lambda};
 
             call_function(f);
 
@@ -165,8 +165,8 @@ TEMPLATE_TEST_CASE(
         }
 
         SECTION("from other function") {
-            snitch::small_function<TestType> f1 = &test_class<TestType>::method_static;
-            snitch::small_function<TestType> f2(f1);
+            snitch::function_ref<TestType> f1 = &test_class<TestType>::method_static;
+            snitch::function_ref<TestType> f2(f1);
 
             call_function(f1);
 
