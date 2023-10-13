@@ -903,15 +903,15 @@ Finally, if multiple filters are provided, they are combined using the following
 
 Name and tag filters can be used in any combination. To summarize, here are some examples with the equivalent C++ boolean logic (where `f*` represents a filter):
 
-| CLI test filters  | C++ boolean equivalent  |
-|-------------------|-------------------------|
-| `f`               | `f`                     |
-| `~f`              | `!f`                    |
-| `f1 f2`           | `f1 && f2`              |
-| `f1 f2 f3 ...`    | `f1 && f2 && f3 && ...` |
-| `f1,f2`           | `f1 || f2`              |
-| `f1,f2,f3,...`    | `f1 || f2 || f3 || ...` |
-| `f1,f2 f3`        | `(f1 || f2) && f3`      |
+| CLI test filters  | C++ boolean equivalent        |
+|-------------------|-------------------------------|
+| `f`               | `f`                           |
+| `~f`              | `!f`                          |
+| `f1 f2`           | `f1 && f2`                    |
+| `f1 f2 f3 ...`    | `f1 && f2 && f3 && ...`       |
+| `f1,f2`           | `f1 \|\| f2`                  |
+| `f1,f2,f3,...`    | `f1 \|\| f2 \|\| f3 \|\| ...` |
+| `f1,f2 f3`        | `(f1 \|\| f2) && f3`          |
 
 **Note 1:** To match the actual characters `*`, `,`, `[`, `]`, or `\` in a test name, the character in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
 
