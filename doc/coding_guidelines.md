@@ -1,5 +1,17 @@
 # Guidelines for writing C++ code for *snitch*
 
+<!-- MarkdownTOC autolink="true" -->
+
+- [General](#general)
+- [`noexcept`](#noexcept)
+- [Heap allocations](#heap-allocations)
+- [Heavy headers and compilation time](#heavy-headers-and-compilation-time)
+
+<!-- /MarkdownTOC -->
+
+
+## General
+
 Unless otherwise stated, follow the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines). Below are exceptions to these guidelines, or more opinionated choices.
 
 
