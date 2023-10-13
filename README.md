@@ -1027,7 +1027,7 @@ SpaceBeforeParens: ControlStatementsExceptControlMacros
 
 ## Contributing
 
-Please refer to the separate [contributing(CONTRIBUTING.md) page.
+Please refer to the separate [contributing](CONTRIBUTING.md) page.
 
 
 ## Code of conduct
