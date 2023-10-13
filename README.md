@@ -1,6 +1,6 @@
 # snitch
 
-![Build Status](https://github.com/cschreib/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+![Build Status](https://github.com/snitch-org/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/snitch-org/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/snitch-org/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 Lightweight C++20 testing framework.
 
@@ -125,7 +125,7 @@ Here is an example CMake file to download _snitch_ and define a test application
 include(FetchContent)
 
 FetchContent_Declare(snitch
-                     GIT_REPOSITORY https://github.com/cschreib/snitch.git
+                     GIT_REPOSITORY https://github.com/snitch-org/snitch.git
                      GIT_TAG        v1.2.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
@@ -150,7 +150,7 @@ include(FetchContent)
 set(SNITCH_HEADER_ONLY 1)
 
 FetchContent_Declare(snitch
-                     GIT_REPOSITORY https://github.com/cschreib/snitch.git
+                     GIT_REPOSITORY https://github.com/snitch-org/snitch.git
                      GIT_TAG        v1.2.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
