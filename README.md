@@ -1,6 +1,6 @@
 # snitch
 
-![Build Status](https://github.com/cschreib/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snitch)
+![Build Status](https://github.com/cschreib/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 Lightweight C++20 testing framework.
 
@@ -43,7 +43,8 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [IDE integrations](#ide-integrations)
     - [`clang-format` support](#clang-format-support)
 - [Contributing](#contributing)
-- [Why then name _snitch_?](#why-then-name-_snitch_)
+- [Code of conduct](#code-of-conduct)
+- [Why the name _snitch_?](#why-the-name-_snitch_)
 
 <!-- /MarkdownTOC -->
 
@@ -1044,6 +1045,11 @@ The process:
  - Job done! Congratulations.
 
 
-## Why then name _snitch_?
+## Code of conduct
+
+Please see the separate [code of conduct](CODE_OF_CONDUCT.md) page.
+
+
+## Why the name _snitch_?
 
 Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
