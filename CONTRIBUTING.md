@@ -9,7 +9,7 @@
         - [Mediators](#mediators)
 - [Contributing a change](#contributing-a-change)
 - [Reviewing a change](#reviewing-a-change)
-    - [Conflict resolution](#conflict-resolution)
+    - [Conflict resolution \(technical\)](#conflict-resolution-technical)
 - [Joining the team!](#joining-the-team)
 
 <!-- /MarkdownTOC -->
@@ -78,16 +78,18 @@ The process goes as follows, regardless of who you are:
 Everyone is welcome to review any proposed change, even if they are external contributors who were not involve in the change. However, only maintainers are allowed to approve or reject the change. Each maintainer who chooses to take part in the review has veto right: if they express a concern during the review, they can withhold their approval until this concern is addressed. The change will only be accepted once all involved reviewers are satisfied that their concerns have been addressed. The aim is to achieve consensus.
 
 
-### Conflict resolution
+### Conflict resolution (technical)
 
-In the unlikely event of a disagreement that cannot be resolved, either between the contributor and reviewer, or between multiple reviewers, mediators should be contacted for help. They will analyze the situation and the technical evidence, and decide on a course of action. Trivial matters may be settled directly by the mediator, although the decision they make can still be challenged by involving another mediator if necessary. For everything else, they will encourage all involved parties to find compromises and reach a consensus.
+In the unlikely event of a technical disagreement that cannot be resolved, either between the contributor and reviewer, or between multiple reviewers, mediators should be contacted for help. This can be done by opening a new [Mediation](https://github.com/snitch-org/snitch/discussions/categories/mediation) discussion. If the conflict is sensitive and should not be resolved publicly, mediators can also be contacted at mediators@snitch-org.corentin.net (this address can also be used for resolving personal conflicts).
+
+Mediators will analyze the situation and the evidence, and decide on a course of action. Trivial matters may be settled directly by the mediator, although the decision they make can still be challenged by involving another mediator if necessary. For everything else, they will encourage all involved parties to find compromises and reach a consensus.
 
 If the disagreement is still not resolved at this stage, the mediator will bring up the issue to other mediators. Mediators will attempt to reach their own consensus on the issue. If they cannot, they will organize a vote among all mediators, and settle the matter by simple majority (with project admins as tie breakers). Majority rule is a blunt tool, and it should be considered a last resort; consensus should always be the first aim.
 
 
 ## Joining the team!
 
-Do you like _snitch_ and want to contribute more frequently to it, maybe even influence design decisions for new features? You can request to become a maintainer. The process is open to anyone; you only have to successfully contribute one non-trivial change as an external contributor, following the instructions above (i.e., more than just fixing a typo in the readme, for example). Then, contact one of the maintainers to request to be included in the team. You should be accepted in the team immediately, and on-boarded. Maintainers may also invite you to the team spontaneously if they value your contributions. You are always free to refuse this invitation and remain an external contributor, if that is your wish.
+Do you like _snitch_ and want to contribute more frequently to it, maybe even influence design decisions for new features? You can request to become a maintainer. The process is open to anyone; you only have to successfully contribute one non-trivial change as an external contributor, following the instructions above (i.e., more than just fixing a typo in the readme, for example). Then, contact one of the maintainers to request to be included in the team. You should be accepted and on-boarded in the team immediately. Maintainers may also invite you to the team spontaneously if they value your contributions. You are always free to refuse this invitation and remain an external contributor, if that is your wish.
 
 Joining the team as maintainer comes with no responsibility to commit time or effort; however much you can give is enough. However, becoming a maintainer puts you in a position of leadership within the community, therefore you will be responsible for following the [code of conduct](CODE_OF_CONDUCT.md). Breaching this code may result in you be removed from the team.
 
