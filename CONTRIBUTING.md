@@ -75,7 +75,7 @@ The process goes as follows, regardless of who you are:
 
 ## Reviewing a change
 
-Everyone is welcome to review any proposed change, even if they are external contributors who were not involve in the change. However, only maintainers are allowed to approve or reject the change. Each maintainer who chooses to take part in the review has veto right: if they express a concern during the review, they can withhold their approval until this concern is addressed. The change will only be accepted once all involved reviewers are satisfied that their concerns have been addressed. The aim is to achieve consensus.
+Everyone is welcome to review any proposed change, even if they are external contributors who were not involved in the change. However, only maintainers are allowed to approve or reject the change. Each maintainer who chooses to take part in the review has veto right: if they express a concern during the review, they can withhold their approval until this concern is addressed. The change will only be accepted once all involved reviewers are satisfied that their concerns have been addressed. The aim is to achieve consensus.
 
 
 ### Conflict resolution (technical)
@@ -91,6 +91,6 @@ If the disagreement is still not resolved at this stage, the mediator will bring
 
 Do you like _snitch_ and want to contribute more frequently to it, maybe even influence design decisions for new features? You can request to become a maintainer. The process is open to anyone; you only have to successfully contribute one non-trivial change as an external contributor, following the instructions above (i.e., more than just fixing a typo in the readme, for example). Then, contact one of the maintainers to request to be included in the team. You should be accepted and on-boarded in the team immediately. Maintainers may also invite you to the team spontaneously if they value your contributions. You are always free to refuse this invitation and remain an external contributor, if that is your wish.
 
-Joining the team as maintainer comes with no responsibility to commit time or effort; however much you can give is enough. However, becoming a maintainer puts you in a position of leadership within the community, therefore you will be responsible for following the [code of conduct](CODE_OF_CONDUCT.md). Breaching this code may result in you be removed from the team.
+Joining the team as a maintainer comes with no responsibility to commit time or effort; however much you can give is enough. However, becoming a maintainer puts you in a position of leadership within the community, therefore you will be responsible for following the [code of conduct](CODE_OF_CONDUCT.md). Breaching this code may result in you being removed from the team.
 
-Once you are part of the team as a maintainer, you can be nominated to become a mediator. Other mediators will review the application, and hopefully reach consensus on a decision. If no consensus is reached, a decision is made by majority vote.
+Once you are part of the team as a maintainer, you can be nominated to become a mediator. Other mediators will review the application, and hopefully reach consensus on a decision. If no consensus is reached, the decision is made by majority vote.

@@ -37,9 +37,9 @@ _snitch_ has its own test suite, which contains numerous tests. This test suite 
 
 The purpose of these tests is to check the detailed run-time behavior of _snitch_. This includes testing all foreseeable edge cases, happy path and sad path, etc. These tests contribute to the test coverage analysis.
 
-The run-time unit tests are roughly organized by theme into separate files in the `tests/runtime_tests` directory. New files can be added there if necessary. There is no enforced mapping between test files and library source files. Likewise, there is no enforced mapping between test case names and tested classes / functions; this is left of the best judgment of the contributor.
+The run-time unit tests are roughly organized by theme into separate files in the `tests/runtime_tests` directory. New files can be added there if necessary. There is no enforced mapping between test files and library source files. Likewise, there is no enforced mapping between test case names and tested classes / functions; this is left to the best judgment of the contributor.
 
-Run-time unit tests come in two flavor: using _doctest_ to test _snitch_, or using _snitch_ to test itself. The latter is less safe, since a bug in _snitch_ might accidentally make these tests pass (e.g., if the test cases are not running at all), but it usually provides nicer tests results on failure.
+Run-time unit tests come in two flavors: using _doctest_ to test _snitch_, or using _snitch_ to test itself. The latter is less safe, since a bug in _snitch_ might accidentally make these tests pass (e.g., if the test cases are not running at all), but it usually provides nicer test results on failure.
 
 The *test* code must be written using the _snitch_ "shorthand" API (e.g., `CHECK(...)`). Wrapper macros are used to wrap _doctest_ macros so the same API can be used in both flavors. The *tested* code must be written with the _snitch_ "prefixed" API (e.g., `SNITCH_CHECK(...)`), otherwise it would turn into _doctest_ code in the _doctest_-flavored run. For example:
 
@@ -69,7 +69,7 @@ Not implemented yet. The purpose of these tests will be to check how _snitch_ be
 
 ### Approval tests
 
-These tests provide a more manageable way to check the output of _snitch_ for each reporter. Rather than use hand-written checks ("this line must contain this string, and then this other string"), which would be painful to write to achieve 100% coverage, the approach is to capture the output and save it to a file. If the output is satisfactory, we commit it as the new "expected" output, and future test runs just need to check that the output is compatible with the "expected" output. These tests contribute to the test coverage analysis.
+These tests provide a more manageable way to check the output of _snitch_ for each reporter. Rather than use handwritten checks ("this line must contain this string, and then this other string"), which would be painful to write to achieve 100% coverage, the approach is to capture the output and save it to a file. If the output is satisfactory, we commit it as the new "expected" output, and future test runs just need to check that the output is compatible with the "expected" output. These tests contribute to the test coverage analysis.
 
 Since some elements of the output are variable (e.g., test duration, file names, line numbers), the output goes through a "blanking" phase before being compared to the "expected" output. This uses regular expressions to ignore parts of the output, and replace them with a placeholder `*`.
 
@@ -141,6 +141,6 @@ These are a bit cumbersome to run locally, so the recommendation is to let the a
 
 In case this document is out-of-date or you have any issue running the tests on your platform, please refer to the [CI scripts](../.github/workflows). The commands in these scripts will always be up-to-date, and you can execute them locally to run the tests on your own machine. Otherwise, GitHub will run these CI scripts once you open your PR, and then for each following commit you push to the branch once the PR is open. This consumes some resources, so please be considerate and try to push commits in bulk, once you think the code should pass tests, rather than one-by-one (i.e., avoid the "commit+push" workflow).
 
-The automated testing pipeline will run *all* tests, for *all* supported platforms. It will also includes other checks, such as test coverage checks. It is necessary for this pipeline to pass before a PR can be merged.
+The automated testing pipeline will run *all* tests, for *all* supported platforms. It will also include other checks, such as test coverage checks. It is necessary for this pipeline to pass before a PR can be merged.
 
 The pipeline starts with the "install" tests, which are fairly cheap to run and will catch compilation errors in the _snitch_ headers, issues with basic testing features, or issues in CMake scripts. If these tests pass, the pipeline moves on to run the rest of the tests, which are more expensive.
