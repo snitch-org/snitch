@@ -60,7 +60,7 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the mediators at
-mediators@snitch-org.corentin.net.
+snitch-mediators@corentin.net.
 All complaints will be reviewed and investigated promptly and fairly.
 
 All mediators are obligated to respect the privacy and security of the
