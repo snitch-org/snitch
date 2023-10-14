@@ -21,7 +21,7 @@
 
 ## Why
 
-If you are trying to [contribute](../CONTRIBUTING.md) to _snitch_, you should run the _snitch_ test suite to ensure your changes have not accidentally broken any existing feature. You should also ensure that any new feature you add is properly tested, so others don't break it with their changes later on.
+If you are trying to [contribute](/CONTRIBUTING.md) to _snitch_, you should run the _snitch_ test suite to ensure your changes have not accidentally broken any existing feature. You should also ensure that any new feature you add is properly tested, so others don't break it with their changes later on.
 
 
 ## The _snitch_ test suite
@@ -139,7 +139,7 @@ These are a bit cumbersome to run locally, so the recommendation is to let the a
 
 ### Automated testing pipeline
 
-In case this document is out-of-date or you have any issue running the tests on your platform, please refer to the [CI scripts](../.github/workflows). The commands in these scripts will always be up-to-date, and you can execute them locally to run the tests on your own machine. Otherwise, GitHub will run these CI scripts once you open your PR, and then for each following commit you push to the branch once the PR is open. This consumes some resources, so please be considerate and try to push commits in bulk, once you think the code should pass tests, rather than one-by-one (i.e., avoid the "commit+push" workflow).
+In case this document is out-of-date or you have any issue running the tests on your platform, please refer to the [CI scripts](/.github/workflows). The commands in these scripts will always be up-to-date, and you can execute them locally to run the tests on your own machine. Otherwise, GitHub will run these CI scripts once you open your PR, and then for each following commit you push to the branch once the PR is open. This consumes some resources, so please be considerate and try to push commits in bulk, once you think the code should pass tests, rather than one-by-one (i.e., avoid the "commit+push" workflow).
 
 The automated testing pipeline will run *all* tests, for *all* supported platforms. It will also include other checks, such as test coverage checks. It is necessary for this pipeline to pass before a PR can be merged.
 
