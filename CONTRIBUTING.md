@@ -10,6 +10,7 @@
 - [Contributing a change](#contributing-a-change)
 - [Reviewing a change](#reviewing-a-change)
     - [Conflict resolution \(technical\)](#conflict-resolution-technical)
+    - [Conflict resolution \(personal\)](#conflict-resolution-personal)
 - [Joining the team!](#joining-the-team)
 
 <!-- /MarkdownTOC -->
@@ -80,11 +81,16 @@ Everyone is welcome to review any proposed change, even if they are external con
 
 ### Conflict resolution (technical)
 
-In the unlikely event of a technical disagreement that cannot be resolved, either between the contributor and reviewer, or between multiple reviewers, mediators should be contacted for help. This can be done by opening a new [Mediation](https://github.com/snitch-org/snitch/discussions/categories/mediation) discussion. If the conflict is sensitive and should not be resolved publicly, mediators can also be contacted at mediators@snitch-org.corentin.net (this address can also be used for resolving personal conflicts).
+In the unlikely event of a technical disagreement that cannot be resolved, either between the contributor and reviewer, or between multiple reviewers, mediators should be contacted for help. This can be done by opening a new [Mediation](https://github.com/snitch-org/snitch/discussions/categories/mediation) discussion.
 
 Mediators will analyze the situation and the evidence, and decide on a course of action. Trivial matters may be settled directly by the mediator, although the decision they make can still be challenged by involving another mediator if necessary. For everything else, they will encourage all involved parties to find compromises and reach a consensus.
 
 If the disagreement is still not resolved at this stage, the mediator will bring up the issue to other mediators. Mediators will attempt to reach their own consensus on the issue. If they cannot, they will organize a vote among all mediators, and settle the matter by simple majority (with project admins as tie breakers). Majority rule is a blunt tool, and it should be considered a last resort; consensus should always be the first aim.
+
+
+### Conflict resolution (personal)
+
+In case a disagreement degenerates into a personal conflict, a similar process will take place, this time within the framework defined in the [code of conduct](CODE_OF_CONDUCT.md). In particular, for conflict of a personal nature, please use the reporting method described in the code of conduct rather than publicly raise the problem in the [Mediation](https://github.com/snitch-org/snitch/discussions/categories/mediation) discussion. This will preserve your privacy and safety, since your report can remain anonymous. It will also avoid escalation from public shaming and finger pointing, which are not part of our conflict resolution process.
 
 
 ## Joining the team!
