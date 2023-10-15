@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/snitch-org/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/snitch-org/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/snitch-org/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-![snitch logo](doc/logo-big.png)
+![The snitch logo: a jay feather](doc/logo-big.png)
 
 Lightweight C++20 testing framework.
 
@@ -1040,3 +1040,5 @@ Please refer to the separate [code of conduct](CODE_OF_CONDUCT.md) page.
 ## Why the name _snitch_?
 
 Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
+
+The logo is a jay feather. Jays are known for alerting other animals of danger.
