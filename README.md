@@ -98,7 +98,7 @@ TEST_CASE("Factorials are computed", "[factorial]" ) {
 
 Output:
 
-![Screenshot from 2022-10-16 16-17-04](https://user-images.githubusercontent.com/2236577/196043565-531635c5-64e0-401c-8ff6-a533c9bbbf11.png)
+![Example console output of a regular test](https://user-images.githubusercontent.com/2236577/196043565-531635c5-64e0-401c-8ff6-a533c9bbbf11.png)
 
 And here is an example code for a typed test, also borrowed (and adapted) from the [_Catch2_ tutorials](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md#type-parametrised-test-cases):
 
@@ -114,7 +114,7 @@ TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside sni
 
 Output:
 
-![Screenshot from 2022-10-16 16-16-50](https://user-images.githubusercontent.com/2236577/196043558-ed9ab329-5934-4bb3-a422-b48d6781cf96.png)
+![Example console output of a typed test](https://user-images.githubusercontent.com/2236577/196043558-ed9ab329-5934-4bb3-a422-b48d6781cf96.png)
 
 
 ## Example build configurations with CMake
