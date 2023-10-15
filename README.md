@@ -1,6 +1,6 @@
 # snitch
 
-![Build Status](https://github.com/cschreib/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/cschreib/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/cschreib/snitch)
+![Build Status](https://github.com/snitch-org/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/snitch-org/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/snitch-org/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 Lightweight C++20 testing framework.
 
@@ -43,7 +43,8 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [IDE integrations](#ide-integrations)
     - [`clang-format` support](#clang-format-support)
 - [Contributing](#contributing)
-- [Why then name _snitch_?](#why-then-name-_snitch_)
+- [Code of conduct](#code-of-conduct)
+- [Why the name _snitch_?](#why-the-name-_snitch_)
 
 <!-- /MarkdownTOC -->
 
@@ -124,7 +125,7 @@ Here is an example CMake file to download _snitch_ and define a test application
 include(FetchContent)
 
 FetchContent_Declare(snitch
-                     GIT_REPOSITORY https://github.com/cschreib/snitch.git
+                     GIT_REPOSITORY https://github.com/snitch-org/snitch.git
                      GIT_TAG        v1.2.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
@@ -149,7 +150,7 @@ include(FetchContent)
 set(SNITCH_HEADER_ONLY 1)
 
 FetchContent_Declare(snitch
-                     GIT_REPOSITORY https://github.com/cschreib/snitch.git
+                     GIT_REPOSITORY https://github.com/snitch-org/snitch.git
                      GIT_TAG        v1.2.0) # update version number as needed
 FetchContent_MakeAvailable(snitch)
 
@@ -902,15 +903,15 @@ Finally, if multiple filters are provided, they are combined using the following
 
 Name and tag filters can be used in any combination. To summarize, here are some examples with the equivalent C++ boolean logic (where `f*` represents a filter):
 
-| CLI test filters  | C++ boolean equivalent  |
-|-------------------|-------------------------|
-| `f`               | `f`                     |
-| `~f`              | `!f`                    |
-| `f1 f2`           | `f1 && f2`              |
-| `f1 f2 f3 ...`    | `f1 && f2 && f3 && ...` |
-| `f1,f2`           | `f1 || f2`              |
-| `f1,f2,f3,...`    | `f1 || f2 || f3 || ...` |
-| `f1,f2 f3`        | `(f1 || f2) && f3`      |
+| CLI test filters  | C++ boolean equivalent        |
+|-------------------|-------------------------------|
+| `f`               | `f`                           |
+| `~f`              | `!f`                          |
+| `f1 f2`           | `f1 && f2`                    |
+| `f1 f2 f3 ...`    | `f1 && f2 && f3 && ...`       |
+| `f1,f2`           | `f1 \|\| f2`                  |
+| `f1,f2,f3,...`    | `f1 \|\| f2 \|\| f3 \|\| ...` |
+| `f1,f2 f3`        | `(f1 \|\| f2) && f3`          |
 
 **Note 1:** To match the actual characters `*`, `,`, `[`, `]`, or `\` in a test name, the character in the filter must be escaped using a backslash, like `\*`. In general, any character located after a single backslash will be interpreted as a regular character, with no special meaning. Be mindful that most shells (Bash, etc.) will also require the backslash itself be escaped to be interpreted as an actual backslash in _snitch_. The table below shows examples of how edge-cases are handled:
 
@@ -1026,24 +1027,14 @@ SpaceBeforeParens: ControlStatementsExceptControlMacros
 
 ## Contributing
 
-Contributions to the source code are always welcome! Simply follow the rules laid out below. If you are not familiar with contributing to an open-source project, feel free to open a [Discussion](https://github.com/cschreib/snitch/discussions/categories/ideas) and ask for guidance. Regardless, you will receive help all the way, and particularly during the code review.
-
-The process:
- - If you are considering adding a feature from _Catch2_ that _snitch_ currently does not support, please check the [_Catch2_ support roadmap](doc/comparison_catch2.md) first.
- - Please check the [Issue Tracker](https://github.com/cschreib/snitch/issues) for any issue (open or closed) related to the feature you would like to add, or the problem you would like to solve. Read the discussion that has taken place there, if any, and check if any decision was taken that would be incompatible with your planned contribution.
- - If the path is clear, fork this repository and commit your changes to your own fork.
- - Use "atomic" commits (check that the code compiles before committing) and reasonably clear commit messages (no "WIP"). Linear history is preferred (i.e., avoid merge commits), but will not be enforced.
- - Check your code mostly follows the [_snitch_ C++ Coding Guidelines](doc/coding_guidelines.md).
- - Run `clang-format` on your code before committing. The `.clang-format` file at the root of this repository contains all the formatting rules, and will be used automatically.
- - Add tests to cover your new code if applicable (see the `tests` sub-folder).
- - Run the _snitch_ tests and fix any failure if you can (CMake can run them for you if you ask it to "build" the `snitch_runtime_tests_run` target, otherwise just run manually `build/tests/snitch_runtime_tests`).
- - Open a [Pull Request](https://github.com/cschreib/snitch/pulls), with a description of what you are trying to do.
- - If there are issues you were unable to solve on your own (e.g., tests failing for reasons you do not understand, or high-impact design decisions), please feel free to open the pull request as a "draft", and highlight the areas that you need help with in the description. Once the issues are addressed, you can take your Pull Request out of draft mode.
- - Your code will then be reviewed, and the reviewer(s) may leave comments and suggestions. It is up to you to act on these comments and suggestions, and commit any required code changes. It's OK to push back on a suggestion if you have a good reason; don't always assume the reviewer is right.
- - When all comments are addressed, the reviewer(s) should mark the Pull Request as "approved", at which point anyone involved can merge it into the main branch.
- - Job done! Congratulations.
+Please refer to the separate [contributing](CONTRIBUTING.md) page.
 
 
-## Why then name _snitch_?
+## Code of conduct
+
+Please refer to the separate [code of conduct](CODE_OF_CONDUCT.md) page.
+
+
+## Why the name _snitch_?
 
 Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
