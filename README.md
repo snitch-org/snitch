@@ -2,6 +2,8 @@
 
 ![Build Status](https://github.com/snitch-org/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/snitch-org/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/snitch-org/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
+![The snitch logo: a jay feather](doc/logo-big.png)
+
 Lightweight C++20 testing framework.
 
 The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly testing framework. The design philosophy is to keep the testing API lean, including only what is strictly necessary to present clear messages when a test fails.
@@ -96,7 +98,7 @@ TEST_CASE("Factorials are computed", "[factorial]" ) {
 
 Output:
 
-![Screenshot from 2022-10-16 16-17-04](https://user-images.githubusercontent.com/2236577/196043565-531635c5-64e0-401c-8ff6-a533c9bbbf11.png)
+![Example console output of a regular test](https://user-images.githubusercontent.com/2236577/196043565-531635c5-64e0-401c-8ff6-a533c9bbbf11.png)
 
 And here is an example code for a typed test, also borrowed (and adapted) from the [_Catch2_ tutorials](https://github.com/catchorg/Catch2/blob/devel/docs/test-cases-and-sections.md#type-parametrised-test-cases):
 
@@ -112,7 +114,7 @@ TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside sni
 
 Output:
 
-![Screenshot from 2022-10-16 16-16-50](https://user-images.githubusercontent.com/2236577/196043558-ed9ab329-5934-4bb3-a422-b48d6781cf96.png)
+![Example console output of a typed test](https://user-images.githubusercontent.com/2236577/196043558-ed9ab329-5934-4bb3-a422-b48d6781cf96.png)
 
 
 ## Example build configurations with CMake
@@ -1038,3 +1040,5 @@ Please refer to the separate [code of conduct](CODE_OF_CONDUCT.md) page.
 ## Why the name _snitch_?
 
 Libraries and programs sometimes do shady or downright illegal stuff (i.e., bugs, crashes). _snitch_ is a library like any other; it may have its own bugs and faults. But it's a snitch! It will tell you when other libraries and programs misbehave, with the hope that you will overlook its own wrongdoings.
+
+The logo is a jay feather. Jays are known for alerting other animals of danger.

@@ -116,6 +116,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
+        fetch-depth: 2 # necessary for codecov bash uploader
         submodules: 'recursive'
 
     - name: Setup Clang
