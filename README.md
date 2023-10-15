@@ -2,6 +2,8 @@
 
 ![Build Status](https://github.com/snitch-org/snitch/actions/workflows/cmake.yml/badge.svg) [![codecov](https://codecov.io/gh/snitch-org/snitch/branch/main/graph/badge.svg?token=X422DE81PN)](https://codecov.io/gh/snitch-org/snitch) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
+![snitch logo](doc/logo-big.png)
+
 Lightweight C++20 testing framework.
 
 The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly testing framework. The design philosophy is to keep the testing API lean, including only what is strictly necessary to present clear messages when a test fails.
