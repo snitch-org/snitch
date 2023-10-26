@@ -16,7 +16,7 @@ jobs:
         - { name: Linux GCC 12,         os: ubuntu-latest,  compiler: g++12,    cxx: "g++-12",     backend: "ninja",          build: "linux-libstdc++", args: ""}
         - { name: Linux GCC 12 nounity, os: ubuntu-latest,  compiler: g++12,    cxx: "g++-12",     backend: "ninja",          build: "linux-libstdc++", args: "-Dunity_build=false"}
         - { name: Linux GCC 12 shared,  os: ubuntu-latest,  compiler: g++12,    cxx: "g++-12",     backend: "ninja",          build: "linux-libstdc++", args: "--default-library shared"}
-        - { name: Linux Clang 14,       os: ubuntu-latest,  compiler: clang-14, cxx: "clang++-14", backend: "ninja",          build: "linux-libc++", args: ""}
+        - { name: Linux Clang 15,       os: ubuntu-latest,  compiler: clang-15, cxx: "clang++-15", backend: "ninja",          build: "linux-libc++", args: ""}
         - { name: Windows 64,           os: windows-latest, compiler: msvc,     cxx: "cl",         backend: "vs2022 --vsenv", build: "win64-vs2022", args: ""}
         - { name: MacOS,                os: macos-latest,   compiler: clang++,  cxx: "clang++",    backend: "ninja",          build: "osx-libc++", args: ""}
         build-type:
