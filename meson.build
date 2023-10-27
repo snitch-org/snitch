@@ -3,6 +3,8 @@ project('snitch', 'cpp',
   version: '1.2.3'
 )
 
+cpp_arguments = []
+
 cxx = meson.get_compiler('cpp')
 compiler_id = cxx.get_id()
 host_system = host_machine.system()
@@ -13,15 +15,24 @@ if get_option('default_library') == 'shared'
     # Nothing to do; default is already to hide symbols unless exported.
   elif compiler_id == 'gcc' or compiler_id == 'clang'
     # Set default visibility to "hidden" so only exported symbols are visible.
-    add_project_arguments(
-      cxx.get_supported_arguments([
+    cpp_arguments += cxx.get_supported_arguments([
         '-fvisibility=hidden',
         '-fvisibility-inlines-hidden'
-      ]),
-      language: 'cpp'
-    )
+      ])
   endif
 endif
+
+if cxx.get_id() == 'clang'
+  # Use libc++ when available when compiling with clang.
+  if cxx.find_library('libc++', required: false).found()
+    cpp_arguments += [
+      '-stdlib=libc++',
+    ]
+  endif
+endif
+
+add_project_arguments(cpp_arguments, language : 'cpp')
+add_project_link_arguments(cpp_arguments, language : 'cpp')
 
 include_dirs = include_directories('.', 'include')
 
