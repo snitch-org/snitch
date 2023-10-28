@@ -22,15 +22,6 @@ if get_option('default_library') == 'shared'
   endif
 endif
 
-if cxx.get_id() == 'clang'
-  # Use libc++ when available when compiling with clang.
-  if cxx.find_library('libc++', required: false).found()
-    cpp_arguments += [
-      '-stdlib=libc++',
-    ]
-  endif
-endif
-
 add_project_arguments(cpp_arguments, language : 'cpp')
 add_project_link_arguments(cpp_arguments, language : 'cpp')
 
