@@ -19,7 +19,7 @@
             constexpr SNITCH_EXPR(CHECK, EXPECTED, __VA_ARGS__);                                   \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         } else {                                                                                   \
-            const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                       \
+            constexpr auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                   \
                 CHECK, #__VA_ARGS__, {}, static_cast<bool>(__VA_ARGS__) == EXPECTED};              \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \
