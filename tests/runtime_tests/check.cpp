@@ -530,9 +530,17 @@ SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_PRECEDENCE
 SNITCH_WARNING_DISABLE_ASSIGNMENT
 
+#if defined(SNITCH_COMPILER_MSVC) && _MSC_VER == 1937
+// Regression in MSVC compiler 19.37.*
+// https://github.com/snitch-org/snitch/issues/140
+// https://developercommunity.visualstudio.com/t/Regression:-False-positive-C7595:-std::/10509214
+#    define SNITCH_TEST_NO_SPACESHIP
+#endif
+
 TEST_CASE("check no decomposition", "[test macros]") {
     event_catcher<1> catcher;
 
+#if !defined(SNITCH_TEST_NO_SPACESHIP)
     SECTION("spaceship") {
         int         value1       = 1;
         int         value2       = 1;
@@ -549,6 +557,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         CHECK(value2 == 1);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 <=> value2 != 0"sv, ""sv);
     }
+#endif
 
     SECTION("with operator &&") {
         int         value1       = 1;
@@ -1493,6 +1502,21 @@ TEST_CASE("check throws as", "[test macros]") {
         CHECK_EXPR_SUCCESS(catcher);
     }
 
+    SECTION("fail no exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun = []() {};
+            // clang-format off
+            SNITCH_CHECK_THROWS_AS(fun(), my_exception); failure_line = __LINE__;
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "my_exception expected but no exception thrown"sv);
+    }
+
     SECTION("fail other std::exception") {
         std::size_t failure_line = 0u;
 
@@ -1525,6 +1549,29 @@ TEST_CASE("check throws as", "[test macros]") {
     }
 }
 
+TEST_CASE("require throws as", "[test macros]") {
+    event_catcher<1> catcher;
+
+    SECTION("fail no exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun = []() {};
+            try {
+                // clang-format off
+                failure_line = __LINE__; SNITCH_REQUIRE_THROWS_AS(fun(), my_exception);
+                // clang-format on
+            } catch (const snitch::impl::abort_exception&) {
+                // Ignore the abort signal.
+            }
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "my_exception expected but no exception thrown"sv);
+    }
+}
+
 TEST_CASE("check throws matches", "[test macros]") {
     event_catcher<1> catcher;
 
@@ -1537,6 +1584,22 @@ TEST_CASE("check throws matches", "[test macros]") {
         }
 
         CHECK_EXPR_SUCCESS(catcher);
+    }
+
+    SECTION("fail no exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun     = []() {};
+            auto          matcher = snitch::matchers::with_what_contains{"exception"};
+            // clang-format off
+            failure_line = __LINE__; SNITCH_CHECK_THROWS_MATCHES(fun(), my_exception, matcher);
+            // clang-format on
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "my_exception expected but no exception thrown"sv);
     }
 
     SECTION("fail other std::exception") {
@@ -1587,6 +1650,30 @@ TEST_CASE("check throws matches", "[test macros]") {
         CHECK_EXPR_FAILURE(
             catcher, failure_line,
             "could not match caught std::exception with expected content: could not find 'exception1' in 'exception2'"sv);
+    }
+}
+
+TEST_CASE("require throws matches", "[test macros]") {
+    event_catcher<1> catcher;
+
+    SECTION("fail no exception") {
+        std::size_t failure_line = 0u;
+
+        {
+            test_override override(catcher);
+            auto          fun     = []() {};
+            auto          matcher = snitch::matchers::with_what_contains{"exception"};
+            try {
+                // clang-format off
+                failure_line = __LINE__; SNITCH_REQUIRE_THROWS_MATCHES(fun(), my_exception, matcher);
+                // clang-format on
+            } catch (const snitch::impl::abort_exception&) {
+                // Ignore the abort signal.
+            }
+        }
+
+        CHECK_EXPR_FAILURE(
+            catcher, failure_line, "my_exception expected but no exception thrown"sv);
     }
 }
 
