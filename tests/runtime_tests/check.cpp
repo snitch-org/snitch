@@ -530,9 +530,17 @@ SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_PRECEDENCE
 SNITCH_WARNING_DISABLE_ASSIGNMENT
 
+#if defined(SNITCH_COMPILER_MSVC) && _MSC_VER == 1937
+// Regression in MSVC compiler 19.37.*
+// https://github.com/snitch-org/snitch/issues/140
+// https://developercommunity.visualstudio.com/t/Regression:-False-positive-C7595:-std::/10509214
+#    define SNITCH_TEST_NO_SPACESHIP
+#endif
+
 TEST_CASE("check no decomposition", "[test macros]") {
     event_catcher<1> catcher;
 
+#if !defined(SNITCH_TEST_NO_SPACESHIP)
     SECTION("spaceship") {
         int         value1       = 1;
         int         value2       = 1;
@@ -549,6 +557,7 @@ TEST_CASE("check no decomposition", "[test macros]") {
         CHECK(value2 == 1);
         CHECK_EXPR_FAILURE(catcher, failure_line, "CHECK"sv, "value1 <=> value2 != 0"sv, ""sv);
     }
+#endif
 
     SECTION("with operator &&") {
         int         value1       = 1;
