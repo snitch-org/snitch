@@ -10,13 +10,11 @@
 
 #    define SNITCH_REQUIRE_THROWS_AS_IMPL(MAYBE_ABORT, EXPRESSION, ...)                            \
         do {                                                                                       \
-            auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
+            auto& SNITCH_CURRENT_TEST        = snitch::impl::get_current_test();                   \
+            bool  SNITCH_NO_EXCEPTION_THROWN = false;                                              \
             try {                                                                                  \
                 static_cast<void>(EXPRESSION);                                                     \
-                SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
-                    #__VA_ARGS__ " expected but no exception thrown");                             \
-                MAYBE_ABORT;                                                                       \
+                SNITCH_NO_EXCEPTION_THROWN = true;                                                 \
             } catch (const __VA_ARGS__&) {                                                         \
                 SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
                     true, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                            \
@@ -37,6 +35,12 @@
                     MAYBE_ABORT;                                                                   \
                 }                                                                                  \
             }                                                                                      \
+            if (SNITCH_NO_EXCEPTION_THROWN) {                                                      \
+                SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
+                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
+                    #__VA_ARGS__ " expected but no exception thrown");                             \
+                MAYBE_ABORT;                                                                       \
+            }                                                                                      \
         } while (0)
 
 #    define SNITCH_REQUIRE_THROWS_AS(EXPRESSION, ...)                                              \
@@ -46,13 +50,11 @@
 
 #    define SNITCH_REQUIRE_THROWS_MATCHES_IMPL(MAYBE_ABORT, EXPRESSION, EXCEPTION, ...)            \
         do {                                                                                       \
-            auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                          \
+            auto& SNITCH_CURRENT_TEST        = snitch::impl::get_current_test();                   \
+            bool  SNITCH_NO_EXCEPTION_THROWN = false;                                              \
             try {                                                                                  \
                 static_cast<void>(EXPRESSION);                                                     \
-                SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
-                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
-                    #EXCEPTION " expected but no exception thrown");                               \
-                MAYBE_ABORT;                                                                       \
+                SNITCH_NO_EXCEPTION_THROWN = true;                                                 \
             } catch (const EXCEPTION& e) {                                                         \
                 auto&& SNITCH_TEMP_MATCHER = __VA_ARGS__;                                          \
                 if (!SNITCH_TEMP_MATCHER.match(e)) {                                               \
@@ -84,6 +86,12 @@
                         #EXCEPTION " expected but other unknown exception thrown");                \
                     MAYBE_ABORT;                                                                   \
                 }                                                                                  \
+            }                                                                                      \
+            if (SNITCH_NO_EXCEPTION_THROWN) {                                                      \
+                SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
+                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
+                    #EXCEPTION " expected but no exception thrown");                               \
+                MAYBE_ABORT;                                                                       \
             }                                                                                      \
         } while (0)
 
