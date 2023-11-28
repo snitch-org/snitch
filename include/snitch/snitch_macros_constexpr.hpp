@@ -20,10 +20,11 @@
                 constexpr SNITCH_EXPR(CHECK "[compile-time]", EXPECTED, __VA_ARGS__);              \
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
-            {                                                                                      \
+            SNITCH_TRY {                                                                           \
                 SNITCH_EXPR(CHECK "[run-time]", EXPECTED, __VA_ARGS__);                            \
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
+            SNITCH_CATCH(CHECK)                                                                    \
         } else {                                                                                   \
             {                                                                                      \
                 constexpr auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{               \
@@ -33,7 +34,7 @@
                     static_cast<bool>(__VA_ARGS__) == EXPECTED};                                   \
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
-            {                                                                                      \
+            SNITCH_TRY {                                                                           \
                 const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                   \
                     CHECK "[run-time]",                                                            \
                     #__VA_ARGS__,                                                                  \
@@ -41,6 +42,7 @@
                     static_cast<bool>(__VA_ARGS__) == EXPECTED};                                   \
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
+            SNITCH_CATCH(CHECK)                                                                    \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
     } while (0)
@@ -62,13 +64,14 @@
                 SNITCH_TEMP_RESULT.first};                                                         \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \
-        {                                                                                          \
+        SNITCH_TRY {                                                                               \
             const auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);         \
             const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                       \
                 CHECK "[run-time]", #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second,            \
                 SNITCH_TEMP_RESULT.first};                                                         \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \
+        SNITCH_CATCH(CHECK)                                                                        \
     } while (0)
 
 // clang-format off

@@ -9,8 +9,32 @@
 #if SNITCH_WITH_EXCEPTIONS
 #    define SNITCH_TESTING_ABORT                                                                   \
         throw snitch::impl::abort_exception {}
+#    define SNITCH_TRY try
+#    define SNITCH_CATCH(CHECK)                                                                    \
+        catch (...) {                                                                              \
+            SNITCH_WARNING_PUSH                                                                    \
+            SNITCH_WARNING_DISABLE_TERMINATE                                                       \
+            try {                                                                                  \
+                throw;                                                                             \
+            } catch (const snitch::impl::abort_exception&) {                                       \
+                throw;                                                                             \
+            } catch (const std::exception& e) {                                                    \
+                SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
+                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
+                    "std::exception thrown during " #CHECK "(); message: ", e.what());             \
+                SNITCH_TESTING_ABORT;                                                              \
+            } catch (...) {                                                                        \
+                SNITCH_CURRENT_TEST.reg.report_assertion(                                          \
+                    false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,                           \
+                    "unknown exception thrown during " #CHECK "()");                               \
+                SNITCH_TESTING_ABORT;                                                              \
+            }                                                                                      \
+            SNITCH_WARNING_POP                                                                     \
+        }
 #else
 #    define SNITCH_TESTING_ABORT std::terminate()
+#    define SNITCH_TRY
+#    define SNITCH_CATCH(CHECK)
 #endif
 
 #define SNITCH_EXPR(TYPE, EXPECTED, ...)                                                           \

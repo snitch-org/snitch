@@ -15,14 +15,17 @@
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
-        if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                       \
-            SNITCH_EXPR(CHECK, EXPECTED, __VA_ARGS__);                                             \
-            SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
-        } else {                                                                                   \
-            const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                       \
-                CHECK, #__VA_ARGS__, {}, static_cast<bool>(__VA_ARGS__) == EXPECTED};              \
-            SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
+        SNITCH_TRY {                                                                               \
+            if constexpr (SNITCH_IS_DECOMPOSABLE(__VA_ARGS__)) {                                   \
+                SNITCH_EXPR(CHECK, EXPECTED, __VA_ARGS__);                                         \
+                SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
+            } else {                                                                               \
+                const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                   \
+                    CHECK, #__VA_ARGS__, {}, static_cast<bool>(__VA_ARGS__) == EXPECTED};          \
+                SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
+            }                                                                                      \
         }                                                                                          \
+        SNITCH_CATCH(CHECK)                                                                        \
         SNITCH_WARNING_POP                                                                         \
     } while (0)
 
@@ -72,11 +75,15 @@
 
 #define SNITCH_REQUIRE_THAT_IMPL(CHECK, MAYBE_ABORT, EXPR, ...)                                    \
     do {                                                                                           \
-        auto&      SNITCH_CURRENT_TEST       = snitch::impl::get_current_test();                   \
-        const auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);             \
-        const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                           \
-            CHECK, #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second, SNITCH_TEMP_RESULT.first};  \
-        SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                     \
+        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        SNITCH_TRY {                                                                               \
+            const auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);         \
+            const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                       \
+                CHECK, #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second,                         \
+                SNITCH_TEMP_RESULT.first};                                                         \
+            SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
+        }                                                                                          \
+        SNITCH_CATCH(CHECK)                                                                        \
     } while (0)
 
 // clang-format off
