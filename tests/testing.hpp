@@ -101,3 +101,5 @@ struct filldata<T*> {
 #    define SNITCH_WARNING_DISABLE_PRECEDENCE
 #    define SNITCH_WARNING_DISABLE_ASSIGNMENT
 #endif
+
+bool contains_color_codes(std::string_view msg) noexcept;

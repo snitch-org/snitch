@@ -883,6 +883,13 @@ TEST_CASE("run tests cli", "[registry][cli]") {
         CHECK_RUN(false, 5u, 3u, 0u, 1u, 3u, 3u, 0u);
 #endif
     }
+}
+
+TEST_CASE("print help cli", "[registry][cli]") {
+    mock_framework framework;
+    framework.setup_reporter();
+    register_tests(framework);
+    console_output_catcher console;
 
     SECTION("--help") {
         const arg_vector args = {"test", "--help"};
@@ -893,6 +900,16 @@ TEST_CASE("run tests cli", "[registry][cli]") {
         CHECK(framework.events.empty());
         CHECK(framework.get_num_runs() == 0u);
         CHECK(console.messages == contains_substring("test [options...]"));
+    }
+
+    SECTION("--help no color") {
+        const arg_vector args = {"test", "--help", "--color", "never"};
+        auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        framework.registry.configure(*input);
+        framework.registry.run_tests(*input);
+
+        snitch::impl::stdout_print(console.messages);
+        CHECK(!contains_color_codes(console.messages));
     }
 }
 

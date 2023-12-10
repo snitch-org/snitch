@@ -220,15 +220,11 @@ std::optional<cli::input> parse_arguments(
     return ret;
 }
 
-struct print_help_settings {
-    bool with_color = true;
-};
-
 void print_help(
-    std::string_view           program_name,
-    std::string_view           program_description,
-    const expected_arguments&  expected,
-    const print_help_settings& settings = print_help_settings{}) noexcept {
+    std::string_view                program_name,
+    std::string_view                program_description,
+    const expected_arguments&       expected,
+    const cli::print_help_settings& settings = cli::print_help_settings{}) noexcept {
 
     // Print program description
     cli::print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
@@ -342,10 +338,8 @@ constexpr const char* program_description =
 namespace snitch::cli {
 function_ref<void(std::string_view) noexcept> console_print = &snitch::impl::stdout_print;
 
-void print_help(std::string_view program_name) noexcept {
-    print_help(
-        program_name, impl::program_description, impl::expected_args,
-        {.with_color = impl::with_color_default});
+void print_help(std::string_view program_name, const print_help_settings& settings) noexcept {
+    print_help(program_name, impl::program_description, impl::expected_args, settings);
 }
 
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
