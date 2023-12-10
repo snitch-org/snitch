@@ -1,7 +1,7 @@
 #include "testing.hpp"
 #include "testing_event.hpp"
 
-#if defined(SNITCH_WITH_EXCEPTIONS)
+#if SNITCH_WITH_EXCEPTIONS
 #    include <stdexcept>
 #endif
 #include <string>
