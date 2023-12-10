@@ -126,7 +126,7 @@ TEST_CASE("section", "[test macros]") {
         framework.run_test();
 
         REQUIRE(framework.get_num_failures() == 1u);
-        CHECK_NO_SECTION;
+        CHECK_SECTIONS("section 1");
         CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
     }
 
@@ -146,7 +146,7 @@ TEST_CASE("section", "[test macros]") {
         framework.run_test();
 
         REQUIRE(framework.get_num_failures() == 1u);
-        CHECK_NO_SECTION;
+        CHECK_SECTIONS("section 1");
         CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
     }
 #endif
