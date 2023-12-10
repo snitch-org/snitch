@@ -291,8 +291,9 @@ SNITCH_EXPORT void pop_location(test_state& test) noexcept;
 struct scoped_test_check {
     test_state& test;
 
-    explicit scoped_test_check(const source_location& location) noexcept;
-    ~scoped_test_check() noexcept;
+    SNITCH_EXPORT explicit scoped_test_check(const source_location& location) noexcept;
+
+    SNITCH_EXPORT ~scoped_test_check() noexcept;
 };
 } // namespace snitch::impl
 
