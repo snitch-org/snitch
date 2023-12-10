@@ -4,6 +4,10 @@
 #include <algorithm>
 #include <compare>
 
+#if SNITCH_WITH_EXCEPTIONS
+#    include <stdexcept>
+#endif
+
 using namespace std::literals;
 
 namespace {
