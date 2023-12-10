@@ -414,9 +414,6 @@
     <Failure filename="*testing_reporters.cpp" line="*">
       failure 7
     </Failure>
-    <Success filename="*testing_reporters.cpp" line="*">
-      no exception caught
-    </Success>
     <Section name="section 2" filename="*testing_reporters.cpp" line="*">
       <Failure filename="*testing_reporters.cpp" line="*">
         failure 2
@@ -432,9 +429,6 @@
     <Failure filename="*testing_reporters.cpp" line="*">
       failure 7
     </Failure>
-    <Success filename="*testing_reporters.cpp" line="*">
-      no exception caught
-    </Success>
     <Section name="section 2" filename="*testing_reporters.cpp" line="*">
       <Failure filename="*testing_reporters.cpp" line="*">
         failure 2
@@ -489,9 +483,6 @@
     <Failure filename="*testing_reporters.cpp" line="*">
       failure 3
     </Failure>
-    <Success filename="*testing_reporters.cpp" line="*">
-      no exception caught
-    </Success>
     <Section name="section 2" filename="*testing_reporters.cpp" line="*">
       <Info>
         info 1
@@ -526,6 +517,6 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="45" failures="41" expectedFailures="2"/>
+  <OverallResults successes="42" failures="41" expectedFailures="2"/>
   <OverallResultsCases successes="15" failures="24" expectedFailures="2"/>
 </Catch2TestRun>

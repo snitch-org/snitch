@@ -908,7 +908,6 @@ TEST_CASE("print help cli", "[registry][cli]") {
         framework.registry.configure(*input);
         framework.registry.run_tests(*input);
 
-        snitch::impl::stdout_print(console.messages);
         CHECK(!contains_color_codes(console.messages));
     }
 }

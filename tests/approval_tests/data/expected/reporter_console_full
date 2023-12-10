@@ -305,9 +305,6 @@ failed: running test case "test multiple SECTION"
 failed: running test case "test multiple SECTION"
           at *testing_reporters.cpp:*
           failure 7
-passed: running test case "test multiple SECTION"
-          at *testing_reporters.cpp:*
-          no exception caught
 failed: running test case "test multiple SECTION"
           in section "section 2"
           at *testing_reporters.cpp:*
@@ -320,9 +317,6 @@ failed: running test case "test multiple SECTION"
 failed: running test case "test multiple SECTION"
           at *testing_reporters.cpp:*
           failure 7
-passed: running test case "test multiple SECTION"
-          at *testing_reporters.cpp:*
-          no exception caught
 failed: running test case "test multiple SECTION"
           in section "section 2"
           at *testing_reporters.cpp:*
@@ -361,9 +355,6 @@ failed: running test case "test SECTION & INFO"
           at *testing_reporters.cpp:*
           with info 1
           failure 3
-passed: running test case "test SECTION & INFO"
-          at *testing_reporters.cpp:*
-          no exception caught
 failed: running test case "test SECTION & INFO"
           in section "section 2"
           at *testing_reporters.cpp:*
@@ -379,4 +370,4 @@ passed: running test case "test SECTION & INFO"
           no exception caught
 finished: test SECTION & INFO (*)
 ==========================================
-error: some tests failed (22 out of 39 test cases, 86 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (22 out of 39 test cases, 83 assertions, 1 test cases skipped, * seconds)

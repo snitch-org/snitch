@@ -505,41 +505,43 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     auto time_start = clock::now();
 #endif
 
-    do {
-        // Reset section state.
-        state.sections.leaf_executed = false;
-        for (std::size_t i = 0; i < state.sections.levels.size(); ++i) {
-            state.sections.levels[i].current_section_id = 0;
-        }
-
-        // Run the test case.
 #if SNITCH_WITH_EXCEPTIONS
-        try {
-            test.func();
-            report_assertion(true, state, test.location, "no exception caught");
-        } catch (const impl::abort_exception&) {
-            // Test aborted, assume its state was already set accordingly.
-        } catch (const std::exception& e) {
-            report_assertion(
-                false, state, test.location,
-                "unexpected std::exception caught; message: ", e.what());
-        } catch (...) {
-            report_assertion(false, state, test.location, "unexpected unknown exception caught");
-        }
-#else
-        test.func();
+    try {
 #endif
 
-        if (state.sections.levels.size() == 1) {
-            // This test case contained sections; check if there are any more left to evaluate.
-            auto& child = state.sections.levels[0];
-            if (child.previous_section_id == child.max_section_id) {
-                // No more; clear the section state.
-                state.sections.levels.clear();
-                state.sections.current_section.clear();
+        do {
+            // Reset section state.
+            state.sections.leaf_executed = false;
+            for (std::size_t i = 0; i < state.sections.levels.size(); ++i) {
+                state.sections.levels[i].current_section_id = 0;
             }
-        }
-    } while (!state.sections.levels.empty() && state.test.state != impl::test_case_state::skipped);
+
+            // Run the test case.
+            test.func();
+
+            if (state.sections.levels.size() == 1) {
+                // This test case contained sections; check if there are any more left to evaluate.
+                auto& child = state.sections.levels[0];
+                if (child.previous_section_id == child.max_section_id) {
+                    // No more; clear the section state.
+                    state.sections.levels.clear();
+                    state.sections.current_section.clear();
+                }
+            }
+        } while (!state.sections.levels.empty() &&
+                 state.test.state != impl::test_case_state::skipped);
+
+#if SNITCH_WITH_EXCEPTIONS
+        report_assertion(true, state, test.location, "no exception caught");
+    } catch (const impl::abort_exception&) {
+        // Test aborted, assume its state was already set accordingly.
+    } catch (const std::exception& e) {
+        report_assertion(
+            false, state, test.location, "unexpected std::exception caught; message: ", e.what());
+    } catch (...) {
+        report_assertion(false, state, test.location, "unexpected unknown exception caught");
+    }
+#endif
 
     if (state.should_fail) {
         state.should_fail = false;

@@ -61,7 +61,7 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(0u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(1u, "section 2");
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_CASE(snitch::test_case_state::failed, 4u, 2u);
+        CHECK_CASE(snitch::test_case_state::failed, 3u, 2u);
 #else
         CHECK_CASE(snitch::test_case_state::failed, 2u, 2u);
 #endif
@@ -190,11 +190,11 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 2");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 3");
         // NB:
-        // - 6 "no exceptions"
+        // - 1 "no exceptions"
         // - 6 "CHECK(true)"
         // - 5 "trigger"
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_CASE(snitch::test_case_state::failed, 17u, 5u);
+        CHECK_CASE(snitch::test_case_state::failed, 12u, 5u);
 #else
         CHECK_CASE(snitch::test_case_state::failed, 11u, 5u);
 #endif
@@ -241,10 +241,10 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 2", "section 2.1", "section 2.1.2");
         CHECK_SECTIONS_FOR_FAILURE(5u, "section 2", "section 2.1", "section 2.1.3");
         // NB:
-        // - 6 "no exception"
+        // - 1 "no exception"
         // - 6 "trigger"
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_CASE(snitch::test_case_state::failed, 12u, 6u);
+        CHECK_CASE(snitch::test_case_state::failed, 7u, 6u);
 #else
         CHECK_CASE(snitch::test_case_state::failed, 6u, 6u);
 #endif
@@ -271,11 +271,11 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 1");
         // NB:
-        // - 5 "no exceptions"
+        // - 1 "no exceptions"
         // - 5x5 "i <= 10" (full loop executed for each repeat!)
         // - 5 "trigger"
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_CASE(snitch::test_case_state::failed, 35u, 5u);
+        CHECK_CASE(snitch::test_case_state::failed, 31u, 5u);
 #else
         CHECK_CASE(snitch::test_case_state::failed, 30u, 5u);
 #endif
@@ -306,15 +306,37 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS_FOR_FAILURE(3u, "section 1");
         CHECK_SECTIONS_FOR_FAILURE(4u, "section 2");
         // NB:
-        // - 10 "no exceptions"
+        // - 1 "no exceptions"
         // - 10x5 "i <= 10" (full loop executed for each repeat!)
         // - 10 "i % 2u == x"
 #if SNITCH_WITH_EXCEPTIONS
-        CHECK_CASE(snitch::test_case_state::failed, 70u, 5u);
+        CHECK_CASE(snitch::test_case_state::failed, 61u, 5u);
 #else
         CHECK_CASE(snitch::test_case_state::failed, 60u, 5u);
 #endif
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("sections abort after discovery") {
+        framework.test_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                // Do nothing; allow the test to discover the other sections.
+            }
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL("trigger2");
+            }
+            SNITCH_SECTION("section 3") {
+                SNITCH_FAIL("trigger3");
+            }
+        };
+
+        framework.run_test();
+
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_SECTIONS("section 2");
+        CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
+    }
+#endif
 }
 
 SNITCH_WARNING_POP

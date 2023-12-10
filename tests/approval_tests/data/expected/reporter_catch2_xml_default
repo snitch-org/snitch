@@ -376,6 +376,6 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="45" failures="41" expectedFailures="2"/>
+  <OverallResults successes="42" failures="41" expectedFailures="2"/>
   <OverallResultsCases successes="15" failures="24" expectedFailures="2"/>
 </Catch2TestRun>
