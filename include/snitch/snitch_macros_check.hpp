@@ -25,7 +25,7 @@
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
         }                                                                                          \
-        SNITCH_CATCH(CHECK)                                                                        \
+        SNITCH_CATCH                                                                               \
         SNITCH_WARNING_POP                                                                         \
     } while (0)
 
@@ -83,7 +83,7 @@
                 SNITCH_TEMP_RESULT.first};                                                         \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \
-        SNITCH_CATCH(CHECK)                                                                        \
+        SNITCH_CATCH                                                                               \
     } while (0)
 
 // clang-format off

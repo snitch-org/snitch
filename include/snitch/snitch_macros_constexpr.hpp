@@ -24,7 +24,7 @@
                 SNITCH_EXPR(CHECK "[run-time]", EXPECTED, __VA_ARGS__);                            \
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
-            SNITCH_CATCH(CHECK)                                                                    \
+            SNITCH_CATCH                                                                           \
         } else {                                                                                   \
             {                                                                                      \
                 constexpr auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{               \
@@ -42,7 +42,7 @@
                     static_cast<bool>(__VA_ARGS__) == EXPECTED};                                   \
                 SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                             \
             }                                                                                      \
-            SNITCH_CATCH(CHECK)                                                                    \
+            SNITCH_CATCH                                                                           \
         }                                                                                          \
         SNITCH_WARNING_POP                                                                         \
     } while (0)
@@ -71,7 +71,7 @@
                 SNITCH_TEMP_RESULT.first};                                                         \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \
-        SNITCH_CATCH(CHECK)                                                                        \
+        SNITCH_CATCH                                                                               \
     } while (0)
 
 // clang-format off

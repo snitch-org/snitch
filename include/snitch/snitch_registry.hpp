@@ -263,6 +263,10 @@ public:
         std::string_view          message) const noexcept;
 
     // Internal API; do not use.
+    [[noreturn]] SNITCH_EXPORT void
+    report_exception(impl::test_state& state, const assertion_location& location) const;
+
+    // Internal API; do not use.
     SNITCH_EXPORT impl::test_state run(impl::test_case& test) noexcept;
 
     // Internal API; do not use.

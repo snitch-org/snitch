@@ -474,6 +474,21 @@ void registry::report_skipped(
                    message});
 }
 
+[[noreturn]] void
+registry::report_exception(impl::test_state& state, const assertion_location& location) const {
+    try {
+        throw;
+    } catch (const impl::abort_exception&) {
+        throw;
+    } catch (const std::exception& e) {
+        report_assertion(false, state, location, "std::exception thrown; message: ", e.what());
+        throw impl::abort_exception{};
+    } catch (...) {
+        report_assertion(false, state, location, "unknown exception thrown");
+        throw impl::abort_exception{};
+    }
+}
+
 impl::test_state registry::run(impl::test_case& test) noexcept {
     if (verbose >= registry::verbosity::high) {
         report_callback(*this, event::test_case_started{test.id, test.location});
