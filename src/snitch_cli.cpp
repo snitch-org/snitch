@@ -349,7 +349,45 @@ constexpr expected_arguments expected_args = {
     {{"--allow-running-no-tests"},  {},    true}};
 // clang-format on
 
-constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
+bool parse_color_options(int argc, const char* const argv[]) noexcept {
+    bool with_color = SNITCH_DEFAULT_WITH_COLOR == 1;
+
+    constexpr expected_arguments output_args = [&]() {
+        using namespace std::literals;
+        constexpr std::array copy_args = {"--color"sv, "--colour-mode"sv};
+        expected_arguments   args      = expected_args;
+        for (auto& e : args) {
+            e.ignored =
+                std::find_if(e.names.cbegin(), e.names.cend(), [&](const auto n) {
+                    return std::find(copy_args.cbegin(), copy_args.cend(), n) != copy_args.cend();
+                }) == e.names.cend();
+        }
+
+        return args;
+    }();
+
+    const std::optional<cli::input> ret_args =
+        parse_arguments(argc, argv, output_args, {.silent = true, .tolerant = true});
+
+    if (ret_args.has_value()) {
+        if (const auto& o = cli::get_option(ret_args.value(), "--color")) {
+            if (o->value == "always") {
+                with_color = true;
+            } else if (o->value == "never") {
+                with_color = false;
+            }
+        }
+        if (const auto& o = cli::get_option(ret_args.value(), "--colour-mode")) {
+            if (o->value == "ansi") {
+                with_color = true;
+            } else if (o->value == "none") {
+                with_color = false;
+            }
+        }
+    }
+
+    return with_color;
+}
 
 constexpr const char* program_description =
     "Test runner (snitch v" SNITCH_FULL_VERSION " | compatible with Catch2 v3.4.0)";
@@ -363,12 +401,16 @@ void print_help(std::string_view program_name, const print_help_settings& settin
 }
 
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
+    // First, parse just looking for color options so we can display console messages correctly.
+    const bool with_color = impl::parse_color_options(argc, argv);
+
+    // Now parse everything for real.
     std::optional<cli::input> ret_args =
-        parse_arguments(argc, argv, impl::expected_args, {.with_color = impl::with_color_default});
+        impl::parse_arguments(argc, argv, impl::expected_args, {.with_color = with_color});
 
     if (!ret_args) {
         print("\n");
-        print_help(argv[0]);
+        print_help(argv[0], {.with_color = with_color});
     }
 
     return ret_args;
