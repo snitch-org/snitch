@@ -3,7 +3,9 @@
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_registry.hpp"
 
-#include <exception>
+#if SNITCH_WITH_EXCEPTIONS
+#    include <exception>
+#endif
 
 namespace snitch::impl {
 section_entry_checker::~section_entry_checker() {
@@ -16,6 +18,8 @@ section_entry_checker::~section_entry_checker() {
             return;
         }
 #endif
+
+        pop_location(state);
 
         if (state.sections.depth == state.sections.levels.size()) {
             // We just entered this section, and there was no child section in it.
@@ -87,6 +91,7 @@ section_entry_checker::operator bool() {
 
         level.previous_section_id = level.current_section_id;
         state.sections.current_section.push_back(data);
+        push_location(state, data.location);
         entered = true;
         return true;
     }

@@ -257,11 +257,15 @@ struct section_state {
 
 using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
 
+// NB: +2 is because we need one for the test case location, and one for the check location
+using location_state = small_vector<source_location, max_nested_sections + 2>;
+
 struct test_state {
-    registry&     reg;
-    test_case&    test;
-    section_state sections = {};
-    capture_state captures = {};
+    registry&      reg;
+    test_case&     test;
+    section_state  sections  = {};
+    capture_state  captures  = {};
+    location_state locations = {};
 
     std::size_t asserts          = 0;
     std::size_t failures         = 0;
@@ -279,6 +283,17 @@ SNITCH_EXPORT test_state& get_current_test() noexcept;
 SNITCH_EXPORT test_state* try_get_current_test() noexcept;
 
 SNITCH_EXPORT void set_current_test(test_state* current) noexcept;
+
+SNITCH_EXPORT void push_location(test_state& test, const source_location& location) noexcept;
+
+SNITCH_EXPORT void pop_location(test_state& test) noexcept;
+
+struct scoped_test_check {
+    test_state& test;
+
+    explicit scoped_test_check(const source_location& location) noexcept;
+    ~scoped_test_check() noexcept;
+};
 } // namespace snitch::impl
 
 #endif

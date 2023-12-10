@@ -391,11 +391,7 @@ void register_assertion(bool success, impl::test_state& state) {
 }
 
 void report_assertion_impl(
-    const registry&           r,
-    bool                      success,
-    impl::test_state&         state,
-    const assertion_location& location,
-    const assertion_data&     data) noexcept {
+    const registry& r, bool success, impl::test_state& state, const assertion_data& data) noexcept {
 
     if (state.test.state == impl::test_case_state::skipped) {
         return;
@@ -403,7 +399,8 @@ void report_assertion_impl(
 
     register_assertion(success, state);
 
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+    const auto  captures_buffer = impl::make_capture_buffer(state.captures);
+    const auto& location        = state.locations.back();
 
     if (success) {
         if (r.verbose >= registry::verbosity::full) {
@@ -421,57 +418,45 @@ void report_assertion_impl(
 }
 } // namespace
 
-void registry::report_assertion(
-    bool                      success,
-    impl::test_state&         state,
-    const assertion_location& location,
-    std::string_view          message) const noexcept {
-
-    report_assertion_impl(*this, success, state, location, message);
+void registry::report_assertion(bool success, std::string_view message) noexcept {
+    impl::test_state& state = impl::get_current_test();
+    report_assertion_impl(state.reg, success, state, message);
 }
 
 void registry::report_assertion(
-    bool                      success,
-    impl::test_state&         state,
-    const assertion_location& location,
-    std::string_view          message1,
-    std::string_view          message2) const noexcept {
+    bool success, std::string_view message1, std::string_view message2) noexcept {
 
+    impl::test_state& state = impl::get_current_test();
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
 
     small_string<max_message_length> message;
     append_or_truncate(message, message1, message2);
-    report_assertion_impl(*this, success, state, location, message);
+    report_assertion_impl(state.reg, success, state, message);
 }
 
-void registry::report_assertion(
-    bool                      success,
-    impl::test_state&         state,
-    const assertion_location& location,
-    const impl::expression&   exp) const noexcept {
-
+void registry::report_assertion(bool success, const impl::expression& exp) noexcept {
+    impl::test_state& state = impl::get_current_test();
     if (state.test.state == impl::test_case_state::skipped) {
         return;
     }
 
     report_assertion_impl(
-        *this, success, state, location, expression_info{exp.type, exp.expected, exp.actual});
+        state.reg, success, state, expression_info{exp.type, exp.expected, exp.actual});
 }
 
-void registry::report_skipped(
-    impl::test_state&         state,
-    const assertion_location& location,
-    std::string_view          message) const noexcept {
+void registry::report_skipped(std::string_view message) noexcept {
+    impl::test_state& state = impl::get_current_test();
     impl::set_state(state.test, impl::test_case_state::skipped);
 
-    const auto captures_buffer = impl::make_capture_buffer(state.captures);
+    const auto  captures_buffer = impl::make_capture_buffer(state.captures);
+    const auto& location        = state.locations.back();
 
-    report_callback(
-        *this, event::test_case_skipped{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   message});
+    state.reg.report_callback(
+        state.reg, event::test_case_skipped{
+                       state.test.id, state.sections.current_section, captures_buffer.span(),
+                       location, message});
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
@@ -494,6 +479,8 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 
     impl::test_state state{
         .reg = *this, .test = test, .may_fail = may_fail, .should_fail = should_fail};
+
+    state.locations.push_back(test.location);
 
     // Store previously running test, to restore it later.
     // This should always be a null pointer, except when testing snitch itself.
@@ -532,22 +519,20 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
                  state.test.state != impl::test_case_state::skipped);
 
 #if SNITCH_WITH_EXCEPTIONS
-        report_assertion(true, state, test.location, "no exception caught");
+        report_assertion(true, "no exception caught");
     } catch (const impl::abort_exception&) {
         // Test aborted, assume its state was already set accordingly.
     } catch (const std::exception& e) {
-        report_assertion(
-            false, state, test.location, "unexpected std::exception caught; message: ", e.what());
+        report_assertion(false, "unexpected std::exception caught; message: ", e.what());
     } catch (...) {
-        report_assertion(false, state, test.location, "unexpected unknown exception caught");
+        report_assertion(false, "unexpected unknown exception caught");
     }
 #endif
 
     if (state.should_fail) {
         state.should_fail = false;
         report_assertion(
-            state.test.state == impl::test_case_state::allowed_fail, state, test.location,
-            "expected test to fail");
+            state.test.state == impl::test_case_state::allowed_fail, "expected test to fail");
         state.should_fail = true;
     }
 

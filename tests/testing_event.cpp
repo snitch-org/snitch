@@ -188,6 +188,16 @@ owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event
         e);
 }
 
+std::optional<owning_event::assertion_failed>
+get_failure_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id) {
+    return get_nth_event<owning_event::assertion_failed>(events, id);
+}
+
+std::optional<owning_event::assertion_succeeded>
+get_success_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id) {
+    return get_nth_event<owning_event::assertion_succeeded>(events, id);
+}
+
 std::optional<snitch::test_id> get_test_id(const owning_event::data& e) noexcept {
     return std::visit(
         [](const auto& a) -> std::optional<snitch::test_id> {
@@ -255,10 +265,6 @@ mock_framework::get_failure_event(std::size_t id) const {
 std::optional<owning_event::assertion_succeeded>
 mock_framework::get_success_event(std::size_t id) const {
     return get_nth_event<owning_event::assertion_succeeded>(events, id);
-}
-
-std::optional<owning_event::test_case_skipped> mock_framework::get_skip_event() const {
-    return get_nth_event<owning_event::test_case_skipped>(events, 0u);
 }
 
 std::size_t mock_framework::get_num_registered_tests() const {

@@ -1738,4 +1738,149 @@ TEST_CASE("check nothrow", "[test macros]") {
     }
 }
 
+namespace {
+std::size_t test_check_line   = 0u;
+std::size_t test_section_line = 0u;
+
+int throw_unexpectedly() {
+    throw std::runtime_error("bad function");
+}
+} // namespace
+
+#    define CHECK_UNHANDLED_EXCEPTION(CATCHER, LINE, MESSAGE)                                      \
+        do {                                                                                       \
+            auto e = get_failure_event((CATCHER).events);                                          \
+            REQUIRE(e.has_value());                                                                \
+            CHECK(e.value().location.line == LINE);                                                \
+            auto m = std::get_if<std::string_view>(&e.value().data);                               \
+            REQUIRE(m != nullptr);                                                                 \
+            CHECK(*m == MESSAGE);                                                                  \
+        } while (0)
+
+TEST_CASE("unhandled exceptions", "[test macros]") {
+    event_catcher<3> catcher;
+
+    test_check_line   = 0u;
+    test_section_line = 0u;
+
+    SECTION("throw in check") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            test_check_line = __LINE__; SNITCH_CHECK(throw_unexpectedly() == 1);
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, test_check_line, "unexpected std::exception caught; message: bad function"sv);
+    }
+
+    SECTION("throw in section") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            test_section_line = __LINE__; SNITCH_SECTION("section 1") {
+                throw_unexpectedly();
+            }
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, test_section_line,
+            "unexpected std::exception caught; message: bad function"sv);
+    }
+
+    SECTION("throw in other section") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                // Nothing.
+            }
+            test_section_line = __LINE__; SNITCH_SECTION("section 2") {
+                throw_unexpectedly();
+            }
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, test_section_line,
+            "unexpected std::exception caught; message: bad function"sv);
+    }
+
+    SECTION("throw in nested section") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                test_section_line = __LINE__; SNITCH_SECTION("section 2") {
+                    throw_unexpectedly();
+                }
+            }
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, test_section_line,
+            "unexpected std::exception caught; message: bad function"sv);
+    }
+
+    SECTION("throw in check in section") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            test_section_line = __LINE__; SNITCH_SECTION("section 1") {
+                test_check_line = __LINE__; SNITCH_CHECK(throw_unexpectedly() == 1);
+            }
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, test_check_line, "unexpected std::exception caught; message: bad function"sv);
+    }
+
+    SECTION("throw in body") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            throw_unexpectedly();
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, catcher.mock_case.location.line,
+            "unexpected std::exception caught; message: bad function"sv);
+    }
+
+    SECTION("throw in body after section") {
+        // clang-format off
+        catcher.mock_case.location.line = __LINE__;
+        catcher.mock_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                // Nothing.
+            }
+            throw_unexpectedly();
+        };
+        // clang-format on
+
+        catcher.run_test();
+
+        CHECK_UNHANDLED_EXCEPTION(
+            catcher, catcher.mock_case.location.line,
+            "unexpected std::exception caught; message: bad function"sv);
+    }
+}
+
 #endif
