@@ -158,4 +158,4 @@
           with [1;35minfo 1[0m
           [1;36mfailure 3[0m
 ==========================================
-[1;31merror:[0m some tests failed (22 out of 39 test cases, 86 assertions, 1 test cases skipped, * seconds)
+[1;31merror:[0m some tests failed (22 out of 39 test cases, 83 assertions, 1 test cases skipped, * seconds)
