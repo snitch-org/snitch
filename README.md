@@ -37,6 +37,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Built-in reporters](#built-in-reporters)
         - [Overriding the default reporter](#overriding-the-default-reporter)
         - [Registering a new reporter](#registering-a-new-reporter)
+    - [Output colors](#output-colors)
     - [Command-line API](#command-line-api)
     - [Selecting which tests to run](#selecting-which-tests-to-run)
     - [Using your own main function](#using-your-own-main-function)
@@ -861,6 +862,14 @@ This is similar to `REGISTER_REPORTER`, but takes four separate callback functio
 All callback functions are optional except `REPORT`. If a callback is unused, simply specify the function as `{}`. Otherwise, please refer to [Overriding the default reporter](#overriding-the-default-reporter) for instructions on how to specify your own callback functions.
 
 An example can be found in [`include/snitch_reporter_teamcity.hpp`](include/snitch_reporter_teamcity.hpp) / [`src/snitch_reporter_teamcity.cpp`](src/snitch_reporter_teamcity.cpp).
+
+
+### Output colors
+
+_snitch_ is able to use color codes when outputting text to the console. These help with readability, but only when the output is printed directly into a terminal that supports color codes. If the chosen output target does not support color codes (which includes in particular the Windows command prompt, outputting to a file, or some CI frameworks), the output will contain gibberish symbols, e.g., `[1;31merror:[0m missing ...`, hence color codes should be disabled. There are two ways to do this:
+
+ 1. At build-time using `-DSNITCH_DEFAULT_WITH_COLOR=on/off` (CMake) or `-Dsnitch:default_with_color=true/false` (meson). This selects whether color codes are used or not when no specific command-line option is provided to the test executable. This is enabled by default, but you can turn it off if your typical output targets do not support color codes.
+ 2. At run-time using the `--color` (or `--colour-mode`) command-line option (see [the command-line API](#command-line-api) for more information). This allows enabling and disabling color codes for each test run, without rebuilding the tests. This is more useful if your workflow involves some targets which support color codes, and others that do not.
 
 
 ### Command-line API
