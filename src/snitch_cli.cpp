@@ -326,27 +326,27 @@ constexpr expected_arguments expected_args = {
     // For compatibility with Catch2; unused.
     // This is used just to swallow the argument and its parameters.
     // The argument will still be reported as unknown.
-    {{"-s", "--success"},           {},    true},
-    {{"-b", "--break"},             {},    true},
-    {{"-e", "--nothrow"},           {},    true},
-    {{"-i", "--invisibles"},        {},    true},
-    {{"-n", "--name"},              {},    true},
-    {{"-a", "--abort"},             {},    true},
-    {{"-x", "--abortx"},            {"x"}, true},
-    {{"-w", "--warn"},              {"x"}, true},
-    {{"-d", "--durations"},         {"x"}, true},
-    {{"-D", "--min-duration"},      {"x"}, true},
-    {{"-f", "--input-file"},        {"x"}, true},
-    {{"-#", "--filenames-as-tags"}, {"x"}, true},
-    {{"-c", "--section"},           {"x"}, true},
-    {{"--list-listeners"},          {},    true},
-    {{"--order"},                   {"x"}, true},
-    {{"--rng-seed"},                {"x"}, true},
-    {{"--libidentify"},             {},    true},
-    {{"--wait-for-keypress"},       {"x"}, true},
-    {{"--shard-count"},             {"x"}, true},
-    {{"--shard-index"},             {"x"}, true},
-    {{"--allow-running-no-tests"},  {},    true}};
+    {{"-s", "--success"},           {},    true, ""},
+    {{"-b", "--break"},             {},    true, ""},
+    {{"-e", "--nothrow"},           {},    true, ""},
+    {{"-i", "--invisibles"},        {},    true, ""},
+    {{"-n", "--name"},              {},    true, ""},
+    {{"-a", "--abort"},             {},    true, ""},
+    {{"-x", "--abortx"},            {"x"}, true, ""},
+    {{"-w", "--warn"},              {"x"}, true, ""},
+    {{"-d", "--durations"},         {"x"}, true, ""},
+    {{"-D", "--min-duration"},      {"x"}, true, ""},
+    {{"-f", "--input-file"},        {"x"}, true, ""},
+    {{"-#", "--filenames-as-tags"}, {"x"}, true, ""},
+    {{"-c", "--section"},           {"x"}, true, ""},
+    {{"--list-listeners"},          {},    true, ""},
+    {{"--order"},                   {"x"}, true, ""},
+    {{"--rng-seed"},                {"x"}, true, ""},
+    {{"--libidentify"},             {},    true, ""},
+    {{"--wait-for-keypress"},       {"x"}, true, ""},
+    {{"--shard-count"},             {"x"}, true, ""},
+    {{"--shard-index"},             {"x"}, true, ""},
+    {{"--allow-running-no-tests"},  {},    true, ""}};
 // clang-format on
 
 bool parse_color_options(int argc, const char* const argv[]) noexcept {
