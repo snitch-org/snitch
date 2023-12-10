@@ -40,7 +40,13 @@ void print(Args&&... args) noexcept {
     console_print(message);
 }
 
-SNITCH_EXPORT void print_help(std::string_view program_name) noexcept;
+struct print_help_settings {
+    bool with_color = true;
+};
+
+SNITCH_EXPORT void print_help(
+    std::string_view           program_name,
+    const print_help_settings& settings = print_help_settings{}) noexcept;
 
 SNITCH_EXPORT std::optional<input> parse_arguments(int argc, const char* const argv[]) noexcept;
 

@@ -18,6 +18,7 @@ enum type { optional = 0b00, mandatory = 0b01, repeatable = 0b10 };
 struct expected_argument {
     small_vector<std::string_view, max_arg_names> names;
     std::optional<std::string_view>               value_name;
+    bool                                          ignored = false;
     std::string_view                              description;
     argument_type::type                           type = argument_type::optional;
 };
@@ -25,6 +26,8 @@ struct expected_argument {
 using expected_arguments = small_vector<expected_argument, max_command_line_args>;
 
 struct parser_settings {
+    bool silent     = false;
+    bool tolerant   = false;
     bool with_color = true;
 };
 
@@ -63,7 +66,6 @@ std::optional<cli::input> parse_arguments(
     int                       argc,
     const char* const         argv[],
     const expected_arguments& expected,
-    const expected_arguments& ignored,
     const parser_settings&    settings = parser_settings{}) noexcept {
 
     std::optional<cli::input> ret(std::in_place);
@@ -105,7 +107,7 @@ std::optional<cli::input> parse_arguments(
             for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
                 const auto& e = expected[arg_index];
 
-                if (!is_option(e)) {
+                if (e.ignored || !is_option(e)) {
                     continue;
                 }
 
@@ -116,9 +118,11 @@ std::optional<cli::input> parse_arguments(
                 found = true;
 
                 if (expected_found[arg_index] && !is_repeatable(e)) {
-                    cli::print(
-                        make_colored("error:", settings.with_color, color::error),
-                        " duplicate command line argument '", arg, "'\n");
+                    if (!settings.silent) {
+                        cli::print(
+                            make_colored("error:", settings.with_color, color::error),
+                            " duplicate command line argument '", arg, "'\n");
+                    }
                     bad = true;
                     break;
                 }
@@ -127,10 +131,12 @@ std::optional<cli::input> parse_arguments(
 
                 if (has_value(e)) {
                     if (argi + 1 == argc) {
-                        cli::print(
-                            make_colored("error:", settings.with_color, color::error),
-                            " missing value '<", *e.value_name, ">' for command line argument '",
-                            arg, "'\n");
+                        if (!settings.silent) {
+                            cli::print(
+                                make_colored("error:", settings.with_color, color::error),
+                                " missing value '<", *e.value_name,
+                                ">' for command line argument '", arg, "'\n");
+                        }
                         bad = true;
                         break;
                     }
@@ -146,15 +152,21 @@ std::optional<cli::input> parse_arguments(
             }
 
             if (!found) {
-                cli::print(
-                    make_colored("warning:", settings.with_color, color::warning),
-                    " unknown command line argument '", arg, "'\n");
+                if (!settings.silent) {
+                    cli::print(
+                        make_colored("warning:", settings.with_color, color::warning),
+                        " unknown command line argument '", arg, "'\n");
+                }
             }
 
             // Not a supported argument; figure out if this is a known argument (e.g. from Catch2)
             // and whether we need to ignore the next item if it is an option.
-            for (std::size_t arg_index = 0; arg_index < ignored.size(); ++arg_index) {
-                const auto& e = ignored[arg_index];
+            for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
+                const auto& e = expected[arg_index];
+
+                if (!e.ignored) {
+                    continue;
+                }
 
                 if (std::find(e.names.cbegin(), e.names.cend(), arg) == e.names.cend()) {
                     continue;
@@ -173,7 +185,7 @@ std::optional<cli::input> parse_arguments(
             for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
                 const auto& e = expected[arg_index];
 
-                if (is_option(e)) {
+                if (e.ignored || is_option(e)) {
                     continue;
                 }
 
@@ -189,9 +201,11 @@ std::optional<cli::input> parse_arguments(
             }
 
             if (!found) {
-                cli::print(
-                    make_colored("error:", settings.with_color, color::error),
-                    " too many positional arguments\n");
+                if (!settings.silent) {
+                    cli::print(
+                        make_colored("error:", settings.with_color, color::error),
+                        " too many positional arguments\n");
+                }
                 bad = true;
             }
         }
@@ -199,36 +213,34 @@ std::optional<cli::input> parse_arguments(
 
     for (std::size_t arg_index = 0; arg_index < expected.size(); ++arg_index) {
         const auto& e = expected[arg_index];
-        if (!expected_found[arg_index] && is_mandatory(e)) {
-            if (!is_option(e)) {
-                cli::print(
-                    make_colored("error:", settings.with_color, color::error),
-                    " missing positional argument '<", *e.value_name, ">'\n");
-            } else {
-                cli::print(
-                    make_colored("error:", settings.with_color, color::error), " missing option '<",
-                    e.names.back(), ">'\n");
+        if (!expected_found[arg_index] && is_mandatory(e) && !e.ignored) {
+            if (!settings.silent) {
+                if (!is_option(e)) {
+                    cli::print(
+                        make_colored("error:", settings.with_color, color::error),
+                        " missing positional argument '<", *e.value_name, ">'\n");
+                } else {
+                    cli::print(
+                        make_colored("error:", settings.with_color, color::error),
+                        " missing option '<", e.names.back(), ">'\n");
+                }
             }
             bad = true;
         }
     }
 
-    if (bad) {
+    if (bad && !settings.tolerant) {
         ret.reset();
     }
 
     return ret;
 }
 
-struct print_help_settings {
-    bool with_color = true;
-};
-
 void print_help(
-    std::string_view           program_name,
-    std::string_view           program_description,
-    const expected_arguments&  expected,
-    const print_help_settings& settings = print_help_settings{}) noexcept {
+    std::string_view                program_name,
+    std::string_view                program_description,
+    const expected_arguments&       expected,
+    const cli::print_help_settings& settings = cli::print_help_settings{}) noexcept {
 
     // Print program description
     cli::print(make_colored(program_description, settings.with_color, color::highlight2), "\n");
@@ -241,18 +253,20 @@ void print_help(
     }
 
     for (const auto& e : expected) {
-        if (!is_option(e)) {
-            if (!is_mandatory(e) && !is_repeatable(e)) {
-                cli::print(" [<", *e.value_name, ">]");
-            } else if (is_mandatory(e) && !is_repeatable(e)) {
-                cli::print(" <", *e.value_name, ">");
-            } else if (!is_mandatory(e) && is_repeatable(e)) {
-                cli::print(" [<", *e.value_name, ">...]");
-            } else if (is_mandatory(e) && is_repeatable(e)) {
-                cli::print(" <", *e.value_name, ">...");
-            } else {
-                terminate_with("unhandled argument type");
-            }
+        if (e.ignored || is_option(e)) {
+            continue;
+        }
+
+        if (!is_mandatory(e) && !is_repeatable(e)) {
+            cli::print(" [<", *e.value_name, ">]");
+        } else if (is_mandatory(e) && !is_repeatable(e)) {
+            cli::print(" <", *e.value_name, ">");
+        } else if (!is_mandatory(e) && is_repeatable(e)) {
+            cli::print(" [<", *e.value_name, ">...]");
+        } else if (is_mandatory(e) && is_repeatable(e)) {
+            cli::print(" <", *e.value_name, ">...");
+        } else {
+            terminate_with("unhandled argument type");
         }
     }
 
@@ -261,6 +275,10 @@ void print_help(
     // List arguments
     small_string<max_message_length> heading;
     for (const auto& e : expected) {
+        if (e.ignored) {
+            continue;
+        }
+
         heading.clear();
 
         bool success = true;
@@ -294,46 +312,82 @@ void print_help(
 
 // clang-format off
 constexpr expected_arguments expected_args = {
-    {{"-l", "--list-tests"},    {},                         "List tests by name"},
-    {{"--list-tags"},           {},                         "List tags by name"},
-    {{"--list-tests-with-tag"}, {"tag"},                    "List tests by name with a given tag"},
-    {{"--list-reporters"},      {},                         "List available test reporters (see --reporter)"},
-    {{"-r", "--reporter"},      {"reporter[::key=value]*"}, "Choose which reporter to use to output the test results"},
-    {{"-v", "--verbosity"},     {"quiet|normal|high|full"}, "Define how much gets sent to the standard output"},
-    {{"-o", "--out"},           {"path"},                   "Saves output to a file given as 'path'"},
-    {{"--color"},               {"always|default|never"},   "Enable/disable color in output"},
-    {{"--colour-mode"},         {"ansi|default|none"},      "Enable/disable color in output (for compatibility with Catch2)"},
-    {{"-h", "--help"},          {},                         "Print help"},
-    {{},                        {"test regex"},             "A regex to select which test cases to run", argument_type::repeatable}};
-
-// For compatibility with Catch2; unused.
-// This is used just to swallow the argument and its parameters.
-// The argument will still be reported as unknown.
-constexpr expected_arguments ignored_args = {
-    {{"-s", "--success"},           {}, ""},
-    {{"-b", "--break"},             {}, ""},
-    {{"-e", "--nothrow"},           {}, ""},
-    {{"-i", "--invisibles"},        {}, ""},
-    {{"-n", "--name"},              {}, ""},
-    {{"-a", "--abort"},             {}, ""},
-    {{"-x", "--abortx"},            {"x"}, ""},
-    {{"-w", "--warn"},              {"x"}, ""},
-    {{"-d", "--durations"},         {"x"}, ""},
-    {{"-D", "--min-duration"},      {"x"}, ""},
-    {{"-f", "--input-file"},        {"x"}, ""},
-    {{"-#", "--filenames-as-tags"}, {"x"}, ""},
-    {{"-c", "--section"},           {"x"}, ""},
-    {{"--list-listeners"},          {}, ""},
-    {{"--order"},                   {"x"}, ""},
-    {{"--rng-seed"},                {"x"}, ""},
-    {{"--libidentify"},             {}, ""},
-    {{"--wait-for-keypress"},       {"x"}, ""},
-    {{"--shard-count"},             {"x"}, ""},
-    {{"--shard-index"},             {"x"}, ""},
-    {{"--allow-running-no-tests"},  {}, ""}};
+    {{"-l", "--list-tests"},    {},                         false, "List tests by name"},
+    {{"--list-tags"},           {},                         false, "List tags by name"},
+    {{"--list-tests-with-tag"}, {"tag"},                    false, "List tests by name with a given tag"},
+    {{"--list-reporters"},      {},                         false, "List available test reporters (see --reporter)"},
+    {{"-r", "--reporter"},      {"reporter[::key=value]*"}, false, "Choose which reporter to use to output the test results"},
+    {{"-v", "--verbosity"},     {"quiet|normal|high|full"}, false, "Define how much gets sent to the standard output"},
+    {{"-o", "--out"},           {"path"},                   false, "Saves output to a file given as 'path'"},
+    {{"--color"},               {"always|default|never"},   false, "Enable/disable color in output"},
+    {{"--colour-mode"},         {"ansi|default|none"},      false, "Enable/disable color in output (for compatibility with Catch2)"},
+    {{"-h", "--help"},          {},                         false, "Print help"},
+    {{},                        {"test regex"},             false, "A regex to select which test cases to run", argument_type::repeatable},
+    // For compatibility with Catch2; unused.
+    // This is used just to swallow the argument and its parameters.
+    // The argument will still be reported as unknown.
+    {{"-s", "--success"},           {},    true, ""},
+    {{"-b", "--break"},             {},    true, ""},
+    {{"-e", "--nothrow"},           {},    true, ""},
+    {{"-i", "--invisibles"},        {},    true, ""},
+    {{"-n", "--name"},              {},    true, ""},
+    {{"-a", "--abort"},             {},    true, ""},
+    {{"-x", "--abortx"},            {"x"}, true, ""},
+    {{"-w", "--warn"},              {"x"}, true, ""},
+    {{"-d", "--durations"},         {"x"}, true, ""},
+    {{"-D", "--min-duration"},      {"x"}, true, ""},
+    {{"-f", "--input-file"},        {"x"}, true, ""},
+    {{"-#", "--filenames-as-tags"}, {"x"}, true, ""},
+    {{"-c", "--section"},           {"x"}, true, ""},
+    {{"--list-listeners"},          {},    true, ""},
+    {{"--order"},                   {"x"}, true, ""},
+    {{"--rng-seed"},                {"x"}, true, ""},
+    {{"--libidentify"},             {},    true, ""},
+    {{"--wait-for-keypress"},       {"x"}, true, ""},
+    {{"--shard-count"},             {"x"}, true, ""},
+    {{"--shard-index"},             {"x"}, true, ""},
+    {{"--allow-running-no-tests"},  {},    true, ""}};
 // clang-format on
 
-constexpr bool with_color_default = SNITCH_DEFAULT_WITH_COLOR == 1;
+bool parse_color_options(int argc, const char* const argv[]) noexcept {
+    bool with_color = SNITCH_DEFAULT_WITH_COLOR == 1;
+
+    constexpr expected_arguments output_args = [&]() {
+        using namespace std::literals;
+        constexpr std::array copy_args = {"--color"sv, "--colour-mode"sv};
+        expected_arguments   args      = expected_args;
+        for (auto& e : args) {
+            e.ignored =
+                std::find_if(e.names.cbegin(), e.names.cend(), [&](const auto n) {
+                    return std::find(copy_args.cbegin(), copy_args.cend(), n) != copy_args.cend();
+                }) == e.names.cend();
+        }
+
+        return args;
+    }();
+
+    const std::optional<cli::input> ret_args =
+        parse_arguments(argc, argv, output_args, {.silent = true, .tolerant = true});
+
+    if (ret_args.has_value()) {
+        if (const auto& o = cli::get_option(ret_args.value(), "--color")) {
+            if (o->value == "always") {
+                with_color = true;
+            } else if (o->value == "never") {
+                with_color = false;
+            }
+        }
+        if (const auto& o = cli::get_option(ret_args.value(), "--colour-mode")) {
+            if (o->value == "ansi") {
+                with_color = true;
+            } else if (o->value == "none") {
+                with_color = false;
+            }
+        }
+    }
+
+    return with_color;
+}
 
 constexpr const char* program_description =
     "Test runner (snitch v" SNITCH_FULL_VERSION " | compatible with Catch2 v3.4.0)";
@@ -342,20 +396,21 @@ constexpr const char* program_description =
 namespace snitch::cli {
 function_ref<void(std::string_view) noexcept> console_print = &snitch::impl::stdout_print;
 
-void print_help(std::string_view program_name) noexcept {
-    print_help(
-        program_name, impl::program_description, impl::expected_args,
-        {.with_color = impl::with_color_default});
+void print_help(std::string_view program_name, const print_help_settings& settings) noexcept {
+    print_help(program_name, impl::program_description, impl::expected_args, settings);
 }
 
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
-    std::optional<cli::input> ret_args = parse_arguments(
-        argc, argv, impl::expected_args, impl::ignored_args,
-        {.with_color = impl::with_color_default});
+    // First, parse just looking for color options so we can display console messages correctly.
+    const bool with_color = impl::parse_color_options(argc, argv);
+
+    // Now parse everything for real.
+    std::optional<cli::input> ret_args =
+        impl::parse_arguments(argc, argv, impl::expected_args, {.with_color = with_color});
 
     if (!ret_args) {
         print("\n");
-        print_help(argv[0]);
+        print_help(argv[0], {.with_color = with_color});
     }
 
     return ret_args;

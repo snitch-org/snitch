@@ -208,6 +208,28 @@ TEST_CASE("parse arguments multiple positional", "[cli]") {
     CHECK(console.messages.empty());
 }
 
+TEST_CASE("parse arguments error no color", "[cli]") {
+    console_output_catcher console;
+
+    SECTION("duplicate arg") {
+        const arg_vector args = {"test", "--color", "never", "--color", "always"};
+        snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        CHECK(!contains_color_codes(console.messages));
+    }
+
+    SECTION("missing value") {
+        const arg_vector args = {"test", "--color", "never", "--verbosity"};
+        snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        CHECK(!contains_color_codes(console.messages));
+    }
+
+    SECTION("unknown arg") {
+        const arg_vector args = {"test", "--color", "never", "--foobar"};
+        snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());
+        CHECK(!contains_color_codes(console.messages));
+    }
+}
+
 TEST_CASE("get option", "[cli]") {
     const arg_vector args = {"test", "--help", "--verbosity", "high"};
     auto input = snitch::cli::parse_arguments(static_cast<int>(args.size()), args.data());

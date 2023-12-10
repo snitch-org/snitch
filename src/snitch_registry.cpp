@@ -694,7 +694,7 @@ bool registry::run_tests(std::string_view run_name) noexcept {
 namespace {
 bool run_tests_impl(registry& r, const cli::input& args) noexcept {
     if (get_option(args, "--help")) {
-        cli::print_help(args.executable);
+        cli::print_help(args.executable, {.with_color = r.with_color});
         return true;
     }
 
