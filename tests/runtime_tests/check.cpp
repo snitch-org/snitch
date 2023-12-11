@@ -1761,6 +1761,9 @@ int throw_unexpectedly() {
             CHECK(*m == MESSAGE);                                                                  \
         } while (0)
 
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
+
 TEST_CASE("unhandled exceptions", "[test macros]") {
     event_catcher<3> catcher;
 
@@ -1886,5 +1889,7 @@ TEST_CASE("unhandled exceptions", "[test macros]") {
             "unexpected std::exception caught; message: bad function"sv);
     }
 }
+
+SNITCH_WARNING_POP
 
 #endif
