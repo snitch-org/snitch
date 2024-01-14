@@ -18,6 +18,9 @@ int throw_unexpectedly() {
 constexpr int some_very_long_name_that_forces_lines_to_wrap = 1;
 } // namespace
 
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
+
 void register_tests_for_reporters(snitch::registry& r) {
     // To avoid unnecessary changes to the approval test data, please add new tests only at the
     // end of this list.
@@ -192,6 +195,8 @@ void register_tests_for_reporters(snitch::registry& r) {
         SNITCH_FAIL_CHECK("failure 3");
     });
 }
+
+SNITCH_WARNING_POP
 
 namespace {
 template<typename F>
