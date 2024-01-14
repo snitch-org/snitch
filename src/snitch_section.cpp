@@ -91,7 +91,8 @@ section_entry_checker::operator bool() {
 
         level.previous_section_id = level.current_section_id;
         state.sections.current_section.push_back(data);
-        push_location(state, data.location);
+        push_location(
+            state, {data.location.file, data.location.line, location_type::section_scope});
         entered = true;
         return true;
     }

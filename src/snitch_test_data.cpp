@@ -26,7 +26,7 @@ void set_current_test(test_state* current) noexcept {
     thread_current_test = current;
 }
 
-void push_location(test_state& test, const source_location& location) noexcept {
+void push_location(test_state& test, const assertion_location& location) noexcept {
     test.locations.push_back(location);
 }
 
@@ -36,10 +36,13 @@ void pop_location(test_state& test) noexcept {
 
 scoped_test_check::scoped_test_check(const source_location& location) noexcept :
     test(get_current_test()) {
-    push_location(test, location);
+    push_location(test, {location.file, location.line, location_type::in_check});
+    test.in_check = true;
 }
 
 scoped_test_check::~scoped_test_check() noexcept {
+    test.in_check = false;
+
 #if SNITCH_WITH_EXCEPTIONS
     if (std::uncaught_exceptions() > 0) {
         // We are unwinding the stack because an exception has been thrown;

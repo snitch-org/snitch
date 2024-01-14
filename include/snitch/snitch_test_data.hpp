@@ -54,8 +54,26 @@ using section_info = small_vector_span<const section>;
 /// List of active captures (in order of declaration)
 using capture_info = small_vector_span<const std::string_view>;
 
+enum class location_type {
+    /// The true location is precisely at the indicated location
+    exact,
+    /// The true location is somewhere inside the section starting at the indicated location
+    section_scope,
+    /// The true location is somewhere inside the test case starting at the indicated location
+    test_case_scope,
+    /// The true location is somehere further down the call stack from the indicated location
+    in_check
+};
+
 /// Identifies a location in source code
-using assertion_location = source_location;
+struct assertion_location {
+    /// Absolute path to the file
+    std::string_view file = {};
+    /// Line number (starts at 1)
+    std::size_t line = 0u;
+    /// Type of location
+    location_type type = location_type::exact;
+};
 
 /// State of a test case after execution
 enum class test_case_state {
@@ -258,7 +276,7 @@ struct section_state {
 using capture_state = small_vector<small_string<max_capture_length>, max_captures>;
 
 // NB: +2 is because we need one for the test case location, and one for the check location
-using location_state = small_vector<source_location, max_nested_sections + 2>;
+using location_state = small_vector<assertion_location, max_nested_sections + 2>;
 
 struct test_state {
     registry&      reg;
@@ -272,6 +290,7 @@ struct test_state {
     std::size_t allowed_failures = 0;
     bool        may_fail         = false;
     bool        should_fail      = false;
+    bool        in_check         = false;
 
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
@@ -284,7 +303,7 @@ SNITCH_EXPORT test_state* try_get_current_test() noexcept;
 
 SNITCH_EXPORT void set_current_test(test_state* current) noexcept;
 
-SNITCH_EXPORT void push_location(test_state& test, const source_location& location) noexcept;
+SNITCH_EXPORT void push_location(test_state& test, const assertion_location& location) noexcept;
 
 SNITCH_EXPORT void pop_location(test_state& test) noexcept;
 

@@ -57,7 +57,19 @@ failed: running test case "test THROW fail"
           at *testing_reporters.cpp:*
           could not match caught std::runtime_error with expected content: could not find 'I throws' in 'I threw'
 failed: running test case "test unexpected throw fail"
-          at *testing_reporters.cpp:*
+          somewhere inside test case at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+failed: running test case "test unexpected throw in section fail"
+          in section "section 1"
+          in section "section 2"
+          somewhere inside section at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+failed: running test case "test unexpected throw in check fail"
+          somewhere inside check at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+failed: running test case "test unexpected throw in check & section fail"
+          in section "section 1"
+          somewhere inside check at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
 ==========================================
-error: all tests failed (16 out of 16 test cases, 32 assertions, * seconds)
+error: all tests failed (19 out of 19 test cases, 35 assertions, * seconds)

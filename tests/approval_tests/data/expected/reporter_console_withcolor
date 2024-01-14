@@ -66,7 +66,19 @@
           at *testing_reporters.cpp:*
           [1;36mcould not match caught std::runtime_error with expected content: could not find 'I throws' in 'I threw'[0m
 [1;31mfailed: [0mrunning test case "[1;35mtest unexpected throw fail[0m"
-          at *testing_reporters.cpp:*
+          somewhere inside test case at *testing_reporters.cpp:*
+          [1;36munexpected std::exception caught; message: unexpected error[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest unexpected throw in section fail[0m"
+          in section "[1;35msection 1[0m"
+          in section "[1;35msection 2[0m"
+          somewhere inside section at *testing_reporters.cpp:*
+          [1;36munexpected std::exception caught; message: unexpected error[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest unexpected throw in check fail[0m"
+          somewhere inside check at *testing_reporters.cpp:*
+          [1;36munexpected std::exception caught; message: unexpected error[0m
+[1;31mfailed: [0mrunning test case "[1;35mtest unexpected throw in check & section fail[0m"
+          in section "[1;35msection 1[0m"
+          somewhere inside check at *testing_reporters.cpp:*
           [1;36munexpected std::exception caught; message: unexpected error[0m
 [1;33mskipped: [0mrunning test case "[1;35mtest SKIP[0m"
           at *testing_reporters.cpp:*
@@ -158,4 +170,4 @@
           with [1;35minfo 1[0m
           [1;36mfailure 3[0m
 ==========================================
-[1;31merror:[0m some tests failed (22 out of 39 test cases, 83 assertions, 1 test cases skipped, * seconds)
+[1;31merror:[0m some tests failed (25 out of 42 test cases, 86 assertions, 1 test cases skipped, * seconds)

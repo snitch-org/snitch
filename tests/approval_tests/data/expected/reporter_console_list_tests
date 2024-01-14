@@ -31,6 +31,9 @@ test NOTHROW fail
 test THROW pass
 test THROW fail
 test unexpected throw fail
+test unexpected throw in section fail
+test unexpected throw in check fail
+test unexpected throw in check & section fail
 test SKIP
 test INFO
 test multiple INFO

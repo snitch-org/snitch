@@ -400,7 +400,16 @@ void report_assertion_impl(
     register_assertion(success, state);
 
     const auto  captures_buffer = impl::make_capture_buffer(state.captures);
-    const auto& location        = state.locations.back();
+    const auto& last_location   = state.locations.back();
+#if SNITCH_WITH_EXCEPTIONS
+    const auto location =
+        state.in_check
+            ? assertion_location{last_location.file, last_location.line, location_type::exact}
+            : last_location;
+#else
+    const auto location =
+        assertion_location{last_location.file, last_location.line, location_type::exact};
+#endif
 
     if (success) {
         if (r.verbose >= registry::verbosity::full) {
@@ -455,8 +464,11 @@ void registry::report_skipped(std::string_view message) noexcept {
 
     state.reg.report_callback(
         state.reg, event::test_case_skipped{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, message});
+                       state.test.id,
+                       state.sections.current_section,
+                       captures_buffer.span(),
+                       {location.file, location.line, location_type::exact},
+                       message});
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
@@ -480,7 +492,8 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     impl::test_state state{
         .reg = *this, .test = test, .may_fail = may_fail, .should_fail = should_fail};
 
-    state.locations.push_back(test.location);
+    state.locations.push_back(
+        {test.location.file, test.location.line, location_type::test_case_scope});
 
     // Store previously running test, to restore it later.
     // This should always be a null pointer, except when testing snitch itself.
@@ -519,7 +532,9 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
                  state.test.state != impl::test_case_state::skipped);
 
 #if SNITCH_WITH_EXCEPTIONS
+        state.in_check = true;
         report_assertion(true, "no exception caught");
+        state.in_check = false;
     } catch (const impl::abort_exception&) {
         // Test aborted, assume its state was already set accordingly.
     } catch (const std::exception& e) {
@@ -531,8 +546,10 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 
     if (state.should_fail) {
         state.should_fail = false;
+        state.in_check    = true;
         report_assertion(
             state.test.state == impl::test_case_state::allowed_fail, "expected test to fail");
+        state.in_check    = false;
         state.should_fail = true;
     }
 
