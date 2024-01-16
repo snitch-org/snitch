@@ -3,9 +3,24 @@
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_registry.hpp"
 
+#if SNITCH_WITH_EXCEPTIONS
+#    include <exception>
+#endif
+
 namespace snitch::impl {
 section_entry_checker::~section_entry_checker() {
     if (entered) {
+#if SNITCH_WITH_EXCEPTIONS
+        if (std::uncaught_exceptions() > 0) {
+            // We are unwinding the stack because an exception has been thrown;
+            // avoid touching the section state since we will want to report where
+            // the exception was thrown.
+            return;
+        }
+#endif
+
+        pop_location(state);
+
         if (state.sections.depth == state.sections.levels.size()) {
             // We just entered this section, and there was no child section in it.
             // This is a leaf; flag that a leaf has been executed so that no other leaf
@@ -76,6 +91,8 @@ section_entry_checker::operator bool() {
 
         level.previous_section_id = level.current_section_id;
         state.sections.current_section.push_back(data);
+        push_location(
+            state, {data.location.file, data.location.line, location_type::section_scope});
         entered = true;
         return true;
     }

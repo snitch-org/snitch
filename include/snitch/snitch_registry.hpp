@@ -235,32 +235,17 @@ public:
     }
 
     // Internal API; do not use.
-    SNITCH_EXPORT void report_assertion(
-        bool                      success,
-        impl::test_state&         state,
-        const assertion_location& location,
-        std::string_view          message) const noexcept;
+    SNITCH_EXPORT static void report_assertion(bool success, std::string_view message) noexcept;
 
     // Internal API; do not use.
-    SNITCH_EXPORT void report_assertion(
-        bool                      success,
-        impl::test_state&         state,
-        const assertion_location& location,
-        std::string_view          message1,
-        std::string_view          message2) const noexcept;
+    SNITCH_EXPORT static void
+    report_assertion(bool success, std::string_view message1, std::string_view message2) noexcept;
 
     // Internal API; do not use.
-    SNITCH_EXPORT void report_assertion(
-        bool                      success,
-        impl::test_state&         state,
-        const assertion_location& location,
-        const impl::expression&   exp) const noexcept;
+    SNITCH_EXPORT static void report_assertion(bool success, const impl::expression& exp) noexcept;
 
     // Internal API; do not use.
-    SNITCH_EXPORT void report_skipped(
-        impl::test_state&         state,
-        const assertion_location& location,
-        std::string_view          message) const noexcept;
+    SNITCH_EXPORT static void report_skipped(std::string_view message) noexcept;
 
     // Internal API; do not use.
     SNITCH_EXPORT impl::test_state run(impl::test_case& test) noexcept;

@@ -250,9 +250,27 @@ passed: running test case "test THROW fail"
 finished: test THROW fail (*)
 starting: test unexpected throw fail at *testing_reporters.cpp:*
 failed: running test case "test unexpected throw fail"
-          at *testing_reporters.cpp:*
+          somewhere inside test case at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
 finished: test unexpected throw fail (*)
+starting: test unexpected throw in section fail at *testing_reporters.cpp:*
+failed: running test case "test unexpected throw in section fail"
+          in section "section 1"
+          in section "section 2"
+          somewhere inside section at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+finished: test unexpected throw in section fail (*)
+starting: test unexpected throw in check fail at *testing_reporters.cpp:*
+failed: running test case "test unexpected throw in check fail"
+          somewhere inside check at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+finished: test unexpected throw in check fail (*)
+starting: test unexpected throw in check & section fail at *testing_reporters.cpp:*
+failed: running test case "test unexpected throw in check & section fail"
+          in section "section 1"
+          somewhere inside check at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+finished: test unexpected throw in check & section fail (*)
 starting: test SKIP at *testing_reporters.cpp:*
 skipped: running test case "test SKIP"
           at *testing_reporters.cpp:*
@@ -370,4 +388,4 @@ passed: running test case "test SECTION & INFO"
           no exception caught
 finished: test SECTION & INFO (*)
 ==========================================
-error: some tests failed (22 out of 39 test cases, 83 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (25 out of 42 test cases, 86 assertions, 1 test cases skipped, * seconds)

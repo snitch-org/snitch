@@ -10,10 +10,16 @@ void throw_something(bool do_throw) {
         throw std::runtime_error("I threw");
     }
 }
+int throw_unexpectedly() {
+    throw std::runtime_error("unexpected error");
+}
 #endif
 
 constexpr int some_very_long_name_that_forces_lines_to_wrap = 1;
 } // namespace
+
+SNITCH_WARNING_PUSH
+SNITCH_WARNING_DISABLE_UNREACHABLE
 
 void register_tests_for_reporters(snitch::registry& r) {
     // To avoid unnecessary changes to the approval test data, please add new tests only at the
@@ -112,7 +118,23 @@ void register_tests_for_reporters(snitch::registry& r) {
     });
 
     r.add({"test unexpected throw fail"}, SNITCH_CURRENT_LOCATION, []() {
-        throw std::runtime_error("unexpected error");
+        // make sure the throw is on a new line
+        throw_unexpectedly();
+    });
+    r.add({"test unexpected throw in section fail"}, SNITCH_CURRENT_LOCATION, []() {
+        SNITCH_SECTION("section 1") {
+            SNITCH_SECTION("section 2") {
+                throw_unexpectedly();
+            }
+        }
+    });
+    r.add({"test unexpected throw in check fail"}, SNITCH_CURRENT_LOCATION, []() {
+        SNITCH_CHECK(throw_unexpectedly() == 0);
+    });
+    r.add({"test unexpected throw in check & section fail"}, SNITCH_CURRENT_LOCATION, []() {
+        SNITCH_SECTION("section 1") {
+            SNITCH_CHECK(throw_unexpectedly() == 0);
+        }
     });
 #endif
 
@@ -173,6 +195,8 @@ void register_tests_for_reporters(snitch::registry& r) {
         SNITCH_FAIL_CHECK("failure 3");
     });
 }
+
+SNITCH_WARNING_POP
 
 namespace {
 template<typename F>

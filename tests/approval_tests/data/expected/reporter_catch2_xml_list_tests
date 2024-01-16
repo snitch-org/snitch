@@ -298,6 +298,33 @@
     </SourceInfo>
   </TestCase>
   <TestCase>
+    <Name>test unexpected throw in section fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test unexpected throw in check fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test unexpected throw in check &amp; section fail</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
     <Name>test SKIP</Name>
     <ClassName/>
     <Tags/>

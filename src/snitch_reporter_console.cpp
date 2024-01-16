@@ -13,6 +13,16 @@ namespace {
 using namespace std::literals;
 using namespace snitch::impl;
 
+std::string_view locatation_label(location_type type) {
+    switch (type) {
+    case location_type::exact: return "at";
+    case location_type::section_scope: return "somewhere inside section at";
+    case location_type::test_case_scope: return "somewhere inside test case at";
+    case location_type::in_check: return "somewhere inside check at";
+    default: return "at";
+    }
+}
+
 void print_location(
     const registry&           r,
     const test_id&            id,
@@ -28,7 +38,9 @@ void print_location(
             make_colored(section.id.name, r.with_color, color::highlight1), "\"\n");
     }
 
-    r.print("          at ", location.file, ":", location.line, "\n");
+    r.print(
+        "          ", locatation_label(location.type), " ", location.file, ":", location.line,
+        "\n");
 
     if (!id.type.empty()) {
         r.print(

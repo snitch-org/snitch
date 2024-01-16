@@ -11,7 +11,7 @@
 
 #define SNITCH_CONSTEXPR_REQUIRE_IMPL(CHECK, EXPECTED, MAYBE_ABORT, ...)                           \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
@@ -54,7 +54,7 @@
 
 #define SNITCH_CONSTEXPR_REQUIRE_THAT_IMPL(CHECK, MAYBE_ABORT, EXPR, ...)                          \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
         {                                                                                          \
             constexpr auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);     \
             constexpr auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                   \

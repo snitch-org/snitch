@@ -153,6 +153,30 @@
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="14" failures="18" expectedFailures="0"/>
-  <OverallResultsCases successes="0" failures="16" expectedFailures="0"/>
+  <TestCase name="test unexpected throw in section fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section 1" filename="*testing_reporters.cpp" line="*">
+      <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+        <Failure filename="*testing_reporters.cpp" line="*">
+          unexpected std::exception caught; message: unexpected error
+        </Failure>
+      </Section>
+    </Section>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test unexpected throw in check fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Failure filename="*testing_reporters.cpp" line="*">
+      unexpected std::exception caught; message: unexpected error
+    </Failure>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <TestCase name="test unexpected throw in check &amp; section fail" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section 1" filename="*testing_reporters.cpp" line="*">
+      <Failure filename="*testing_reporters.cpp" line="*">
+        unexpected std::exception caught; message: unexpected error
+      </Failure>
+    </Section>
+    <OverallResult success="false" durationInSeconds="*"/>
+  </TestCase>
+  <OverallResults successes="14" failures="21" expectedFailures="0"/>
+  <OverallResultsCases successes="0" failures="19" expectedFailures="0"/>
 </Catch2TestRun>

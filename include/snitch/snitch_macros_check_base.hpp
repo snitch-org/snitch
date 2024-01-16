@@ -3,6 +3,7 @@
 
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_expression.hpp"
+#include "snitch/snitch_registry.hpp"
 
 #include <string_view>
 
@@ -12,6 +13,9 @@
 #else
 #    define SNITCH_TESTING_ABORT std::terminate()
 #endif
+
+#define SNITCH_NEW_CHECK                                                                           \
+    snitch::impl::scoped_test_check { SNITCH_CURRENT_LOCATION }
 
 #define SNITCH_EXPR(TYPE, EXPECTED, ...)                                                           \
     auto SNITCH_CURRENT_EXPRESSION =                                                               \
@@ -25,9 +29,8 @@
                                                .to_expression())>
 
 #define SNITCH_REPORT_EXPRESSION(MAYBE_ABORT)                                                      \
-    SNITCH_CURRENT_TEST.reg.report_assertion(                                                      \
-        SNITCH_CURRENT_EXPRESSION.success, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION,           \
-        SNITCH_CURRENT_EXPRESSION);                                                                \
+    snitch::registry::report_assertion(                                                            \
+        SNITCH_CURRENT_EXPRESSION.success, SNITCH_CURRENT_EXPRESSION);                             \
     if (!SNITCH_CURRENT_EXPRESSION.success) {                                                      \
         MAYBE_ABORT;                                                                               \
     }

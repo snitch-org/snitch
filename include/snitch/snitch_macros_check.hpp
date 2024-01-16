@@ -11,7 +11,7 @@
 
 #define SNITCH_REQUIRE_IMPL(CHECK, EXPECTED, MAYBE_ABORT, ...)                                     \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
         SNITCH_WARNING_PUSH                                                                        \
         SNITCH_WARNING_DISABLE_PARENTHESES                                                         \
         SNITCH_WARNING_DISABLE_CONSTANT_COMPARISON                                                 \
@@ -35,44 +35,39 @@
 
 #define SNITCH_SUCCEED(MESSAGE)                                                                    \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
-            true, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                        \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
+        snitch::registry::report_assertion(true, (MESSAGE));                                       \
     } while (0)
 
 #define SNITCH_FAIL(MESSAGE)                                                                       \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
-            false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                       \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
+        snitch::registry::report_assertion(false, (MESSAGE));                                      \
         SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
 #define SNITCH_FAIL_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        SNITCH_CURRENT_TEST.reg.report_assertion(                                                  \
-            false, SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                       \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
+        snitch::registry::report_assertion(false, (MESSAGE));                                      \
     } while (0)
 
 #define SNITCH_SKIP(MESSAGE)                                                                       \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                              \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
+        snitch::registry::report_skipped((MESSAGE));                                               \
         SNITCH_TESTING_ABORT;                                                                      \
     } while (0)
 
 #define SNITCH_SKIP_CHECK(MESSAGE)                                                                 \
     do {                                                                                           \
-        auto& SNITCH_CURRENT_TEST = snitch::impl::get_current_test();                              \
-        SNITCH_CURRENT_TEST.reg.report_skipped(                                                    \
-            SNITCH_CURRENT_TEST, SNITCH_CURRENT_LOCATION, (MESSAGE));                              \
+        auto SNITCH_CURRENT_CHECK = SNITCH_NEW_CHECK;                                              \
+        snitch::registry::report_skipped((MESSAGE));                                               \
     } while (0)
 
 #define SNITCH_REQUIRE_THAT_IMPL(CHECK, MAYBE_ABORT, EXPR, ...)                                    \
     do {                                                                                           \
-        auto&      SNITCH_CURRENT_TEST       = snitch::impl::get_current_test();                   \
+        auto       SNITCH_CURRENT_CHECK      = SNITCH_NEW_CHECK;                                   \
         const auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);             \
         const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                           \
             CHECK, #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second, SNITCH_TEMP_RESULT.first};  \

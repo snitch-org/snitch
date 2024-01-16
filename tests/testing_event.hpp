@@ -147,6 +147,12 @@ bool is_event(const owning_event::data& e) noexcept {
     return std::get_if<T>(&e) != nullptr;
 }
 
+std::optional<owning_event::assertion_failed>
+get_failure_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id = 0);
+
+std::optional<owning_event::assertion_succeeded>
+get_success_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id = 0);
+
 std::optional<snitch::test_id>         get_test_id(const owning_event::data& e) noexcept;
 std::optional<snitch::source_location> get_location(const owning_event::data& e) noexcept;
 
@@ -191,7 +197,6 @@ struct mock_framework {
 
     std::optional<owning_event::assertion_failed>    get_failure_event(std::size_t id = 0) const;
     std::optional<owning_event::assertion_succeeded> get_success_event(std::size_t id = 0) const;
-    std::optional<owning_event::test_case_skipped>   get_skip_event() const;
 
     std::size_t get_num_registered_tests() const;
     std::size_t get_num_runs() const;
@@ -258,6 +263,10 @@ struct event_catcher {
     event_catcher() {
         registry.report_callback = {*this, snitch::constant<&event_catcher::report>{}};
         registry.verbose         = snitch::registry::verbosity::full;
+    }
+
+    void run_test() {
+        registry.run(mock_case);
     }
 
     void report(const snitch::registry&, const snitch::event::data& e) noexcept {
