@@ -6,7 +6,7 @@
 
 namespace snitch::impl {
 namespace {
-thread_local test_state* thread_current_test = nullptr;
+SNITCH_THREAD_LOCAL test_state* thread_current_test = nullptr;
 }
 
 test_state& get_current_test() noexcept {
