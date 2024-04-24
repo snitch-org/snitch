@@ -38,6 +38,7 @@ conf_data = configuration_data({
   'SNITCH_WITH_TIMINGS'                    : get_option('with_timings').to_int(),
   'SNITCH_WITH_SHORTHAND_MACROS'           : get_option('with_shorthand_macros').to_int(),
   'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST'     : get_option('constexpr_float_use_bitcast').to_int(),
+  'SNITCH_APPEND_TO_CHARS'                 : get_option('snitch_append_to_chars').to_int(),
   'SNITCH_DEFAULT_WITH_COLOR'              : get_option('default_with_color').to_int(),
   'SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS' : get_option('decompose_successful_assertions').to_int(),
   'SNITCH_WITH_ALL_REPORTERS'              : get_option('with_all_reporters').to_int(),

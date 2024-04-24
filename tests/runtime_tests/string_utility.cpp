@@ -247,8 +247,7 @@ TEST_CASE("append misc", "[utility]") {
 }
 
 TEST_CASE("append ints", "[utility]") {
-    using ae  = append_test::append_expected;
-    using aed = append_test::append_expected_diff;
+    using ae = append_test::append_expected;
 
     SECTION("integers do fit") {
         constexpr auto a = [](const auto& value) constexpr {
@@ -312,18 +311,15 @@ TEST_CASE("append ints", "[utility]") {
             }
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(123456) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(1234567) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(12345678) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(-12345) == aed{{"-1234"sv, false}, {"-123"sv, false}});
-        CONSTEXPR_CHECK(a(-123456) == aed{{"-1234"sv, false}, {"-123"sv, false}});
-        CONSTEXPR_CHECK(a(-1234567) == aed{{"-1234"sv, false}, {"-123"sv, false}});
-        CONSTEXPR_CHECK(a(123456u) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(1234567u) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(12345678u) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(123456) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(1234567) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(12345678) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(-12345) == ae{"-1234"sv, false});
+        CONSTEXPR_CHECK(a(-123456) == ae{"-1234"sv, false});
+        CONSTEXPR_CHECK(a(-1234567) == ae{"-1234"sv, false});
+        CONSTEXPR_CHECK(a(123456u) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(1234567u) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(12345678u) == ae{"12345"sv, false});
     }
 
     SECTION("enums do fit") {
@@ -341,10 +337,7 @@ TEST_CASE("append ints", "[utility]") {
             return append_test::to_string<3, false>(value);
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(enum_type::value3) == aed{{"123", false}, {"12", false}});
+        CONSTEXPR_CHECK(a(enum_type::value3) == ae{"123", false});
     }
 }
 
@@ -422,11 +415,8 @@ TEST_CASE("append floats", "[utility]") {
             return append_test::to_string<5, true>(value);
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(0.0f) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
-        CONSTEXPR_CHECK(a(-1.0f) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
+        CONSTEXPR_CHECK(a(0.0f) == ae{"0.000"sv, false});
+        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.00"sv, false});
     }
 
 #if 0
@@ -539,11 +529,8 @@ TEST_CASE("append doubles", "[utility]") {
             return append_test::to_string<5, true>(value);
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(0.0) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
-        CONSTEXPR_CHECK(a(-1.0) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
+        CONSTEXPR_CHECK(a(0.0) == ae{"0.000"sv, false});
+        CONSTEXPR_CHECK(a(-1.0) == ae{"-1.00"sv, false});
     }
 }
 
