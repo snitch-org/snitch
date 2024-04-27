@@ -1,66 +1,11 @@
 #include "snitch/snitch_append.hpp"
 
-#include <cinttypes> // for format strings
-#include <cstdio> // for std::snprintf
+#include <cstdint> // for std::uintptr_t
 #include <cstring> // for std::memmove
 
 namespace snitch::impl {
-namespace {
 using snitch::small_string_span;
-
-template<typename T>
-constexpr const char* get_format_code() noexcept {
-    if constexpr (std::is_same_v<T, const void*>) {
-#if defined(_MSC_VER)
-        return "0x%p";
-#else
-        return "%p";
-#endif
-    } else if constexpr (std::is_same_v<T, std::uintmax_t>) {
-        return "%" PRIuMAX;
-    } else if constexpr (std::is_same_v<T, std::intmax_t>) {
-        return "%" PRIdMAX;
-    } else if constexpr (std::is_same_v<T, float>) {
-        return "%.6e";
-    } else if constexpr (std::is_same_v<T, double>) {
-        return "%.15e";
-    } else {
-        static_assert(!std::is_same_v<T, T>, "unsupported type");
-    }
-}
-
-template<typename T>
-bool append_fmt(small_string_span ss, T value) noexcept {
-    if (ss.available() <= 1) {
-        // snprintf will always print a null-terminating character,
-        // so abort early if only space for one or zero character, as
-        // this would clobber the original string.
-        return false;
-    }
-
-    // Calculate required length.
-    const int return_code = std::snprintf(nullptr, 0, get_format_code<T>(), value);
-    if (return_code < 0) {
-        return false;
-    }
-
-    // 'return_code' holds the number of characters that are required,
-    // excluding the null-terminating character, which always gets appended,
-    // so we need to +1.
-    const std::size_t length    = static_cast<std::size_t>(return_code) + 1;
-    const bool        could_fit = length <= ss.available();
-
-    const std::size_t offset     = ss.size();
-    const std::size_t prev_space = ss.available();
-    ss.resize(std::min(ss.size() + length, ss.capacity()));
-    std::snprintf(ss.begin() + offset, prev_space, get_format_code<T>(), value);
-
-    // Pop the null-terminating character, always printed unfortunately.
-    ss.pop_back();
-
-    return could_fit;
-}
-} // namespace
+using namespace std::literals;
 
 bool append_fast(small_string_span ss, std::string_view str) noexcept {
     if (str.empty()) {
@@ -80,24 +25,43 @@ bool append_fast(small_string_span ss, std::string_view str) noexcept {
 bool append_fast(small_string_span ss, const void* ptr) noexcept {
     if (ptr == nullptr) {
         return append(ss, nullptr);
-    } else {
-        return append_fmt(ss, ptr);
     }
+
+    if (!append_fast(ss, "0x"sv)) {
+        return false;
+    }
+
+    const std::uintptr_t int_ptr = reinterpret_cast<std::uintptr_t>(ptr);
+
+    // Pad with zeros.
+    constexpr std::size_t max_digits = 2 * sizeof(void*);
+    std::size_t           padding    = max_digits - num_digits<16>(int_ptr);
+    while (padding > 0) {
+        constexpr std::string_view zeroes = "0000000000000000";
+        const std::size_t          batch  = std::min(zeroes.size(), padding);
+        if (!append_fast(ss, zeroes.substr(0, batch))) {
+            return false;
+        }
+
+        padding -= batch;
+    }
+
+    return append_constexpr<16>(ss, int_ptr);
 }
 
 bool append_fast(small_string_span ss, large_uint_t i) noexcept {
-    return append_fmt(ss, i);
+    return append_constexpr(ss, i);
 }
 
 bool append_fast(small_string_span ss, large_int_t i) noexcept {
-    return append_fmt(ss, i);
+    return append_constexpr(ss, i);
 }
 
 bool append_fast(small_string_span ss, float f) noexcept {
-    return append_fmt(ss, f);
+    return append_constexpr(ss, f);
 }
 
 bool append_fast(small_string_span ss, double d) noexcept {
-    return append_fmt(ss, d);
+    return append_constexpr(ss, d);
 }
 } // namespace snitch::impl

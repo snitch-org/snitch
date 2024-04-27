@@ -45,25 +45,30 @@ SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, double f) noe
     return could_fit;
 }
 
+template<large_uint_t Base = 10u>
 [[nodiscard]] constexpr std::size_t num_digits(large_uint_t x) noexcept {
-    return x >= 10u ? 1u + num_digits(x / 10u) : 1u;
+    return x >= Base ? 1u + num_digits<Base>(x / Base) : 1u;
 }
 
+template<large_int_t Base = 10>
 [[nodiscard]] constexpr std::size_t num_digits(large_int_t x) noexcept {
-    return x >= 10 ? 1u + num_digits(x / 10) : x <= -10 ? 1u + num_digits(x / 10) : x > 0 ? 1u : 2u;
+    return (x >= Base || x <= -Base) ? 1u + num_digits<Base>(x / Base) : x > 0 ? 1u : 2u;
 }
 
-constexpr std::array<char, 10> digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+constexpr std::array<char, 16> digits = {'0', '1', '2', '3', '4', '5', '6', '7',
+                                         '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
 constexpr std::size_t max_uint_length = num_digits(std::numeric_limits<large_uint_t>::max());
 constexpr std::size_t max_int_length  = max_uint_length + 1;
 
+template<large_uint_t Base = 10u>
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_uint_t i) noexcept {
     if (i != 0u) {
         small_string<max_uint_length> tmp;
-        tmp.resize(num_digits(i));
+        tmp.resize(num_digits<Base>(i));
         std::size_t k = 1;
-        for (large_uint_t j = i; j != 0u; j /= 10u, ++k) {
-            tmp[tmp.size() - k] = digits[j % 10u];
+        for (large_uint_t j = i; j != 0u; j /= Base, ++k) {
+            tmp[tmp.size() - k] = digits[j % Base];
         }
         return append_constexpr(ss, tmp);
     } else {
@@ -71,21 +76,22 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
     }
 }
 
+template<large_int_t Base = 10>
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_int_t i) noexcept {
     if (i > 0) {
         small_string<max_int_length> tmp;
-        tmp.resize(num_digits(i));
+        tmp.resize(num_digits<Base>(i));
         std::size_t k = 1;
-        for (large_int_t j = i; j != 0; j /= 10, ++k) {
-            tmp[tmp.size() - k] = digits[j % 10];
+        for (large_int_t j = i; j != 0; j /= Base, ++k) {
+            tmp[tmp.size() - k] = digits[j % Base];
         }
         return append_constexpr(ss, tmp);
     } else if (i < 0) {
         small_string<max_int_length> tmp;
-        tmp.resize(num_digits(i));
+        tmp.resize(num_digits<Base>(i));
         std::size_t k = 1;
-        for (large_int_t j = i; j != 0; j /= 10, ++k) {
-            tmp[tmp.size() - k] = digits[-(j % 10)];
+        for (large_int_t j = i; j != 0; j /= Base, ++k) {
+            tmp[tmp.size() - k] = digits[-(j % Base)];
         }
         tmp[0] = '-';
         return append_constexpr(ss, tmp);
@@ -98,7 +104,7 @@ constexpr std::size_t max_int_length  = max_uint_length + 1;
 constexpr std::size_t min_exp_digits = 2u;
 
 [[nodiscard]] constexpr std::size_t num_exp_digits(fixed_exp_t x) noexcept {
-    const std::size_t exp_digits = num_digits(static_cast<large_uint_t>(x > 0 ? x : -x));
+    const std::size_t exp_digits = num_digits<10>(static_cast<large_uint_t>(x > 0 ? x : -x));
     return exp_digits < min_exp_digits ? min_exp_digits : exp_digits;
 }
 
@@ -106,7 +112,7 @@ constexpr std::size_t min_exp_digits = 2u;
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
-    return num_digits(static_cast<large_uint_t>(x.digits)) + num_exp_digits(x.exponent) +
+    return num_digits<10>(static_cast<large_uint_t>(x.digits)) + num_exp_digits(x.exponent) +
            (x.sign ? 1u : 0u) + 3u;
 }
 
@@ -135,7 +141,7 @@ set_precision(signed_fixed_data fd, std::size_t p) noexcept {
     // and round-half-to-even is the default rounding mode for IEEE 754 floats. We don't follow
     // the current rounding mode, but we can at least follow the default.
 
-    std::size_t base_digits = num_digits(static_cast<large_uint_t>(fd.digits));
+    std::size_t base_digits = num_digits<10>(static_cast<large_uint_t>(fd.digits));
 
     bool only_zero = true;
     while (base_digits > p) {
