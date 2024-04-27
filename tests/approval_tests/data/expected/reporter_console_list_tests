@@ -1,42 +1,55 @@
-test pass
-test fail
-test mayfail good pass
-test mayfail bad pass
-test shouldfail good fail
-test shouldfail bad pass
-test no tags pass
-test no tags fail
-typed test no tags pass <int>
-typed test no tags pass <float>
-typed test no tags fail <int>
-typed test no tags fail <float>
-typed test with tags pass <int>
-typed test with tags pass <float>
-typed test with tags fail <int>
-typed test with tags fail <float>
-test fixture pass
-test fixture fail
-test SUCCEED pass
-test FAIL fail
-test expression pass
-test expression fail
-test long expression pass
-test long expression fail
-test too long expression pass
-test too long expression fail
-test too long message pass
-test too long message fail
-test NOTHROW pass
-test NOTHROW fail
-test THROW pass
-test THROW fail
-test unexpected throw fail
-test unexpected throw in section fail
-test unexpected throw in check fail
-test unexpected throw in check & section fail
-test SKIP
-test INFO
-test multiple INFO
-test SECTION
-test multiple SECTION
-test SECTION & INFO
+Matching test cases:
+  test pass
+      [tag2][tag1]
+  test fail
+      [tag2][tag1]
+  test mayfail good pass
+      [tag2][tag1][!mayfail]
+  test mayfail bad pass
+      [tag2][tag1][!mayfail]
+  test shouldfail good fail
+      [tag2][tag1][!shouldfail]
+  test shouldfail bad pass
+      [tag2][tag1][!shouldfail]
+  test no tags pass
+  test no tags fail
+  typed test no tags pass <int>
+  typed test no tags pass <float>
+  typed test no tags fail <int>
+  typed test no tags fail <float>
+  typed test with tags pass <int>
+      [tag1]
+  typed test with tags pass <float>
+      [tag1]
+  typed test with tags fail <int>
+      [tag1]
+  typed test with tags fail <float>
+      [tag1]
+  test fixture pass
+      [tag with space]
+  test fixture fail
+      [tag with space]
+  test SUCCEED pass
+  test FAIL fail
+  test expression pass
+  test expression fail
+  test long expression pass
+  test long expression fail
+  test too long expression pass
+  test too long expression fail
+  test too long message pass
+  test too long message fail
+  test NOTHROW pass
+  test NOTHROW fail
+  test THROW pass
+  test THROW fail
+  test unexpected throw fail
+  test unexpected throw in section fail
+  test unexpected throw in check fail
+  test unexpected throw in check & section fail
+  test SKIP
+  test INFO
+  test multiple INFO
+  test SECTION
+  test multiple SECTION
+  test SECTION & INFO

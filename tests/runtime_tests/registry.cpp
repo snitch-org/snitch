@@ -583,7 +583,10 @@ TEST_CASE("list tests", "[registry]") {
             CAPTURE(tag);
             console.messages.clear();
 
+            const auto header = "Matching test cases:\n"sv;
+
             framework.registry.list_tests_with_tag(tag);
+            CHECK(console.messages == contains_substring(header));
             if (tag == "[tag]"sv) {
                 CHECK(console.messages == contains_substring("how are you"));
                 CHECK(console.messages == contains_substring("how many lights"));
@@ -618,7 +621,7 @@ TEST_CASE("list tests", "[registry]") {
                 CHECK(console.messages == contains_substring("how many templated lights"));
                 CHECK(console.messages == contains_substring("hidden test 1"));
             } else if (tag == "[wrong_tag]"sv || tag == "[.hidden]"sv) {
-                CHECK(console.messages.empty());
+                CHECK(console.messages == header);
             }
         }
     }
