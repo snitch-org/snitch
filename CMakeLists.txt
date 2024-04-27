@@ -19,7 +19,7 @@ set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file 
 # Feature toggles.
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
 set(SNITCH_WITH_EXCEPTIONS                 ON  CACHE BOOL "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
-set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Multi-threading support and thread local variables -- disable if needed.")
+set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Make the testing framework thread-safe -- disable if multithreading is not needed.")
 set(SNITCH_WITH_TIMINGS                    ON  CACHE BOOL "Measure the time taken by each test case -- disable to speed up tests.")
 set(SNITCH_WITH_SHORTHAND_MACROS           ON  CACHE BOOL "Use short names for test macros -- disable if this causes conflicts.")
 set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST     ON  CACHE BOOL "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")

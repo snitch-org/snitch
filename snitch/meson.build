@@ -34,6 +34,7 @@ conf_data = configuration_data({
 
   'SNITCH_DEFINE_MAIN'                     : get_option('define_main').to_int(),
   'SNITCH_WITH_EXCEPTIONS'                 : get_option('with_exceptions').to_int(),
+  'SNITCH_WITH_MULTITHREADING'             : get_option('with_multithreading').to_int(),
   'SNITCH_WITH_TIMINGS'                    : get_option('with_timings').to_int(),
   'SNITCH_WITH_SHORTHAND_MACROS'           : get_option('with_shorthand_macros').to_int(),
   'SNITCH_CONSTEXPR_FLOAT_USE_BITCAST'     : get_option('constexpr_float_use_bitcast').to_int(),
