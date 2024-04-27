@@ -11,6 +11,7 @@
 namespace snitch::impl {
 namespace {
 using snitch::small_string_span;
+using namespace std::literals;
 
 #if SNITCH_APPEND_TO_CHARS
 // libstdc++ version 11 or greater
@@ -68,24 +69,15 @@ bool append_to(small_string_span ss, T value) noexcept {
     ss.grow(end - ss.end());
     return true;
 }
-
-bool append_to(small_string_span ss, const void* ptr) noexcept {
-    return append(ss, "0x") && append_to<16>(ss, reinterpret_cast<std::uintptr_t>(ptr));
-}
-
 #else
-template <floating_point T>
+template<floating_point T>
 bool append_to(small_string_span ss, T value) noexcept {
     return append_constexpr(ss, value);
 }
 
-template <large_int_t Base = 10, integral T>
+template<large_int_t Base = 10, integral T>
 bool append_to(small_string_span ss, T value) noexcept {
-    return append_constexpr(ss, value);
-}
-
-bool append_to(small_string_span ss, const void* value) noexcept {
-    return append_constexpr(ss, value);
+    return append_constexpr<Base>(ss, value);
 }
 #endif
 } // namespace
@@ -108,9 +100,27 @@ bool append_fast(small_string_span ss, std::string_view str) noexcept {
 bool append_fast(small_string_span ss, const void* ptr) noexcept {
     if (ptr == nullptr) {
         return append(ss, nullptr);
-    } else {
-        return append(ss, "0x") && append_to(ss, ptr);
     }
+
+    if (!append_fast(ss, "0x"sv)) {
+        return false;
+    }
+
+    const auto int_ptr = reinterpret_cast<std::uintptr_t>(ptr);
+
+    // Pad with zeros.
+    constexpr std::size_t max_digits = 2 * sizeof(void*);
+    std::size_t           padding    = max_digits - num_digits<16>(int_ptr);
+    while (padding > 0) {
+        constexpr std::string_view zeroes = "0000000000000000";
+        const std::size_t          batch  = std::min(zeroes.size(), padding);
+        if (!append_fast(ss, zeroes.substr(0, batch))) {
+            return false;
+        }
+
+        padding -= batch;
+    }
+    return append_to<16>(ss, int_ptr);
 }
 
 bool append_fast(small_string_span ss, large_uint_t i) noexcept {

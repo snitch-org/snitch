@@ -342,8 +342,10 @@ TEST_CASE("append ints", "[utility]") {
 }
 
 TEST_CASE("append floats", "[utility]") {
-    using ae  = append_test::append_expected;
+    using ae = append_test::append_expected;
+#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
     using aed = append_test::append_expected_diff;
+#endif
 
     SECTION("floats do fit") {
         constexpr auto a = [](const auto& value) constexpr {
@@ -450,8 +452,10 @@ TEST_CASE("append floats", "[utility]") {
 }
 
 TEST_CASE("append doubles", "[utility]") {
-    using ae  = append_test::append_expected;
+    using ae = append_test::append_expected;
+#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
     using aed = append_test::append_expected_diff;
+#endif
 
     SECTION("doubles do fit") {
         constexpr auto a = [](const auto& value) constexpr {
