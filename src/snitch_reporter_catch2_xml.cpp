@@ -119,14 +119,6 @@ void open_close(
 
 template<typename T>
 void report_assertion(reporter& rep, const registry& r, const T& e, bool success) noexcept {
-    for (const auto& s : e.sections) {
-        open(
-            rep, r, "Section",
-            {{"name", make_escaped(s.id.name)},
-             {"filename", make_escaped(s.location.file)},
-             {"line", make_string(s.location.line)}});
-    }
-
     for (const auto& c : e.captures) {
         open(rep, r, "Info");
         print(rep, r, make_escaped(c));
@@ -166,10 +158,6 @@ void report_assertion(reporter& rep, const registry& r, const T& e, bool success
                 close(rep, r, "Expression");
             }},
         e.data);
-
-    for (const auto& s [[maybe_unused]] : e.sections) {
-        close(rep, r, "Section");
-    }
 }
 } // namespace
 
@@ -205,13 +193,15 @@ void reporter::report(const registry& r, const snitch::event::data& event) noexc
                                        e.assertion_count - e.assertion_failure_count -
                                        e.allowed_assertion_failure_count)},
                      {"failures", make_string(e.assertion_failure_count)},
-                     {"expectedFailures", make_string(e.allowed_assertion_failure_count)}});
+                     {"expectedFailures", make_string(e.allowed_assertion_failure_count)},
+                     {"skips", make_string(e.skip_count)}});
 
                 node(
                     *this, r, "OverallResultsCases",
                     {{"successes", make_string(e.run_count - e.fail_count - e.allowed_fail_count)},
                      {"failures", make_string(e.fail_count)},
-                     {"expectedFailures", make_string(e.allowed_fail_count)}});
+                     {"expectedFailures", make_string(e.allowed_fail_count)},
+                     {"skips", make_string(e.skip_count)}});
 
                 close(*this, r, "Catch2TestRun");
             },
@@ -228,16 +218,46 @@ void reporter::report(const registry& r, const snitch::event::data& event) noexc
                 node(
                     *this, r, "OverallResult",
                     {{"success", e.state == test_case_state::failed ? "false" : "true"},
+                     {"skips", e.state == test_case_state::skipped ? "1" : "0"},
                      {"durationInSeconds", make_string(e.duration)}});
 #    else
                 node(
                     *this, r, "OverallResult",
-                    {{"success", e.state == test_case_state::failed ? "false" : "true"}});
+                    {{"success", e.state == test_case_state::failed ? "false" : "true"},
+                     {"skips", e.state == test_case_state::skipped ? "1" : "0"}});
 #    endif
                 close(*this, r, "TestCase");
             },
-            [&](const snitch::event::test_case_skipped&) {
-                // Nothing to do; this gets reported as "success".
+            [&](const snitch::event::section_started& e) {
+                open(
+                    *this, r, "Section",
+                    {{"name", make_escaped(e.id.name)},
+                     {"filename", make_escaped(e.location.file)},
+                     {"line", make_string(e.location.line)}});
+            },
+            [&](const snitch::event::section_ended& e) {
+                node(
+                    *this, r, "OverallResults",
+                    {{"successes", make_string(
+                                       e.assertion_count - e.assertion_failure_count -
+                                       e.allowed_assertion_failure_count)},
+                     {"failures", make_string(e.assertion_failure_count)},
+                     {"expectedFailures", make_string(e.allowed_assertion_failure_count)},
+                     {"skipped", e.skipped?"true":"false"}
+#    if SNITCH_WITH_TIMINGS
+                     ,
+                     {"durationInSeconds", make_string(e.duration)}
+#    endif
+                    });
+                close(*this, r, "Section");
+            },
+            [&](const snitch::event::test_case_skipped& e) {
+                open(
+                    *this, r, "Skip",
+                    {{"filename", make_escaped(e.location.file)},
+                     {"line", make_string(e.location.line)}});
+                print(*this, r, e.message);
+                close(*this, r, "Skip");
             },
             [&](const snitch::event::assertion_failed& e) { report_assertion(*this, r, e, false); },
             [&](const snitch::event::assertion_succeeded& e) {
