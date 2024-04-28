@@ -45,13 +45,13 @@ SNITCH_EXPORT [[nodiscard]] bool append_fast(small_string_span ss, double f) noe
     return could_fit;
 }
 
-template<large_uint_t Base = 10u>
-[[nodiscard]] constexpr std::size_t num_digits(large_uint_t x) noexcept {
+template<large_uint_t Base = 10u, unsigned_integral T>
+[[nodiscard]] constexpr std::size_t num_digits(T x) noexcept {
     return x >= Base ? 1u + num_digits<Base>(x / Base) : 1u;
 }
 
-template<large_int_t Base = 10>
-[[nodiscard]] constexpr std::size_t num_digits(large_int_t x) noexcept {
+template<large_int_t Base = 10, signed_integral T>
+[[nodiscard]] constexpr std::size_t num_digits(T x) noexcept {
     return (x >= Base || x <= -Base) ? 1u + num_digits<Base>(x / Base) : x > 0 ? 1u : 2u;
 }
 
@@ -61,8 +61,8 @@ constexpr std::array<char, 16> digits = {'0', '1', '2', '3', '4', '5', '6', '7',
 constexpr std::size_t max_uint_length = num_digits(std::numeric_limits<large_uint_t>::max());
 constexpr std::size_t max_int_length  = max_uint_length + 1;
 
-template<large_uint_t Base = 10u>
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_uint_t i) noexcept {
+template<large_uint_t Base = 10u, unsigned_integral T>
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, T i) noexcept {
     if (i != 0u) {
         small_string<max_uint_length> tmp;
         tmp.resize(num_digits<Base>(i));
@@ -76,8 +76,8 @@ template<large_uint_t Base = 10u>
     }
 }
 
-template<large_int_t Base = 10>
-[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, large_int_t i) noexcept {
+template<large_int_t Base = 10, signed_integral T>
+[[nodiscard]] constexpr bool append_constexpr(small_string_span ss, T i) noexcept {
     if (i > 0) {
         small_string<max_int_length> tmp;
         tmp.resize(num_digits<Base>(i));
