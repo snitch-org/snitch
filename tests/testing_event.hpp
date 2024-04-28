@@ -53,6 +53,23 @@ struct test_case_ended {
     bool failure_allowed  = false;
 };
 
+struct section_started {
+    snitch::section_id      id       = {};
+    snitch::source_location location = {};
+};
+
+struct section_ended {
+    snitch::section_id      id       = {};
+    snitch::source_location location = {};
+    bool            skipped                         = false;
+    std::size_t     assertion_count                 = 0;
+    std::size_t     assertion_failure_count         = 0;
+    std::size_t     allowed_assertion_failure_count = 0;
+#if SNITCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
+};
+
 struct assertion_failed {
     snitch::test_id         id       = {};
     section_info            sections = {};
@@ -99,6 +116,8 @@ using data = std::variant<
     owning_event::test_run_ended,
     owning_event::test_case_started,
     owning_event::test_case_ended,
+    owning_event::section_started,
+    owning_event::section_ended,
     owning_event::assertion_failed,
     owning_event::assertion_succeeded,
     owning_event::test_case_skipped,

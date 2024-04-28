@@ -2,6 +2,7 @@
 
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_registry.hpp"
+#include "snitch/snitch_test_data.hpp"
 
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception>
@@ -23,6 +24,10 @@ section_entry_checker::~section_entry_checker() {
 
         pop_location(state);
 
+        asserts          = state.asserts - asserts;
+        failures         = state.failures - failures;
+        allowed_failures = state.allowed_failures - allowed_failures;
+
         if (sections.depth == sections.levels.size()) {
             // We just entered this section, and there was no child section in it.
             // This is a leaf; flag that a leaf has been executed so that no other leaf
@@ -31,6 +36,18 @@ section_entry_checker::~section_entry_checker() {
             // that we don't know about yet. Popping will be done when we exit from the parent,
             // since then we will know if there is any sibling.
             sections.leaf_executed = true;
+#if SNITCH_WITH_TIMINGS
+            const auto  end_time = std::chrono::steady_clock::now();
+            const float duration = std::chrono::duration<float>(end_time - start_time).count();
+            state.reg.report_callback(
+                state.reg,
+                event::section_ended{
+                    data.id, data.location, false, asserts, failures, allowed_failures, duration});
+#else
+            state.reg.report_callback(
+                state.reg,
+                event::section_ended{data.id, data.location, asserts, failures, allowed_failures});
+#endif
         } else {
             // Check if there is any child section left to execute, at any depth below this one.
             bool no_child_section_left = true;
@@ -44,6 +61,10 @@ section_entry_checker::~section_entry_checker() {
 
             if (no_child_section_left) {
                 // No more children, we can pop this level and never go back.
+                state.reg.report_callback(
+                    state.reg, event::section_ended{
+                                   sections.current_section.back().id,
+                                   sections.current_section.back().location});
                 sections.levels.pop_back();
             }
         }
@@ -76,6 +97,9 @@ section_entry_checker::operator bool() {
     }
 
     ++sections.depth;
+    asserts          = state.asserts;
+    failures         = state.failures;
+    allowed_failures = state.allowed_failures;
 
     auto& level = sections.levels[sections.depth - 1];
 
@@ -96,6 +120,11 @@ section_entry_checker::operator bool() {
     if (level.current_section_id == level.previous_section_id + 1 ||
         (level.current_section_id == level.previous_section_id &&
          sections.depth < sections.levels.size())) {
+
+        // First time entering this section, emit the section start event.
+        if (level.current_section_id == level.previous_section_id + 1) {
+            state.reg.report_callback(state.reg, event::section_started{data.id, data.location});
+        }
 
         level.previous_section_id = level.current_section_id;
         sections.current_section.push_back(data);

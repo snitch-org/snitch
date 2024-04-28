@@ -1765,7 +1765,7 @@ SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_UNREACHABLE
 
 TEST_CASE("unhandled exceptions", "[test macros]") {
-    event_catcher<3> catcher;
+    event_catcher<7> catcher;
 
     test_check_line   = 0u;
     test_section_line = 0u;
