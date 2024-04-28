@@ -3,10 +3,12 @@
 #include "snitch/snitch_concepts.hpp"
 #include "snitch/snitch_string.hpp"
 
-#include <charconv> // for std::to_chars
 #include <cstdint> // for std::uintptr_t
 #include <cstring> // for std::memmove
-#include <system_error> // for std::errc
+#if SNITCH_APPEND_TO_CHARS
+#    include <charconv> // for std::to_chars
+#    include <system_error> // for std::errc
+#endif
 
 namespace snitch::impl {
 namespace {
@@ -14,13 +16,6 @@ using snitch::small_string_span;
 using namespace std::literals;
 
 #if SNITCH_APPEND_TO_CHARS
-// libstdc++ version 11 or greater
-// libc++ version 14 or greater
-// MSVC 19.24 or greater (also known as Visual Studio 2019 16.4)
-// Apple clang and others have no support as of April-2024
-#    if (defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE > 11) ||                                    \
-        (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION > 14000) ||                                   \
-        (defined(_MSC_VER) && _MSC_VER > 1924)
 template<floating_point T>
 bool append_to(small_string_span ss, T value) noexcept {
     constexpr auto fmt       = std::chars_format::scientific;
@@ -43,12 +38,6 @@ bool append_to(small_string_span ss, T value) noexcept {
     ss.grow(end - ss.end());
     return true;
 }
-#    else
-template<std::floating_point T>
-bool append_to(small_string_span ss, T value) noexcept {
-    return append_constexpr(ss, value);
-}
-#    endif
 
 template<large_int_t Base = 10, integral T>
 bool append_to(small_string_span ss, T value) noexcept {

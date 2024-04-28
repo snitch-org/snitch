@@ -343,7 +343,9 @@ TEST_CASE("append ints", "[utility]") {
 
 TEST_CASE("append floats", "[utility]") {
     using ae = append_test::append_expected;
-#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST && SNITCH_APPEND_TO_CHARS
+    // answers will be different only if no bitcast AND we do have runtime to_char
+    // otherwise append_constexpr will be used at runtime
     using aed = append_test::append_expected_diff;
 #endif
 
@@ -354,11 +356,16 @@ TEST_CASE("append floats", "[utility]") {
 
         CONSTEXPR_CHECK(a(0.0f) == ae{"0.000000e+00"sv, true});
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        // std::bit_cast is enabled, and will match the output of std::to_char if used at runtime
         CONSTEXPR_CHECK(a(-0.0f) == ae{"-0.000000e+00"sv, true});
-#else
+#elif SNITCH_APPEND_TO_CHARS
         // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
         // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
         CONSTEXPR_CHECK(a(-0.0f) == aed{{"0.000000e+00"sv, true}, {"-0.000000e+00"sv, true}});
+#else
+        // No std::bit_cast, but also no std::to_char. append_constexpr will be used
+        // for runtime and match the compile time results
+        CONSTEXPR_CHECK(a(-0.0f) == ae{"0.000000e+00"sv, true});
 #endif
         CONSTEXPR_CHECK(a(1.0f) == ae{"1.000000e+00"sv, true});
         CONSTEXPR_CHECK(a(1.5f) == ae{"1.500000e+00"sv, true});
@@ -453,7 +460,7 @@ TEST_CASE("append floats", "[utility]") {
 
 TEST_CASE("append doubles", "[utility]") {
     using ae = append_test::append_expected;
-#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST && SNITCH_APPEND_TO_CHARS
     using aed = append_test::append_expected_diff;
 #endif
 
@@ -464,12 +471,17 @@ TEST_CASE("append doubles", "[utility]") {
 
         CONSTEXPR_CHECK(a(0.0) == ae{"0.000000000000000e+00"sv, true});
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        // std::bit_cast is enabled, and will match the output of std::to_char if used at runtime
         CONSTEXPR_CHECK(a(-0.0) == ae{"-0.000000000000000e+00"sv, true});
-#else
+#elif SNITCH_APPEND_TO_CHARS
         // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
         // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
         CONSTEXPR_CHECK(
             a(-0.0) == aed{{"0.000000000000000e+00"sv, true}, {"-0.000000000000000e+00"sv, true}});
+#else
+        // No std::bit_cast, but also no std::to_char. append_constexpr will be used for
+        // runtime and match the compile time results
+        CONSTEXPR_CHECK(a(-0.0) == ae{"0.000000000000000e+00"sv, true});
 #endif
         CONSTEXPR_CHECK(a(1.0) == ae{"1.000000000000000e+00"sv, true});
         CONSTEXPR_CHECK(a(1.5) == ae{"1.500000000000000e+00"sv, true});
