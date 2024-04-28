@@ -15,6 +15,7 @@ option('max_path_length'          ,type: 'integer' ,value: 1024, description: 'M
 # Feature toggles.
 option('define_main'                     ,type: 'boolean' ,value: true, description: 'Define main() in snitch -- disable to provide your own main() function.')
 option('with_exceptions'                 ,type: 'boolean' ,value: true, description: 'Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.')
+option('with_multithreading'             ,type: 'boolean', value: true, description: 'Make the testing framework thread-safe -- disable if multithreading is not needed.')
 option('with_timings'                    ,type: 'boolean' ,value: true, description: 'Measure the time taken by each test case -- disable to speed up tests.')
 option('with_shorthand_macros'           ,type: 'boolean' ,value: true, description: 'Use short names for test macros -- disable if this causes conflicts.')
 option('constexpr_float_use_bitcast'     ,type: 'boolean' ,value: true, description: 'Use std::bit_cast if available to implement exact constexpr float-to-string conversion.')
