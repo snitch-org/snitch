@@ -176,6 +176,27 @@ struct test_case_ended {
     bool failure_allowed  = false;
 };
 
+struct section_started {
+    /// Identifiers (name, description)
+    section_id id = {};
+    /// Location (file, line)
+    source_location location = {};
+};
+
+struct section_ended {
+    /// Identifiers (name, description)
+    section_id id = {};
+    /// Location (file, line)
+    source_location location                        = {};
+    bool            skipped                         = false;
+    std::size_t     assertion_count                 = 0;
+    std::size_t     assertion_failure_count         = 0;
+    std::size_t     allowed_assertion_failure_count = 0;
+#if SNITCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
+};
+
 struct assertion_failed {
     const test_id&            id;
     section_info              sections = {};
@@ -231,6 +252,8 @@ using data = std::variant<
     test_run_ended,
     test_case_started,
     test_case_ended,
+    section_started,
+    section_ended,
     assertion_failed,
     assertion_succeeded,
     test_case_skipped,
