@@ -377,6 +377,7 @@ TEST_CASE("append floats", "[utility]") {
         CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.000000e+00"sv, true});
         CONSTEXPR_CHECK(a(10.0f) == ae{"1.000000e+01"sv, true});
         CONSTEXPR_CHECK(a(1e4f) == ae{"1.000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(1e-6f) == ae{"1.000000e-06"sv, true});
         // The number below is a tricky one: it is exactly representable, but intermediate
         // calculations requires more digits than can be stored on fixed-point 64 bits.
         // Furthermore, rounding is an exact tie, and exposes the round-half-to-even behavior.
@@ -502,6 +503,7 @@ TEST_CASE("append doubles", "[utility]") {
         CONSTEXPR_CHECK(a(-1.0) == ae{"-1.000000000000000e+00"sv, true});
         CONSTEXPR_CHECK(a(10.0) == ae{"1.000000000000000e+01"sv, true});
         CONSTEXPR_CHECK(a(1e4) == ae{"1.000000000000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(1e-6) == ae{"1.000000000000000e-06"sv, true});
         CONSTEXPR_CHECK(a(2.3456e301) == ae{"2.345600000000000e+301"sv, true});
         CONSTEXPR_CHECK(a(-2.3456e301) == ae{"-2.345600000000000e+301"sv, true});
         CONSTEXPR_CHECK(a(1.797693134862315e308) == ae{"1.797693134862315e+308"sv, true});

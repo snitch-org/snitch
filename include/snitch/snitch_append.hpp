@@ -150,12 +150,13 @@ set_precision(signed_fixed_data fd, std::size_t p) noexcept {
                 only_zero = false;
             }
             fd.digits = fd.digits / 10u;
+            base_digits -= 1u;
         } else {
-            fd.digits = round_half_to_even(fd.digits, only_zero);
+            fd.digits   = round_half_to_even(fd.digits, only_zero);
+            base_digits = num_digits(static_cast<large_uint_t>(fd.digits));
         }
 
         fd.exponent += 1;
-        base_digits -= 1u;
     }
 
     return fd;
