@@ -61,7 +61,7 @@
   </TestCase>
   <TestCase name="test too long message pass" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
-      aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
+      aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
     </Failure>
     <OverallResult success="false" durationInSeconds="*"/>
   </TestCase>

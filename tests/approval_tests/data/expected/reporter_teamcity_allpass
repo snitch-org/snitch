@@ -30,7 +30,7 @@
 ##teamCity[testStarted name='test too long expression pass']
 ##teamCity[testFinished name='test too long expression pass' duration='*']
 ##teamCity[testStarted name='test too long message pass']
-##teamCity[testFailed name='test too long message pass' message='*testing_reporters.cpp:*|n  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...']
+##teamCity[testFailed name='test too long message pass' message='*testing_reporters.cpp:*|n  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...']
 ##teamCity[testFinished name='test too long message pass' duration='*']
 ##teamCity[testStarted name='test NOTHROW pass']
 ##teamCity[testFinished name='test NOTHROW pass' duration='*']
