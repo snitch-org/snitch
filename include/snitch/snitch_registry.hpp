@@ -189,6 +189,7 @@ public:
     template<typename... Args, typename F>
     const char*
     add_with_types(const impl::name_and_tags& id, const source_location& location, const F& func) {
+        static_assert(sizeof...(Args) > 0, "empty type list in TEMPLATE_TEST_CASE");
         return (
             add_impl(
                 {id.name, id.tags, type_name<Args>}, location, impl::to_test_case_ptr<Args>(func)),
@@ -201,6 +202,7 @@ public:
     const char* add_with_type_list(
         const impl::name_and_tags& id, const source_location& location, const F& func) {
         return [&]<template<typename...> typename TL, typename... Args>(type_list<TL<Args...>>) {
+            static_assert(sizeof...(Args) > 0, "empty type list in TEMPLATE_LIST_TEST_CASE");
             return this->add_with_types<Args...>(id, location, func);
         }(type_list<T>{});
     }
