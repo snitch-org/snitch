@@ -1,6 +1,6 @@
 project('snitch', 'cpp',
   default_options: ['cpp_std=c++20', 'default_library=static'],
-  version: '1.2.4'
+  version: '1.2.5'
 )
 
 cpp_arguments = []
