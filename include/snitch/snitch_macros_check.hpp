@@ -70,7 +70,9 @@
         auto       SNITCH_CURRENT_CHECK      = SNITCH_NEW_CHECK;                                   \
         const auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);             \
         const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                           \
-            CHECK, #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second, SNITCH_TEMP_RESULT.first};  \
+            CHECK, #EXPR ", " #__VA_ARGS__,                                                        \
+            snitch::resize_or_truncate<snitch::max_expr_length>(SNITCH_TEMP_RESULT.second),        \
+            SNITCH_TEMP_RESULT.first};                                                             \
         SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                     \
     } while (0)
 

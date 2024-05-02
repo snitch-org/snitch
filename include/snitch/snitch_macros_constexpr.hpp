@@ -58,14 +58,16 @@
         {                                                                                          \
             constexpr auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);     \
             constexpr auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                   \
-                CHECK "[compile-time]", #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second,        \
+                CHECK "[compile-time]", #EXPR ", " #__VA_ARGS__,                                   \
+                snitch::resize_or_truncate<snitch::max_expr_length>(SNITCH_TEMP_RESULT.second),    \
                 SNITCH_TEMP_RESULT.first};                                                         \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \
         {                                                                                          \
             const auto SNITCH_TEMP_RESULT        = snitch::impl::match(EXPR, __VA_ARGS__);         \
             const auto SNITCH_CURRENT_EXPRESSION = snitch::impl::expression{                       \
-                CHECK "[run-time]", #EXPR ", " #__VA_ARGS__, SNITCH_TEMP_RESULT.second,            \
+                CHECK "[run-time]", #EXPR ", " #__VA_ARGS__,                                       \
+                snitch::resize_or_truncate<snitch::max_expr_length>(SNITCH_TEMP_RESULT.second),    \
                 SNITCH_TEMP_RESULT.first};                                                         \
             SNITCH_REPORT_EXPRESSION(MAYBE_ABORT);                                                 \
         }                                                                                          \

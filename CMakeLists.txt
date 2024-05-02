@@ -211,12 +211,13 @@ if (SNITCH_DO_TEST)
     # We need to use a different snitch configuration for tests, so we can't reuse
     # the library that was built above. Create a copy.
     function(configure_snitch_for_tests TARGET CHOSEN_INTERFACE)
+        # Make sure all lengths are different, so we can catch mismatches.
         target_compile_definitions(${TARGET} ${CHOSEN_INTERFACE}
             SNITCH_MAX_TEST_CASES=200
             SNITCH_MAX_EXPR_LENGTH=128
-            SNITCH_MAX_MESSAGE_LENGTH=128
-            SNITCH_MAX_TEST_NAME_LENGTH=128
-            SNITCH_MAX_CAPTURE_LENGTH=128
+            SNITCH_MAX_MESSAGE_LENGTH=129
+            SNITCH_MAX_TEST_NAME_LENGTH=130
+            SNITCH_MAX_CAPTURE_LENGTH=131
             SNITCH_DEFINE_MAIN=0)
     endfunction()
 
