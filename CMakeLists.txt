@@ -23,6 +23,7 @@ set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Make the testing fram
 set(SNITCH_WITH_TIMINGS                    ON  CACHE BOOL "Measure the time taken by each test case -- disable to speed up tests.")
 set(SNITCH_WITH_SHORTHAND_MACROS           ON  CACHE BOOL "Use short names for test macros -- disable if this causes conflicts.")
 set(SNITCH_CONSTEXPR_FLOAT_USE_BITCAST     ON  CACHE BOOL "Use std::bit_cast if available to implement exact constexpr float-to-string conversion.")
+set(SNITCH_APPEND_TO_CHARS                 ON  CACHE BOOL "Use std::to_chars for string conversions -- disable for greater compatability with a slight performance cost.")
 set(SNITCH_DEFAULT_WITH_COLOR              ON  CACHE BOOL "Enable terminal colors by default -- can also be controlled by command line interface.")
 set(SNITCH_DECOMPOSE_SUCCESSFUL_ASSERTIONS OFF CACHE BOOL "Enable expression decomposition even for successful assertions -- more expensive.")
 set(SNITCH_WITH_ALL_REPORTERS              ON  CACHE BOOL "Allow all built-in reporters to be selected from the command line -- disable for faster compilation.")

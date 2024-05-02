@@ -247,8 +247,7 @@ TEST_CASE("append misc", "[utility]") {
 }
 
 TEST_CASE("append ints", "[utility]") {
-    using ae  = append_test::append_expected;
-    using aed = append_test::append_expected_diff;
+    using ae = append_test::append_expected;
 
     SECTION("integers do fit") {
         constexpr auto a = [](const auto& value) constexpr {
@@ -312,18 +311,15 @@ TEST_CASE("append ints", "[utility]") {
             }
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(123456) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(1234567) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(12345678) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(-12345) == aed{{"-1234"sv, false}, {"-123"sv, false}});
-        CONSTEXPR_CHECK(a(-123456) == aed{{"-1234"sv, false}, {"-123"sv, false}});
-        CONSTEXPR_CHECK(a(-1234567) == aed{{"-1234"sv, false}, {"-123"sv, false}});
-        CONSTEXPR_CHECK(a(123456u) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(1234567u) == aed{{"12345"sv, false}, {"1234"sv, false}});
-        CONSTEXPR_CHECK(a(12345678u) == aed{{"12345"sv, false}, {"1234"sv, false}});
+        CONSTEXPR_CHECK(a(123456) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(1234567) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(12345678) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(-12345) == ae{"-1234"sv, false});
+        CONSTEXPR_CHECK(a(-123456) == ae{"-1234"sv, false});
+        CONSTEXPR_CHECK(a(-1234567) == ae{"-1234"sv, false});
+        CONSTEXPR_CHECK(a(123456u) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(1234567u) == ae{"12345"sv, false});
+        CONSTEXPR_CHECK(a(12345678u) == ae{"12345"sv, false});
     }
 
     SECTION("enums do fit") {
@@ -341,16 +337,17 @@ TEST_CASE("append ints", "[utility]") {
             return append_test::to_string<3, false>(value);
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(enum_type::value3) == aed{{"123", false}, {"12", false}});
+        CONSTEXPR_CHECK(a(enum_type::value3) == ae{"123", false});
     }
 }
 
 TEST_CASE("append floats", "[utility]") {
-    using ae  = append_test::append_expected;
+    using ae = append_test::append_expected;
+#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST && SNITCH_APPEND_TO_CHARS
+    // answers will be different only if no bitcast AND we do have runtime to_chars
+    // otherwise append_constexpr will be used at runtime
     using aed = append_test::append_expected_diff;
+#endif
 
     SECTION("floats do fit") {
         constexpr auto a = [](const auto& value) constexpr {
@@ -359,11 +356,16 @@ TEST_CASE("append floats", "[utility]") {
 
         CONSTEXPR_CHECK(a(0.0f) == ae{"0.000000e+00"sv, true});
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        // std::bit_cast is enabled, and will match the output of std::to_chars if used at runtime
         CONSTEXPR_CHECK(a(-0.0f) == ae{"-0.000000e+00"sv, true});
-#else
+#elif SNITCH_APPEND_TO_CHARS
         // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
         // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
         CONSTEXPR_CHECK(a(-0.0f) == aed{{"0.000000e+00"sv, true}, {"-0.000000e+00"sv, true}});
+#else
+        // No std::bit_cast, but also no std::to_chars. append_constexpr will be used
+        // for runtime and match the compile time results
+        CONSTEXPR_CHECK(a(-0.0f) == ae{"0.000000e+00"sv, true});
 #endif
         CONSTEXPR_CHECK(a(1.0f) == ae{"1.000000e+00"sv, true});
         CONSTEXPR_CHECK(a(1.5f) == ae{"1.500000e+00"sv, true});
@@ -375,6 +377,7 @@ TEST_CASE("append floats", "[utility]") {
         CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.000000e+00"sv, true});
         CONSTEXPR_CHECK(a(10.0f) == ae{"1.000000e+01"sv, true});
         CONSTEXPR_CHECK(a(1e4f) == ae{"1.000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(1e-6f) == ae{"1.000000e-06"sv, true});
         // The number below is a tricky one: it is exactly representable, but intermediate
         // calculations requires more digits than can be stored on fixed-point 64 bits.
         // Furthermore, rounding is an exact tie, and exposes the round-half-to-even behavior.
@@ -422,11 +425,8 @@ TEST_CASE("append floats", "[utility]") {
             return append_test::to_string<5, true>(value);
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(0.0f) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
-        CONSTEXPR_CHECK(a(-1.0f) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
+        CONSTEXPR_CHECK(a(0.0f) == ae{"0.000"sv, false});
+        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.00"sv, false});
     }
 
 #if 0
@@ -460,8 +460,10 @@ TEST_CASE("append floats", "[utility]") {
 }
 
 TEST_CASE("append doubles", "[utility]") {
-    using ae  = append_test::append_expected;
+    using ae = append_test::append_expected;
+#if !SNITCH_CONSTEXPR_FLOAT_USE_BITCAST && SNITCH_APPEND_TO_CHARS
     using aed = append_test::append_expected_diff;
+#endif
 
     SECTION("doubles do fit") {
         constexpr auto a = [](const auto& value) constexpr {
@@ -470,12 +472,17 @@ TEST_CASE("append doubles", "[utility]") {
 
         CONSTEXPR_CHECK(a(0.0) == ae{"0.000000000000000e+00"sv, true});
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
+        // std::bit_cast is enabled, and will match the output of std::to_chars if used at runtime
         CONSTEXPR_CHECK(a(-0.0) == ae{"-0.000000000000000e+00"sv, true});
-#else
+#elif SNITCH_APPEND_TO_CHARS
         // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
         // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
         CONSTEXPR_CHECK(
             a(-0.0) == aed{{"0.000000000000000e+00"sv, true}, {"-0.000000000000000e+00"sv, true}});
+#else
+        // No std::bit_cast, but also no std::to_chars. append_constexpr will be used for
+        // runtime and match the compile time results
+        CONSTEXPR_CHECK(a(-0.0) == ae{"0.000000000000000e+00"sv, true});
 #endif
         CONSTEXPR_CHECK(a(1.0) == ae{"1.000000000000000e+00"sv, true});
         CONSTEXPR_CHECK(a(1.5) == ae{"1.500000000000000e+00"sv, true});
@@ -496,6 +503,7 @@ TEST_CASE("append doubles", "[utility]") {
         CONSTEXPR_CHECK(a(-1.0) == ae{"-1.000000000000000e+00"sv, true});
         CONSTEXPR_CHECK(a(10.0) == ae{"1.000000000000000e+01"sv, true});
         CONSTEXPR_CHECK(a(1e4) == ae{"1.000000000000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(1e-6) == ae{"1.000000000000000e-06"sv, true});
         CONSTEXPR_CHECK(a(2.3456e301) == ae{"2.345600000000000e+301"sv, true});
         CONSTEXPR_CHECK(a(-2.3456e301) == ae{"-2.345600000000000e+301"sv, true});
         CONSTEXPR_CHECK(a(1.797693134862315e308) == ae{"1.797693134862315e+308"sv, true});
@@ -539,11 +547,8 @@ TEST_CASE("append doubles", "[utility]") {
             return append_test::to_string<5, true>(value);
         };
 
-        // Different expectation at runtime and compile-time. At runtime,
-        // we are stuck with snprintf, which insists on writing a null-terminator character,
-        // therefore we loose one character at the end.
-        CONSTEXPR_CHECK(a(0.0) == aed{{"0.000"sv, false}, {"0.00"sv, false}});
-        CONSTEXPR_CHECK(a(-1.0) == aed{{"-1.00"sv, false}, {"-1.0"sv, false}});
+        CONSTEXPR_CHECK(a(0.0) == ae{"0.000"sv, false});
+        CONSTEXPR_CHECK(a(-1.0) == ae{"-1.00"sv, false});
     }
 }
 

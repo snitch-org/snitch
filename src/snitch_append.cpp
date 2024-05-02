@@ -1,65 +1,74 @@
 #include "snitch/snitch_append.hpp"
 
-#include <cinttypes> // for format strings
-#include <cstdio> // for std::snprintf
+#include "snitch/snitch_concepts.hpp"
+#include "snitch/snitch_string.hpp"
+
+#include <cstdint> // for std::uintptr_t
 #include <cstring> // for std::memmove
+#if SNITCH_APPEND_TO_CHARS
+#    include <charconv> // for std::to_chars
+#    include <system_error> // for std::errc
+#endif
 
 namespace snitch::impl {
 namespace {
 using snitch::small_string_span;
+using namespace std::literals;
 
-template<typename T>
-constexpr const char* get_format_code() noexcept {
-    if constexpr (std::is_same_v<T, const void*>) {
-#if defined(_MSC_VER)
-        return "0x%p";
+#if SNITCH_APPEND_TO_CHARS
+template<floating_point T>
+bool append_to(small_string_span ss, T value) noexcept {
+    constexpr auto fmt       = std::chars_format::scientific;
+    constexpr auto precision = same_as<float, std::remove_cvref_t<T>> ? 6 : 15;
+    auto [end, err] = std::to_chars(ss.end(), ss.begin() + ss.capacity(), value, fmt, precision);
+    if (err != std::errc{}) {
+        // Not enough space, try into a temporary string that *should* be big enough,
+        // and copy whatever we can. 32 characters is enough for all integers and floating
+        // point values encoded on 64 bit or less.
+        small_string<32> fallback;
+        auto [end2, err2] = std::to_chars(
+            fallback.end(), fallback.begin() + fallback.capacity(), value, fmt, precision);
+        if (err2 != std::errc{}) {
+            return false;
+        }
+        fallback.grow(end2 - fallback.begin());
+        return append(ss, fallback);
+    }
+
+    ss.grow(end - ss.end());
+    return true;
+}
+
+template<large_int_t Base = 10, integral T>
+bool append_to(small_string_span ss, T value) noexcept {
+    auto [end, err] = std::to_chars(ss.end(), ss.begin() + ss.capacity(), value, Base);
+    if (err != std::errc{}) {
+        // Not enough space, try into a temporary string that *should* be big enough,
+        // and copy whatever we can. 32 characters is enough for all integers and floating
+        // point values encoded on 64 bit or less.
+        small_string<32> fallback;
+        auto [end2, err2] =
+            std::to_chars(fallback.end(), fallback.begin() + fallback.capacity(), value, Base);
+        if (err2 != std::errc{}) {
+            return false;
+        }
+        fallback.grow(end2 - fallback.begin());
+        return append(ss, fallback);
+    }
+    ss.grow(end - ss.end());
+    return true;
+}
 #else
-        return "%p";
+template<floating_point T>
+bool append_to(small_string_span ss, T value) noexcept {
+    return append_constexpr(ss, value);
+}
+
+template<large_int_t Base = 10, integral T>
+bool append_to(small_string_span ss, T value) noexcept {
+    return append_constexpr<Base>(ss, value);
+}
 #endif
-    } else if constexpr (std::is_same_v<T, std::uintmax_t>) {
-        return "%" PRIuMAX;
-    } else if constexpr (std::is_same_v<T, std::intmax_t>) {
-        return "%" PRIdMAX;
-    } else if constexpr (std::is_same_v<T, float>) {
-        return "%.6e";
-    } else if constexpr (std::is_same_v<T, double>) {
-        return "%.15e";
-    } else {
-        static_assert(!std::is_same_v<T, T>, "unsupported type");
-    }
-}
-
-template<typename T>
-bool append_fmt(small_string_span ss, T value) noexcept {
-    if (ss.available() <= 1) {
-        // snprintf will always print a null-terminating character,
-        // so abort early if only space for one or zero character, as
-        // this would clobber the original string.
-        return false;
-    }
-
-    // Calculate required length.
-    const int return_code = std::snprintf(nullptr, 0, get_format_code<T>(), value);
-    if (return_code < 0) {
-        return false;
-    }
-
-    // 'return_code' holds the number of characters that are required,
-    // excluding the null-terminating character, which always gets appended,
-    // so we need to +1.
-    const std::size_t length    = static_cast<std::size_t>(return_code) + 1;
-    const bool        could_fit = length <= ss.available();
-
-    const std::size_t offset     = ss.size();
-    const std::size_t prev_space = ss.available();
-    ss.resize(std::min(ss.size() + length, ss.capacity()));
-    std::snprintf(ss.begin() + offset, prev_space, get_format_code<T>(), value);
-
-    // Pop the null-terminating character, always printed unfortunately.
-    ss.pop_back();
-
-    return could_fit;
-}
 } // namespace
 
 bool append_fast(small_string_span ss, std::string_view str) noexcept {
@@ -80,24 +89,42 @@ bool append_fast(small_string_span ss, std::string_view str) noexcept {
 bool append_fast(small_string_span ss, const void* ptr) noexcept {
     if (ptr == nullptr) {
         return append(ss, nullptr);
-    } else {
-        return append_fmt(ss, ptr);
     }
+
+    if (!append_fast(ss, "0x"sv)) {
+        return false;
+    }
+
+    const auto int_ptr = reinterpret_cast<std::uintptr_t>(ptr);
+
+    // Pad with zeros.
+    constexpr std::size_t max_digits = 2 * sizeof(void*);
+    std::size_t           padding    = max_digits - num_digits<16>(int_ptr);
+    while (padding > 0) {
+        constexpr std::string_view zeroes = "0000000000000000";
+        const std::size_t          batch  = std::min(zeroes.size(), padding);
+        if (!append_fast(ss, zeroes.substr(0, batch))) {
+            return false;
+        }
+
+        padding -= batch;
+    }
+    return append_to<16>(ss, int_ptr);
 }
 
 bool append_fast(small_string_span ss, large_uint_t i) noexcept {
-    return append_fmt(ss, i);
+    return append_to(ss, i);
 }
 
 bool append_fast(small_string_span ss, large_int_t i) noexcept {
-    return append_fmt(ss, i);
+    return append_to(ss, i);
 }
 
 bool append_fast(small_string_span ss, float f) noexcept {
-    return append_fmt(ss, f);
+    return append_to(ss, f);
 }
 
 bool append_fast(small_string_span ss, double d) noexcept {
-    return append_fmt(ss, d);
+    return append_to(ss, d);
 }
 } // namespace snitch::impl
