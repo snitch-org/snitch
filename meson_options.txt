@@ -19,7 +19,7 @@ option('with_multithreading'             ,type: 'boolean', value: true, descript
 option('with_timings'                    ,type: 'boolean' ,value: true, description: 'Measure the time taken by each test case -- disable to speed up tests.')
 option('with_shorthand_macros'           ,type: 'boolean' ,value: true, description: 'Use short names for test macros -- disable if this causes conflicts.')
 option('constexpr_float_use_bitcast'     ,type: 'boolean' ,value: true, description: 'Use std::bit_cast if available to implement exact constexpr float-to-string conversion.')
-option('snitch_append_to_chars'          ,type: 'boolean' ,value: true, description: 'Use std::to_char for string conversions -- disable for greater compatability with a slight performance cost.')
+option('snitch_append_to_chars'          ,type: 'boolean' ,value: true, description: 'Use std::to_chars for string conversions -- disable for greater compatability with a slight performance cost.')
 option('default_with_color'              ,type: 'boolean' ,value: true, description: 'Enable terminal colors by default -- can also be controlled by command line interface.')
 option('decompose_successful_assertions' ,type: 'boolean' ,value: true, description: 'Enable expression decomposition even for successful assertions -- more expensive.')
 option('with_all_reporters'              ,type: 'boolean' ,value: true, description: 'Allow all built-in reporters to be selected from the command line -- disable for faster compilation.')
