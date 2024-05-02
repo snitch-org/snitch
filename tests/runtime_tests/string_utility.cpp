@@ -787,6 +787,64 @@ TEMPLATE_TEST_CASE(
     }
 }
 
+namespace escape_test {
+template<std::size_t N>
+using escape_result = append_test::append_result<N>;
+
+using escape_expected = append_test::append_expected;
+
+template<std::size_t N>
+escape_result<N>
+escape(std::string_view str, std::string_view pattern, std::string_view replacement) {
+    snitch::small_string<N> out     = str;
+    bool                    success = escape_all_or_truncate(out, pattern, replacement);
+    return {out, success};
+}
+} // namespace escape_test
+
+TEST_CASE("escape_all_or_truncate", "[utility]") {
+    using namespace escape_test;
+    using e = escape_expected;
+
+    SECTION("different value") {
+        CHECK(escape<5>("abaca", "a", "bb") == e{"bb...", false});
+        CHECK(escape<6>("abaca", "a", "bb") == e{"bbb...", false});
+        CHECK(escape<7>("abaca", "a", "bb") == e{"bbb...", false});
+        CHECK(escape<8>("abaca", "a", "bb") == e{"bbbbbcbb", true});
+        CHECK(escape<9>("abaca", "a", "bb") == e{"bbbbbcbb", true});
+
+        CHECK(escape<6>("ababaa", "b", "aa") == e{"aaa...", false});
+        CHECK(escape<7>("ababaa", "b", "aa") == e{"aaaa...", false});
+        CHECK(escape<8>("ababaa", "b", "aa") == e{"aaaaaaaa", true});
+        CHECK(escape<9>("ababaa", "b", "aa") == e{"aaaaaaaa", true});
+    }
+
+    SECTION("same value") {
+        CHECK(escape<5>("abaca", "a", "aa") == e{"aa...", false});
+        CHECK(escape<6>("abaca", "a", "aa") == e{"aab...", false});
+        CHECK(escape<7>("abaca", "a", "aa") == e{"aab...", false});
+        CHECK(escape<8>("abaca", "a", "aa") == e{"aabaacaa", true});
+        CHECK(escape<9>("abaca", "a", "aa") == e{"aabaacaa", true});
+    }
+
+    SECTION("no match") {
+        CHECK(escape<5>("abaca", "t", "aa") == e{"abaca", true});
+        CHECK(escape<6>("abaca", "t", "aa") == e{"abaca", true});
+    }
+
+    SECTION("with replacement bigger than capacity") {
+        CHECK(escape<5>("abaca", "a", "abcdefghijklmnopqrst") == e{"...", false});
+        CHECK(escape<5>("abaca", "b", "abcdefghijklmnopqrst") == e{"a...", false});
+    }
+
+    SECTION("with pattern bigger than capacity") {
+        CHECK(
+            escape<5>(
+                "abaca", "abacaabcdefghijklmqrst", "abcdefghijklmnopqrstabcdefghijklmnopqrst") ==
+            e{"abaca", true});
+    }
+}
+
 TEST_CASE("is_match", "[utility]") {
     SECTION("empty") {
         CHECK(snitch::is_match(""sv, ""sv));
