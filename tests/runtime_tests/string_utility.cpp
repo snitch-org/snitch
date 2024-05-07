@@ -845,6 +845,7 @@ TEST_CASE("escape_all_or_truncate", "[utility]") {
             e{"abaca", true});
     }
 
+#if SNITCH_WITH_EXCEPTIONS
     SECTION("with replacement smaller than pattern") {
         assertion_exception_enabler enabler;
 
@@ -852,6 +853,7 @@ TEST_CASE("escape_all_or_truncate", "[utility]") {
             escape<5>("abaca", "aa", "a"), assertion_exception,
             "requires a replacement that is longer than the pattern");
     }
+#endif
 }
 
 TEST_CASE("is_match", "[utility]") {
