@@ -1,5 +1,7 @@
 #include "snitch/snitch_string_utility.hpp"
 
+#include "snitch/snitch_error_handling.hpp"
+
 #include <algorithm> // for std::rotate
 #include <cstring> // for std::memcpy
 
