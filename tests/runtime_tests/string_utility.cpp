@@ -851,7 +851,7 @@ TEST_CASE("escape_all_or_truncate", "[utility]") {
 
         CHECK_THROWS_WHAT(
             escape<5>("abaca", "aa", "a"), assertion_exception,
-            "requires a replacement that is longer than the pattern");
+            "escape_all() requires a replacement that is longer than the pattern");
     }
 #endif
 }
