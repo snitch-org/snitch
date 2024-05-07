@@ -54,8 +54,9 @@ constexpr small_string<N> resize_or_truncate(const small_string<M>& str) noexcep
 SNITCH_EXPORT [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
 
+// Requires: replacement.length() > pattern.length()
 SNITCH_EXPORT [[nodiscard]] bool escape_all_or_truncate(
-    small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+    small_string_span string, std::string_view pattern, std::string_view replacement);
 
 SNITCH_EXPORT [[nodiscard]] std::size_t
 find_first_not_escaped(std::string_view str, char c) noexcept;

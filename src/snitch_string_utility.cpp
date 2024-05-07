@@ -110,10 +110,10 @@ bool replace_all(
 }
 
 bool escape_all_or_truncate(
-    small_string_span string, std::string_view pattern, std::string_view replacement) noexcept {
+    small_string_span string, std::string_view pattern, std::string_view replacement) {
 
     if (replacement.size() <= pattern.size()) {
-        terminate_with("escape_all() requires a replacement that is longer than the pattern");
+        assertion_failed("escape_all() requires a replacement that is longer than the pattern");
     }
 
     const std::size_t char_diff = replacement.size() - pattern.size();

@@ -1,4 +1,5 @@
 #include "testing.hpp"
+#include "testing_assertions.hpp"
 
 #include <cmath>
 
@@ -842,6 +843,14 @@ TEST_CASE("escape_all_or_truncate", "[utility]") {
             escape<5>(
                 "abaca", "abacaabcdefghijklmqrst", "abcdefghijklmnopqrstabcdefghijklmnopqrst") ==
             e{"abaca", true});
+    }
+
+    SECTION("with replacement smaller than pattern") {
+        assertion_exception_enabler enabler;
+
+        CHECK_THROWS_WHAT(
+            escape<5>("abaca", "aa", "a"), assertion_exception,
+            "requires a replacement that is longer than the pattern");
     }
 }
 
