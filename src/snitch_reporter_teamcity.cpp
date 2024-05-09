@@ -114,7 +114,7 @@ constexpr std::size_t max_duration_length = 32;
 #    if SNITCH_WITH_TIMINGS
 small_string<max_duration_length> make_duration(float duration) noexcept {
     small_string<max_duration_length> string;
-    append_or_truncate(string, static_cast<std::size_t>(duration * 1e6));
+    append_or_truncate(string, static_cast<std::size_t>(duration * 1e6f));
     return string;
 }
 #    endif

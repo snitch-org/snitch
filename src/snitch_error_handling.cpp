@@ -1,14 +1,14 @@
 #include "snitch/snitch_error_handling.hpp"
 
-#include "snitch/snitch_console.hpp"
+#include "snitch/snitch_cli.hpp"
 
 #include <exception> // for std::terminate
 
 namespace snitch {
 [[noreturn]] void terminate_with(std::string_view msg) noexcept {
-    impl::stdout_print("terminate called with message: ");
-    impl::stdout_print(msg);
-    impl::stdout_print("\n");
+    cli::console_print("terminate called with message: ");
+    cli::console_print(msg);
+    cli::console_print("\n");
 
     std::terminate();
 }
