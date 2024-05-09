@@ -8,6 +8,6 @@ expected failure: running test case "test shouldfail bad pass"
           CHECK(1 == 2), got: 1 != 2
 failed: running test case "test too long message pass"
           at *testing_reporters.cpp:*
-          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
 ==========================================
 error: some tests failed (1 out of 17 test cases, 26 assertions, * seconds)

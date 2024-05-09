@@ -18,12 +18,12 @@ struct key_value {
     std::string_view value;
 };
 
-void escape(small_string_span string) noexcept {
-    if (!replace_all(string, "&", "&amp;") || !replace_all(string, "\"", "&quot;") ||
-        !replace_all(string, "'", "&apos;") || !replace_all(string, "<", "&lt;") ||
-        !replace_all(string, ">", "&gt;")) {
-        truncate_end(string);
-    }
+bool escape(small_string_span string) noexcept {
+    return escape_all_or_truncate(string, "&", "&amp;") &&
+           escape_all_or_truncate(string, "\"", "&quot;") &&
+           escape_all_or_truncate(string, "'", "&apos;") &&
+           escape_all_or_truncate(string, "<", "&lt;") &&
+           escape_all_or_truncate(string, ">", "&gt;");
 }
 
 small_string<max_message_length> make_escaped(std::string_view string) noexcept {

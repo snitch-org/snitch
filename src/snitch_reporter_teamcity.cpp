@@ -25,12 +25,11 @@ struct key_value {
     std::variant<std::string_view, assertion> value;
 };
 
-void escape(small_string_span string) noexcept {
-    if (!replace_all(string, "|", "||") || !replace_all(string, "'", "|'") ||
-        !replace_all(string, "\n", "|n") || !replace_all(string, "\r", "|r") ||
-        !replace_all(string, "[", "|[") || !replace_all(string, "]", "|]")) {
-        truncate_end(string);
-    }
+bool escape(small_string_span string) noexcept {
+    return escape_all_or_truncate(string, "|", "||") && escape_all_or_truncate(string, "'", "|'") &&
+           escape_all_or_truncate(string, "\n", "|n") &&
+           escape_all_or_truncate(string, "\r", "|r") &&
+           escape_all_or_truncate(string, "[", "|[") && escape_all_or_truncate(string, "]", "|]");
 }
 
 template<typename T>

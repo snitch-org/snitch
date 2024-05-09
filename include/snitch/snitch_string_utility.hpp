@@ -36,8 +36,27 @@ constexpr bool append_or_truncate(small_string_span ss, Args&&... args) noexcept
     return true;
 }
 
+template<std::size_t N, std::size_t M>
+constexpr small_string<N> resize_or_truncate(const small_string<M>& str) noexcept {
+    if constexpr (N == M) {
+        return str;
+    } else if constexpr (N > M) {
+        small_string<N> out;
+        append(out, str);
+        return out;
+    } else {
+        small_string<N> out;
+        append_or_truncate(out, str);
+        return out;
+    }
+}
+
 SNITCH_EXPORT [[nodiscard]] bool replace_all(
     small_string_span string, std::string_view pattern, std::string_view replacement) noexcept;
+
+// Requires: replacement.length() > pattern.length()
+SNITCH_EXPORT [[nodiscard]] bool escape_all_or_truncate(
+    small_string_span string, std::string_view pattern, std::string_view replacement);
 
 SNITCH_EXPORT [[nodiscard]] std::size_t
 find_first_not_escaped(std::string_view str, char c) noexcept;
