@@ -10,6 +10,8 @@ namespace snitch::reporter::console {
 struct reporter {
     std::size_t counter = 0;
 
+    reporter() = default;
+
     SNITCH_EXPORT explicit reporter(registry& r) noexcept;
 
     SNITCH_EXPORT bool configure(registry&, std::string_view, std::string_view) noexcept;

@@ -112,6 +112,19 @@ class registry {
     // Used when writing output to file.
     std::optional<impl::file_writer> file_writer;
 
+    // the default console reporter
+    static inline snitch::reporter::console::reporter console_reporter;
+
+    // static functions to allow console reporter to be registered
+    static void console_init(snitch::registry&) noexcept {}
+    static bool console_config(snitch::registry& r, std::string_view k, std::string_view v) noexcept {
+        return console_reporter.configure(r, k, v);
+    }
+    static void console_report(const snitch::registry& r, const snitch::event::data& e) noexcept {
+        console_reporter.report(r, e);
+    }
+    static void console_finish(snitch::registry&) noexcept {}
+
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
     bool with_color                                            = SNITCH_DEFAULT_WITH_COLOR == 1;
@@ -122,9 +135,9 @@ public:
     using report_function            = snitch::report_function;
     using finish_report_function     = snitch::finish_report_function;
 
-    print_function         print_callback  = &snitch::impl::stdout_print;
-    report_function        report_callback = &snitch::reporter::console::report;
-    finish_report_function finish_callback = [](registry&) noexcept {};
+    print_function  print_callback  = &snitch::impl::stdout_print;
+    report_function report_callback = &console_report;
+    finish_report_function finish_callback = &console_finish;
 
     // Internal API; do not use.
     template<typename T>
@@ -173,6 +186,9 @@ public:
         const std::optional<configure_report_function>&  configure,
         const report_function&                           report,
         const std::optional<finish_report_function>&     finish);
+
+    // Internal API; do not use.
+    SNITCH_EXPORT std::string_view add_console_reporter();
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.

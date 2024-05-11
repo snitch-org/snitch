@@ -203,5 +203,3 @@ void reporter::report(const registry& r, const event::data& event) noexcept {
         event);
 }
 } // namespace snitch::reporter::console
-
-SNITCH_REGISTER_REPORTER("console", snitch::reporter::console::reporter);

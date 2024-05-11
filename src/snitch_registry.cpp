@@ -336,6 +336,10 @@ std::string_view registry::add_reporter(
     return name;
 }
 
+std::string_view registry::add_console_reporter() {
+    return add_reporter("console", console_init, console_config, console_report, console_finish);
+}
+
 const char*
 registry::add_impl(const test_id& id, const source_location& location, impl::test_ptr func) {
     if (test_list.available() == 0u) {
@@ -1019,3 +1023,6 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
 
 constinit registry tests;
 } // namespace snitch
+
+static const std::string_view console_reporter_id [[maybe_unused]] =
+    snitch::tests.add_console_reporter();
