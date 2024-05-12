@@ -116,7 +116,9 @@ class registry {
     static inline snitch::reporter::console::reporter console_reporter;
 
     // static functions to allow console reporter to be registered
-    static void console_init(snitch::registry&) noexcept {}
+    static void console_init(snitch::registry& r) noexcept {
+        console_reporter = snitch::reporter::console::reporter(r);
+    }
     static bool console_config(snitch::registry& r, std::string_view k, std::string_view v) noexcept {
         return console_reporter.configure(r, k, v);
     }
