@@ -171,14 +171,19 @@ struct default_reporter_functor {
         print_message(r, e.data);
     }
 
-    void operator()(const snitch::event::list_test_run_started&) const noexcept {}
+    void operator()(const snitch::event::list_test_run_started&) const noexcept {
+        r.print("Matching test cases:\n");
+    }
 
     void operator()(const snitch::event::list_test_run_ended&) const noexcept {}
 
     void operator()(const snitch::event::test_case_listed& e) {
         small_string<max_test_name_length> full_name;
         make_full_name(full_name, e.id);
-        r.print(full_name, "\n");
+        r.print("  ", full_name, "\n");
+        if (!e.id.tags.empty()) {
+            r.print("      ", e.id.tags, "\n");
+        }
     }
 };
 } // namespace
