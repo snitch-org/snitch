@@ -534,7 +534,7 @@ SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_PRECEDENCE
 SNITCH_WARNING_DISABLE_ASSIGNMENT
 
-#if defined(SNITCH_COMPILER_MSVC) && _MSC_VER >= 1937 && _MSC_VER <= 1938
+#if defined(__cpp_consteval) && __cpp_consteval <= 202211L
 // Regression in MSVC compiler
 // https://github.com/snitch-org/snitch/issues/140
 // https://developercommunity.visualstudio.com/t/Regression:-False-positive-C7595:-std::/10509214
