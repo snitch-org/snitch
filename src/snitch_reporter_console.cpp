@@ -86,9 +86,7 @@ void print_message(const registry& r, const assertion_data& data) {
 }
 } // namespace
 
-void reporter::init(registry&) noexcept {
-    counter = 0;
-}
+reporter::reporter(registry&) noexcept {}
 
 bool reporter::configure(registry& r, std::string_view option, std::string_view value) noexcept {
     if (option == "color") {
@@ -205,3 +203,5 @@ void reporter::report(const registry& r, const event::data& event) noexcept {
         event);
 }
 } // namespace snitch::reporter::console
+
+SNITCH_REGISTER_REPORTER("console", snitch::reporter::console::reporter);

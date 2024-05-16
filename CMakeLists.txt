@@ -15,6 +15,7 @@ set(SNITCH_MAX_UNIQUE_TAGS          1024 CACHE STRING "Maximum number of unique 
 set(SNITCH_MAX_COMMAND_LINE_ARGS    1024 CACHE STRING "Maximum number of command line arguments to a test application.")
 set(SNITCH_MAX_REGISTERED_REPORTERS 8    CACHE STRING "Maximum number of registered reporter that can be selected from the command line.")
 set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file path when writing output to file.")
+set(SNITCH_MAX_REPORTER_SIZE_BYTES  128  CACHE STRING "Maximum size (in bytes) of a reporter object.")
 
 # Feature toggles.
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
@@ -221,6 +222,7 @@ if (SNITCH_DO_TEST)
             SNITCH_MAX_MESSAGE_LENGTH=129
             SNITCH_MAX_TEST_NAME_LENGTH=130
             SNITCH_MAX_CAPTURE_LENGTH=131
+            SNITCH_MAX_REPORTER_SIZE_BYTES=16
             SNITCH_DEFINE_MAIN=0)
     endfunction()
 
