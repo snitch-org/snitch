@@ -86,8 +86,6 @@ void print_message(const registry& r, const assertion_data& data) {
 }
 } // namespace
 
-reporter::reporter(registry&) noexcept {}
-
 void reporter::init(registry&) noexcept {
     counter = 0;
 }

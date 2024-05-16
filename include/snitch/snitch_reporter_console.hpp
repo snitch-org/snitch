@@ -12,8 +12,6 @@ struct reporter {
 
     reporter() = default;
 
-    SNITCH_EXPORT explicit reporter(registry& r) noexcept;
-
     SNITCH_EXPORT void init(registry& r) noexcept;
 
     SNITCH_EXPORT bool configure(registry&, std::string_view, std::string_view) noexcept;
