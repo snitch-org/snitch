@@ -337,7 +337,12 @@ std::string_view registry::add_reporter(
 }
 
 std::string_view registry::add_console_reporter() {
-    return add_reporter("console", console_init, console_config, console_report, console_finish);
+    using reporter_type = snitch::reporter::console::reporter;
+    return add_reporter("console",
+        initialize_report_function{console_reporter, snitch::constant<&reporter_type::init>{}},
+        configure_report_function{console_reporter, snitch::constant<&reporter_type::configure>{}},
+        {console_reporter, snitch::constant<&snitch::reporter::console::reporter::report>{}},
+        {});
 }
 
 const char*

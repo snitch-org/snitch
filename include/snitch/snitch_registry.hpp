@@ -113,19 +113,7 @@ class registry {
     std::optional<impl::file_writer> file_writer;
 
     // the default console reporter
-    static inline snitch::reporter::console::reporter console_reporter;
-
-    // static functions to allow console reporter to be registered
-    static void console_init(snitch::registry& r) noexcept {
-        console_reporter = snitch::reporter::console::reporter(r);
-    }
-    static bool console_config(snitch::registry& r, std::string_view k, std::string_view v) noexcept {
-        return console_reporter.configure(r, k, v);
-    }
-    static void console_report(const snitch::registry& r, const snitch::event::data& e) noexcept {
-        console_reporter.report(r, e);
-    }
-    static void console_finish(snitch::registry&) noexcept {}
+    snitch::reporter::console::reporter console_reporter;
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
@@ -138,8 +126,9 @@ public:
     using finish_report_function     = snitch::finish_report_function;
 
     print_function  print_callback  = &snitch::impl::stdout_print;
-    report_function report_callback = &console_report;
-    finish_report_function finish_callback = &console_finish;
+    report_function report_callback = {
+        console_reporter, snitch::constant<&snitch::reporter::console::reporter::report>{}};
+    finish_report_function finish_callback = [](registry&) noexcept {};
 
     // Internal API; do not use.
     template<typename T>

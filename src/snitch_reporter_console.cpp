@@ -88,6 +88,10 @@ void print_message(const registry& r, const assertion_data& data) {
 
 reporter::reporter(registry&) noexcept {}
 
+void reporter::init(registry&) noexcept {
+    counter = 0;
+}
+
 bool reporter::configure(registry& r, std::string_view option, std::string_view value) noexcept {
     if (option == "color") {
         parse_color_option(r, value);
