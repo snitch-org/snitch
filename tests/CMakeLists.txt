@@ -46,6 +46,7 @@ set(TEST_UTILITY_FILES
 
 set(RUNTIME_TEST_FILES
     ${TEST_UTILITY_FILES}
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/any.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/capture.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/cli.cpp

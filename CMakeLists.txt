@@ -60,6 +60,7 @@ configure_file("${PROJECT_SOURCE_DIR}/include/snitch/snitch_config.hpp.config"
 
 set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_any.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_append.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_capture.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_cli.hpp

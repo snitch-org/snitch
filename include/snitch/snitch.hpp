@@ -1,6 +1,7 @@
 #ifndef SNITCH_HPP
 #define SNITCH_HPP
 
+#include "snitch/snitch_any.hpp"
 #include "snitch/snitch_append.hpp"
 #include "snitch/snitch_capture.hpp"
 #include "snitch/snitch_cli.hpp"

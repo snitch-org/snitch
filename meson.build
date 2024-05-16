@@ -28,6 +28,7 @@ add_project_link_arguments(cpp_arguments, language : 'cpp')
 include_dirs = include_directories('.', 'include')
 
 headers = files('include/snitch/snitch.hpp',
+                'include/snitch/snitch_any.hpp',
                 'include/snitch/snitch_append.hpp',
                 'include/snitch/snitch_capture.hpp',
                 'include/snitch/snitch_cli.hpp',
