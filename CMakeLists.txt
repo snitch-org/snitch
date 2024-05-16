@@ -89,6 +89,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_test_data.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_id.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_name.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
     ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)

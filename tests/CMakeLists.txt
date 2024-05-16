@@ -59,6 +59,7 @@ set(RUNTIME_TEST_FILES
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_id.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp)
 
 set(APPROVAL_TEST_FILES

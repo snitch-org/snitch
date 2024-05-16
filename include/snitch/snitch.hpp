@@ -31,6 +31,7 @@
 #include "snitch/snitch_string.hpp"
 #include "snitch/snitch_string_utility.hpp"
 #include "snitch/snitch_test_data.hpp"
+#include "snitch/snitch_type_id.hpp"
 #include "snitch/snitch_type_name.hpp"
 #include "snitch/snitch_vector.hpp"
 
