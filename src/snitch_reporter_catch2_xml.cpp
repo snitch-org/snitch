@@ -182,7 +182,7 @@ void reporter::report(const registry& r, const snitch::event::data& event) noexc
                     *this, r, "Catch2TestRun",
                     {{"name", make_escaped(e.name)},
                      {"rng-seed", "0"},
-                     {"xml-format-version", "2"},
+                     {"xml-format-version", "3"},
                      {"catch2-version", SNITCH_FULL_VERSION ".snitch"},
                      {"filters", make_filters(e.filters)}});
             },
