@@ -1,6 +1,7 @@
 #ifndef SNITCH_REGISTRY_HPP
 #define SNITCH_REGISTRY_HPP
 
+#include "snitch/snitch_any.hpp"
 #include "snitch/snitch_append.hpp"
 #include "snitch/snitch_cli.hpp"
 #include "snitch/snitch_config.hpp"
@@ -34,6 +35,8 @@ constexpr std::size_t max_tag_length = SNITCH_MAX_TAG_LENGTH;
 constexpr std::size_t max_unique_tags = SNITCH_MAX_UNIQUE_TAGS;
 // Maximum number of registered reporters to select from the command line.
 constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS;
+// Maximum size of a reporter instance, in bytes.
+constexpr std::size_t max_reporter_size_bytes = SNITCH_MAX_REPORTER_SIZE_BYTES;
 } // namespace snitch
 
 namespace snitch::impl {
@@ -102,6 +105,13 @@ struct registered_reporter {
     finish_report_function finish   = [](registry&) noexcept {};
 };
 
+template<typename T>
+concept reporter_type =
+    requires(registry& reg) { T{reg}; } &&
+    requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
+        { rep.configure(reg, k, v) } -> convertible_to<bool>;
+    } && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
+
 class registry {
     // Contains all registered test cases.
     small_vector<impl::test_case, max_test_cases> test_list;
@@ -112,8 +122,27 @@ class registry {
     // Used when writing output to file.
     std::optional<impl::file_writer> file_writer;
 
-    // the default console reporter
-    snitch::reporter::console::reporter console_reporter;
+    // Type-erased storage for the current reporter instance.
+    inplace_any<max_reporter_size_bytes> reporter_storage;
+
+    template<typename T>
+    void initialize_reporter(registry&) noexcept {
+        this->reporter_storage.emplace<T>(*this);
+    }
+
+    template<typename T>
+    void report(const registry&, const event::data& e) noexcept {
+        this->reporter_storage.get<T>().report(*this, e);
+    }
+
+    template<typename T>
+    bool configure_reporter(registry&, std::string_view k, std::string_view v) noexcept {
+        return this->reporter_storage.get<T>().configure(*this, k, v);
+    }
+
+    SNITCH_EXPORT void destroy_reporter(registry&) noexcept;
+
+    SNITCH_EXPORT void report_default(const registry&, const event::data& e) noexcept;
 
 public:
     enum class verbosity { quiet, normal, high, full } verbose = verbosity::normal;
@@ -125,9 +154,8 @@ public:
     using report_function            = snitch::report_function;
     using finish_report_function     = snitch::finish_report_function;
 
-    print_function  print_callback  = &snitch::impl::stdout_print;
-    report_function report_callback = {
-        console_reporter, snitch::constant<&snitch::reporter::console::reporter::report>{}};
+    print_function         print_callback  = &snitch::impl::stdout_print;
+    report_function        report_callback = {*this, constant<&registry::report_default>{}};
     finish_report_function finish_callback = [](registry&) noexcept {};
 
     // Internal API; do not use.
@@ -178,8 +206,15 @@ public:
         const report_function&                           report,
         const std::optional<finish_report_function>&     finish);
 
-    // Internal API; do not use.
-    SNITCH_EXPORT std::string_view add_console_reporter();
+    // Requires: number of reporters + 1 <= max_registered_reporters.
+    template<reporter_type T>
+    std::string_view add_reporter(std::string_view name) {
+        return this->add_reporter(
+            name, initialize_report_function{*this, constant<&registry::initialize_reporter<T>>{}},
+            configure_report_function{*this, constant<&registry::configure_reporter<T>>{}},
+            report_function{*this, constant<&registry::report<T>>{}},
+            finish_report_function{*this, constant<&registry::destroy_reporter>{}});
+    }
 
     // Internal API; do not use.
     // Requires: number of tests + 1 <= max_test_cases, well-formed test ID.

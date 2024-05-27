@@ -28,6 +28,7 @@ add_project_link_arguments(cpp_arguments, language : 'cpp')
 include_dirs = include_directories('.', 'include')
 
 headers = files('include/snitch/snitch.hpp',
+                'include/snitch/snitch_any.hpp',
                 'include/snitch/snitch_append.hpp',
                 'include/snitch/snitch_capture.hpp',
                 'include/snitch/snitch_cli.hpp',
@@ -58,6 +59,7 @@ headers = files('include/snitch/snitch.hpp',
                 'include/snitch/snitch_string_utility.hpp',
                 'include/snitch/snitch_test_data.hpp',
                 'include/snitch/snitch_type_name.hpp',
+                'include/snitch/snitch_type_id.hpp',
                 'include/snitch/snitch_vector.hpp')
 
 sources = files('src/snitch_append.cpp',

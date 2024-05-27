@@ -336,13 +336,18 @@ std::string_view registry::add_reporter(
     return name;
 }
 
-std::string_view registry::add_console_reporter() {
-    using reporter_type = snitch::reporter::console::reporter;
-    return add_reporter("console",
-        initialize_report_function{console_reporter, snitch::constant<&reporter_type::init>{}},
-        configure_report_function{console_reporter, snitch::constant<&reporter_type::configure>{}},
-        {console_reporter, snitch::constant<&snitch::reporter::console::reporter::report>{}},
-        {});
+void registry::destroy_reporter(registry&) noexcept {
+    reporter_storage.reset();
+}
+
+void registry::report_default(const registry&, const event::data& e) noexcept {
+    using default_reporter = reporter::console::reporter;
+
+    if (reporter_storage.type() != type_id<default_reporter>()) {
+        reporter_storage.emplace<default_reporter>(*this);
+    }
+
+    reporter_storage.get<default_reporter>().report(*this, e);
 }
 
 const char*
@@ -1028,6 +1033,3 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
 
 constinit registry tests;
 } // namespace snitch
-
-static const std::string_view console_reporter_id [[maybe_unused]] =
-    snitch::tests.add_console_reporter();

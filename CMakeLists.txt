@@ -15,6 +15,7 @@ set(SNITCH_MAX_UNIQUE_TAGS          1024 CACHE STRING "Maximum number of unique 
 set(SNITCH_MAX_COMMAND_LINE_ARGS    1024 CACHE STRING "Maximum number of command line arguments to a test application.")
 set(SNITCH_MAX_REGISTERED_REPORTERS 8    CACHE STRING "Maximum number of registered reporter that can be selected from the command line.")
 set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file path when writing output to file.")
+set(SNITCH_MAX_REPORTER_SIZE_BYTES  128  CACHE STRING "Maximum size (in bytes) of a reporter object.")
 
 # Feature toggles.
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
@@ -60,6 +61,7 @@ configure_file("${PROJECT_SOURCE_DIR}/include/snitch/snitch_config.hpp.config"
 
 set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_any.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_append.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_capture.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_cli.hpp
@@ -89,6 +91,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_test_data.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_id.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_name.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
     ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)
@@ -219,6 +222,7 @@ if (SNITCH_DO_TEST)
             SNITCH_MAX_MESSAGE_LENGTH=129
             SNITCH_MAX_TEST_NAME_LENGTH=130
             SNITCH_MAX_CAPTURE_LENGTH=131
+            SNITCH_MAX_REPORTER_SIZE_BYTES=16
             SNITCH_DEFINE_MAIN=0)
     endfunction()
 

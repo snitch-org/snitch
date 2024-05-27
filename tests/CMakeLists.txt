@@ -46,6 +46,7 @@ set(TEST_UTILITY_FILES
 
 set(RUNTIME_TEST_FILES
     ${TEST_UTILITY_FILES}
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/any.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/capture.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/check.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/cli.cpp
@@ -59,6 +60,7 @@ set(RUNTIME_TEST_FILES
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_string.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/small_vector.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/string_utility.cpp
+    ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_id.cpp
     ${PROJECT_SOURCE_DIR}/tests/runtime_tests/type_name.cpp)
 
 set(APPROVAL_TEST_FILES

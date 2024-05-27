@@ -13,7 +13,7 @@ TEST_CASE("console reporter", "[reporters]") {
     mock_framework framework;
     register_tests_for_reporters(framework.registry);
 
-    framework.registry.add_console_reporter();
+    framework.registry.add_reporter<snitch::reporter::console::reporter>("console");
 
     framework.registry.with_color = false;
 

@@ -229,7 +229,7 @@ std::optional<snitch::source_location> get_location(const owning_event::data& e)
 }
 
 mock_framework::mock_framework() noexcept {
-    registry.add_console_reporter();
+    registry.add_reporter<snitch::reporter::console::reporter>("console");
 
     registry.print_callback = [](std::string_view msg) noexcept {
         snitch::cli::console_print(msg);
