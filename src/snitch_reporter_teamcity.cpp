@@ -148,6 +148,8 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
                 send_message(r, "testFinished", {{"name", make_full_name(e.id)}});
 #    endif
             },
+            [&](const snitch::event::section_started&) {},
+            [&](const snitch::event::section_ended&) {},
             [&](const snitch::event::test_case_skipped& e) {
                 send_message(
                     r, "testIgnored",

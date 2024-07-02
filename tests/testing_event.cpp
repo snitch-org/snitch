@@ -141,6 +141,27 @@ owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event
                 c.failure_allowed  = s.failure_allowed;
                 return c;
             },
+            [&](const snitch::event::section_started& s) -> owning_event::data {
+                owning_event::section_started c;
+                copy_location(pool, c, s);
+                c.id.name        = append_to_pool(pool, s.id.name);
+                c.id.description = append_to_pool(pool, s.id.description);
+                return c;
+            },
+            [&](const snitch::event::section_ended& s) -> owning_event::data {
+                owning_event::section_ended c;
+                copy_location(pool, c, s);
+                c.id.name                         = append_to_pool(pool, s.id.name);
+                c.id.description                  = append_to_pool(pool, s.id.description);
+                c.skipped                         = s.skipped;
+                c.assertion_count                 = s.assertion_count;
+                c.assertion_failure_count         = s.assertion_failure_count;
+                c.allowed_assertion_failure_count = s.allowed_assertion_failure_count;
+#if SNITCH_WITH_TIMINGS
+                c.duration = s.duration;
+#endif
+                return c;
+            },
             [&](const snitch::event::test_run_started& s) -> owning_event::data {
                 owning_event::test_run_started c;
                 copy_test_run_id(pool, c, s);
