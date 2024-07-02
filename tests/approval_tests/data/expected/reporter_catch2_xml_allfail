@@ -10,13 +10,13 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test shouldfail good fail" tags="[tag2][tag1][!shouldfail]" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       expected test to fail
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test no tags fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -27,7 +27,7 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="typed test no tags fail &lt;int&gt;" tags="" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -38,7 +38,7 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="typed test no tags fail &lt;float&gt;" tags="" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -49,7 +49,7 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="typed test with tags fail &lt;int&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -60,7 +60,7 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="typed test with tags fail &lt;float&gt;" tags="[tag1]" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -71,7 +71,7 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test fixture fail" tags="[tag with space]" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -82,13 +82,13 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test FAIL fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       something bad
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test expression fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -99,7 +99,7 @@
         1 != 2
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test long expression fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -110,7 +110,7 @@
         1 == 1
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test too long expression fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Expression success="false" type="CHECK" filename="*testing_reporters.cpp" line="*">
@@ -121,19 +121,19 @@
         super_long_string != super_long_string
       </Expanded>
     </Expression>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test too long message fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa...
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test NOTHROW fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       expected throw_something(true) not to throw but it threw a std::exception; message: I threw
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test THROW fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
@@ -145,38 +145,41 @@
     <Failure filename="*testing_reporters.cpp" line="*">
       could not match caught std::runtime_error with expected content: could not find &apos;I throws&apos; in &apos;I threw&apos;
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test unexpected throw fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       unexpected std::exception caught; message: unexpected error
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test unexpected throw in section fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
       <Section name="section 2" filename="*testing_reporters.cpp" line="*">
-        <Failure filename="*testing_reporters.cpp" line="*">
-          unexpected std::exception caught; message: unexpected error
-        </Failure>
+        <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
       </Section>
+      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
     </Section>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <Failure filename="*testing_reporters.cpp" line="*">
+      unexpected std::exception caught; message: unexpected error
+    </Failure>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test unexpected throw in check fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Failure filename="*testing_reporters.cpp" line="*">
       unexpected std::exception caught; message: unexpected error
     </Failure>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test unexpected throw in check &amp; section fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
-      <Failure filename="*testing_reporters.cpp" line="*">
-        unexpected std::exception caught; message: unexpected error
-      </Failure>
+      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
     </Section>
-    <OverallResult success="false" durationInSeconds="*"/>
+    <Failure filename="*testing_reporters.cpp" line="*">
+      unexpected std::exception caught; message: unexpected error
+    </Failure>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="14" failures="21" expectedFailures="0"/>
-  <OverallResultsCases successes="0" failures="19" expectedFailures="0"/>
+  <OverallResults successes="14" failures="21" expectedFailures="0" skips="0"/>
+  <OverallResultsCases successes="0" failures="19" expectedFailures="0" skips="0"/>
 </Catch2TestRun>

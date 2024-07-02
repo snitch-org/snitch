@@ -4,11 +4,19 @@
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_test_data.hpp"
 
+#include <type_traits>
+
 namespace snitch::impl {
 struct section_entry_checker {
     section     data = {};
     test_state& state;
-    bool        entered = false;
+    bool        entered          = false;
+    std::size_t asserts          = 0;
+    std::size_t failures         = 0;
+    std::size_t allowed_failures = 0;
+#if SNITCH_WITH_TIMINGS
+    std::make_signed_t<std::size_t> start_time = 0;
+#endif
 
     SNITCH_EXPORT ~section_entry_checker();
 
