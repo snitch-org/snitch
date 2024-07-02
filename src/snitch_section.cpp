@@ -7,8 +7,16 @@
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception>
 #endif
+#if SNITCH_WITH_TIMINGS
+#    include <chrono>
+#endif
 
 namespace snitch::impl {
+#if SNITCH_WITH_TIMINGS
+using fsec         = std::chrono::duration<float>;
+using snitch_clock = std::chrono::steady_clock;
+#endif
+
 section_entry_checker::~section_entry_checker() {
     auto& sections = state.info.sections;
 
@@ -37,12 +45,13 @@ section_entry_checker::~section_entry_checker() {
             // since then we will know if there is any sibling.
             sections.leaf_executed = true;
 #if SNITCH_WITH_TIMINGS
-            const auto  end_time = std::chrono::steady_clock::now();
-            const float duration = std::chrono::duration<float>(end_time - start_time).count();
+            const auto end_time = snitch_clock::now().time_since_epoch();
+            const auto duration =
+                std::chrono::duration_cast<fsec>(end_time - snitch_clock::duration{start_time});
             state.reg.report_callback(
-                state.reg,
-                event::section_ended{
-                    data.id, data.location, false, asserts, failures, allowed_failures, duration});
+                state.reg, event::section_ended{
+                               data.id, data.location, false, asserts, failures, allowed_failures,
+                               duration.count()});
 #else
             state.reg.report_callback(
                 state.reg,
@@ -96,6 +105,9 @@ section_entry_checker::operator bool() {
         sections.levels.push_back({});
     }
 
+#if SNITCH_WITH_TIMINGS
+    start_time = snitch_clock::now().time_since_epoch().count();
+#endif
     ++sections.depth;
     asserts          = state.asserts;
     failures         = state.failures;
