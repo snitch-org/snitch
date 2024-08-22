@@ -14,9 +14,7 @@ struct scoped_capture {
     capture_state& captures;
     std::size_t    count = 0;
 
-    ~scoped_capture() {
-        captures.resize(captures.size() - count);
-    }
+    ~scoped_capture();
 };
 
 SNITCH_EXPORT std::string_view extract_next_name(std::string_view& names) noexcept;

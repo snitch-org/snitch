@@ -20,6 +20,19 @@ void trim(std::string_view& str, std::string_view patterns) noexcept {
 }
 } // namespace
 
+scoped_capture::~scoped_capture() {
+#if SNITCH_WITH_EXCEPTIONS
+    if (std::uncaught_exceptions() > 0) {
+        // We are unwinding the stack because an exception has been thrown;
+        // avoid touching the capture state since we will want to preserve the information
+        // when reporting the exception.
+        return;
+    }
+#endif
+
+    captures.resize(captures.size() - count);
+}
+
 std::string_view extract_next_name(std::string_view& names) noexcept {
     std::string_view result;
 

@@ -171,6 +171,24 @@ TEST_CASE("capture", "[test macros]") {
         CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
         CHECK_CAPTURES_FOR_FAILURE(1u, "i := 1", "2 * i := 2");
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("with exception") {
+        framework.test_case.func = []() {
+            for (std::size_t i = 0; i < 5; ++i) {
+                SNITCH_CAPTURE(i);
+
+                if (i % 2 == 1) {
+                    throw std::runtime_error("bad");
+                }
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
+    }
+#endif
 }
 
 TEST_CASE("info", "[test macros]") {
@@ -324,6 +342,24 @@ TEST_CASE("info", "[test macros]") {
         framework.run_test();
         CHECK_CAPTURES("1", "i := 1");
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("with exception") {
+        framework.test_case.func = []() {
+            for (std::size_t i = 0; i < 5; ++i) {
+                SNITCH_INFO(i);
+
+                if (i % 2 == 1) {
+                    throw std::runtime_error("bad");
+                }
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "1");
+    }
+#endif
 }
 
 SNITCH_WARNING_POP

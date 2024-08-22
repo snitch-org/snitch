@@ -354,7 +354,7 @@ TEST_CASE("section readme example", "[test macros]") {
         }
     };
 
-    framework.registry.print_callback  = print;
+    framework.registry.print_callback = print;
 
     framework.test_case.func = []() {
         auto& reg = snitch::impl::get_current_test().reg;
