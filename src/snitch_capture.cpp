@@ -22,11 +22,11 @@ void trim(std::string_view& str, std::string_view patterns) noexcept {
 
 scoped_capture::~scoped_capture() {
 #if SNITCH_WITH_EXCEPTIONS
-    if (std::uncaught_exceptions() > 0) {
+    if (std::uncaught_exceptions() > 0 && !held_captures.has_value()) {
         // We are unwinding the stack because an exception has been thrown;
-        // avoid touching the capture state since we will want to preserve the information
+        // keep a copy of the full capture state since we will want to preserve the information
         // when reporting the exception.
-        return;
+        held_captures = captures;
     }
 #endif
 
@@ -90,6 +90,10 @@ small_string<max_capture_length>& add_capture(test_state& state) {
             max_captures, ")\n.");
         assertion_failed("max number of captures reached");
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    state.held_captures.reset();
+#endif
 
     state.captures.grow(1);
     state.captures.back().clear();

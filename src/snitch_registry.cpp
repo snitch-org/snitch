@@ -413,8 +413,17 @@ void report_assertion_impl(
 
     register_assertion(success, state);
 
-    const auto  captures_buffer = impl::make_capture_buffer(state.captures);
-    const auto& last_location   = state.locations.back();
+    const auto captures_buffer =
+#if SNITCH_WITH_EXCEPTIONS
+        impl::make_capture_buffer(
+            state.unhandled_exception && state.held_captures.has_value()
+                ? state.held_captures.value()
+                : state.captures);
+#else
+        impl::make_capture_buffer(state.captures);
+#endif
+
+    const auto& last_location = state.locations.back();
 #if SNITCH_WITH_EXCEPTIONS
     const auto location =
         state.in_check
@@ -552,8 +561,10 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     } catch (const impl::abort_exception&) {
         // Test aborted, assume its state was already set accordingly.
     } catch (const std::exception& e) {
+        state.unhandled_exception = true;
         report_assertion(false, "unexpected std::exception caught; message: ", e.what());
     } catch (...) {
+        state.unhandled_exception = true;
         report_assertion(false, "unexpected unknown exception caught");
     }
 #endif

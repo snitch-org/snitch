@@ -12,7 +12,10 @@
 namespace snitch::impl {
 struct scoped_capture {
     capture_state& captures;
-    std::size_t    count = 0;
+#if SNITCH_WITH_EXCEPTIONS
+    std::optional<capture_state>& held_captures;
+#endif
+    std::size_t count = 0;
 
     SNITCH_EXPORT ~scoped_capture();
 };
@@ -35,7 +38,11 @@ void add_capture(test_state& state, std::string_view& names, const T& arg) {
 template<string_appendable... Args>
 scoped_capture add_captures(test_state& state, std::string_view names, const Args&... args) {
     (add_capture(state, names, args), ...);
+#if SNITCH_WITH_EXCEPTIONS
+    return {state.captures, state.held_captures, sizeof...(args)};
+#else
     return {state.captures, sizeof...(args)};
+#endif
 }
 
 // Requires: number of captures < max_captures.
@@ -43,7 +50,11 @@ template<string_appendable... Args>
 scoped_capture add_info(test_state& state, const Args&... args) {
     auto& capture = add_capture(state);
     append_or_truncate(capture, args...);
+#if SNITCH_WITH_EXCEPTIONS
+    return {state.captures, state.held_captures, 1};
+#else
     return {state.captures, 1};
+#endif
 }
 } // namespace snitch::impl
 

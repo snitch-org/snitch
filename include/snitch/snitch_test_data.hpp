@@ -6,6 +6,7 @@
 #include "snitch/snitch_vector.hpp"
 
 #include <cstddef>
+#include <optional>
 #include <string_view>
 
 namespace snitch {
@@ -285,12 +286,20 @@ struct test_state {
     capture_state  captures  = {};
     location_state locations = {};
 
+#if SNITCH_WITH_EXCEPTIONS
+    std::optional<capture_state> held_captures = {};
+#endif
+
     std::size_t asserts          = 0;
     std::size_t failures         = 0;
     std::size_t allowed_failures = 0;
     bool        may_fail         = false;
     bool        should_fail      = false;
     bool        in_check         = false;
+
+#if SNITCH_WITH_EXCEPTIONS
+    bool unhandled_exception = false;
+#endif
 
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;
