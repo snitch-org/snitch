@@ -2,6 +2,9 @@
 #include "testing_event.hpp"
 
 #include <string>
+#if SNITCH_WITH_EXCEPTIONS
+#    include <stdexcept>
+#endif
 
 using namespace std::literals;
 
