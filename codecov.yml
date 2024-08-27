@@ -6,12 +6,12 @@ coverage:
   round: down
   range: "80...95"
   status:
-  project:
-    default:
-      target: auto
-      # adjust accordingly based on how flaky your tests are
-      # this allows a drop from the previous base commit coverage
-      threshold: 1%
+    project:
+      default:
+        target: auto
+        # adjust accordingly based on how flaky your tests are
+        # this allows a drop from the previous base commit coverage
+        threshold: 1%
     patch:
       default:
         target: 0%
