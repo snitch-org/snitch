@@ -413,24 +413,27 @@ void report_assertion_impl(
 
     register_assertion(success, state);
 
-    const auto captures_buffer =
 #if SNITCH_WITH_EXCEPTIONS
-        impl::make_capture_buffer(
-            state.unhandled_exception && state.held_captures.has_value()
-                ? state.held_captures.value()
-                : state.captures);
-#else
-        impl::make_capture_buffer(state.captures);
-#endif
+    const bool use_held_info = state.unhandled_exception && state.held_info.has_value();
 
-    const auto& last_location = state.locations.back();
-#if SNITCH_WITH_EXCEPTIONS
+    const auto captures_buffer = impl::make_capture_buffer(
+        use_held_info ? state.held_info.value().captures : state.info.captures);
+
+    const auto& current_section = use_held_info ? state.held_info.value().sections.current_section
+                                                : state.info.sections.current_section;
+
+    const auto& last_location =
+        use_held_info ? state.held_info.value().locations.back() : state.info.locations.back();
+
     const auto location =
         state.in_check
             ? assertion_location{last_location.file, last_location.line, location_type::exact}
             : last_location;
 #else
-    const auto location =
+    const auto  captures_buffer = impl::make_capture_buffer(state.info.captures);
+    const auto& current_section = state.info.sections.current_section;
+    const auto& last_location   = state.info.locations.back();
+    const auto  location =
         assertion_location{last_location.file, last_location.line, location_type::exact};
 #endif
 
@@ -438,14 +441,13 @@ void report_assertion_impl(
         if (r.verbose >= registry::verbosity::full) {
             r.report_callback(
                 r, event::assertion_succeeded{
-                       state.test.id, state.sections.current_section, captures_buffer.span(),
-                       location, data});
+                       state.test.id, current_section, captures_buffer.span(), location, data});
         }
     } else {
         r.report_callback(
             r, event::assertion_failed{
-                   state.test.id, state.sections.current_section, captures_buffer.span(), location,
-                   data, state.should_fail, state.may_fail});
+                   state.test.id, current_section, captures_buffer.span(), location, data,
+                   state.should_fail, state.may_fail});
     }
 }
 } // namespace
@@ -482,13 +484,13 @@ void registry::report_skipped(std::string_view message) noexcept {
     impl::test_state& state = impl::get_current_test();
     impl::set_state(state.test, impl::test_case_state::skipped);
 
-    const auto  captures_buffer = impl::make_capture_buffer(state.captures);
-    const auto& location        = state.locations.back();
+    const auto  captures_buffer = impl::make_capture_buffer(state.info.captures);
+    const auto& location        = state.info.locations.back();
 
     state.reg.report_callback(
         state.reg, event::test_case_skipped{
                        state.test.id,
-                       state.sections.current_section,
+                       state.info.sections.current_section,
                        captures_buffer.span(),
                        {location.file, location.line, location_type::exact},
                        message});
@@ -515,7 +517,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     impl::test_state state{
         .reg = *this, .test = test, .may_fail = may_fail, .should_fail = should_fail};
 
-    state.locations.push_back(
+    state.info.locations.push_back(
         {test.location.file, test.location.line, location_type::test_case_scope});
 
     // Store previously running test, to restore it later.
@@ -534,24 +536,24 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
 
         do {
             // Reset section state.
-            state.sections.leaf_executed = false;
-            for (std::size_t i = 0; i < state.sections.levels.size(); ++i) {
-                state.sections.levels[i].current_section_id = 0;
+            state.info.sections.leaf_executed = false;
+            for (std::size_t i = 0; i < state.info.sections.levels.size(); ++i) {
+                state.info.sections.levels[i].current_section_id = 0;
             }
 
             // Run the test case.
             test.func();
 
-            if (state.sections.levels.size() == 1) {
+            if (state.info.sections.levels.size() == 1) {
                 // This test case contained sections; check if there are any more left to evaluate.
-                auto& child = state.sections.levels[0];
+                auto& child = state.info.sections.levels[0];
                 if (child.previous_section_id == child.max_section_id) {
                     // No more; clear the section state.
-                    state.sections.levels.clear();
-                    state.sections.current_section.clear();
+                    state.info.sections.levels.clear();
+                    state.info.sections.current_section.clear();
                 }
             }
-        } while (!state.sections.levels.empty() &&
+        } while (!state.info.sections.levels.empty() &&
                  state.test.state != impl::test_case_state::skipped);
 
 #if SNITCH_WITH_EXCEPTIONS

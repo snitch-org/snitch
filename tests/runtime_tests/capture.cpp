@@ -207,6 +207,7 @@ TEST_CASE("capture", "[test macros]") {
         };
 
         framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
         CHECK_CAPTURES("j := 2");
     }
 
@@ -224,6 +225,7 @@ TEST_CASE("capture", "[test macros]") {
         };
 
         framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
         CHECK_NO_CAPTURE;
     }
 
@@ -249,6 +251,7 @@ TEST_CASE("capture", "[test macros]") {
         };
 
         framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
         CHECK_CAPTURES("k := 3");
     }
 
@@ -267,6 +270,7 @@ TEST_CASE("capture", "[test macros]") {
         };
 
         framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
         CHECK_CAPTURES("j := 2");
     }
 
@@ -283,7 +287,9 @@ TEST_CASE("capture", "[test macros]") {
         };
 
         framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
         // FIXME: expected nothing
+        // https://github.com/snitch-org/snitch/issues/179
         CHECK_CAPTURES("i := 1");
     }
 #endif

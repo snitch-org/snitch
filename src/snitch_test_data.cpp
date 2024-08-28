@@ -27,15 +27,19 @@ void set_current_test(test_state* current) noexcept {
 }
 
 void push_location(test_state& test, const assertion_location& location) noexcept {
-    test.locations.push_back(location);
+    test.info.locations.push_back(location);
 }
 
 void pop_location(test_state& test) noexcept {
-    test.locations.pop_back();
+    test.info.locations.pop_back();
 }
 
 scoped_test_check::scoped_test_check(const source_location& location) noexcept :
     test(get_current_test()) {
+#if SNITCH_WITH_EXCEPTIONS
+    test.held_info.reset();
+#endif
+
     push_location(test, {location.file, location.line, location_type::in_check});
     test.in_check = true;
 }
@@ -44,11 +48,11 @@ scoped_test_check::~scoped_test_check() noexcept {
     test.in_check = false;
 
 #if SNITCH_WITH_EXCEPTIONS
-    if (std::uncaught_exceptions() > 0) {
+    if (std::uncaught_exceptions() > 0 && !test.held_info.has_value()) {
         // We are unwinding the stack because an exception has been thrown;
-        // avoid touching the location state since we will want to report where
-        // the exception was thrown.
-        return;
+        // keep a copy of the full location state since we will want to preserve the information
+        // when reporting the exception.
+        test.held_info = test.info;
     }
 #endif
 
