@@ -336,6 +336,106 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS("section 2");
         CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
     }
+
+    SECTION("with handled exception") {
+        framework.test_case.func = []() {
+            try {
+                SNITCH_SECTION("section 1") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+            }
+
+            SNITCH_SECTION("section 2") {
+                SNITCH_FAIL_CHECK("trigger");
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_SECTIONS("section 2");
+    }
+
+    SECTION("with handled exception no section") {
+        framework.test_case.func = []() {
+            try {
+                SNITCH_SECTION("section 1") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+            }
+
+            SNITCH_FAIL_CHECK("trigger");
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_NO_SECTION;
+    }
+
+    SECTION("with handled exceptions") {
+        framework.test_case.func = []() {
+            try {
+                SNITCH_SECTION("section 1") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+            }
+
+            try {
+                SNITCH_SECTION("section 2") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+            }
+
+            SNITCH_SECTION("section 3") {
+                SNITCH_FAIL_CHECK("trigger");
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_SECTIONS("section 3");
+    }
+
+    SECTION("with handled exception then unhandled") {
+        framework.test_case.func = []() {
+            try {
+                SNITCH_SECTION("section 1") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+            }
+
+            SNITCH_SECTION("section 2") {
+                throw std::runtime_error("bad");
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_SECTIONS("section 2");
+    }
+
+    SECTION("with handled exception then unhandled no section") {
+        framework.test_case.func = []() {
+            try {
+                SNITCH_SECTION("section 1") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+            }
+
+            throw std::runtime_error("bad");
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        // FIXME: expected nothing
+        // https://github.com/snitch-org/snitch/issues/179
+        CHECK_SECTIONS("section 1");
+    }
 #endif
 }
 
@@ -354,7 +454,7 @@ TEST_CASE("section readme example", "[test macros]") {
         }
     };
 
-    framework.registry.print_callback  = print;
+    framework.registry.print_callback = print;
 
     framework.test_case.func = []() {
         auto& reg = snitch::impl::get_current_test().reg;

@@ -20,6 +20,19 @@ void trim(std::string_view& str, std::string_view patterns) noexcept {
 }
 } // namespace
 
+scoped_capture::~scoped_capture() {
+#if SNITCH_WITH_EXCEPTIONS
+    if (std::uncaught_exceptions() > 0 && !state.held_info.has_value()) {
+        // We are unwinding the stack because an exception has been thrown;
+        // keep a copy of the full capture state since we will want to preserve the information
+        // when reporting the exception.
+        state.held_info = state.info;
+    }
+#endif
+
+    state.info.captures.resize(state.info.captures.size() - count);
+}
+
 std::string_view extract_next_name(std::string_view& names) noexcept {
     std::string_view result;
 
@@ -69,7 +82,7 @@ std::string_view extract_next_name(std::string_view& names) noexcept {
 }
 
 small_string<max_capture_length>& add_capture(test_state& state) {
-    if (state.captures.available() == 0) {
+    if (state.info.captures.available() == 0) {
         state.reg.print(
             make_colored("error:", state.reg.with_color, color::fail),
             " max number of captures reached; "
@@ -78,8 +91,12 @@ small_string<max_capture_length>& add_capture(test_state& state) {
         assertion_failed("max number of captures reached");
     }
 
-    state.captures.grow(1);
-    state.captures.back().clear();
-    return state.captures.back();
+#if SNITCH_WITH_EXCEPTIONS
+    state.held_info.reset();
+#endif
+
+    state.info.captures.grow(1);
+    state.info.captures.back().clear();
+    return state.info.captures.back();
 }
 } // namespace snitch::impl

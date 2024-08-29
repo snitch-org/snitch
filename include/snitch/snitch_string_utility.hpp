@@ -42,13 +42,20 @@ constexpr small_string<N> resize_or_truncate(const small_string<M>& str) noexcep
         return str;
     } else if constexpr (N > M) {
         small_string<N> out;
-        append(out, str);
+        append(out, std::string_view{str});
         return out;
     } else {
         small_string<N> out;
-        append_or_truncate(out, str);
+        append_or_truncate(out, std::string_view{str});
         return out;
     }
+}
+
+template<std::size_t N, std::size_t M>
+constexpr small_string<N> resize_or_truncate(std::string_view str) noexcept {
+    small_string<N> out;
+    append(out, str);
+    return out;
 }
 
 SNITCH_EXPORT [[nodiscard]] bool replace_all(

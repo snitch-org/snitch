@@ -6,6 +6,7 @@
 #include "snitch/snitch_vector.hpp"
 
 #include <cstddef>
+#include <optional>
 #include <string_view>
 
 namespace snitch {
@@ -278,12 +279,21 @@ using capture_state = small_vector<small_string<max_capture_length>, max_capture
 // NB: +2 is because we need one for the test case location, and one for the check location
 using location_state = small_vector<assertion_location, max_nested_sections + 2>;
 
-struct test_state {
-    registry&      reg;
-    test_case&     test;
+struct info_state {
     section_state  sections  = {};
     capture_state  captures  = {};
     location_state locations = {};
+};
+
+struct test_state {
+    registry&  reg;
+    test_case& test;
+
+    info_state info = {};
+
+#if SNITCH_WITH_EXCEPTIONS
+    std::optional<info_state> held_info = {};
+#endif
 
     std::size_t asserts          = 0;
     std::size_t failures         = 0;
@@ -291,6 +301,10 @@ struct test_state {
     bool        may_fail         = false;
     bool        should_fail      = false;
     bool        in_check         = false;
+
+#if SNITCH_WITH_EXCEPTIONS
+    bool unhandled_exception = false;
+#endif
 
 #if SNITCH_WITH_TIMINGS
     float duration = 0.0f;

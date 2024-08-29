@@ -2,6 +2,9 @@
 #include "testing_event.hpp"
 
 #include <string>
+#if SNITCH_WITH_EXCEPTIONS
+#    include <stdexcept>
+#endif
 
 using namespace std::literals;
 
@@ -171,6 +174,125 @@ TEST_CASE("capture", "[test macros]") {
         CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
         CHECK_CAPTURES_FOR_FAILURE(1u, "i := 1", "2 * i := 2");
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("with exception") {
+        framework.test_case.func = []() {
+            for (std::size_t i = 0; i < 5; ++i) {
+                SNITCH_CAPTURE(i);
+
+                if (i % 2 == 1) {
+                    throw std::runtime_error("bad");
+                }
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "i := 1");
+    }
+
+    SECTION("with handled exception") {
+        framework.test_case.func = []() {
+            try {
+                int i = 1;
+                SNITCH_CAPTURE(i);
+                throw std::runtime_error("bad");
+            } catch (...) {
+            }
+
+            int j = 2;
+            SNITCH_CAPTURE(j);
+            SNITCH_CHECK(j == 1);
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES("j := 2");
+    }
+
+    SECTION("with handled exception no capture") {
+        framework.test_case.func = []() {
+            try {
+                int i = 1;
+                SNITCH_CAPTURE(i);
+                throw std::runtime_error("bad");
+            } catch (...) {
+            }
+
+            int j = 2;
+            SNITCH_CHECK(j == 1);
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_NO_CAPTURE;
+    }
+
+    SECTION("with handled exceptions") {
+        framework.test_case.func = []() {
+            try {
+                int i = 1;
+                SNITCH_CAPTURE(i);
+                throw std::runtime_error("bad");
+            } catch (...) {
+            }
+
+            try {
+                int j = 2;
+                SNITCH_CAPTURE(j);
+                throw std::runtime_error("bad");
+            } catch (...) {
+            }
+
+            int k = 3;
+            SNITCH_CAPTURE(k);
+            SNITCH_CHECK(k == 1);
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES("k := 3");
+    }
+
+    SECTION("with handled exception then unhandled") {
+        framework.test_case.func = []() {
+            try {
+                int i = 1;
+                SNITCH_CAPTURE(i);
+                throw std::runtime_error("bad");
+            } catch (...) {
+            }
+
+            int j = 2;
+            SNITCH_CAPTURE(j);
+            throw std::runtime_error("bad");
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES("j := 2");
+    }
+
+    SECTION("with handled exception then unhandled no capture") {
+        framework.test_case.func = []() {
+            try {
+                int i = 1;
+                SNITCH_CAPTURE(i);
+                throw std::runtime_error("bad");
+            } catch (...) {
+            }
+
+            throw std::runtime_error("bad");
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        // FIXME: expected nothing
+        // https://github.com/snitch-org/snitch/issues/179
+        CHECK_CAPTURES("i := 1");
+    }
+#endif
 }
 
 TEST_CASE("info", "[test macros]") {
@@ -324,6 +446,24 @@ TEST_CASE("info", "[test macros]") {
         framework.run_test();
         CHECK_CAPTURES("1", "i := 1");
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    SECTION("with exception") {
+        framework.test_case.func = []() {
+            for (std::size_t i = 0; i < 5; ++i) {
+                SNITCH_INFO(i);
+
+                if (i % 2 == 1) {
+                    throw std::runtime_error("bad");
+                }
+            }
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_CAPTURES_FOR_FAILURE(0u, "1");
+    }
+#endif
 }
 
 SNITCH_WARNING_POP
