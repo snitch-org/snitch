@@ -1,0 +1,7 @@
+{
+    "name": "vcpkg-example",
+    "version": "1.2.4",
+    "dependencies": [
+        "snitch"
+    ]
+}
