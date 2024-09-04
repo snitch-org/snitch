@@ -1,10 +1,10 @@
-# Snitch example
+# Example of using *snitch* with vcpkg
  
-Snitch example that uses [vcpkg][vcpkg].
+This is an example of building a project with *snitch* as a dependency, using [vcpkg][vcpkg].
  
 ## Set up vcpkg
  
-Clone the vcpkg and run the bootstrap script.
+Clone vcpkg and run the bootstrap script.
  
 ```bash
 git clone https://github.com/microsoft/vcpkg
@@ -15,7 +15,7 @@ cd vcpkg && ./bootstrap-vcpkg.bat
 
 ### CMake
 
-We provide a project folder called `vcpkg-example` to use `snitch`. You can build this example project according to the following code.
+The folder containing this README includes CMake files for an example empty project using *snitch*. You can build this example project with the following code.
 ```bash
 "In directory of vcpkg-example"
 mkdir build
@@ -23,7 +23,7 @@ cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake
 cmake --build .
 ```
-After run the above code, you can find all the `snitch` things installed by vcpkg in directory folder named `vcpkg-installed`. 
+After running the above code, you can find *snitch* installed by vcpkg in a directory named `vcpkg-installed`.
 
 ### MSbuild
 
