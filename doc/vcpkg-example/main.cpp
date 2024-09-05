@@ -1,6 +1,4 @@
-﻿#include <iostream>
-#include <optional>
-#include <snitch/snitch.hpp>
+﻿#include <snitch/snitch.hpp>
 
 int main(int argc, char* argv[]) {
     // Parse the command-line arguments.
