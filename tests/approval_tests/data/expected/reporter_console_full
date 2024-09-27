@@ -254,11 +254,15 @@ failed: running test case "test unexpected throw fail"
           unexpected std::exception caught; message: unexpected error
 finished: test unexpected throw fail (*)
 starting: test unexpected throw in section fail at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
+entering section: section 2 at *testing_reporters.cpp:*
 failed: running test case "test unexpected throw in section fail"
           in section "section 1"
           in section "section 2"
           somewhere inside section at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
+leaving section: section 2
+leaving section: section 1
 finished: test unexpected throw in section fail (*)
 starting: test unexpected throw in check fail at *testing_reporters.cpp:*
 failed: running test case "test unexpected throw in check fail"
@@ -266,10 +270,12 @@ failed: running test case "test unexpected throw in check fail"
           unexpected std::exception caught; message: unexpected error
 finished: test unexpected throw in check fail (*)
 starting: test unexpected throw in check & section fail at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
 failed: running test case "test unexpected throw in check & section fail"
           in section "section 1"
           somewhere inside check at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
+leaving section: section 1
 finished: test unexpected throw in check & section fail (*)
 starting: test SKIP at *testing_reporters.cpp:*
 skipped: running test case "test SKIP"
@@ -307,31 +313,38 @@ passed: running test case "test multiple INFO"
           no exception caught
 finished: test multiple INFO (*)
 starting: test SECTION at *testing_reporters.cpp:*
+entering section: section at *testing_reporters.cpp:*
 failed: running test case "test SECTION"
           in section "section"
           at *testing_reporters.cpp:*
           failure
+leaving section: section
 passed: running test case "test SECTION"
           at *testing_reporters.cpp:*
           no exception caught
 finished: test SECTION (*)
 starting: test multiple SECTION at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
 failed: running test case "test multiple SECTION"
           in section "section 1"
           at *testing_reporters.cpp:*
           failure 1
+leaving section: section 1
 failed: running test case "test multiple SECTION"
           at *testing_reporters.cpp:*
           failure 7
+entering section: section 2 at *testing_reporters.cpp:*
 failed: running test case "test multiple SECTION"
           in section "section 2"
           at *testing_reporters.cpp:*
           failure 2
+entering section: section 2.1 at *testing_reporters.cpp:*
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.1"
           at *testing_reporters.cpp:*
           failure 3
+leaving section: section 2.1
 failed: running test case "test multiple SECTION"
           at *testing_reporters.cpp:*
           failure 7
@@ -339,22 +352,27 @@ failed: running test case "test multiple SECTION"
           in section "section 2"
           at *testing_reporters.cpp:*
           failure 2
+entering section: section 2.2 at *testing_reporters.cpp:*
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.2"
           at *testing_reporters.cpp:*
           failure 4
+entering section: section 2.2.1 at *testing_reporters.cpp:*
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.2"
           in section "section 2.2.1"
           at *testing_reporters.cpp:*
           failure 5
+leaving section: section 2.2.1
 failed: running test case "test multiple SECTION"
           in section "section 2"
           in section "section 2.2"
           at *testing_reporters.cpp:*
           failure 6
+leaving section: section 2.2
+leaving section: section 2
 failed: running test case "test multiple SECTION"
           at *testing_reporters.cpp:*
           failure 7
@@ -363,22 +381,26 @@ passed: running test case "test multiple SECTION"
           no exception caught
 finished: test multiple SECTION (*)
 starting: test SECTION & INFO at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
 failed: running test case "test SECTION & INFO"
           in section "section 1"
           at *testing_reporters.cpp:*
           with info 1
           with info 2
           failure 1
+leaving section: section 1
 failed: running test case "test SECTION & INFO"
           at *testing_reporters.cpp:*
           with info 1
           failure 3
+entering section: section 2 at *testing_reporters.cpp:*
 failed: running test case "test SECTION & INFO"
           in section "section 2"
           at *testing_reporters.cpp:*
           with info 1
           with info 3
           failure 2
+leaving section: section 2
 failed: running test case "test SECTION & INFO"
           at *testing_reporters.cpp:*
           with info 1
@@ -388,11 +410,15 @@ passed: running test case "test SECTION & INFO"
           no exception caught
 finished: test SECTION & INFO (*)
 starting: test SKIP in SECTION at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
+entering section: section 2 at *testing_reporters.cpp:*
 skipped: running test case "test SKIP in SECTION"
           in section "section 1"
           in section "section 2"
           at *testing_reporters.cpp:*
           stopping here
+leaving section: section 2
+leaving section: section 1
 finished: test SKIP in SECTION (*)
 ==========================================
 error: some tests failed (25 out of 43 test cases, 86 assertions, 2 test cases skipped, * seconds)

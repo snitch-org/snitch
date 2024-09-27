@@ -162,8 +162,17 @@ void reporter::report(const registry& r, const event::data& event) noexcept {
                     make_colored(full_name, r.with_color, color::highlight1), "\n");
 #endif
             },
-            [&](const snitch::event::section_started&) {},
-            [&](const snitch::event::section_ended&) {},
+            [&](const snitch::event::section_started& e) {
+                r.print(
+                    make_colored("entering section:", r.with_color, color::status), " ",
+                    make_colored(e.id.name, r.with_color, color::highlight1), " at ",
+                    e.location.file, ":", e.location.line, "\n");
+            },
+            [&](const snitch::event::section_ended& e) {
+                r.print(
+                    make_colored("leaving section:", r.with_color, color::status), " ",
+                    make_colored(e.id.name, r.with_color, color::highlight1), "\n");
+            },
             [&](const snitch::event::test_case_skipped& e) {
                 r.print(make_colored("skipped: ", r.with_color, color::skipped));
                 print_location(r, e.id, e.sections, e.captures, e.location);
