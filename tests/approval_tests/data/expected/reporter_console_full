@@ -387,5 +387,12 @@ passed: running test case "test SECTION & INFO"
           at *testing_reporters.cpp:*
           no exception caught
 finished: test SECTION & INFO (*)
+starting: test SKIP in SECTION at *testing_reporters.cpp:*
+skipped: running test case "test SKIP in SECTION"
+          in section "section 1"
+          in section "section 2"
+          at *testing_reporters.cpp:*
+          stopping here
+finished: test SKIP in SECTION (*)
 ==========================================
-error: some tests failed (25 out of 42 test cases, 86 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (25 out of 43 test cases, 86 assertions, 2 test cases skipped, * seconds)

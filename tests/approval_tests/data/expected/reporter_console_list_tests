@@ -53,4 +53,5 @@ Matching test cases:
   test SECTION
   test multiple SECTION
   test SECTION & INFO
-42 matching test cases
+  test SKIP in SECTION
+43 matching test cases

@@ -461,8 +461,8 @@ void report_assertion_impl(
     const auto captures_buffer = impl::make_capture_buffer(
         use_held_info ? state.held_info.value().captures : state.info.captures);
 
-    auto& current_section = use_held_info ? state.held_info.value().sections.current_section
-                                          : state.info.sections.current_section;
+    const auto& current_section = use_held_info ? state.held_info.value().sections.current_section
+                                                : state.info.sections.current_section;
 
     const auto& last_location =
         use_held_info ? state.held_info.value().locations.back() : state.info.locations.back();
@@ -491,16 +491,6 @@ void report_assertion_impl(
                    state.test.id, current_section, captures_buffer.span(), location, data,
                    state.should_fail, state.may_fail});
     }
-
-#if SNITCH_WITH_EXCEPTIONS
-    if (state.unhandled_exception) {
-        // Close all sections that were left open by the exception.
-        while (!current_section.empty()) {
-            registry::report_section_ended(current_section.back());
-            current_section.pop_back();
-        }
-    }
-#endif
 }
 } // namespace
 
@@ -647,6 +637,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         state.in_check = false;
     } catch (const impl::abort_exception&) {
         // Test aborted, assume its state was already set accordingly.
+        state.unhandled_exception = true;
     } catch (const std::exception& e) {
         state.unhandled_exception = true;
         report_assertion(false, "unexpected std::exception caught; message: ", e.what());
@@ -654,6 +645,20 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         state.unhandled_exception = true;
         report_assertion(false, "unexpected unknown exception caught");
     }
+
+    if (state.unhandled_exception) {
+        auto& current_section = state.held_info.has_value()
+                                    ? state.held_info.value().sections.current_section
+                                    : state.info.sections.current_section;
+
+        // Close all sections that were left open by the exception.
+        while (!current_section.empty()) {
+            registry::report_section_ended(current_section.back());
+            current_section.pop_back();
+        }
+    }
+
+    state.unhandled_exception = false;
 #endif
 
     if (state.should_fail) {

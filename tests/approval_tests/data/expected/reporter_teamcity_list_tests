@@ -40,5 +40,6 @@ test multiple INFO
 test SECTION
 test multiple SECTION
 test SECTION & INFO
+test SKIP in SECTION
 test escape |||'|n|r|[|]
 test escape very long

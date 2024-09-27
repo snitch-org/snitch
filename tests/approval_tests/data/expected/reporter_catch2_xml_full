@@ -529,6 +529,18 @@
     </Success>
     <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test SKIP in SECTION" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section 1" filename="*testing_reporters.cpp" line="*">
+      <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+        <Skip filename="*testing_reporters.cpp" line="*">
+          stopping here
+        </Skip>
+        <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
+      </Section>
+      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
+    </Section>
+    <OverallResult success="true" skips="1" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test escape &lt;&gt;&amp;&quot;&apos;" tags="" filename="*reporter_catch2_xml.cpp" line="*">
     <Failure filename="*reporter_catch2_xml.cpp" line="*">
       escape &lt;&gt;&amp;&quot;&apos; in messages
@@ -541,6 +553,6 @@
     </Failure>
     <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="42" failures="44" expectedFailures="2" skips="1"/>
-  <OverallResultsCases successes="15" failures="27" expectedFailures="2" skips="1"/>
+  <OverallResults successes="42" failures="44" expectedFailures="2" skips="2"/>
+  <OverallResultsCases successes="16" failures="27" expectedFailures="2" skips="2"/>
 </Catch2TestRun>
