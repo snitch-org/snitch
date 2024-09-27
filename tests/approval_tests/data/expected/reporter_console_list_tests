@@ -53,5 +53,6 @@ Matching test cases:
   test SECTION
   test multiple SECTION
   test SECTION & INFO
+  test SECTION & CAPTURE
   test SKIP in SECTION
-43 matching test cases
+44 matching test cases

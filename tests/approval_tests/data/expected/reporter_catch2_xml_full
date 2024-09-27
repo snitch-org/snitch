@@ -529,6 +529,48 @@
     </Success>
     <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
+  <TestCase name="test SECTION &amp; CAPTURE" tags="" filename="*testing_reporters.cpp" line="*">
+    <Section name="section 1" filename="*testing_reporters.cpp" line="*">
+      <Info>
+        i := 1
+      </Info>
+      <Info>
+        j := 2
+      </Info>
+      <Failure filename="*testing_reporters.cpp" line="*">
+        failure 1
+      </Failure>
+      <OverallResults successes="0" failures="1" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+    </Section>
+    <Info>
+      i := 1
+    </Info>
+    <Failure filename="*testing_reporters.cpp" line="*">
+      failure 3
+    </Failure>
+    <Section name="section 2" filename="*testing_reporters.cpp" line="*">
+      <Info>
+        i := 1
+      </Info>
+      <Info>
+        j := 3
+      </Info>
+      <Failure filename="*testing_reporters.cpp" line="*">
+        failure 2
+      </Failure>
+      <OverallResults successes="0" failures="1" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+    </Section>
+    <Info>
+      i := 1
+    </Info>
+    <Failure filename="*testing_reporters.cpp" line="*">
+      failure 3
+    </Failure>
+    <Success filename="*testing_reporters.cpp" line="*">
+      no exception caught
+    </Success>
+    <OverallResult success="false" skips="0" durationInSeconds="*"/>
+  </TestCase>
   <TestCase name="test SKIP in SECTION" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
       <Section name="section 2" filename="*testing_reporters.cpp" line="*">
@@ -553,6 +595,6 @@
     </Failure>
     <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
-  <OverallResults successes="42" failures="44" expectedFailures="2" skips="2"/>
-  <OverallResultsCases successes="16" failures="27" expectedFailures="2" skips="2"/>
+  <OverallResults successes="43" failures="48" expectedFailures="2" skips="2"/>
+  <OverallResultsCases successes="16" failures="28" expectedFailures="2" skips="2"/>
 </Catch2TestRun>

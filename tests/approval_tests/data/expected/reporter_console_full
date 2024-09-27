@@ -409,6 +409,35 @@ passed: running test case "test SECTION & INFO"
           at *testing_reporters.cpp:*
           no exception caught
 finished: test SECTION & INFO (*)
+starting: test SECTION & CAPTURE at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
+failed: running test case "test SECTION & CAPTURE"
+          in section "section 1"
+          at *testing_reporters.cpp:*
+          with i := 1
+          with j := 2
+          failure 1
+leaving section: section 1
+failed: running test case "test SECTION & CAPTURE"
+          at *testing_reporters.cpp:*
+          with i := 1
+          failure 3
+entering section: section 2 at *testing_reporters.cpp:*
+failed: running test case "test SECTION & CAPTURE"
+          in section "section 2"
+          at *testing_reporters.cpp:*
+          with i := 1
+          with j := 3
+          failure 2
+leaving section: section 2
+failed: running test case "test SECTION & CAPTURE"
+          at *testing_reporters.cpp:*
+          with i := 1
+          failure 3
+passed: running test case "test SECTION & CAPTURE"
+          at *testing_reporters.cpp:*
+          no exception caught
+finished: test SECTION & CAPTURE (*)
 starting: test SKIP in SECTION at *testing_reporters.cpp:*
 entering section: section 1 at *testing_reporters.cpp:*
 entering section: section 2 at *testing_reporters.cpp:*
@@ -421,4 +450,4 @@ leaving section: section 2
 leaving section: section 1
 finished: test SKIP in SECTION (*)
 ==========================================
-error: some tests failed (25 out of 43 test cases, 86 assertions, 2 test cases skipped, * seconds)
+error: some tests failed (26 out of 44 test cases, 91 assertions, 2 test cases skipped, * seconds)

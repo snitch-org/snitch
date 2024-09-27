@@ -379,6 +379,15 @@
     </SourceInfo>
   </TestCase>
   <TestCase>
+    <Name>test SECTION &amp; CAPTURE</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
     <Name>test SKIP in SECTION</Name>
     <ClassName/>
     <Tags/>
