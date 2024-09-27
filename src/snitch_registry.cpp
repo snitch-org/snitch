@@ -541,11 +541,19 @@ void registry::report_skipped(std::string_view message) noexcept {
 void registry::report_section_started(const section& sec) noexcept {
     const impl::test_state& state = impl::get_current_test();
 
+    if (state.reg.verbose < registry::verbosity::high) {
+        return;
+    }
+
     state.reg.report_callback(state.reg, event::section_started{sec.id, sec.location});
 }
 
 void registry::report_section_ended(const section& sec) noexcept {
     const impl::test_state& state = impl::get_current_test();
+
+    if (state.reg.verbose < registry::verbosity::high) {
+        return;
+    }
 
     const bool skipped = state.test.state == impl::test_case_state::skipped;
 
