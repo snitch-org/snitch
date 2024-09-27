@@ -391,15 +391,32 @@ const char* registry::add_fixture(
 
 namespace {
 void register_assertion(bool success, impl::test_state& state) {
-    ++state.asserts;
-
     if (!success) {
         if (state.may_fail || state.should_fail) {
+            ++state.asserts;
             ++state.allowed_failures;
+
+            for (auto& section : state.info.sections.current_section) {
+                ++section.assertion_count;
+                ++section.allowed_assertion_failure_count;
+            }
+
             impl::set_state(state.test, impl::test_case_state::allowed_fail);
         } else {
+            ++state.asserts;
             ++state.failures;
+
+            for (auto& section : state.info.sections.current_section) {
+                ++section.assertion_count;
+                ++section.assertion_failure_count;
+            }
+
             impl::set_state(state.test, impl::test_case_state::failed);
+        }
+    } else {
+        ++state.asserts;
+        for (auto& section : state.info.sections.current_section) {
+            ++section.assertion_count;
         }
     }
 }

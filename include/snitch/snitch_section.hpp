@@ -10,10 +10,8 @@ namespace snitch::impl {
 struct section_entry_checker {
     section     data = {};
     test_state& state;
-    bool        entered          = false;
-    std::size_t asserts          = 0;
-    std::size_t failures         = 0;
-    std::size_t allowed_failures = 0;
+    bool        entered = false;
+
 #if SNITCH_WITH_TIMINGS
     std::make_signed_t<std::size_t> start_time = 0;
 #endif

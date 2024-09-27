@@ -46,6 +46,13 @@ struct section {
     section_id id = {};
     /// Location (file, line)
     source_location location = {};
+
+    /// Counts all assertions; passed, failed, or allowed failed
+    std::size_t assertion_count = 0;
+    /// Counts failed assertions
+    std::size_t assertion_failure_count = 0;
+    /// Counts allowed failed assertions (e.g., [!shouldfail] and [!mayfail])
+    std::size_t allowed_assertion_failure_count = 0;
 };
 
 /// List of test case filters
@@ -188,12 +195,20 @@ struct section_ended {
     /// Identifiers (name, description)
     section_id id = {};
     /// Location (file, line)
-    source_location location                        = {};
-    bool            skipped                         = false;
-    std::size_t     assertion_count                 = 0;
-    std::size_t     assertion_failure_count         = 0;
-    std::size_t     allowed_assertion_failure_count = 0;
+    source_location location = {};
+
+    /// Whether the section has been skipped.
+    bool skipped = false;
+
+    /// Counts all assertions; passed, failed, or allowed failed
+    std::size_t assertion_count = 0;
+    /// Counts failed assertions
+    std::size_t assertion_failure_count = 0;
+    /// Counts allowed failed assertions (e.g., [!shouldfail] and [!mayfail])
+    std::size_t allowed_assertion_failure_count = 0;
+
 #if SNITCH_WITH_TIMINGS
+    /// Section duration, in seconds
     float duration = 0.0f;
 #endif
 };

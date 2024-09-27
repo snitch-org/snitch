@@ -32,10 +32,7 @@ section_entry_checker::~section_entry_checker() {
 
         pop_location(state);
 
-        asserts          = state.asserts - asserts;
-        failures         = state.failures - failures;
-        allowed_failures = state.allowed_failures - allowed_failures;
-
+        bool last_entry = false;
         if (sections.depth == sections.levels.size()) {
             // We just entered this section, and there was no child section in it.
             // This is a leaf; flag that a leaf has been executed so that no other leaf
@@ -44,19 +41,7 @@ section_entry_checker::~section_entry_checker() {
             // that we don't know about yet. Popping will be done when we exit from the parent,
             // since then we will know if there is any sibling.
             sections.leaf_executed = true;
-#if SNITCH_WITH_TIMINGS
-            const auto end_time = snitch_clock::now().time_since_epoch();
-            const auto duration =
-                std::chrono::duration_cast<fsec>(end_time - snitch_clock::duration{start_time});
-            state.reg.report_callback(
-                state.reg, event::section_ended{
-                               data.id, data.location, false, asserts, failures, allowed_failures,
-                               duration.count()});
-#else
-            state.reg.report_callback(
-                state.reg,
-                event::section_ended{data.id, data.location, asserts, failures, allowed_failures});
-#endif
+            last_entry             = true;
         } else {
             // Check if there is any child section left to execute, at any depth below this one.
             bool no_child_section_left = true;
@@ -70,12 +55,29 @@ section_entry_checker::~section_entry_checker() {
 
             if (no_child_section_left) {
                 // No more children, we can pop this level and never go back.
-                state.reg.report_callback(
-                    state.reg, event::section_ended{
-                                   sections.current_section.back().id,
-                                   sections.current_section.back().location});
                 sections.levels.pop_back();
+                last_entry = true;
             }
+        }
+
+        // Emit the section end event (only on last entry).
+        if (last_entry) {
+            const auto& section = sections.current_section.back();
+
+#if SNITCH_WITH_TIMINGS
+            const auto end_time = snitch_clock::now().time_since_epoch();
+            const auto duration =
+                std::chrono::duration_cast<fsec>(end_time - snitch_clock::duration{start_time});
+#endif
+
+            state.reg.report_callback(
+                state.reg, event::section_ended {
+                    data.id, data.location, false, section.assertion_count,
+                        section.assertion_failure_count, section.allowed_assertion_failure_count,
+#if SNITCH_WITH_TIMINGS
+                        duration.count()
+#endif
+                });
         }
 
         sections.current_section.pop_back();
@@ -135,17 +137,14 @@ section_entry_checker::operator bool() {
     // Entering this section.
 
     // Emit the section start event (only on first entry).
-    if (level.current_section_id == level.previous_section_id + 1) {
+    if (previous_was_preceeding_sibling) {
         state.reg.report_callback(state.reg, event::section_started{data.id, data.location});
     }
 
-    // Keep records of current state.
 #if SNITCH_WITH_TIMINGS
+    // Start the clock.
     start_time = snitch_clock::now().time_since_epoch().count();
 #endif
-    asserts          = state.asserts;
-    failures         = state.failures;
-    allowed_failures = state.allowed_failures;
 
     // Push new section on the stack.
     level.previous_section_id = level.current_section_id;

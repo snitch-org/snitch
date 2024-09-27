@@ -226,9 +226,9 @@
   <TestCase name="test unexpected throw in section fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
       <Section name="section 2" filename="*testing_reporters.cpp" line="*">
-        <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
+        <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
       </Section>
-      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
+      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
     </Section>
     <Failure filename="*testing_reporters.cpp" line="*">
       unexpected std::exception caught; message: unexpected error
@@ -243,7 +243,7 @@
   </TestCase>
   <TestCase name="test unexpected throw in check &amp; section fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
-      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="true" durationInSeconds="*"/>
+      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
     </Section>
     <Failure filename="*testing_reporters.cpp" line="*">
       unexpected std::exception caught; message: unexpected error
@@ -340,9 +340,9 @@
         <Failure filename="*testing_reporters.cpp" line="*">
           failure 6
         </Failure>
-        <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+        <OverallResults successes="0" failures="3" expectedFailures="0" skipped="false" durationInSeconds="*"/>
       </Section>
-      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+      <OverallResults successes="0" failures="4" expectedFailures="0" skipped="false" durationInSeconds="*"/>
     </Section>
     <Failure filename="*testing_reporters.cpp" line="*">
       failure 7
