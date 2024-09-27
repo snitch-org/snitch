@@ -105,13 +105,7 @@ section_entry_checker::operator bool() {
         sections.levels.push_back({});
     }
 
-#if SNITCH_WITH_TIMINGS
-    start_time = snitch_clock::now().time_since_epoch().count();
-#endif
     ++sections.depth;
-    asserts          = state.asserts;
-    failures         = state.failures;
-    allowed_failures = state.allowed_failures;
 
     auto& level = sections.levels[sections.depth - 1];
 
@@ -126,26 +120,38 @@ section_entry_checker::operator bool() {
         return false;
     }
 
-    // Only enter this section if:
-    //  - The section entered in the previous run was its immediate previous sibling, or
-    //  - This section was already entered in the previous run, and child sections exist in it.
-    if (level.current_section_id == level.previous_section_id + 1 ||
-        (level.current_section_id == level.previous_section_id &&
-         sections.depth < sections.levels.size())) {
+    const bool previous_was_preceeding_sibling =
+        level.current_section_id == level.previous_section_id + 1;
+    const bool children_remaining_in_self = level.current_section_id == level.previous_section_id &&
+                                            sections.depth < sections.levels.size();
 
-        // First time entering this section, emit the section start event.
-        if (level.current_section_id == level.previous_section_id + 1) {
-            state.reg.report_callback(state.reg, event::section_started{data.id, data.location});
-        }
-
-        level.previous_section_id = level.current_section_id;
-        sections.current_section.push_back(data);
-        push_location(
-            state, {data.location.file, data.location.line, location_type::section_scope});
-        entered = true;
-        return true;
+    if (!previous_was_preceeding_sibling && !children_remaining_in_self) {
+        // Skip this section if:
+        //  - The section entered in the previous run was not its immediate previous sibling, and
+        //  - This section was not already entered in the previous run with remaining children.
+        return false;
     }
 
-    return false;
+    // Entering this section.
+
+    // Emit the section start event (only on first entry).
+    if (level.current_section_id == level.previous_section_id + 1) {
+        state.reg.report_callback(state.reg, event::section_started{data.id, data.location});
+    }
+
+    // Keep records of current state.
+#if SNITCH_WITH_TIMINGS
+    start_time = snitch_clock::now().time_since_epoch().count();
+#endif
+    asserts          = state.asserts;
+    failures         = state.failures;
+    allowed_failures = state.allowed_failures;
+
+    // Push new section on the stack.
+    level.previous_section_id = level.current_section_id;
+    sections.current_section.push_back(data);
+    push_location(state, {data.location.file, data.location.line, location_type::section_scope});
+    entered = true;
+    return true;
 }
 } // namespace snitch::impl
