@@ -3,6 +3,7 @@
 
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_string.hpp"
+#include "snitch/snitch_time.hpp"
 #include "snitch/snitch_vector.hpp"
 
 #include <cstddef>
@@ -53,6 +54,11 @@ struct section {
     std::size_t assertion_failure_count = 0;
     /// Counts allowed failed assertions (e.g., [!shouldfail] and [!mayfail])
     std::size_t allowed_assertion_failure_count = 0;
+
+#if SNITCH_WITH_TIMINGS
+    /// Time index of the instant when the section was first entered.
+    time_point_t start_time = 0;
+#endif
 };
 
 /// List of test case filters

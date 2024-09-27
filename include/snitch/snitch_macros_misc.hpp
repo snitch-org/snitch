@@ -9,7 +9,7 @@
 
 #define SNITCH_SECTION(...)                                                                        \
     if (snitch::impl::section_entry_checker SNITCH_MACRO_CONCAT(section_id_, __COUNTER__){         \
-            {{__VA_ARGS__}, SNITCH_CURRENT_LOCATION}, snitch::impl::get_current_test()})
+            {__VA_ARGS__}, SNITCH_CURRENT_LOCATION, snitch::impl::get_current_test()})
 
 #define SNITCH_CAPTURE(...)                                                                        \
     auto SNITCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                           \

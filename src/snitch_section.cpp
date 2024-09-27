@@ -3,20 +3,13 @@
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_registry.hpp"
 #include "snitch/snitch_test_data.hpp"
+#include "snitch/snitch_time.hpp"
 
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception>
 #endif
-#if SNITCH_WITH_TIMINGS
-#    include <chrono>
-#endif
 
 namespace snitch::impl {
-#if SNITCH_WITH_TIMINGS
-using fsec         = std::chrono::duration<float>;
-using snitch_clock = std::chrono::steady_clock;
-#endif
-
 section_entry_checker::~section_entry_checker() {
     auto& sections = state.info.sections;
 
@@ -60,24 +53,14 @@ section_entry_checker::~section_entry_checker() {
             }
         }
 
-        // Emit the section end event (only on last entry).
-        if (last_entry) {
-            const auto& section = sections.current_section.back();
-
-#if SNITCH_WITH_TIMINGS
-            const auto end_time = snitch_clock::now().time_since_epoch();
-            const auto duration =
-                std::chrono::duration_cast<fsec>(end_time - snitch_clock::duration{start_time});
+        // Emit the section end event (only on last entry, and only if no exception in flight).
+#if SNITCH_WITH_EXCEPTIONS
+        if (last_entry && std::uncaught_exceptions() == 0)
+#else
+        if (last_entry)
 #endif
-
-            state.reg.report_callback(
-                state.reg, event::section_ended {
-                    data.id, data.location, false, section.assertion_count,
-                        section.assertion_failure_count, section.allowed_assertion_failure_count,
-#if SNITCH_WITH_TIMINGS
-                        duration.count()
-#endif
-                });
+        {
+            registry::report_section_ended(sections.current_section.back());
         }
 
         sections.current_section.pop_back();
@@ -136,21 +119,24 @@ section_entry_checker::operator bool() {
 
     // Entering this section.
 
-    // Emit the section start event (only on first entry).
-    if (previous_was_preceeding_sibling) {
-        state.reg.report_callback(state.reg, event::section_started{data.id, data.location});
-    }
-
-#if SNITCH_WITH_TIMINGS
-    // Start the clock.
-    start_time = snitch_clock::now().time_since_epoch().count();
-#endif
-
     // Push new section on the stack.
     level.previous_section_id = level.current_section_id;
-    sections.current_section.push_back(data);
-    push_location(state, {data.location.file, data.location.line, location_type::section_scope});
+    sections.current_section.push_back(
+#if SNITCH_WITH_TIMINGS
+        section{.id = id, .location = location, .start_time = get_current_time()}
+#else
+        section{.id = id, .location = location}
+#endif
+    );
+
+    push_location(state, {location.file, location.line, location_type::section_scope});
     entered = true;
+
+    // Emit the section start event (only on first entry).
+    if (previous_was_preceeding_sibling) {
+        registry::report_section_started(sections.current_section.back());
+    }
+
     return true;
 }
 } // namespace snitch::impl

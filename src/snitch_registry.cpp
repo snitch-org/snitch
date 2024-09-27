@@ -511,6 +511,40 @@ void registry::report_skipped(std::string_view message) noexcept {
                        message});
 }
 
+void registry::report_section_started(const section& sec) noexcept {
+    const impl::test_state& state = impl::get_current_test();
+
+    state.reg.report_callback(state.reg, event::section_started{sec.id, sec.location});
+}
+
+void registry::report_section_ended(const section& sec) noexcept {
+    const impl::test_state& state = impl::get_current_test();
+
+    const bool skipped = state.test.state == impl::test_case_state::skipped;
+
+#if SNITCH_WITH_TIMINGS
+    const auto duration = get_duration_in_seconds(sec.start_time, get_current_time());
+    state.reg.report_callback(
+        state.reg, event::section_ended{
+                       .id                              = sec.id,
+                       .location                        = sec.location,
+                       .skipped                         = skipped,
+                       .assertion_count                 = sec.assertion_count,
+                       .assertion_failure_count         = sec.assertion_failure_count,
+                       .allowed_assertion_failure_count = sec.allowed_assertion_failure_count,
+                       .duration                        = duration});
+#else
+    state.reg.report_callback(
+        state.reg, event::section_ended{
+                       .id                              = sec.id,
+                       .location                        = sec.location,
+                       .skipped                         = skipped,
+                       .assertion_count                 = sec.assertion_count,
+                       .assertion_failure_count         = sec.assertion_failure_count,
+                       .allowed_assertion_failure_count = sec.allowed_assertion_failure_count});
+#endif
+}
+
 impl::test_state registry::run(impl::test_case& test) noexcept {
     if (verbose >= registry::verbosity::high) {
         report_callback(*this, event::test_case_started{test.id, test.location});
