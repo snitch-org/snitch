@@ -6,7 +6,7 @@
 namespace snitch {
 namespace impl {
 using clock           = std::chrono::steady_clock;
-using tick_resolution = std::chrono::microseconds;
+using tick_resolution = std::chrono::nanoseconds;
 } // namespace impl
 
 time_point_t get_current_time() noexcept {
