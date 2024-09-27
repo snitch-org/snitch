@@ -148,8 +148,13 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
                 send_message(r, "testFinished", {{"name", make_full_name(e.id)}});
 #    endif
             },
-            [&](const snitch::event::section_started&) {},
-            [&](const snitch::event::section_ended&) {},
+            [&](const snitch::event::section_started& e) {
+                send_message(
+                    r, "blockOpened", {{"name", e.id.name}, {"description", e.id.description}});
+            },
+            [&](const snitch::event::section_ended& e) {
+                send_message(r, "blockClosed", {{"name", e.id.name}});
+            },
             [&](const snitch::event::test_case_skipped& e) {
                 send_message(
                     r, "testIgnored",
