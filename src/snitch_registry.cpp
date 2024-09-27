@@ -1,11 +1,9 @@
 #include "snitch/snitch_registry.hpp"
 
+#include "snitch/snitch_time.hpp"
+
 #include <algorithm> // for std::sort
 #include <optional> // for std::optional
-
-#if SNITCH_WITH_TIMINGS
-#    include <chrono> // for measuring test time
-#endif
 
 // Testing framework implementation.
 // ---------------------------------
@@ -543,8 +541,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     impl::set_current_test(&state);
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::steady_clock;
-    auto time_start = clock::now();
+    const auto time_start = get_current_time();
 #endif
 
 #if SNITCH_WITH_EXCEPTIONS
@@ -598,8 +595,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     }
 
 #if SNITCH_WITH_TIMINGS
-    auto time_end  = clock::now();
-    state.duration = std::chrono::duration<float>(time_end - time_start).count();
+    state.duration = get_duration_in_seconds(time_start, get_current_time());
 #endif
 
     if (verbose >= registry::verbosity::high) {
@@ -650,8 +646,7 @@ bool registry::run_selected_tests(
     std::size_t allowed_assertion_failure_count = 0;
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::steady_clock;
-    auto time_start = clock::now();
+    const auto time_start = get_current_time();
 #endif
 
     for (impl::test_case& t : this->test_cases()) {
@@ -692,8 +687,7 @@ bool registry::run_selected_tests(
     }
 
 #if SNITCH_WITH_TIMINGS
-    auto  time_end = clock::now();
-    float duration = std::chrono::duration<float>(time_end - time_start).count();
+    const float duration = get_duration_in_seconds(time_start, get_current_time());
 #endif
 
     if (verbose >= registry::verbosity::normal) {
