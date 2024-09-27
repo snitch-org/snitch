@@ -156,13 +156,13 @@
   <TestCase name="test unexpected throw in section fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
       <Section name="section 2" filename="*testing_reporters.cpp" line="*">
-        <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+        <Failure filename="*testing_reporters.cpp" line="*">
+          unexpected std::exception caught; message: unexpected error
+        </Failure>
+        <OverallResults successes="0" failures="1" expectedFailures="0" skipped="false" durationInSeconds="*"/>
       </Section>
-      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+      <OverallResults successes="0" failures="1" expectedFailures="0" skipped="false" durationInSeconds="*"/>
     </Section>
-    <Failure filename="*testing_reporters.cpp" line="*">
-      unexpected std::exception caught; message: unexpected error
-    </Failure>
     <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <TestCase name="test unexpected throw in check fail" tags="" filename="*testing_reporters.cpp" line="*">
@@ -173,11 +173,11 @@
   </TestCase>
   <TestCase name="test unexpected throw in check &amp; section fail" tags="" filename="*testing_reporters.cpp" line="*">
     <Section name="section 1" filename="*testing_reporters.cpp" line="*">
-      <OverallResults successes="0" failures="0" expectedFailures="0" skipped="false" durationInSeconds="*"/>
+      <Failure filename="*testing_reporters.cpp" line="*">
+        unexpected std::exception caught; message: unexpected error
+      </Failure>
+      <OverallResults successes="0" failures="1" expectedFailures="0" skipped="false" durationInSeconds="*"/>
     </Section>
-    <Failure filename="*testing_reporters.cpp" line="*">
-      unexpected std::exception caught; message: unexpected error
-    </Failure>
     <OverallResult success="false" skips="0" durationInSeconds="*"/>
   </TestCase>
   <OverallResults successes="14" failures="21" expectedFailures="0" skips="0"/>

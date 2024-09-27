@@ -399,6 +399,15 @@ void register_assertion(bool success, impl::test_state& state) {
                 ++section.allowed_assertion_failure_count;
             }
 
+#if SNITCH_WITH_EXCEPTIONS
+            if (state.held_info.has_value()) {
+                for (auto& section : state.held_info.value().sections.current_section) {
+                    ++section.assertion_count;
+                    ++section.allowed_assertion_failure_count;
+                }
+            }
+#endif
+
             impl::set_state(state.test, impl::test_case_state::allowed_fail);
         } else {
             ++state.asserts;
@@ -409,13 +418,31 @@ void register_assertion(bool success, impl::test_state& state) {
                 ++section.assertion_failure_count;
             }
 
+#if SNITCH_WITH_EXCEPTIONS
+            if (state.held_info.has_value()) {
+                for (auto& section : state.held_info.value().sections.current_section) {
+                    ++section.assertion_count;
+                    ++section.assertion_failure_count;
+                }
+            }
+#endif
+
             impl::set_state(state.test, impl::test_case_state::failed);
         }
     } else {
         ++state.asserts;
+
         for (auto& section : state.info.sections.current_section) {
             ++section.assertion_count;
         }
+
+#if SNITCH_WITH_EXCEPTIONS
+        if (state.held_info.has_value()) {
+            for (auto& section : state.held_info.value().sections.current_section) {
+                ++section.assertion_count;
+            }
+        }
+#endif
     }
 }
 
@@ -434,8 +461,8 @@ void report_assertion_impl(
     const auto captures_buffer = impl::make_capture_buffer(
         use_held_info ? state.held_info.value().captures : state.info.captures);
 
-    const auto& current_section = use_held_info ? state.held_info.value().sections.current_section
-                                                : state.info.sections.current_section;
+    auto& current_section = use_held_info ? state.held_info.value().sections.current_section
+                                          : state.info.sections.current_section;
 
     const auto& last_location =
         use_held_info ? state.held_info.value().locations.back() : state.info.locations.back();
@@ -464,6 +491,16 @@ void report_assertion_impl(
                    state.test.id, current_section, captures_buffer.span(), location, data,
                    state.should_fail, state.may_fail});
     }
+
+#if SNITCH_WITH_EXCEPTIONS
+    if (state.unhandled_exception) {
+        // Close all sections that were left open by the exception.
+        while (!current_section.empty()) {
+            registry::report_section_ended(current_section.back());
+            current_section.pop_back();
+        }
+    }
+#endif
 }
 } // namespace
 
