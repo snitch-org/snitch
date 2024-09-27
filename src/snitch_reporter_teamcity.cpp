@@ -44,11 +44,8 @@ void print_assertion(const registry& r, const assertion& msg) noexcept {
     small_string<max_message_length> buffer;
 
     r.print("'", make_escaped(buffer, msg.location.file), ":", msg.location.line, "|n");
-    for (const auto& s : msg.sections) {
-        r.print(make_escaped(buffer, s.id.name), "|n");
-    }
     for (const auto& c : msg.captures) {
-        r.print(make_escaped(buffer, c), "|n");
+        r.print("with ", make_escaped(buffer, c), "|n");
     }
 
     constexpr std::string_view indent = "  ";
