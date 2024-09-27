@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<Catch2TestRun name="test" rng-seed="0" xml-format-version="2" catch2-version="*.snitch" filters="">
+<Catch2TestRun name="test" rng-seed="0" xml-format-version="3" catch2-version="*.snitch" filters="">
   <TestCase name="test pass" tags="[tag2][tag1]" filename="*testing_reporters.cpp" line="*">
     <OverallResult success="true" skips="0" durationInSeconds="*"/>
   </TestCase>

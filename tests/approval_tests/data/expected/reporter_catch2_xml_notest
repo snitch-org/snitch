@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<Catch2TestRun name="test" rng-seed="0" xml-format-version="2" catch2-version="*.snitch" filters="&quot;bad_filter&quot;">
-  <OverallResults successes="0" failures="0" expectedFailures="0"/>
-  <OverallResultsCases successes="0" failures="0" expectedFailures="0"/>
+<Catch2TestRun name="test" rng-seed="0" xml-format-version="3" catch2-version="*.snitch" filters="&quot;bad_filter&quot;">
+  <OverallResults successes="0" failures="0" expectedFailures="0" skips="0"/>
+  <OverallResultsCases successes="0" failures="0" expectedFailures="0" skips="0"/>
 </Catch2TestRun>
