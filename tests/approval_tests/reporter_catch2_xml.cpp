@@ -8,7 +8,7 @@
 using namespace std::literals;
 using snitch::matchers::contains_substring;
 
-TEST_CASE("teamcity reporter", "[reporters]") {
+TEST_CASE("xml reporter", "[reporters]") {
     mock_framework framework;
     register_tests_for_reporters(framework.registry);
     framework.registry.add({"test escape <>&\"'"}, SNITCH_CURRENT_LOCATION, [] {
