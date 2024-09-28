@@ -29,6 +29,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Run-time and compile-time](#run-time-and-compile-time)
         - [Exception checks](#exception-checks)
         - [Miscellaneous](#miscellaneous)
+    - [Advanced API](#advanced-api)
     - [Tags](#tags)
     - [Matchers](#matchers)
     - [Sections](#sections)
@@ -479,6 +480,13 @@ This reports the current test case as "skipped". Any previously reported status 
 `SKIP_CHECK(MSG);`
 
 This is similar to `SKIP`, except that the test case continues. Further failure will not be reported. This is only recommended as an alternative to `SKIP()` when exceptions cannot be used.
+
+
+### Advanced API
+
+`snitch::notify_exception_handled();`
+
+If handling exceptions explicitly with a `try/catch` block in a test case, this should be called at the end of the `catch` block. This clears up internal state that would have been used to report that exception, had it not been handled. Calling this is not strictly necessary in most cases, but omitting it can lead to confusing contextual data (incorrect section/capture/info) if another exception is thrown afterwards and not handled.
 
 
 ### Tags

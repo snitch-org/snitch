@@ -374,4 +374,18 @@ struct scoped_test_check {
 };
 } // namespace snitch::impl
 
+namespace snitch {
+#if SNITCH_WITH_EXCEPTIONS
+/*! \brief Notify the testing framework that an exception was manually handled.
+ * \details If handling exceptions explicitly with a `try/catch` block in a test case,
+ * this should be called at the end of the `catch` block. This clears up internal state
+ * that would have been used to report that exception, had it not been handled. Calling
+ * this is not strictly necessary in most cases, but omitting it can lead to confusing
+ * contextual data (incorrect section/capture/info) if another exception is thrown afterwards
+ * and not handled.
+ */
+SNITCH_EXPORT void notify_exception_handled() noexcept;
+#endif
+} // namespace snitch
+
 #endif

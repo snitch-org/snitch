@@ -325,6 +325,15 @@
     </SourceInfo>
   </TestCase>
   <TestCase>
+    <Name>test unexpected throw in check &amp; section mayfail</Name>
+    <ClassName/>
+    <Tags>[!mayfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
     <Name>test SKIP</Name>
     <ClassName/>
     <Tags/>
@@ -355,6 +364,15 @@
     <Name>test SECTION</Name>
     <ClassName/>
     <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SECTION mayfail</Name>
+    <ClassName/>
+    <Tags>[!mayfail]</Tags>
     <SourceInfo>
       <File>*testing_reporters.cpp</File>
       <Line>*</Line>

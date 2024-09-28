@@ -92,7 +92,9 @@ small_string<max_capture_length>& add_capture(test_state& state) {
     }
 
 #if SNITCH_WITH_EXCEPTIONS
-    state.held_info.reset();
+    if (std::uncaught_exceptions() == 0) {
+        notify_exception_handled();
+    }
 #endif
 
     state.info.captures.grow(1);

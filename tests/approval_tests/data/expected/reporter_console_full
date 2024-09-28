@@ -277,6 +277,14 @@ failed: running test case "test unexpected throw in check & section fail"
           unexpected std::exception caught; message: unexpected error
 leaving section: section 1
 finished: test unexpected throw in check & section fail (*)
+starting: test unexpected throw in check & section mayfail at *testing_reporters.cpp:*
+entering section: section 1 at *testing_reporters.cpp:*
+allowed failure: running test case "test unexpected throw in check & section mayfail"
+          in section "section 1"
+          somewhere inside check at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
+leaving section: section 1
+finished: test unexpected throw in check & section mayfail (*)
 starting: test SKIP at *testing_reporters.cpp:*
 skipped: running test case "test SKIP"
           at *testing_reporters.cpp:*
@@ -323,6 +331,17 @@ passed: running test case "test SECTION"
           at *testing_reporters.cpp:*
           no exception caught
 finished: test SECTION (*)
+starting: test SECTION mayfail at *testing_reporters.cpp:*
+entering section: section at *testing_reporters.cpp:*
+allowed failure: running test case "test SECTION mayfail"
+          in section "section"
+          at *testing_reporters.cpp:*
+          failure
+leaving section: section
+passed: running test case "test SECTION mayfail"
+          at *testing_reporters.cpp:*
+          no exception caught
+finished: test SECTION mayfail (*)
 starting: test multiple SECTION at *testing_reporters.cpp:*
 entering section: section 1 at *testing_reporters.cpp:*
 failed: running test case "test multiple SECTION"
@@ -450,4 +469,4 @@ leaving section: section 2
 leaving section: section 1
 finished: test SKIP in SECTION (*)
 ==========================================
-error: some tests failed (26 out of 44 test cases, 91 assertions, 2 test cases skipped, * seconds)
+error: some tests failed (26 out of 46 test cases, 94 assertions, 2 test cases skipped, * seconds)

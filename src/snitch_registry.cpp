@@ -456,7 +456,8 @@ void report_assertion_impl(
     register_assertion(success, state);
 
 #if SNITCH_WITH_EXCEPTIONS
-    const bool use_held_info = state.unhandled_exception && state.held_info.has_value();
+    const bool use_held_info = (state.unhandled_exception || std::uncaught_exceptions() > 0) &&
+                               state.held_info.has_value();
 
     const auto captures_buffer = impl::make_capture_buffer(
         use_held_info ? state.held_info.value().captures : state.info.captures);
@@ -655,15 +656,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     }
 
     if (state.unhandled_exception) {
-        auto& current_section = state.held_info.has_value()
-                                    ? state.held_info.value().sections.current_section
-                                    : state.info.sections.current_section;
-
-        // Close all sections that were left open by the exception.
-        while (!current_section.empty()) {
-            registry::report_section_ended(current_section.back());
-            current_section.pop_back();
-        }
+        notify_exception_handled();
     }
 
     state.unhandled_exception = false;

@@ -71,7 +71,9 @@ section_entry_checker::~section_entry_checker() {
 
 section_entry_checker::operator bool() {
 #if SNITCH_WITH_EXCEPTIONS
-    state.held_info.reset();
+    if (std::uncaught_exceptions() == 0) {
+        notify_exception_handled();
+    }
 #endif
 
     auto& sections = state.info.sections;

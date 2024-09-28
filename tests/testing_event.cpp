@@ -68,7 +68,7 @@ void copy_assertion_data(snitch::small_string_span pool, U& c, const T& e) {
 }
 
 template<typename T>
-std::optional<T>
+std::pair<std::optional<T>, std::size_t>
 get_nth_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id) {
     auto iter  = events.cbegin();
     bool first = true;
@@ -87,9 +87,9 @@ get_nth_event(snitch::small_vector_span<const owning_event::data> events, std::s
     } while (id != 0);
 
     if (iter == events.cend()) {
-        return {};
+        return {std::nullopt, events.size()};
     } else {
-        return std::get<T>(*iter);
+        return {std::get<T>(*iter), iter - events.cbegin()};
     }
 }
 
@@ -211,12 +211,12 @@ owning_event::data deep_copy(snitch::small_string_span pool, const snitch::event
 
 std::optional<owning_event::assertion_failed>
 get_failure_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id) {
-    return get_nth_event<owning_event::assertion_failed>(events, id);
+    return get_nth_event<owning_event::assertion_failed>(events, id).first;
 }
 
 std::optional<owning_event::assertion_succeeded>
 get_success_event(snitch::small_vector_span<const owning_event::data> events, std::size_t id) {
-    return get_nth_event<owning_event::assertion_succeeded>(events, id);
+    return get_nth_event<owning_event::assertion_succeeded>(events, id).first;
 }
 
 std::optional<snitch::test_id> get_test_id(const owning_event::data& e) noexcept {
@@ -278,12 +278,76 @@ void mock_framework::run_test() {
 
 std::optional<owning_event::assertion_failed>
 mock_framework::get_failure_event(std::size_t id) const {
-    return get_nth_event<owning_event::assertion_failed>(events, id);
+    return get_nth_event<owning_event::assertion_failed>(events, id).first;
 }
 
 std::optional<owning_event::assertion_succeeded>
 mock_framework::get_success_event(std::size_t id) const {
-    return get_nth_event<owning_event::assertion_succeeded>(events, id);
+    return get_nth_event<owning_event::assertion_succeeded>(events, id).first;
+}
+
+bool mock_framework::check_balanced_section_events() const {
+    bool                                                                  test_case_started = false;
+    snitch::small_vector<snitch::section_id, snitch::max_nested_sections> sections;
+    for (const auto& e : events) {
+        bool good = std::visit(
+            snitch::overload{
+                [&](const owning_event::section_started& s) {
+                    if (!test_case_started) {
+                        return false;
+                    }
+                    sections.push_back(s.id);
+                    return true;
+                },
+                [&](const owning_event::section_ended& s) {
+                    if (!test_case_started) {
+                        return false;
+                    }
+                    if (sections.empty()) {
+                        return false;
+                    }
+                    if (sections.back().name != s.id.name ||
+                        sections.back().description != s.id.description) {
+                        return false;
+                    }
+
+                    sections.pop_back();
+                    return true;
+                },
+                [&](const owning_event::test_case_started&) {
+                    test_case_started = true;
+                    return sections.empty();
+                },
+                [&](const owning_event::test_case_ended&) {
+                    test_case_started = false;
+                    return sections.empty();
+                },
+                [](const auto&) { return true; }},
+            e);
+
+        if (!good) {
+            return false;
+        }
+    }
+
+    return sections.empty();
+}
+
+snitch::small_vector<std::string_view, snitch::max_nested_sections>
+mock_framework::get_sections_for_failure_event(std::size_t id) const {
+    auto [event, pos] = get_nth_event<owning_event::assertion_failed>(events, id);
+
+    snitch::small_vector<std::string_view, snitch::max_nested_sections> sections;
+    for (std::size_t i = 0; i < pos; ++i) {
+        std::visit(
+            snitch::overload{
+                [&](const owning_event::section_started& s) { sections.push_back(s.id.name); },
+                [&](const owning_event::section_ended&) { sections.pop_back(); },
+                [](const auto&) {}},
+            events[i]);
+    }
+
+    return sections;
 }
 
 std::size_t mock_framework::get_num_registered_tests() const {

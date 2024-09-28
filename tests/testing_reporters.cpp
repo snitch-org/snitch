@@ -136,6 +136,13 @@ void register_tests_for_reporters(snitch::registry& r) {
             SNITCH_CHECK(throw_unexpectedly() == 0);
         }
     });
+    r.add(
+        {"test unexpected throw in check & section mayfail", "[!mayfail]"}, SNITCH_CURRENT_LOCATION,
+        []() {
+            SNITCH_SECTION("section 1") {
+                SNITCH_CHECK(throw_unexpectedly() == 0);
+            }
+        });
 #endif
 
     r.add({"test SKIP"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_SKIP("not interesting"); });
@@ -157,6 +164,12 @@ void register_tests_for_reporters(snitch::registry& r) {
     });
 
     r.add({"test SECTION"}, SNITCH_CURRENT_LOCATION, []() {
+        SNITCH_SECTION("section") {
+            SNITCH_FAIL_CHECK("failure");
+        }
+    });
+
+    r.add({"test SECTION mayfail", "[!mayfail]"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_SECTION("section") {
             SNITCH_FAIL_CHECK("failure");
         }

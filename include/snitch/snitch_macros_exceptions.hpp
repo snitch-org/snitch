@@ -17,6 +17,7 @@
                 SNITCH_NO_EXCEPTION_THROWN = true;                                                 \
             } catch (const __VA_ARGS__&) {                                                         \
                 snitch::registry::report_assertion(true, #__VA_ARGS__ " was thrown as expected");  \
+                snitch::notify_exception_handled();                                                \
             } catch (...) {                                                                        \
                 try {                                                                              \
                     throw;                                                                         \
@@ -25,12 +26,12 @@
                         false,                                                                     \
                         #__VA_ARGS__ " expected but other std::exception thrown; message: ",       \
                         e.what());                                                                 \
-                    MAYBE_ABORT;                                                                   \
                 } catch (...) {                                                                    \
                     snitch::registry::report_assertion(                                            \
                         false, #__VA_ARGS__ " expected but other unknown exception thrown");       \
-                    MAYBE_ABORT;                                                                   \
                 }                                                                                  \
+                snitch::notify_exception_handled();                                                \
+                MAYBE_ABORT;                                                                       \
             }                                                                                      \
             if (SNITCH_NO_EXCEPTION_THROWN) {                                                      \
                 snitch::registry::report_assertion(                                                \
@@ -58,12 +59,14 @@
                         false, "could not match caught " #EXCEPTION " with expected content: ",    \
                         SNITCH_TEMP_MATCHER.describe_match(                                        \
                             e, snitch::matchers::match_status::failed));                           \
+                    snitch::notify_exception_handled();                                            \
                     MAYBE_ABORT;                                                                   \
                 } else {                                                                           \
                     snitch::registry::report_assertion(                                            \
                         true, "caught " #EXCEPTION " matched expected content: ",                  \
                         SNITCH_TEMP_MATCHER.describe_match(                                        \
                             e, snitch::matchers::match_status::matched));                          \
+                    snitch::notify_exception_handled();                                            \
                 }                                                                                  \
             } catch (...) {                                                                        \
                 try {                                                                              \
@@ -72,12 +75,12 @@
                     snitch::registry::report_assertion(                                            \
                         false, #EXCEPTION " expected but other std::exception thrown; message: ",  \
                         e.what());                                                                 \
-                    MAYBE_ABORT;                                                                   \
                 } catch (...) {                                                                    \
                     snitch::registry::report_assertion(                                            \
                         false, #EXCEPTION " expected but other unknown exception thrown");         \
-                    MAYBE_ABORT;                                                                   \
                 }                                                                                  \
+                snitch::notify_exception_handled();                                                \
+                MAYBE_ABORT;                                                                       \
             }                                                                                      \
             if (SNITCH_NO_EXCEPTION_THROWN) {                                                      \
                 snitch::registry::report_assertion(                                                \
@@ -111,6 +114,7 @@
                         false, "expected " #__VA_ARGS__                                            \
                                " not to throw but it threw an unknown exception");                 \
                 }                                                                                  \
+                snitch::notify_exception_handled();                                                \
                 MAYBE_ABORT;                                                                       \
             }                                                                                      \
         } while (0)
