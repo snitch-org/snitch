@@ -1,11 +1,9 @@
 #include "snitch/snitch_registry.hpp"
 
+#include "snitch/snitch_time.hpp"
+
 #include <algorithm> // for std::sort
 #include <optional> // for std::optional
-
-#if SNITCH_WITH_TIMINGS
-#    include <chrono> // for measuring test time
-#endif
 
 // Testing framework implementation.
 // ---------------------------------
@@ -391,16 +389,60 @@ const char* registry::add_fixture(
 
 namespace {
 void register_assertion(bool success, impl::test_state& state) {
-    ++state.asserts;
-
     if (!success) {
         if (state.may_fail || state.should_fail) {
+            ++state.asserts;
             ++state.allowed_failures;
+
+            for (auto& section : state.info.sections.current_section) {
+                ++section.assertion_count;
+                ++section.allowed_assertion_failure_count;
+            }
+
+#if SNITCH_WITH_EXCEPTIONS
+            if (state.held_info.has_value()) {
+                for (auto& section : state.held_info.value().sections.current_section) {
+                    ++section.assertion_count;
+                    ++section.allowed_assertion_failure_count;
+                }
+            }
+#endif
+
             impl::set_state(state.test, impl::test_case_state::allowed_fail);
         } else {
+            ++state.asserts;
             ++state.failures;
+
+            for (auto& section : state.info.sections.current_section) {
+                ++section.assertion_count;
+                ++section.assertion_failure_count;
+            }
+
+#if SNITCH_WITH_EXCEPTIONS
+            if (state.held_info.has_value()) {
+                for (auto& section : state.held_info.value().sections.current_section) {
+                    ++section.assertion_count;
+                    ++section.assertion_failure_count;
+                }
+            }
+#endif
+
             impl::set_state(state.test, impl::test_case_state::failed);
         }
+    } else {
+        ++state.asserts;
+
+        for (auto& section : state.info.sections.current_section) {
+            ++section.assertion_count;
+        }
+
+#if SNITCH_WITH_EXCEPTIONS
+        if (state.held_info.has_value()) {
+            for (auto& section : state.held_info.value().sections.current_section) {
+                ++section.assertion_count;
+            }
+        }
+#endif
     }
 }
 
@@ -414,7 +456,8 @@ void report_assertion_impl(
     register_assertion(success, state);
 
 #if SNITCH_WITH_EXCEPTIONS
-    const bool use_held_info = state.unhandled_exception && state.held_info.has_value();
+    const bool use_held_info = (state.unhandled_exception || std::uncaught_exceptions() > 0) &&
+                               state.held_info.has_value();
 
     const auto captures_buffer = impl::make_capture_buffer(
         use_held_info ? state.held_info.value().captures : state.info.captures);
@@ -496,6 +539,48 @@ void registry::report_skipped(std::string_view message) noexcept {
                        message});
 }
 
+void registry::report_section_started(const section& sec) noexcept {
+    const impl::test_state& state = impl::get_current_test();
+
+    if (state.reg.verbose < registry::verbosity::high) {
+        return;
+    }
+
+    state.reg.report_callback(state.reg, event::section_started{sec.id, sec.location});
+}
+
+void registry::report_section_ended(const section& sec) noexcept {
+    const impl::test_state& state = impl::get_current_test();
+
+    if (state.reg.verbose < registry::verbosity::high) {
+        return;
+    }
+
+    const bool skipped = state.test.state == impl::test_case_state::skipped;
+
+#if SNITCH_WITH_TIMINGS
+    const auto duration = get_duration_in_seconds(sec.start_time, get_current_time());
+    state.reg.report_callback(
+        state.reg, event::section_ended{
+                       .id                              = sec.id,
+                       .location                        = sec.location,
+                       .skipped                         = skipped,
+                       .assertion_count                 = sec.assertion_count,
+                       .assertion_failure_count         = sec.assertion_failure_count,
+                       .allowed_assertion_failure_count = sec.allowed_assertion_failure_count,
+                       .duration                        = duration});
+#else
+    state.reg.report_callback(
+        state.reg, event::section_ended{
+                       .id                              = sec.id,
+                       .location                        = sec.location,
+                       .skipped                         = skipped,
+                       .assertion_count                 = sec.assertion_count,
+                       .assertion_failure_count         = sec.assertion_failure_count,
+                       .allowed_assertion_failure_count = sec.allowed_assertion_failure_count});
+#endif
+}
+
 impl::test_state registry::run(impl::test_case& test) noexcept {
     if (verbose >= registry::verbosity::high) {
         report_callback(*this, event::test_case_started{test.id, test.location});
@@ -526,8 +611,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     impl::set_current_test(&state);
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::steady_clock;
-    auto time_start = clock::now();
+    const auto time_start = get_current_time();
 #endif
 
 #if SNITCH_WITH_EXCEPTIONS
@@ -562,6 +646,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         state.in_check = false;
     } catch (const impl::abort_exception&) {
         // Test aborted, assume its state was already set accordingly.
+        state.unhandled_exception = true;
     } catch (const std::exception& e) {
         state.unhandled_exception = true;
         report_assertion(false, "unexpected std::exception caught; message: ", e.what());
@@ -569,6 +654,12 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         state.unhandled_exception = true;
         report_assertion(false, "unexpected unknown exception caught");
     }
+
+    if (state.unhandled_exception) {
+        notify_exception_handled();
+    }
+
+    state.unhandled_exception = false;
 #endif
 
     if (state.should_fail) {
@@ -581,8 +672,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     }
 
 #if SNITCH_WITH_TIMINGS
-    auto time_end  = clock::now();
-    state.duration = std::chrono::duration<float>(time_end - time_start).count();
+    state.duration = get_duration_in_seconds(time_start, get_current_time());
 #endif
 
     if (verbose >= registry::verbosity::high) {
@@ -633,8 +723,7 @@ bool registry::run_selected_tests(
     std::size_t allowed_assertion_failure_count = 0;
 
 #if SNITCH_WITH_TIMINGS
-    using clock     = std::chrono::steady_clock;
-    auto time_start = clock::now();
+    const auto time_start = get_current_time();
 #endif
 
     for (impl::test_case& t : this->test_cases()) {
@@ -675,8 +764,7 @@ bool registry::run_selected_tests(
     }
 
 #if SNITCH_WITH_TIMINGS
-    auto  time_end = clock::now();
-    float duration = std::chrono::duration<float>(time_end - time_start).count();
+    const float duration = get_duration_in_seconds(time_start, get_current_time());
 #endif
 
     if (verbose >= registry::verbosity::normal) {

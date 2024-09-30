@@ -29,6 +29,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
         - [Run-time and compile-time](#run-time-and-compile-time)
         - [Exception checks](#exception-checks)
         - [Miscellaneous](#miscellaneous)
+    - [Advanced API](#advanced-api)
     - [Tags](#tags)
     - [Matchers](#matchers)
     - [Sections](#sections)
@@ -246,22 +247,22 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 4.0s     | 42s      | 2.1s      | 0s         |
-| Build tests     | 71s      | 75s      | 76s       | 117s       |
-| Build all       | 75s      | 117s     | 78s       | 117s       |
+| Build framework | 4.2s     | 42s      | 2.1s      | 0s         |
+| Build tests     | 70s      | 75s      | 76s       | 117s       |
+| Build all       | 74s      | 117s     | 78s       | 117s       |
 | Run tests       | 44ms     | 67ms     | 63ms      | 14ms       |
-| Library size    | 8.3MB    | 33.5MB   | 2.8MB     | 0MB        |
-| Executable size | 36.4MB   | 47.7MB   | 38.6MB    | 51.8MB     |
+| Library size    | 9.2MB    | 33.5MB   | 2.8MB     | 0MB        |
+| Executable size | 37.0MB   | 47.7MB   | 38.6MB    | 51.8MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 5.5s     | 48s      | 3.7s      | 0s         |
+| Build framework | 5.7s     | 48s      | 3.7s      | 0s         |
 | Build tests     | 146s     | 233s     | 210s      | 289s       |
 | Build all       | 152s     | 281s     | 214s      | 289s       |
 | Run tests       | 26ms     | 37ms     | 42ms      | 5ms        |
-| Library size    | 1.3MB    | 2.5MB    | 0.39MB    | 0MB        |
+| Library size    | 1.4MB    | 2.5MB    | 0.39MB    | 0MB        |
 | Executable size | 10.2MB   | 17.4MB   | 15.5MB    | 11.4MB     |
 
 Notes:
@@ -479,6 +480,13 @@ This reports the current test case as "skipped". Any previously reported status 
 `SKIP_CHECK(MSG);`
 
 This is similar to `SKIP`, except that the test case continues. Further failure will not be reported. This is only recommended as an alternative to `SKIP()` when exceptions cannot be used.
+
+
+### Advanced API
+
+`snitch::notify_exception_handled();`
+
+If handling exceptions explicitly with a `try/catch` block in a test case, this should be called at the end of the `catch` block. This clears up internal state that would have been used to report that exception, had it not been handled. Calling this is not strictly necessary in most cases, but omitting it can lead to confusing contextual data (incorrect section/capture/info) if another exception is thrown afterwards and not handled.
 
 
 ### Tags

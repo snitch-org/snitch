@@ -8,6 +8,16 @@
 
 using namespace std::literals;
 
+#if SNITCH_WITH_EXCEPTIONS
+struct destructor_asserter {
+    bool pass = true;
+
+    ~destructor_asserter() {
+        SNITCH_CHECK(pass);
+    }
+};
+#endif
+
 SNITCH_WARNING_PUSH
 SNITCH_WARNING_DISABLE_UNREACHABLE
 
@@ -148,6 +158,49 @@ TEST_CASE("section", "[test macros]") {
         REQUIRE(framework.get_num_failures() == 1u);
         CHECK_SECTIONS("section 1");
         CHECK_CASE(snitch::test_case_state::failed, 1u, 1u);
+    }
+
+    SECTION("unexpected throw with destructor assert ok") {
+        framework.test_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                destructor_asserter a{.pass = true};
+                SNITCH_SECTION("section 2") {
+                    throw std::runtime_error("no can do");
+                }
+            }
+        };
+
+        framework.run_test();
+
+        REQUIRE(framework.get_num_failures() == 1u);
+
+        CHECK_SECTIONS("section 1", "section 2");
+        CHECK_CASE(snitch::test_case_state::failed, 2u, 1u);
+    }
+
+    SECTION("unexpected throw with destructor assert nok") {
+        framework.test_case.func = []() {
+            SNITCH_SECTION("section 1") {
+                destructor_asserter a{.pass = false};
+                SNITCH_SECTION("section 2") {
+                    throw std::runtime_error("no can do");
+                }
+            }
+        };
+
+        framework.run_test();
+
+        // This is what we want:
+        // REQUIRE(framework.get_num_failures() == 2u);
+        // CHECK_SECTIONS_FOR_FAILURE(0u, "section 1", "section 2"); // exception
+        // CHECK_SECTIONS_FOR_FAILURE(1u, "section 1");              // destructor
+        // CHECK_CASE(snitch::test_case_state::failed, 2u, 2u);
+
+        // This is what we get:
+        REQUIRE(framework.get_num_failures() == 2u);
+        CHECK_SECTIONS_FOR_FAILURE(0u, "section 1", "section 2"); // destructor
+        CHECK_SECTIONS_FOR_FAILURE(1u, "section 1", "section 2"); // exception
+        CHECK_CASE(snitch::test_case_state::failed, 2u, 2u);
     }
 #endif
 
@@ -418,7 +471,7 @@ TEST_CASE("section", "[test macros]") {
         CHECK_SECTIONS("section 2");
     }
 
-    SECTION("with handled exception then unhandled no section") {
+    SECTION("with handled exception then unhandled no section missing notify") {
         framework.test_case.func = []() {
             try {
                 SNITCH_SECTION("section 1") {
@@ -432,9 +485,25 @@ TEST_CASE("section", "[test macros]") {
 
         framework.run_test();
         REQUIRE(framework.get_num_failures() == 1u);
-        // FIXME: expected nothing
-        // https://github.com/snitch-org/snitch/issues/179
         CHECK_SECTIONS("section 1");
+    }
+
+    SECTION("with handled exception then unhandled no section") {
+        framework.test_case.func = []() {
+            try {
+                SNITCH_SECTION("section 1") {
+                    throw std::runtime_error("bad");
+                }
+            } catch (...) {
+                snitch::notify_exception_handled();
+            }
+
+            throw std::runtime_error("bad");
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_NO_SECTION;
     }
 #endif
 }

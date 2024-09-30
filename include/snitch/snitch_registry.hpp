@@ -292,6 +292,12 @@ public:
     SNITCH_EXPORT static void report_skipped(std::string_view message) noexcept;
 
     // Internal API; do not use.
+    SNITCH_EXPORT static void report_section_started(const section& sec) noexcept;
+
+    // Internal API; do not use.
+    SNITCH_EXPORT static void report_section_ended(const section& sec) noexcept;
+
+    // Internal API; do not use.
     SNITCH_EXPORT impl::test_state run(impl::test_case& test) noexcept;
 
     // Internal API; do not use.

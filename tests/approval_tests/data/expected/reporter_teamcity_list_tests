@@ -34,11 +34,15 @@ test unexpected throw fail
 test unexpected throw in section fail
 test unexpected throw in check fail
 test unexpected throw in check & section fail
+test unexpected throw in check & section mayfail
 test SKIP
 test INFO
 test multiple INFO
 test SECTION
+test SECTION mayfail
 test multiple SECTION
 test SECTION & INFO
+test SECTION & CAPTURE
+test SKIP in SECTION
 test escape |||'|n|r|[|]
 test escape very long

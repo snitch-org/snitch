@@ -274,7 +274,7 @@ TEST_CASE("capture", "[test macros]") {
         CHECK_CAPTURES("j := 2");
     }
 
-    SECTION("with handled exception then unhandled no capture") {
+    SECTION("with handled exception then unhandled no capture missing notify") {
         framework.test_case.func = []() {
             try {
                 int i = 1;
@@ -288,9 +288,25 @@ TEST_CASE("capture", "[test macros]") {
 
         framework.run_test();
         REQUIRE(framework.get_num_failures() == 1u);
-        // FIXME: expected nothing
-        // https://github.com/snitch-org/snitch/issues/179
         CHECK_CAPTURES("i := 1");
+    }
+
+    SECTION("with handled exception then unhandled no capture") {
+        framework.test_case.func = []() {
+            try {
+                int i = 1;
+                SNITCH_CAPTURE(i);
+                throw std::runtime_error("bad");
+            } catch (...) {
+                snitch::notify_exception_handled();
+            }
+
+            throw std::runtime_error("bad");
+        };
+
+        framework.run_test();
+        REQUIRE(framework.get_num_failures() == 1u);
+        CHECK_NO_CAPTURE;
     }
 #endif
 }

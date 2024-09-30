@@ -53,6 +53,23 @@ struct test_case_ended {
     bool failure_allowed  = false;
 };
 
+struct section_started {
+    snitch::section_id      id       = {};
+    snitch::source_location location = {};
+};
+
+struct section_ended {
+    snitch::section_id      id                              = {};
+    snitch::source_location location                        = {};
+    bool                    skipped                         = false;
+    std::size_t             assertion_count                 = 0;
+    std::size_t             assertion_failure_count         = 0;
+    std::size_t             allowed_assertion_failure_count = 0;
+#if SNITCH_WITH_TIMINGS
+    float duration = 0.0f;
+#endif
+};
+
 struct assertion_failed {
     snitch::test_id         id       = {};
     section_info            sections = {};
@@ -99,6 +116,8 @@ using data = std::variant<
     owning_event::test_run_ended,
     owning_event::test_case_started,
     owning_event::test_case_ended,
+    owning_event::section_started,
+    owning_event::section_ended,
     owning_event::assertion_failed,
     owning_event::assertion_succeeded,
     owning_event::test_case_skipped,
@@ -197,6 +216,11 @@ struct mock_framework {
 
     std::optional<owning_event::assertion_failed>    get_failure_event(std::size_t id = 0) const;
     std::optional<owning_event::assertion_succeeded> get_success_event(std::size_t id = 0) const;
+
+    bool check_balanced_section_events() const;
+
+    snitch::small_vector<std::string_view, snitch::max_nested_sections>
+    get_sections_for_failure_event(std::size_t id = 0) const;
 
     std::size_t get_num_registered_tests() const;
     std::size_t get_num_runs() const;
@@ -367,16 +391,21 @@ struct has_expr_data {
 
 #define CHECK_SECTIONS_FOR_FAILURE(FAILURE_ID, ...)                                                \
     do {                                                                                           \
+        INFO("failure ID: ", FAILURE_ID);                                                          \
+        REQUIRE(framework.check_balanced_section_events());                                        \
         auto failure = framework.get_failure_event(FAILURE_ID);                                    \
         REQUIRE(failure.has_value());                                                              \
         const char* EXPECTED_SECTIONS[] = {__VA_ARGS__};                                           \
         REQUIRE(                                                                                   \
             failure.value().sections.size() == sizeof(EXPECTED_SECTIONS) / sizeof(const char*));   \
+        const auto section_from_events = framework.get_sections_for_failure_event(FAILURE_ID);     \
+        REQUIRE(section_from_events.size() == sizeof(EXPECTED_SECTIONS) / sizeof(const char*));    \
         std::size_t SECTION_INDEX = 0;                                                             \
         for (std::string_view SECTION_NAME : EXPECTED_SECTIONS) {                                  \
             CHECK(                                                                                 \
                 failure.value().sections[SECTION_INDEX].id.name ==                                 \
                 std::string_view{SECTION_NAME});                                                   \
+            CHECK(section_from_events[SECTION_INDEX] == std::string_view{SECTION_NAME});           \
             ++SECTION_INDEX;                                                                       \
         }                                                                                          \
     } while (0)
@@ -385,9 +414,12 @@ struct has_expr_data {
 
 #define CHECK_NO_SECTION_FOR_FAILURE(FAILURE_ID)                                                   \
     do {                                                                                           \
+        REQUIRE(framework.check_balanced_section_events());                                        \
         auto failure = framework.get_failure_event(FAILURE_ID);                                    \
         REQUIRE(failure.has_value());                                                              \
         CHECK(failure.value().sections.empty());                                                   \
+        const auto section_from_events = framework.get_sections_for_failure_event(FAILURE_ID);     \
+        CHECK(section_from_events.empty());                                                        \
     } while (0)
 
 #define CHECK_NO_SECTION CHECK_NO_SECTION_FOR_FAILURE(0u)

@@ -13,3 +13,4 @@
 #include "snitch_section.cpp"
 #include "snitch_string_utility.cpp"
 #include "snitch_test_data.cpp"
+#include "snitch_time.cpp"

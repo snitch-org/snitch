@@ -3,6 +3,7 @@
 
 #include "snitch/snitch_config.hpp"
 #include "snitch/snitch_string.hpp"
+#include "snitch/snitch_time.hpp"
 #include "snitch/snitch_vector.hpp"
 
 #include <cstddef>
@@ -46,6 +47,18 @@ struct section {
     section_id id = {};
     /// Location (file, line)
     source_location location = {};
+
+    /// Counts all assertions; passed, failed, or allowed failed
+    std::size_t assertion_count = 0;
+    /// Counts failed assertions
+    std::size_t assertion_failure_count = 0;
+    /// Counts allowed failed assertions (e.g., [!shouldfail] and [!mayfail])
+    std::size_t allowed_assertion_failure_count = 0;
+
+#if SNITCH_WITH_TIMINGS
+    /// Time index of the instant when the section was first entered.
+    time_point_t start_time = 0;
+#endif
 };
 
 /// List of test case filters
@@ -177,6 +190,35 @@ struct test_case_ended {
     bool failure_allowed  = false;
 };
 
+struct section_started {
+    /// Identifiers (name, description)
+    section_id id = {};
+    /// Location (file, line)
+    source_location location = {};
+};
+
+struct section_ended {
+    /// Identifiers (name, description)
+    section_id id = {};
+    /// Location (file, line)
+    source_location location = {};
+
+    /// Whether the section has been skipped.
+    bool skipped = false;
+
+    /// Counts all assertions; passed, failed, or allowed failed
+    std::size_t assertion_count = 0;
+    /// Counts failed assertions
+    std::size_t assertion_failure_count = 0;
+    /// Counts allowed failed assertions (e.g., [!shouldfail] and [!mayfail])
+    std::size_t allowed_assertion_failure_count = 0;
+
+#if SNITCH_WITH_TIMINGS
+    /// Section duration, in seconds
+    float duration = 0.0f;
+#endif
+};
+
 struct assertion_failed {
     const test_id&            id;
     section_info              sections = {};
@@ -232,6 +274,8 @@ using data = std::variant<
     test_run_ended,
     test_case_started,
     test_case_ended,
+    section_started,
+    section_ended,
     assertion_failed,
     assertion_succeeded,
     test_case_skipped,
@@ -329,5 +373,19 @@ struct scoped_test_check {
     SNITCH_EXPORT ~scoped_test_check() noexcept;
 };
 } // namespace snitch::impl
+
+namespace snitch {
+#if SNITCH_WITH_EXCEPTIONS
+/*! \brief Notify the testing framework that an exception was manually handled.
+ * \details If handling exceptions explicitly with a `try/catch` block in a test case,
+ * this should be called at the end of the `catch` block. This clears up internal state
+ * that would have been used to report that exception, had it not been handled. Calling
+ * this is not strictly necessary in most cases, but omitting it can lead to confusing
+ * contextual data (incorrect section/capture/info) if another exception is thrown afterwards
+ * and not handled.
+ */
+SNITCH_EXPORT void notify_exception_handled() noexcept;
+#endif
+} // namespace snitch
 
 #endif

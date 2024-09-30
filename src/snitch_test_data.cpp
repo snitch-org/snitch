@@ -1,5 +1,7 @@
 #include "snitch/snitch_test_data.hpp"
 
+#include "snitch/snitch_registry.hpp"
+
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception>
 #endif
@@ -36,8 +38,11 @@ void pop_location(test_state& test) noexcept {
 
 scoped_test_check::scoped_test_check(const source_location& location) noexcept :
     test(get_current_test()) {
+
 #if SNITCH_WITH_EXCEPTIONS
-    test.held_info.reset();
+    if (std::uncaught_exceptions() == 0) {
+        notify_exception_handled();
+    }
 #endif
 
     push_location(test, {location.file, location.line, location_type::in_check});
@@ -59,3 +64,24 @@ scoped_test_check::~scoped_test_check() noexcept {
     pop_location(test);
 }
 } // namespace snitch::impl
+
+namespace snitch {
+#if SNITCH_WITH_EXCEPTIONS
+void notify_exception_handled() noexcept {
+    auto& state = impl::get_current_test();
+    if (!state.held_info.has_value()) {
+        return;
+    }
+
+    // Close all sections that were left open by the exception.
+    auto&       current_held_section = state.held_info.value().sections.current_section;
+    const auto& current_section      = state.info.sections.current_section;
+    while (current_held_section.size() > current_section.size()) {
+        registry::report_section_ended(current_held_section.back());
+        current_held_section.pop_back();
+    }
+
+    state.held_info.reset();
+}
+#endif
+} // namespace snitch
