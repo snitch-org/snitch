@@ -16,7 +16,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Using _snitch_ as a regular library](#using-snitch-as-a-regular-library)
     - [Using _snitch_ as a header-only library](#using-snitch-as-a-header-only-library)
 - [Example build configuration with meson](#example-build-configuration-with-meson)
-- [Example build configuration with vcpkg](https://github.com/snitch-org/snitch/tree/main/doc/vcpkg-example/README.md)
+- [Example build configuration with vcpkg](#example-build-configuration-with-vcpkg)
 - [Benchmark](#benchmark)
 - [Documentation](#documentation)
     - [Detailed comparison with _Catch2_](#detailed-comparison-with-catch2)
@@ -212,6 +212,11 @@ then you can configure with:
 - `-D snitch:create_header_only=false`
 
 And this disables the build step that generates the single-header file "`snitch_all.hpp`".
+
+
+## Example build configuration with vcpkg
+
+See [the dedicated page in the docs folder](doc/vcpkg-example/README.md).
 
 
 ## Benchmark
