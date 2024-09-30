@@ -89,22 +89,22 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Ubuntu GCC,             os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu GCC noexcept,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu GCC notime,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_WITH_TIMINGS=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu GCC nounity,     os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_UNITY_BUILD=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu GCC header-only, os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "header-only",        cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_HEADER_ONLY=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu GCC shared,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DBUILD_SHARED_LIBS=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu Clang,           os: ubuntu-latest,  publish: true,  compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Ubuntu Clang noexcept,  os: ubuntu-latest,  publish: false, compiler: clang++, arch: "64", build: "ubuntu64-libc++",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++ -fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Windows 32,             os: windows-latest, publish: true,  compiler: vs2019,  arch: "32", build: "win32-vs2019",       cmakepp: "",        flags: "-A Win32 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Windows 64,             os: windows-latest, publish: true,  compiler: vs2019,  arch: "64", build: "win64-vs2019",       cmakepp: "",        flags: "-A x64 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Windows 64 noexcept,    os: windows-latest, publish: false, compiler: vs2019,  arch: "64", build: "win64-vs2019",       cmakepp: "",        flags: "-A x64 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: Windows 64 shared,      os: windows-latest, publish: false, compiler: vs2019,  arch: "64", build: "win64-vs2019",       cmakepp: "",        flags: "-A x64 -DBUILD_SHARED_LIBS=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: MacOS,                  os: macos-latest,   publish: true,  compiler: clang++, arch: "64", build: "osx-libc++",         cmakepp: "",        flags: "--warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: MacOS noexcept,         os: macos-latest,   publish: false, compiler: clang++, arch: "64", build: "osx-libc++",         cmakepp: "",        flags: "-DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
-        - { name: WebAssembly,            os: ubuntu-latest,  publish: true,  compiler: em++,    arch: "32", build: "wasm32",             cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
-        - { name: WebAssembly noexcept,   os: ubuntu-latest,  publish: false, compiler: em++,    arch: "32", build: "wasm32",             cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-fno-exceptions' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
+        - { name: Ubuntu GCC,             os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static",          cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC noexcept,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-noexcept", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC notime,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-notime",   cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_WITH_TIMINGS=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC nounity,     os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-nounity",  cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_UNITY_BUILD=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC header-only, os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "header-only",                        cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_HEADER_ONLY=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC shared,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-shared",          cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DBUILD_SHARED_LIBS=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu Clang,           os: ubuntu-latest,  publish: true,  compiler: clang++, arch: "64", build: "ubuntu64-libc++-static",             cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu Clang noexcept,  os: ubuntu-latest,  publish: false, compiler: clang++, arch: "64", build: "ubuntu64-libc++-static-noexcept",    cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=clang++ -DCMAKE_CXX_FLAGS='-stdlib=libc++ -fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 32,             os: windows-latest, publish: true,  compiler: vs2019,  arch: "32", build: "win32-vs2019-static",                cmakepp: "",        flags: "-A Win32 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 64,             os: windows-latest, publish: true,  compiler: vs2019,  arch: "64", build: "win64-vs2019-static",                cmakepp: "",        flags: "-A x64 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 64 noexcept,    os: windows-latest, publish: false, compiler: vs2019,  arch: "64", build: "win64-vs2019-static-noexcept",       cmakepp: "",        flags: "-A x64 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Windows 64 shared,      os: windows-latest, publish: false, compiler: vs2019,  arch: "64", build: "win64-vs2019-shared",                cmakepp: "",        flags: "-A x64 -DBUILD_SHARED_LIBS=1 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: MacOS,                  os: macos-latest,   publish: true,  compiler: clang++, arch: "64", build: "osx-libc++-static",                  cmakepp: "",        flags: "--warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: MacOS noexcept,         os: macos-latest,   publish: false, compiler: clang++, arch: "64", build: "osx-libc++-static-noexcept",         cmakepp: "",        flags: "-DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: WebAssembly,            os: ubuntu-latest,  publish: true,  compiler: em++,    arch: "32", build: "wasm32",                             cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
+        - { name: WebAssembly noexcept,   os: ubuntu-latest,  publish: false, compiler: em++,    arch: "32", build: "wasm32-noexcept",                    cmakepp: "emcmake", flags: "-DCMAKE_CXX_FLAGS='-fno-exceptions' -DCMAKE_CROSSCOMPILING_EMULATOR=node"}
         build-type:
         - Release
         - Debug
@@ -201,7 +201,7 @@ jobs:
 
     - name: Upload build as an artifact
       if: matrix.build-type == 'Release' && matrix.platform.publish && github.ref == 'refs/heads/main'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: snitch-build
         path: |
