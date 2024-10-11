@@ -15,6 +15,31 @@
 		{
 		    "format_on_save": true,
 		},
+		"TestExplorer":
+		{
+			"data_location": ".sublime-tests",
+			"frameworks": [
+				{
+					"id": "runtime-tests",
+					"type": "catch2",
+					"executable_pattern": "build/tests/snitch_runtime_tests_self",
+					"path_prefix_style": "basename"
+				},
+				{
+					"id": "runtime-tests-self",
+					"type": "doctest-cpp",
+					"executable_pattern": "build/tests/snitch_runtime_tests",
+					"path_prefix_style": "basename"
+				},
+				{
+					"id": "approval-tests",
+					"type": "doctest-cpp",
+					"executable_pattern": "build/tests/snitch_approval_tests",
+					"cwd": "tests/approval_tests",
+					"path_prefix_style": "basename"
+				},
+			]
+		},
 	},
 	"build_systems":
 	[
