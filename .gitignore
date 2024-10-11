@@ -6,3 +6,4 @@ snitch.sublime-workspace
 tests/approval_tests/data/actual
 tests/approval_tests/data/blanked
 install/
+.sublime-tests/
