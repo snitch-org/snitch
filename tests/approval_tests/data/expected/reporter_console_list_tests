@@ -47,10 +47,16 @@ Matching test cases:
   test unexpected throw in section fail
   test unexpected throw in check fail
   test unexpected throw in check & section fail
+  test unexpected throw in check & section mayfail
+      [!mayfail]
   test SKIP
   test INFO
   test multiple INFO
   test SECTION
+  test SECTION mayfail
+      [!mayfail]
   test multiple SECTION
   test SECTION & INFO
-42 matching test cases
+  test SECTION & CAPTURE
+  test SKIP in SECTION
+46 matching test cases

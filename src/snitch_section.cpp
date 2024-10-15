@@ -2,6 +2,8 @@
 
 #include "snitch/snitch_console.hpp"
 #include "snitch/snitch_registry.hpp"
+#include "snitch/snitch_test_data.hpp"
+#include "snitch/snitch_time.hpp"
 
 #if SNITCH_WITH_EXCEPTIONS
 #    include <exception>
@@ -23,6 +25,7 @@ section_entry_checker::~section_entry_checker() {
 
         pop_location(state);
 
+        bool last_entry = false;
         if (sections.depth == sections.levels.size()) {
             // We just entered this section, and there was no child section in it.
             // This is a leaf; flag that a leaf has been executed so that no other leaf
@@ -31,6 +34,7 @@ section_entry_checker::~section_entry_checker() {
             // that we don't know about yet. Popping will be done when we exit from the parent,
             // since then we will know if there is any sibling.
             sections.leaf_executed = true;
+            last_entry             = true;
         } else {
             // Check if there is any child section left to execute, at any depth below this one.
             bool no_child_section_left = true;
@@ -45,7 +49,18 @@ section_entry_checker::~section_entry_checker() {
             if (no_child_section_left) {
                 // No more children, we can pop this level and never go back.
                 sections.levels.pop_back();
+                last_entry = true;
             }
+        }
+
+        // Emit the section end event (only on last entry, and only if no exception in flight).
+#if SNITCH_WITH_EXCEPTIONS
+        if (last_entry && std::uncaught_exceptions() == 0)
+#else
+        if (last_entry)
+#endif
+        {
+            registry::report_section_ended(sections.current_section.back());
         }
 
         sections.current_section.pop_back();
@@ -56,7 +71,9 @@ section_entry_checker::~section_entry_checker() {
 
 section_entry_checker::operator bool() {
 #if SNITCH_WITH_EXCEPTIONS
-    state.held_info.reset();
+    if (std::uncaught_exceptions() == 0) {
+        notify_exception_handled();
+    }
 #endif
 
     auto& sections = state.info.sections;
@@ -90,21 +107,38 @@ section_entry_checker::operator bool() {
         return false;
     }
 
-    // Only enter this section if:
-    //  - The section entered in the previous run was its immediate previous sibling, or
-    //  - This section was already entered in the previous run, and child sections exist in it.
-    if (level.current_section_id == level.previous_section_id + 1 ||
-        (level.current_section_id == level.previous_section_id &&
-         sections.depth < sections.levels.size())) {
+    const bool previous_was_preceeding_sibling =
+        level.current_section_id == level.previous_section_id + 1;
+    const bool children_remaining_in_self = level.current_section_id == level.previous_section_id &&
+                                            sections.depth < sections.levels.size();
 
-        level.previous_section_id = level.current_section_id;
-        sections.current_section.push_back(data);
-        push_location(
-            state, {data.location.file, data.location.line, location_type::section_scope});
-        entered = true;
-        return true;
+    if (!previous_was_preceeding_sibling && !children_remaining_in_self) {
+        // Skip this section if:
+        //  - The section entered in the previous run was not its immediate previous sibling, and
+        //  - This section was not already entered in the previous run with remaining children.
+        return false;
     }
 
-    return false;
+    // Entering this section.
+
+    // Push new section on the stack.
+    level.previous_section_id = level.current_section_id;
+    sections.current_section.push_back(
+#if SNITCH_WITH_TIMINGS
+        section{.id = id, .location = location, .start_time = get_current_time()}
+#else
+        section{.id = id, .location = location}
+#endif
+    );
+
+    push_location(state, {location.file, location.line, location_type::section_scope});
+    entered = true;
+
+    // Emit the section start event (only on first entry).
+    if (previous_was_preceeding_sibling) {
+        registry::report_section_started(sections.current_section.back());
+    }
+
+    return true;
 }
 } // namespace snitch::impl

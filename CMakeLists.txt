@@ -91,6 +91,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_string_utility.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_test_data.hpp
+    ${PROJECT_SOURCE_DIR}/include/snitch/snitch_time.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_id.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_type_name.hpp
     ${PROJECT_SOURCE_DIR}/include/snitch/snitch_vector.hpp
@@ -111,7 +112,8 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_reporter_teamcity.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_section.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_string_utility.cpp
-    ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp)
+    ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp
+    ${PROJECT_SOURCE_DIR}/src/snitch_time.cpp)
 
 if (SNITCH_UNITY_BUILD)
     set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)

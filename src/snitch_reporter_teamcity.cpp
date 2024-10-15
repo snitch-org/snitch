@@ -44,11 +44,8 @@ void print_assertion(const registry& r, const assertion& msg) noexcept {
     small_string<max_message_length> buffer;
 
     r.print("'", make_escaped(buffer, msg.location.file), ":", msg.location.line, "|n");
-    for (const auto& s : msg.sections) {
-        r.print(make_escaped(buffer, s.id.name), "|n");
-    }
     for (const auto& c : msg.captures) {
-        r.print(make_escaped(buffer, c), "|n");
+        r.print("with ", make_escaped(buffer, c), "|n");
     }
 
     constexpr std::string_view indent = "  ";
@@ -147,6 +144,13 @@ void report(const registry& r, const snitch::event::data& event) noexcept {
 #    else
                 send_message(r, "testFinished", {{"name", make_full_name(e.id)}});
 #    endif
+            },
+            [&](const snitch::event::section_started& e) {
+                send_message(
+                    r, "blockOpened", {{"name", e.id.name}, {"description", e.id.description}});
+            },
+            [&](const snitch::event::section_ended& e) {
+                send_message(r, "blockClosed", {{"name", e.id.name}});
             },
             [&](const snitch::event::test_case_skipped& e) {
                 send_message(

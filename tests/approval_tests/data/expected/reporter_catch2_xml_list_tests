@@ -325,6 +325,15 @@
     </SourceInfo>
   </TestCase>
   <TestCase>
+    <Name>test unexpected throw in check &amp; section mayfail</Name>
+    <ClassName/>
+    <Tags>[!mayfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
     <Name>test SKIP</Name>
     <ClassName/>
     <Tags/>
@@ -361,6 +370,15 @@
     </SourceInfo>
   </TestCase>
   <TestCase>
+    <Name>test SECTION mayfail</Name>
+    <ClassName/>
+    <Tags>[!mayfail]</Tags>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
     <Name>test multiple SECTION</Name>
     <ClassName/>
     <Tags/>
@@ -371,6 +389,24 @@
   </TestCase>
   <TestCase>
     <Name>test SECTION &amp; INFO</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SECTION &amp; CAPTURE</Name>
+    <ClassName/>
+    <Tags/>
+    <SourceInfo>
+      <File>*testing_reporters.cpp</File>
+      <Line>*</Line>
+    </SourceInfo>
+  </TestCase>
+  <TestCase>
+    <Name>test SKIP in SECTION</Name>
     <ClassName/>
     <Tags/>
     <SourceInfo>

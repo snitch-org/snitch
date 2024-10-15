@@ -6,9 +6,10 @@
 
 namespace snitch::impl {
 struct section_entry_checker {
-    section     data = {};
-    test_state& state;
-    bool        entered = false;
+    section_id      id       = {};
+    source_location location = {};
+    test_state&     state;
+    bool            entered = false;
 
     SNITCH_EXPORT ~section_entry_checker();
 

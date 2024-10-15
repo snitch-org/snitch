@@ -136,6 +136,13 @@ void register_tests_for_reporters(snitch::registry& r) {
             SNITCH_CHECK(throw_unexpectedly() == 0);
         }
     });
+    r.add(
+        {"test unexpected throw in check & section mayfail", "[!mayfail]"}, SNITCH_CURRENT_LOCATION,
+        []() {
+            SNITCH_SECTION("section 1") {
+                SNITCH_CHECK(throw_unexpectedly() == 0);
+            }
+        });
 #endif
 
     r.add({"test SKIP"}, SNITCH_CURRENT_LOCATION, []() { SNITCH_SKIP("not interesting"); });
@@ -157,6 +164,12 @@ void register_tests_for_reporters(snitch::registry& r) {
     });
 
     r.add({"test SECTION"}, SNITCH_CURRENT_LOCATION, []() {
+        SNITCH_SECTION("section") {
+            SNITCH_FAIL_CHECK("failure");
+        }
+    });
+
+    r.add({"test SECTION mayfail", "[!mayfail]"}, SNITCH_CURRENT_LOCATION, []() {
         SNITCH_SECTION("section") {
             SNITCH_FAIL_CHECK("failure");
         }
@@ -193,6 +206,36 @@ void register_tests_for_reporters(snitch::registry& r) {
             SNITCH_FAIL_CHECK("failure 2");
         }
         SNITCH_FAIL_CHECK("failure 3");
+    });
+
+    r.add({"test SECTION & CAPTURE"}, SNITCH_CURRENT_LOCATION, []() {
+        int i = 1;
+        SNITCH_CAPTURE(i);
+        SNITCH_SECTION("section 1") {
+            int j = 2;
+            SNITCH_CAPTURE(j);
+            SNITCH_FAIL_CHECK("failure 1");
+        }
+        SNITCH_SECTION("section 2") {
+            int j = 3;
+            SNITCH_CAPTURE(j);
+            SNITCH_FAIL_CHECK("failure 2");
+        }
+        SNITCH_FAIL_CHECK("failure 3");
+    });
+
+    r.add({"test SKIP in SECTION"}, SNITCH_CURRENT_LOCATION, []() {
+        SNITCH_SECTION("section 1") {
+            SNITCH_SECTION("section 2") {
+                SNITCH_SKIP("stopping here");
+                SNITCH_SECTION("section 3") {
+                    SNITCH_FAIL_CHECK("failure 1");
+                }
+            }
+        }
+        SNITCH_SECTION("section 2") {
+            SNITCH_FAIL_CHECK("failure 2");
+        }
     });
 }
 

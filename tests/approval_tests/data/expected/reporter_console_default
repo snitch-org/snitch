@@ -80,6 +80,10 @@ failed: running test case "test unexpected throw in check & section fail"
           in section "section 1"
           somewhere inside check at *testing_reporters.cpp:*
           unexpected std::exception caught; message: unexpected error
+allowed failure: running test case "test unexpected throw in check & section mayfail"
+          in section "section 1"
+          somewhere inside check at *testing_reporters.cpp:*
+          unexpected std::exception caught; message: unexpected error
 skipped: running test case "test SKIP"
           at *testing_reporters.cpp:*
           not interesting
@@ -104,6 +108,10 @@ failed: running test case "test multiple INFO"
           with info 1
           failure 4
 failed: running test case "test SECTION"
+          in section "section"
+          at *testing_reporters.cpp:*
+          failure
+allowed failure: running test case "test SECTION mayfail"
           in section "section"
           at *testing_reporters.cpp:*
           failure
@@ -169,5 +177,30 @@ failed: running test case "test SECTION & INFO"
           at *testing_reporters.cpp:*
           with info 1
           failure 3
+failed: running test case "test SECTION & CAPTURE"
+          in section "section 1"
+          at *testing_reporters.cpp:*
+          with i := 1
+          with j := 2
+          failure 1
+failed: running test case "test SECTION & CAPTURE"
+          at *testing_reporters.cpp:*
+          with i := 1
+          failure 3
+failed: running test case "test SECTION & CAPTURE"
+          in section "section 2"
+          at *testing_reporters.cpp:*
+          with i := 1
+          with j := 3
+          failure 2
+failed: running test case "test SECTION & CAPTURE"
+          at *testing_reporters.cpp:*
+          with i := 1
+          failure 3
+skipped: running test case "test SKIP in SECTION"
+          in section "section 1"
+          in section "section 2"
+          at *testing_reporters.cpp:*
+          stopping here
 ==========================================
-error: some tests failed (25 out of 42 test cases, 86 assertions, 1 test cases skipped, * seconds)
+error: some tests failed (26 out of 46 test cases, 94 assertions, 2 test cases skipped, * seconds)
