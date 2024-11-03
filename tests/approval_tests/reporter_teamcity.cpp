@@ -5,6 +5,8 @@
 
 #include <stdexcept>
 
+#if SNITCH_WITH_TEAMCITY_REPORTER || SNITCH_WITH_ALL_REPORTERS
+
 using namespace std::literals;
 using snitch::matchers::contains_substring;
 
@@ -23,7 +25,7 @@ TEST_CASE("teamcity reporter", "[reporters]") {
         &snitch::reporter::teamcity::report, {});
 
     constexpr const char* reporter_name = "teamcity";
-#define REPORTER_PREFIX "reporter_teamcity_"
+#    define REPORTER_PREFIX "reporter_teamcity_"
 
     const std::vector<std::regex> ignores = {
         std::regex{R"( duration='([0-9]+)')"},
@@ -62,3 +64,5 @@ TEST_CASE("teamcity reporter", "[reporters]") {
         CHECK_FOR_DIFFERENCES(args, ignores, REPORTER_PREFIX "list_tests");
     }
 }
+
+#endif

@@ -5,6 +5,8 @@
 
 #include <stdexcept>
 
+#if SNITCH_WITH_CATCH2_XML_REPORTER || SNITCH_WITH_ALL_REPORTERS
+
 using namespace std::literals;
 using snitch::matchers::contains_substring;
 
@@ -31,7 +33,7 @@ TEST_CASE("xml reporter", "[reporters]") {
     framework.registry.add_reporter("xml", init, configure, report, finish);
 
     constexpr const char* reporter_name = "xml";
-#define REPORTER_PREFIX "reporter_catch2_xml_"
+#    define REPORTER_PREFIX "reporter_catch2_xml_"
 
     const std::vector<std::regex> ignores = {
         std::regex{R"|(durationInSeconds="([0-9.e+\-]{12})")|"},
@@ -77,3 +79,5 @@ TEST_CASE("xml reporter", "[reporters]") {
         CHECK_FOR_DIFFERENCES(args, ignores, REPORTER_PREFIX "list_tests");
     }
 }
+
+#endif
