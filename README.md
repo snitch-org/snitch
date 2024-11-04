@@ -65,6 +65,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
  - Additional API not in _Catch2_, or different from _Catch2_:
    - Matchers use a different API (see [Matchers](#matchers) below).
    - Additional macros for testing [`constexpr`](#run-time-and-compile-time) and [`consteval`](#compile-time) expressions.
+- Can be disabled at build time. As a side effect, this will reduce the size of the executable, as most, if not all, the Snitch symbols will be removed by the compiler and/or linker (especially when LTO is enabled).
 
 If you need features that are not in the list above, please use _Catch2_ or _doctest_.
 

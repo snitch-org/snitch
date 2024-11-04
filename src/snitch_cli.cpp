@@ -401,19 +401,23 @@ void print_help(std::string_view program_name, const print_help_settings& settin
 }
 
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
-    // First, parse just looking for color options so we can display console messages correctly.
-    const bool with_color = impl::parse_color_options(argc, argv);
+    if constexpr (SNITCH_DISABLE) {
+        return {};
+    } else {
+        // First, parse just looking for color options so we can display console messages correctly.
+        const bool with_color = impl::parse_color_options(argc, argv);
 
-    // Now parse everything for real.
-    std::optional<cli::input> ret_args =
-        impl::parse_arguments(argc, argv, impl::expected_args, {.with_color = with_color});
+        // Now parse everything for real.
+        std::optional<cli::input> ret_args =
+            impl::parse_arguments(argc, argv, impl::expected_args, {.with_color = with_color});
 
-    if (!ret_args) {
-        print("\n");
-        print_help(argv[0], {.with_color = with_color});
+        if (!ret_args) {
+            print("\n");
+            print_help(argv[0], {.with_color = with_color});
+        }
+
+        return ret_args;
     }
-
-    return ret_args;
 }
 
 std::optional<cli::argument> get_option(const cli::input& args, std::string_view name) noexcept {

@@ -1,9 +1,11 @@
 #include "snitch/snitch_registry.hpp"
 
-#include "snitch/snitch_time.hpp"
+#if !(SNITCH_DISABLE)
 
-#include <algorithm> // for std::sort
-#include <optional> // for std::optional
+#    include "snitch/snitch_time.hpp"
+
+#    include <algorithm> // for std::sort
+#    include <optional> // for std::optional
 
 // Testing framework implementation.
 // ---------------------------------
@@ -399,14 +401,14 @@ void register_assertion(bool success, impl::test_state& state) {
                 ++section.allowed_assertion_failure_count;
             }
 
-#if SNITCH_WITH_EXCEPTIONS
+#    if SNITCH_WITH_EXCEPTIONS
             if (state.held_info.has_value()) {
                 for (auto& section : state.held_info.value().sections.current_section) {
                     ++section.assertion_count;
                     ++section.allowed_assertion_failure_count;
                 }
             }
-#endif
+#    endif
 
             impl::set_state(state.test, impl::test_case_state::allowed_fail);
         } else {
@@ -418,14 +420,14 @@ void register_assertion(bool success, impl::test_state& state) {
                 ++section.assertion_failure_count;
             }
 
-#if SNITCH_WITH_EXCEPTIONS
+#    if SNITCH_WITH_EXCEPTIONS
             if (state.held_info.has_value()) {
                 for (auto& section : state.held_info.value().sections.current_section) {
                     ++section.assertion_count;
                     ++section.assertion_failure_count;
                 }
             }
-#endif
+#    endif
 
             impl::set_state(state.test, impl::test_case_state::failed);
         }
@@ -436,13 +438,13 @@ void register_assertion(bool success, impl::test_state& state) {
             ++section.assertion_count;
         }
 
-#if SNITCH_WITH_EXCEPTIONS
+#    if SNITCH_WITH_EXCEPTIONS
         if (state.held_info.has_value()) {
             for (auto& section : state.held_info.value().sections.current_section) {
                 ++section.assertion_count;
             }
         }
-#endif
+#    endif
     }
 }
 
@@ -455,7 +457,7 @@ void report_assertion_impl(
 
     register_assertion(success, state);
 
-#if SNITCH_WITH_EXCEPTIONS
+#    if SNITCH_WITH_EXCEPTIONS
     const bool use_held_info = (state.unhandled_exception || std::uncaught_exceptions() > 0) &&
                                state.held_info.has_value();
 
@@ -472,13 +474,13 @@ void report_assertion_impl(
         state.in_check
             ? assertion_location{last_location.file, last_location.line, location_type::exact}
             : last_location;
-#else
+#    else
     const auto  captures_buffer = impl::make_capture_buffer(state.info.captures);
     const auto& current_section = state.info.sections.current_section;
     const auto& last_location   = state.info.locations.back();
     const auto  location =
         assertion_location{last_location.file, last_location.line, location_type::exact};
-#endif
+#    endif
 
     if (success) {
         if (r.verbose >= registry::verbosity::full) {
@@ -558,7 +560,7 @@ void registry::report_section_ended(const section& sec) noexcept {
 
     const bool skipped = state.test.state == impl::test_case_state::skipped;
 
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
     const auto duration = get_duration_in_seconds(sec.start_time, get_current_time());
     state.reg.report_callback(
         state.reg, event::section_ended{
@@ -569,7 +571,7 @@ void registry::report_section_ended(const section& sec) noexcept {
                        .assertion_failure_count         = sec.assertion_failure_count,
                        .allowed_assertion_failure_count = sec.allowed_assertion_failure_count,
                        .duration                        = duration});
-#else
+#    else
     state.reg.report_callback(
         state.reg, event::section_ended{
                        .id                              = sec.id,
@@ -578,7 +580,7 @@ void registry::report_section_ended(const section& sec) noexcept {
                        .assertion_count                 = sec.assertion_count,
                        .assertion_failure_count         = sec.assertion_failure_count,
                        .allowed_assertion_failure_count = sec.allowed_assertion_failure_count});
-#endif
+#    endif
 }
 
 impl::test_state registry::run(impl::test_case& test) noexcept {
@@ -610,13 +612,13 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     impl::test_state* previous_run = impl::try_get_current_test();
     impl::set_current_test(&state);
 
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
     const auto time_start = get_current_time();
-#endif
+#    endif
 
-#if SNITCH_WITH_EXCEPTIONS
+#    if SNITCH_WITH_EXCEPTIONS
     try {
-#endif
+#    endif
 
         do {
             // Reset section state.
@@ -640,7 +642,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         } while (!state.info.sections.levels.empty() &&
                  state.test.state != impl::test_case_state::skipped);
 
-#if SNITCH_WITH_EXCEPTIONS
+#    if SNITCH_WITH_EXCEPTIONS
         state.in_check = true;
         report_assertion(true, "no exception caught");
         state.in_check = false;
@@ -660,7 +662,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
     }
 
     state.unhandled_exception = false;
-#endif
+#    endif
 
     if (state.should_fail) {
         state.should_fail = false;
@@ -671,12 +673,12 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
         state.should_fail = true;
     }
 
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
     state.duration = get_duration_in_seconds(time_start, get_current_time());
-#endif
+#    endif
 
     if (verbose >= registry::verbosity::high) {
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_case_ended{
                        .id                              = test.id,
@@ -686,7 +688,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
                        .allowed_assertion_failure_count = state.allowed_failures,
                        .state    = impl::convert_to_public_state(state.test.state),
                        .duration = state.duration});
-#else
+#    else
         report_callback(
             *this, event::test_case_ended{
                        .id                              = test.id,
@@ -695,7 +697,7 @@ impl::test_state registry::run(impl::test_case& test) noexcept {
                        .assertion_failure_count         = state.failures,
                        .allowed_assertion_failure_count = state.allowed_failures,
                        .state = impl::convert_to_public_state(state.test.state)});
-#endif
+#    endif
     }
 
     impl::set_current_test(previous_run);
@@ -722,9 +724,9 @@ bool registry::run_selected_tests(
     std::size_t assertion_failure_count         = 0;
     std::size_t allowed_assertion_failure_count = 0;
 
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
     const auto time_start = get_current_time();
-#endif
+#    endif
 
     for (impl::test_case& t : this->test_cases()) {
         if (!predicate(t.id)) {
@@ -763,12 +765,12 @@ bool registry::run_selected_tests(
         }
     }
 
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
     const float duration = get_duration_in_seconds(time_start, get_current_time());
-#endif
+#    endif
 
     if (verbose >= registry::verbosity::normal) {
-#if SNITCH_WITH_TIMINGS
+#    if SNITCH_WITH_TIMINGS
         report_callback(
             *this, event::test_run_ended{
                        .name                            = run_name,
@@ -783,7 +785,7 @@ bool registry::run_selected_tests(
                        .duration                        = duration,
                        .success                         = success,
                    });
-#else
+#    else
         report_callback(
             *this, event::test_run_ended{
                        .name                            = run_name,
@@ -796,7 +798,7 @@ bool registry::run_selected_tests(
                        .assertion_failure_count         = assertion_failure_count,
                        .allowed_assertion_failure_count = allowed_assertion_failure_count,
                        .success                         = success});
-#endif
+#    endif
     }
 
     return success;
@@ -1134,3 +1136,138 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
 
 constinit registry tests;
 } // namespace snitch
+
+#else // SNITCH_DISABLE
+
+namespace snitch {
+filter_result filter_result_and(filter_result first, filter_result second) noexcept {
+    return {};
+}
+
+filter_result filter_result_or(filter_result first, filter_result second) noexcept {
+    return {};
+}
+
+filter_result is_filter_match_name(std::string_view name, std::string_view filter) noexcept {
+    return {};
+}
+
+filter_result is_filter_match_tags_single(std::string_view tags, std::string_view filter) noexcept {
+    return {};
+}
+
+filter_result is_filter_match_tags(std::string_view tags, std::string_view filter) noexcept {
+    return {};
+}
+
+filter_result is_filter_match_id_single(
+    std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+    return {};
+}
+
+filter_result
+is_filter_match_id(std::string_view name, std::string_view tags, std::string_view filter) noexcept {
+    return {};
+}
+} // namespace snitch
+
+namespace snitch::impl {
+std::string_view
+make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
+    return {};
+}
+
+bool parse_colour_mode_option(registry& reg, std::string_view color_option) noexcept {
+    return {};
+}
+bool parse_color_option(registry& reg, std::string_view color_option) noexcept {
+    return {};
+}
+} // namespace snitch::impl
+
+namespace snitch {
+
+const char*
+registry::add_impl(const test_id& id, const source_location& location, impl::test_ptr func) {
+    return {};
+}
+
+const char*
+registry::add(const impl::name_and_tags& id, const source_location& location, impl::test_ptr func) {
+    return {};
+}
+
+const char* registry::add_fixture(
+    const impl::fixture_name_and_tags& id, const source_location& location, impl::test_ptr func) {
+    return {};
+}
+
+std::string_view registry::add_reporter(
+    std::string_view,
+    const std::optional<initialize_report_function>&,
+    const std::optional<configure_report_function>&,
+    const report_function&,
+    const std::optional<finish_report_function>&) {
+    return {};
+}
+
+void registry::report_assertion(bool, std::string_view) noexcept {}
+
+void registry::report_assertion(bool, std::string_view, std::string_view) noexcept {}
+
+void registry::report_assertion(bool, const impl::expression&) noexcept {}
+
+void registry::report_skipped(std::string_view) noexcept {}
+
+void registry::report_section_started(const section&) noexcept {}
+
+void registry::report_section_ended(const section&) noexcept {}
+
+impl::test_state registry::run(impl::test_case& test) noexcept {
+    return impl::test_state{*this, test};
+}
+
+bool registry::run_tests(std::string_view) noexcept {
+    return true;
+}
+
+bool registry::run_selected_tests(
+    std::string_view,
+    const filter_info&,
+    const function_ref<bool(const test_id&) noexcept>&) noexcept {
+    return true;
+}
+
+/* ---- */
+
+bool registry::run_tests(const cli::input&) noexcept {
+    return true;
+}
+
+void registry::configure(const cli::input&) {}
+
+void registry::list_all_tests() const noexcept {}
+
+void registry::list_all_tags() const {}
+
+void registry::list_tests_with_tag(std::string_view) const noexcept {}
+
+void registry::list_all_reporters() const noexcept {}
+
+small_vector_span<impl::test_case> registry::test_cases() noexcept {
+    return small_vector_span<impl::test_case>{nullptr, 0, nullptr};
+}
+small_vector_span<const impl::test_case> registry::test_cases() const noexcept {
+    return {};
+}
+
+small_vector_span<registered_reporter> registry::reporters() noexcept {
+    return small_vector_span<registered_reporter>{nullptr, 0, nullptr};
+}
+small_vector_span<const registered_reporter> registry::reporters() const noexcept {
+    return {};
+}
+
+constinit registry tests;
+} // namespace snitch
+#endif // SNITCH_DISABLE

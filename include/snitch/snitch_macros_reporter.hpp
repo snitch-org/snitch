@@ -5,13 +5,18 @@
 #include "snitch/snitch_macros_utility.hpp"
 #include "snitch/snitch_registry.hpp"
 
-#define SNITCH_REGISTER_REPORTER_CALLBACKS(NAME, ...)                                              \
-    static const std::string_view SNITCH_MACRO_CONCAT(reporter_id_, __COUNTER__)                   \
-        [[maybe_unused]] = snitch::tests.add_reporter(NAME, __VA_ARGS__)
+#if !(SNITCH_DISABLE)
+#    define SNITCH_REGISTER_REPORTER_CALLBACKS(NAME, ...)                                          \
+        static const std::string_view SNITCH_MACRO_CONCAT(reporter_id_, __COUNTER__)               \
+            [[maybe_unused]] = snitch::tests.add_reporter(NAME, __VA_ARGS__)
 
-#define SNITCH_REGISTER_REPORTER(NAME, TYPE)                                                       \
-    static const std::string_view SNITCH_MACRO_CONCAT(reporter_id_, __COUNTER__)                   \
-        [[maybe_unused]] = snitch::tests.add_reporter<TYPE>(NAME)
+#    define SNITCH_REGISTER_REPORTER(NAME, TYPE)                                                   \
+        static const std::string_view SNITCH_MACRO_CONCAT(reporter_id_, __COUNTER__)               \
+            [[maybe_unused]] = snitch::tests.add_reporter<TYPE>(NAME)
+#else // SNITCH_DISABLE
+#    define SNITCH_REGISTER_REPORTER_CALLBACKS(NAME, ...) /* nothing */
+#    define SNITCH_REGISTER_REPORTER(NAME, TYPE) static_assert(NAME)
+#endif // SNITCH_DISABLE
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS

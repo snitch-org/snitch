@@ -18,6 +18,7 @@ set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file 
 set(SNITCH_MAX_REPORTER_SIZE_BYTES  128  CACHE STRING "Maximum size (in bytes) of a reporter object.")
 
 # Feature toggles.
+set(SNITCH_DISABLE                         OFF CACHE BOOL "Disable Snitch at build time")
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
 set(SNITCH_WITH_EXCEPTIONS                 ON  CACHE BOOL "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
 set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Make the testing framework thread-safe -- disable if multithreading is not needed.")

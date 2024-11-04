@@ -11,8 +11,13 @@
         snitch::tests.add({__VA_ARGS__}, SNITCH_CURRENT_LOCATION, &ID);                            \
     void ID()
 
-#define SNITCH_TEST_CASE(...)                                                                      \
-    SNITCH_TEST_CASE_IMPL(SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), __VA_ARGS__)
+#if !(SNITCH_DISABLE)
+#    define SNITCH_TEST_CASE(...)                                                                  \
+        SNITCH_TEST_CASE_IMPL(SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), __VA_ARGS__)
+#else // SNITCH_DISABLE
+#    define SNITCH_TEST_CASE(...)                                                                  \
+        [[maybe_unused]] static void SNITCH_MACRO_CONCAT(test_id_, __COUNTER__)()
+#endif // SNITCH_DISABLE
 
 #define SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                                 \
     template<typename TestType>                                                                    \
@@ -23,9 +28,13 @@
     template<typename TestType>                                                                    \
     void ID()
 
-#define SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                          \
-    SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(                                                           \
-        SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, TYPES)
+#if !(SNITCH_DISABLE)
+#    define SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                      \
+        SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(                                                       \
+            SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, TYPES)
+#else // SNITCH_DISABLE
+#    define SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES) SNITCH_VOID_STATEMENT
+#endif // SNITCH_DISABLE
 
 #define SNITCH_TEMPLATE_TEST_CASE_IMPL(ID, NAME, TAGS, ...)                                        \
     template<typename TestType>                                                                    \
@@ -36,24 +45,43 @@
     template<typename TestType>                                                                    \
     void ID()
 
-#define SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                                 \
-    SNITCH_TEMPLATE_TEST_CASE_IMPL(                                                                \
-        SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
+#if !(SNITCH_DISABLE)
+#    define SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                             \
+        SNITCH_TEMPLATE_TEST_CASE_IMPL(                                                            \
+            SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, __VA_ARGS__)
+#else // SNITCH_DISABLE
+#    define SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                             \
+        template<typename TestType>                                                                \
+        [[maybe_unused]] static void SNITCH_MACRO_CONCAT(test_id_, __COUNTER__)()
+#endif // SNITCH_DISABLE
 
-#define SNITCH_TEST_CASE_METHOD_IMPL(ID, FIXTURE, ...)                                             \
-    namespace {                                                                                    \
-    struct ID : FIXTURE {                                                                          \
-        void test_fun();                                                                           \
-    };                                                                                             \
-    }                                                                                              \
-    static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =               \
-        snitch::tests.add_fixture(                                                                 \
-            {#FIXTURE, __VA_ARGS__}, SNITCH_CURRENT_LOCATION, []() { ID{}.test_fun(); });          \
-    void ID::test_fun()
+#if !(SNITCH_DISABLE)
+#    define SNITCH_TEST_CASE_METHOD_IMPL(ID, FIXTURE, ...)                                         \
+        namespace {                                                                                \
+        struct ID : FIXTURE {                                                                      \
+            void test_fun();                                                                       \
+        };                                                                                         \
+        }                                                                                          \
+        static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =           \
+            snitch::tests.add_fixture(                                                             \
+                {#FIXTURE, __VA_ARGS__}, SNITCH_CURRENT_LOCATION, []() { ID{}.test_fun(); });      \
+        void ID::test_fun()
 
-#define SNITCH_TEST_CASE_METHOD(FIXTURE, ...)                                                      \
-    SNITCH_TEST_CASE_METHOD_IMPL(                                                                  \
-        SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, __VA_ARGS__)
+#    define SNITCH_TEST_CASE_METHOD(FIXTURE, ...)                                                  \
+        SNITCH_TEST_CASE_METHOD_IMPL(                                                              \
+            SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, __VA_ARGS__)
+#else // SNITCH_DISABLE
+#    define SNITCH_TEST_CASE_METHOD_IMPL(ID, FIXTURE, ...)                                         \
+        namespace {                                                                                \
+        struct ID : FIXTURE {                                                                      \
+            void test_fun();                                                                       \
+        };                                                                                         \
+        }                                                                                          \
+        inline void ID::test_fun()
+
+#    define SNITCH_TEST_CASE_METHOD(FIXTURE, ...)                                                  \
+        SNITCH_TEST_CASE_METHOD_IMPL(SNITCH_MACRO_CONCAT(test_id_, __COUNTER__), FIXTURE)
+#endif // SNITCH_DISABLE
 
 #define SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD_IMPL(ID, FIXTURE, NAME, TAGS, TYPES)                 \
     namespace {                                                                                    \
@@ -69,9 +97,13 @@
     template<typename TestType>                                                                    \
     void ID<TestType>::test_fun()
 
-#define SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, TYPES)                          \
-    SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD_IMPL(                                                    \
-        SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, NAME, TAGS, TYPES)
+#if !(SNITCH_DISABLE)
+#    define SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, TYPES)                      \
+        SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD_IMPL(                                                \
+            SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, NAME, TAGS, TYPES)
+#else // SNITCH_DISABLE
+#    define SNITCH_TEMPLATE_LIST_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, TYPES) SNITCH_VOID_STATEMENT
+#endif // SNITCH_DISABLE
 
 #define SNITCH_TEMPLATE_TEST_CASE_METHOD_IMPL(ID, FIXTURE, NAME, TAGS, ...)                        \
     namespace {                                                                                    \
@@ -87,9 +119,13 @@
     template<typename TestType>                                                                    \
     void ID<TestType>::test_fun()
 
-#define SNITCH_TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, ...)                                 \
-    SNITCH_TEMPLATE_TEST_CASE_METHOD_IMPL(                                                         \
-        SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, NAME, TAGS, __VA_ARGS__)
+#if !(SNITCH_DISABLE)
+#    define SNITCH_TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, ...)                             \
+        SNITCH_TEMPLATE_TEST_CASE_METHOD_IMPL(                                                     \
+            SNITCH_MACRO_CONCAT(test_fixture_, __COUNTER__), FIXTURE, NAME, TAGS, __VA_ARGS__)
+#else // SNITCH_DISABLE
+#    define SNITCH_TEMPLATE_TEST_CASE_METHOD(FIXTURE, NAME, TAGS, ...) SNITCH_VOID_STATEMENT
+#endif // SNITCH_DISABLE
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS

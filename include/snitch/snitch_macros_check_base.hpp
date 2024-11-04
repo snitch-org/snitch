@@ -15,7 +15,9 @@
 #endif
 
 #define SNITCH_NEW_CHECK                                                                           \
-    snitch::impl::scoped_test_check { SNITCH_CURRENT_LOCATION }
+    snitch::impl::scoped_test_check {                                                              \
+        SNITCH_CURRENT_LOCATION                                                                    \
+    }
 
 #define SNITCH_EXPR(TYPE, EXPECTED, ...)                                                           \
     auto SNITCH_CURRENT_EXPRESSION =                                                               \
