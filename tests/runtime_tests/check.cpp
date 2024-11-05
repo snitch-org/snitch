@@ -32,7 +32,7 @@ struct non_relocatable {
     }
 };
 
-#if SNITCH_DISABLE
+#if !SNITCH_ENABLE
 [[maybe_unused]]
 #endif
 bool append(snitch::small_string_span ss, const non_relocatable& o) noexcept {
@@ -70,7 +70,7 @@ struct unary_long_string {
     }
 };
 
-#if SNITCH_DISABLE
+#if !SNITCH_ENABLE
 [[maybe_unused]]
 #endif
 bool append(snitch::small_string_span ss, const unary_long_string& u) noexcept {

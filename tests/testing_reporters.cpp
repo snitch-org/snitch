@@ -5,6 +5,9 @@
 
 namespace {
 #if SNITCH_WITH_EXCEPTIONS
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 void throw_something(bool do_throw) {
     if (do_throw) {
         throw std::runtime_error("I threw");

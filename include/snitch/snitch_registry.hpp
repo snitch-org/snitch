@@ -38,7 +38,7 @@ constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS
 // Maximum size of a reporter instance, in bytes.
 constexpr std::size_t max_reporter_size_bytes = SNITCH_MAX_REPORTER_SIZE_BYTES;
 // Is snitch disabled?
-constexpr bool is_disabled = SNITCH_DISABLE;
+constexpr bool is_disabled = !SNITCH_ENABLE;
 } // namespace snitch
 
 namespace snitch::impl {
@@ -108,17 +108,13 @@ struct registered_reporter {
 };
 
 template<typename T>
-concept reporter_type = requires(registry& reg) {
-    T{reg};
-}
-&&requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
-    { rep.configure(reg, k, v) } -> convertible_to<bool>;
-}
-&&requires(T& rep, const registry& reg, const event::data& e) {
-    rep.report(reg, e);
-};
+concept reporter_type =
+    requires(registry& reg) { T{reg}; } &&
+    requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
+        { rep.configure(reg, k, v) } -> convertible_to<bool>;
+    } && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
 
-#if !(SNITCH_DISABLE)
+#if SNITCH_ENABLE
 class registry {
     // Contains all registered test cases.
     small_vector<impl::test_case, max_test_cases> test_list;
@@ -337,7 +333,7 @@ public:
     SNITCH_EXPORT small_vector_span<const registered_reporter> reporters() const noexcept;
 };
 
-#else // SNITCH_DISABLE
+#else // SNITCH_ENABLE
 
 class registry {
     SNITCH_EXPORT void report_default(const registry&, const event::data&) noexcept {}
@@ -479,7 +475,7 @@ public:
     SNITCH_EXPORT small_vector_span<const registered_reporter> reporters() const noexcept;
 };
 
-#endif // SNITCH_DISABLE
+#endif // SNITCH_ENABLE
 
 SNITCH_EXPORT extern constinit registry tests;
 } // namespace snitch

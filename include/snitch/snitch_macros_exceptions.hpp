@@ -9,7 +9,7 @@
 
 #    include <exception>
 
-#    if !(SNITCH_DISABLE)
+#    if SNITCH_ENABLE
 #        define SNITCH_REQUIRE_THROWS_AS_IMPL(MAYBE_ABORT, EXPRESSION, ...)                        \
             do {                                                                                   \
                 auto SNITCH_CURRENT_CHECK       = SNITCH_NEW_CHECK;                                \
@@ -129,7 +129,7 @@
             SNITCH_REQUIRE_NOTHROW_IMPL(SNITCH_TESTING_ABORT, __VA_ARGS__)
 #        define SNITCH_CHECK_NOTHROW(...) SNITCH_REQUIRE_NOTHROW_IMPL((void)0, __VA_ARGS__)
 
-#    else // SNITCH_DISABLE
+#    else // SNITCH_ENABLE
 
 // clang-format off
 #    define SNITCH_REQUIRE_THROWS_AS(EXPRESSION, ...)                 SNITCH_DISCARD_ARGS(EXPRESSION, sizeof(__VA_ARGS__))
@@ -140,7 +140,7 @@
 #    define SNITCH_CHECK_NOTHROW(...)                                 SNITCH_DISCARD_ARGS(__VA_ARGS__)
 // clang-format on
 
-#    endif
+#    endif // SNITCH_ENABLE
 
 // clang-format off
 #if SNITCH_WITH_SHORTHAND_MACROS

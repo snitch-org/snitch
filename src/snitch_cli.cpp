@@ -401,9 +401,7 @@ void print_help(std::string_view program_name, const print_help_settings& settin
 }
 
 std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) noexcept {
-    if constexpr (SNITCH_DISABLE) {
-        return {};
-    } else {
+    if constexpr (SNITCH_ENABLE) {
         // First, parse just looking for color options so we can display console messages correctly.
         const bool with_color = impl::parse_color_options(argc, argv);
 
@@ -417,6 +415,8 @@ std::optional<cli::input> parse_arguments(int argc, const char* const argv[]) no
         }
 
         return ret_args;
+    } else {
+        return {};
     }
 }
 

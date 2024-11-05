@@ -1,6 +1,6 @@
 #include "snitch/snitch_registry.hpp"
 
-#if !(SNITCH_DISABLE)
+#if SNITCH_ENABLE
 
 #    include "snitch/snitch_time.hpp"
 
@@ -1137,7 +1137,7 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
 constinit registry tests;
 } // namespace snitch
 
-#else // SNITCH_DISABLE
+#else // SNITCH_ENABLE
 
 namespace snitch {
 filter_result filter_result_and(filter_result first, filter_result second) noexcept {
@@ -1270,4 +1270,4 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
 
 constinit registry tests;
 } // namespace snitch
-#endif // SNITCH_DISABLE
+#endif // SNITCH_ENABLE

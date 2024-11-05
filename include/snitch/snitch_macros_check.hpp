@@ -10,7 +10,7 @@
 #include "snitch/snitch_registry.hpp"
 #include "snitch/snitch_test_data.hpp"
 
-#if !(SNITCH_DISABLE)
+#if SNITCH_ENABLE
 
 #    define SNITCH_REQUIRE_IMPL(CHECK, EXPECTED, MAYBE_ABORT, ...)                                 \
         do {                                                                                       \
@@ -84,7 +84,7 @@
 #    define SNITCH_CHECK_THAT(EXPR, ...)   SNITCH_REQUIRE_THAT_IMPL("CHECK_THAT",   (void)0,               EXPR, __VA_ARGS__)
 // clang-format on
 
-#else // SNITCH_DISABLE
+#else // SNITCH_ENABLE
 // clang-format off
 #    define SNITCH_REQUIRE(...)       SNITCH_DISCARD_ARGS(__VA_ARGS__)
 #    define SNITCH_CHECK(...)         SNITCH_DISCARD_ARGS(__VA_ARGS__)
@@ -101,7 +101,7 @@
 #    define SNITCH_CHECK_THAT(EXPR, ...)   SNITCH_DISCARD_ARGS(EXPR, __VA_ARGS__)
 // clang-format on
 
-#endif // SNITCH_DISABLE
+#endif // SNITCH_ENABLE
 
 // clang-format on
 #if SNITCH_WITH_SHORTHAND_MACROS
