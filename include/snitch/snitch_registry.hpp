@@ -37,7 +37,7 @@ constexpr std::size_t max_unique_tags = SNITCH_MAX_UNIQUE_TAGS;
 constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS;
 // Maximum size of a reporter instance, in bytes.
 constexpr std::size_t max_reporter_size_bytes = SNITCH_MAX_REPORTER_SIZE_BYTES;
-// Is Snitch disabled?
+// Is snitch disabled?
 constexpr bool is_disabled = SNITCH_DISABLE;
 } // namespace snitch
 
