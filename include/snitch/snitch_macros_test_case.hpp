@@ -77,7 +77,7 @@
             void test_fun();                                                                       \
         };                                                                                         \
         }                                                                                          \
-        inline void ID::test_fun()
+        void ID::test_fun()
 
 #    define SNITCH_TEST_CASE_METHOD(FIXTURE, ...)                                                  \
         SNITCH_TEST_CASE_METHOD_IMPL(SNITCH_MACRO_CONCAT(test_id_, __COUNTER__), FIXTURE)
