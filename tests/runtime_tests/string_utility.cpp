@@ -16,6 +16,9 @@ struct frob {
     void knob() {}
 };
 
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 void foo() {}
 
 using function_ptr_type        = void (*)();
@@ -1043,6 +1046,9 @@ constexpr filter_result EE = {.included = false, .implicit = false};
 constexpr filter_result II = {.included = true, .implicit = true};
 constexpr filter_result IE = {.included = false, .implicit = true};
 
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 bool operator==(const filter_result& first, const filter_result& second) noexcept {
     return first.included == second.included && first.implicit == second.implicit;
 }

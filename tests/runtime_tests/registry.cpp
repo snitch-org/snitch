@@ -156,16 +156,28 @@ bool configure_called = false;
 bool report_called    = false;
 bool finish_called    = false;
 
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 void init(snitch::registry&) noexcept {
     init_called = true;
 }
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 bool configure(snitch::registry&, std::string_view, std::string_view) noexcept {
     configure_called = true;
     return configure_result;
 }
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 void report(const snitch::registry&, const snitch::event::data&) noexcept {
     report_called = true;
 }
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 void finish(snitch::registry&) noexcept {
     finish_called = true;
 }

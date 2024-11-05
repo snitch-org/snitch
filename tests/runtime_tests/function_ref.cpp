@@ -5,6 +5,9 @@
 namespace {
 std::size_t test_object_instances = 0u;
 bool        function_called       = false;
+#if !SNITCH_ENABLE
+[[maybe_unused]]
+#endif
 int         return_value          = 0u;
 
 struct test_object {
