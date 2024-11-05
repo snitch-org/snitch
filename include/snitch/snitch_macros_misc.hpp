@@ -20,9 +20,11 @@
         auto SNITCH_MACRO_CONCAT(capture_id_, __COUNTER__) =                                       \
             snitch::impl::add_info(snitch::impl::get_current_test(), __VA_ARGS__)
 #else // SNITCH_DISABLE
+// clang-format off
 #    define SNITCH_SECTION(NAME, ...) if constexpr (false)
-#    define SNITCH_CAPTURE(...) SNITCH_DISCARD_ARGS(__VA_ARGS__)
-#    define SNITCH_INFO(...) SNITCH_DISCARD_ARGS(__VA_ARGS__)
+#    define SNITCH_CAPTURE(...)       SNITCH_DISCARD_ARGS(__VA_ARGS__)
+#    define SNITCH_INFO(...)          SNITCH_DISCARD_ARGS(__VA_ARGS__)
+// clang-format on
 #endif // SNITCH_DISABLE
 
 // clang-format off
