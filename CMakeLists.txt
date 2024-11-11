@@ -116,10 +116,14 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_time.cpp)
 
-if (SNITCH_UNITY_BUILD)
-    set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+if (SNITCH_ENABLE)
+    if (SNITCH_UNITY_BUILD)
+        set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+    else()
+        set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
+    endif()
 else()
-    set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
+    set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp)
 endif()
 
 function(configure_snitch_exports TARGET)
@@ -212,7 +216,7 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
 
 # Setup tests
-if (SNITCH_DO_TEST)
+if (SNITCH_DO_TEST AND SNITCH_ENABLE)
     enable_testing()
 
     # We need to use a different snitch configuration for tests, so we can't reuse

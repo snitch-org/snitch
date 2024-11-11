@@ -114,7 +114,6 @@ concept reporter_type =
         { rep.configure(reg, k, v) } -> convertible_to<bool>;
     } && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
 
-#if SNITCH_ENABLE
 class registry {
     // Contains all registered test cases.
     small_vector<impl::test_case, max_test_cases> test_list;
@@ -334,7 +333,6 @@ public:
 };
 
 SNITCH_EXPORT extern constinit registry tests;
-#endif // SNITCH_ENABLE
 } // namespace snitch
 
 #endif

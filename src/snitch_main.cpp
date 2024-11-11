@@ -2,14 +2,22 @@
 #include "snitch/snitch_registry.hpp"
 
 #if SNITCH_DEFINE_MAIN
-SNITCH_EXPORT int main(int argc, char* argv[]) {
-    std::optional<snitch::cli::input> args = snitch::cli::parse_arguments(argc, argv);
-    if (!args) {
-        return 1;
+namespace snitch {
+int main(int argc,  char* argv[]) {
+    if constexpr(snitch::is_enabled) {
+        std::optional<snitch::cli::input> args = snitch::cli::parse_arguments(argc, argv);
+        if (!args) {
+            return 1;
+        }
+        snitch::tests.configure(*args);
+        return snitch::tests.run_tests(*args) ? 0 : 1;
+    } else {
+        return 0;
     }
+}
+}
 
-    snitch::tests.configure(*args);
-
-    return snitch::tests.run_tests(*args) ? 0 : 1;
+SNITCH_EXPORT int main(int argc, char* argv[]) {
+    return snitch::main(argc, argv);
 }
 #endif
