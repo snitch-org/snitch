@@ -116,7 +116,8 @@ constexpr std::size_t min_exp_digits = 2u;
     // +1 for exponent separator 'e'
     // +1 for exponent sign
     const std::size_t stored_digits = num_digits<10>(static_cast<large_uint_t>(x.digits));
-    return stored_digits + (x.sign ? 1u : 0u) + num_exp_digits(x.exponent + stored_digits - 1) + 3u;
+    return stored_digits + (x.sign ? 1u : 0u) +
+           num_exp_digits(static_cast<fixed_exp_t>(x.exponent + stored_digits - 1)) + 3u;
 }
 
 constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
@@ -195,7 +196,7 @@ set_precision(signed_fixed_data fd, std::size_t p) noexcept {
 
     // Now write the exponent, adjusted for the chosen display (one digit before the decimal
     // separator).
-    const fixed_exp_t exponent = fd.exponent + stored_digits - 1;
+    const fixed_exp_t exponent = static_cast<fixed_exp_t>(fd.exponent + stored_digits - 1);
 
     // Allocate space for it, +1 for 'e', and +1 for exponent sign.
     tmp.grow(num_exp_digits(exponent) + 2u);
