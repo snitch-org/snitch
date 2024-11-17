@@ -517,6 +517,7 @@ TEST_CASE("append doubles", "[utility]") {
         CONSTEXPR_CHECK(a(-2.3456e-320) == ae{"-2.345823686454239e-320"sv, true});
         CONSTEXPR_CHECK(a(4.940656458412465e-324) == ae{"4.940656458412465e-324"sv, true});
         CONSTEXPR_CHECK(a(-4.940656458412465e-324) == ae{"-4.940656458412465e-324"sv, true});
+        CONSTEXPR_CHECK(a(-3.479295510743212e-89) == ae{"-3.479295510743212e-89"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<double>::infinity()) == ae{"inf"sv, true});
         CONSTEXPR_CHECK(a(-std::numeric_limits<double>::infinity()) == ae{"-inf"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<double>::quiet_NaN()) == ae{"nan"sv, true});
