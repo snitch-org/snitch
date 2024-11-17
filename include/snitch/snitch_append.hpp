@@ -109,11 +109,15 @@ constexpr std::size_t min_exp_digits = 2u;
 }
 
 [[nodiscard]] constexpr std::size_t num_digits(const signed_fixed_data& x) noexcept {
+    // Don't forget to modify the stored exponent by the number of stored digits, since we always
+    // print floating point numbers as 1.23456 but store them as 123456.
+    // Why +3:
     // +1 for fractional separator '.'
     // +1 for exponent separator 'e'
     // +1 for exponent sign
-    return num_digits<10>(static_cast<large_uint_t>(x.digits)) + num_exp_digits(x.exponent) +
-           (x.sign ? 1u : 0u) + 3u;
+    const std::size_t stored_digits = num_digits<10>(static_cast<large_uint_t>(x.digits));
+    return stored_digits + (x.sign ? 1u : 0u) +
+           num_exp_digits(static_cast<fixed_exp_t>(x.exponent + stored_digits - 1)) + 3u;
 }
 
 constexpr std::size_t max_float_length = num_digits(signed_fixed_data{
@@ -164,19 +168,20 @@ set_precision(signed_fixed_data fd, std::size_t p) noexcept {
 
 [[nodiscard]] constexpr bool append_constexpr(small_string_span ss, signed_fixed_data fd) noexcept {
     // Statically allocate enough space for the biggest float,
-    // then resize to the length of this particular float.
     small_string<max_float_length> tmp;
-    tmp.resize(num_digits(fd));
 
-    const std::size_t exp_digits = num_exp_digits(fd.exponent);
+    // Resize to fit the digits (without exponent part).
+    // +1 for fractional separator '.'
+    // +1 for sign
+    const std::size_t stored_digits = num_digits<10>(static_cast<large_uint_t>(fd.digits));
+    tmp.resize(stored_digits + 1u + (fd.sign ? 1u : 0u));
 
     // The exponent has a fixed size, so we can start by writing the main digits.
     // We write the digits with always a single digit before the decimal separator,
     // and the rest as fractional part. This will require adjusting the value of
     // the exponent later.
-    std::size_t k            = 3u + exp_digits;
-    fixed_exp_t exponent_add = 0;
-    for (fixed_digits_t j = fd.digits; j != 0u; j /= 10u, ++k, ++exponent_add) {
+    std::size_t k = 1u;
+    for (fixed_digits_t j = fd.digits; j != 0u; j /= 10u, ++k) {
         if (j < 10u) {
             tmp[tmp.size() - k] = '.';
             ++k;
@@ -191,7 +196,10 @@ set_precision(signed_fixed_data fd, std::size_t p) noexcept {
 
     // Now write the exponent, adjusted for the chosen display (one digit before the decimal
     // separator).
-    const fixed_exp_t exponent = fd.exponent + exponent_add - 1;
+    const fixed_exp_t exponent = static_cast<fixed_exp_t>(fd.exponent + stored_digits - 1);
+
+    // Allocate space for it, +1 for 'e', and +1 for exponent sign.
+    tmp.grow(num_exp_digits(exponent) + 2u);
 
     k = 1;
     for (fixed_exp_t j = exponent > 0 ? exponent : -exponent; j != 0; j /= 10, ++k) {
