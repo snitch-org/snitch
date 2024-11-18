@@ -19,7 +19,8 @@ struct frob {
 #if !SNITCH_ENABLE
 [[maybe_unused]]
 #endif
-void foo() {}
+void foo() {
+}
 
 using function_ptr_type        = void (*)();
 using member_function_ptr_type = void (frob::*)();

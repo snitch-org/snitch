@@ -1688,11 +1688,11 @@ TEST_CASE("require throws matches", "[test macros]") {
 }
 
 namespace {
-#if SNITCH_ENABLE
+#    if SNITCH_ENABLE
 [[nodiscard]]
-#else
+#    else
 [[maybe_unused]]
-#endif
+#    endif
 int nodiscard_function() {
     return 1;
 }

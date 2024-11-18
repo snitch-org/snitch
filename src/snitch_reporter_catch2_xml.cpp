@@ -243,7 +243,7 @@ void reporter::report(const registry& r, const snitch::event::data& event) noexc
                                        e.allowed_assertion_failure_count)},
                      {"failures", make_string(e.assertion_failure_count)},
                      {"expectedFailures", make_string(e.allowed_assertion_failure_count)},
-                     {"skipped", e.skipped?"true":"false"}
+                     {"skipped", e.skipped ? "true" : "false"}
 #    if SNITCH_WITH_TIMINGS
                      ,
                      {"durationInSeconds", make_string(e.duration)}

@@ -108,11 +108,11 @@ struct registered_reporter {
 };
 
 template<typename T>
-concept reporter_type =
-    requires(registry& reg) { T{reg}; } &&
-    requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
-        { rep.configure(reg, k, v) } -> convertible_to<bool>;
-    } && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
+concept reporter_type = requires(registry& reg) {
+    T{reg};
+} && requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
+    { rep.configure(reg, k, v) } -> convertible_to<bool>;
+} && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
 
 class registry {
     // Contains all registered test cases.

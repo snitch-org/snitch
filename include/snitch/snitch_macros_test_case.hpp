@@ -15,26 +15,28 @@
 #    define SNITCH_TEST_CASE(...)                                                                  \
         SNITCH_TEST_CASE_IMPL(SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), __VA_ARGS__)
 
-#    define SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                              \
-        template<typename TestType>                                                                 \
-        static void        ID();                                                                    \
-        static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =            \
-            snitch::tests.add_with_type_list<TYPES>(                                                \
-                {NAME, TAGS}, SNITCH_CURRENT_LOCATION, []<typename TestType>() { ID<TestType>(); });\
-        template<typename TestType>                                                                 \
+#    define SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(ID, NAME, TAGS, TYPES)                             \
+        template<typename TestType>                                                                \
+        static void        ID();                                                                   \
+        static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =           \
+            snitch::tests.add_with_type_list<TYPES>(                                               \
+                {NAME, TAGS}, SNITCH_CURRENT_LOCATION,                                             \
+                []<typename TestType>() { ID<TestType>(); });                                      \
+        template<typename TestType>                                                                \
         void ID()
 
 #    define SNITCH_TEMPLATE_LIST_TEST_CASE(NAME, TAGS, TYPES)                                      \
         SNITCH_TEMPLATE_LIST_TEST_CASE_IMPL(                                                       \
             SNITCH_MACRO_CONCAT(test_fun_, __COUNTER__), NAME, TAGS, TYPES)
 
-#    define SNITCH_TEMPLATE_TEST_CASE_IMPL(ID, NAME, TAGS, ...)                                     \
-        template<typename TestType>                                                                 \
-        static void        ID();                                                                    \
-        static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =            \
-            snitch::tests.add_with_types<__VA_ARGS__>(                                              \
-                {NAME, TAGS}, SNITCH_CURRENT_LOCATION, []<typename TestType>() { ID<TestType>(); });\
-        template<typename TestType>                                                                 \
+#    define SNITCH_TEMPLATE_TEST_CASE_IMPL(ID, NAME, TAGS, ...)                                    \
+        template<typename TestType>                                                                \
+        static void        ID();                                                                   \
+        static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =           \
+            snitch::tests.add_with_types<__VA_ARGS__>(                                             \
+                {NAME, TAGS}, SNITCH_CURRENT_LOCATION,                                             \
+                []<typename TestType>() { ID<TestType>(); });                                      \
+        template<typename TestType>                                                                \
         void ID()
 
 #    define SNITCH_TEMPLATE_TEST_CASE(NAME, TAGS, ...)                                             \

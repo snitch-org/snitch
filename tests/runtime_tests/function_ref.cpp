@@ -8,7 +8,7 @@ bool        function_called       = false;
 #if !SNITCH_ENABLE
 [[maybe_unused]]
 #endif
-int         return_value          = 0u;
+int return_value = 0u;
 
 struct test_object {
     test_object() noexcept {
