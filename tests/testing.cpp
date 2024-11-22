@@ -8,9 +8,9 @@
 #include "testing.hpp"
 
 #if defined(SNITCH_TEST_WITH_SNITCH) && !defined(SNITCH_TEST_HEADER_ONLY)
-#    undef SNITCH_EXPORT
-#    define SNITCH_EXPORT
-#    include "snitch_main.cpp"
+int main(int argc, char* argv[]) {
+    return snitch::main(argc, argv);
+}
 #endif
 
 bool contains_color_codes(std::string_view msg) noexcept {
