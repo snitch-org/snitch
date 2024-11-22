@@ -32,9 +32,6 @@ struct non_relocatable {
     }
 };
 
-#if !SNITCH_ENABLE
-[[maybe_unused]]
-#endif
 bool append(snitch::small_string_span ss, const non_relocatable& o) noexcept {
     return append(ss, "non_relocatable{", o.value, "}");
 }
@@ -70,9 +67,6 @@ struct unary_long_string {
     }
 };
 
-#if !SNITCH_ENABLE
-[[maybe_unused]]
-#endif
 bool append(snitch::small_string_span ss, const unary_long_string& u) noexcept {
     return append(ss, u.value);
 }
@@ -1688,12 +1682,7 @@ TEST_CASE("require throws matches", "[test macros]") {
 }
 
 namespace {
-#    if SNITCH_ENABLE
-[[nodiscard]]
-#    else
-[[maybe_unused]]
-#    endif
-int nodiscard_function() {
+[[nodiscard]] int nodiscard_function() {
     return 1;
 }
 } // namespace

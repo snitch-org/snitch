@@ -204,7 +204,7 @@ struct extracted_unary_expression {
     // Operators we want to decompose.
 #define EXPR_OPERATOR(OP, OP_TYPE)                                                                 \
     template<typename U>                                                                           \
-    constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U & rhs)      \
+    constexpr extracted_binary_expression<Expected, T, OP_TYPE, U> operator OP(const U& rhs)       \
         const noexcept {                                                                           \
         return {type, expected, lhs, rhs};                                                         \
     }
