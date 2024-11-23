@@ -2,14 +2,13 @@
 
 #include "snitch/snitch_error_handling.hpp"
 
-#include <algorithm> // for std::rotate
-#include <cstring> // for std::memcpy
+#include <algorithm> // for std::rotate, std::copy
 
 namespace snitch {
 namespace {
 std::size_t
 replace_same_size(small_string_span string, std::size_t pos, std::string_view replacement) {
-    std::memcpy(string.data() + pos, replacement.data(), replacement.size());
+    std::copy(replacement.begin(), replacement.end(), string.begin() + pos);
     pos += replacement.size();
     return pos;
 }
@@ -25,7 +24,7 @@ std::size_t replace_smaller(
     string.resize(string.size() - char_diff);
 
     // Replace pattern by replacement
-    std::memcpy(string.data() + pos, replacement.data(), replacement.size());
+    std::copy(replacement.begin(), replacement.end(), string.begin() + pos);
     pos += replacement.size();
 
     return pos;
@@ -47,7 +46,7 @@ std::size_t replace_larger(
 
     // Replace pattern by replacement
     const std::size_t max_chars = std::min(replacement.size(), string.size() - pos);
-    std::memcpy(string.data() + pos, replacement.data(), max_chars);
+    std::copy(replacement.begin(), replacement.begin() + max_chars, string.begin() + pos);
     pos += max_chars;
 
     return pos;
