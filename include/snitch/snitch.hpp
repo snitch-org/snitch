@@ -23,6 +23,7 @@
 #include "snitch/snitch_macros_test_case.hpp"
 #include "snitch/snitch_macros_utility.hpp"
 #include "snitch/snitch_macros_warnings.hpp"
+#include "snitch/snitch_main.hpp"
 #include "snitch/snitch_matcher.hpp"
 #include "snitch/snitch_registry.hpp"
 #include "snitch/snitch_reporter_catch2_xml.hpp"

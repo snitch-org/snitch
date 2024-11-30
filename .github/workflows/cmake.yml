@@ -90,6 +90,7 @@ jobs:
       matrix:
         platform:
         - { name: Ubuntu GCC,             os: ubuntu-latest,  publish: true,  compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static",          cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='--coverage' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
+        - { name: Ubuntu GCC disabled,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-disabled", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev -DSNITCH_ENABLE=OFF"}
         - { name: Ubuntu GCC noexcept,    os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-noexcept", cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DCMAKE_CXX_FLAGS='-fno-exceptions' --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
         - { name: Ubuntu GCC notime,      os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-notime",   cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_WITH_TIMINGS=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
         - { name: Ubuntu GCC nounity,     os: ubuntu-latest,  publish: false, compiler: g++,     arch: "64", build: "ubuntu64-libstdc++-static-nounity",  cmakepp: "",        flags: "-DCMAKE_CXX_COMPILER=g++ -DSNITCH_UNITY_BUILD=0 --warn-uninitialized -Wdev -Wno-deprecated -Werror=dev"}
@@ -161,19 +162,20 @@ jobs:
     - name: Test (with doctest)
       # A bug in Node.js/V8 prevents these tests from running in Debug config for WebAssembly.
       # https://bugs.chromium.org/p/v8/issues/detail?id=13961
-      if: ${{!(matrix.platform.compiler == 'em++' && matrix.build-type == 'Debug')}}
+      if: ${{!(matrix.platform.compiler == 'em++' && matrix.build-type == 'Debug') && !contains(matrix.platform.flags, '-DSNITCH_ENABLE=OFF')}}
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_run
 
     - name: Test (with snitch)
+      if: ${{!contains(matrix.platform.flags, '-DSNITCH_ENABLE=OFF')}}
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_runtime_tests_self_run
 
     - name: Approval tests (with doctest)
       # Approval tests only run on "default" library configuration, which happens to be the published one
-      if: matrix.platform.publish
+      if: ${{matrix.platform.publish && !contains(matrix.platform.flags, '-DSNITCH_ENABLE=OFF')}}
       shell: bash
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{matrix.build-type}} --target snitch_approval_tests_run

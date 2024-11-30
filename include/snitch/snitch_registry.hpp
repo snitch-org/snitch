@@ -37,6 +37,8 @@ constexpr std::size_t max_unique_tags = SNITCH_MAX_UNIQUE_TAGS;
 constexpr std::size_t max_registered_reporters = SNITCH_MAX_REGISTERED_REPORTERS;
 // Maximum size of a reporter instance, in bytes.
 constexpr std::size_t max_reporter_size_bytes = SNITCH_MAX_REPORTER_SIZE_BYTES;
+// Is snitch disabled?
+constexpr bool is_enabled = SNITCH_ENABLE;
 } // namespace snitch
 
 namespace snitch::impl {
@@ -106,11 +108,11 @@ struct registered_reporter {
 };
 
 template<typename T>
-concept reporter_type =
-    requires(registry& reg) { T{reg}; } &&
-    requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
-        { rep.configure(reg, k, v) } -> convertible_to<bool>;
-    } && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
+concept reporter_type = requires(registry& reg) {
+    T{reg};
+} && requires(T& rep, registry& reg, std::string_view k, std::string_view v) {
+    { rep.configure(reg, k, v) } -> convertible_to<bool>;
+} && requires(T& rep, const registry& reg, const event::data& e) { rep.report(reg, e); };
 
 class registry {
     // Contains all registered test cases.

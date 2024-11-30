@@ -78,14 +78,14 @@ sources = files('src/snitch_append.cpp',
                'src/snitch_string_utility.cpp',
                'src/snitch_test_data.cpp')
 
-if get_option('unity_build')
-
-  main = files('src/snitch.cpp')
-
+if get_option('enable')
+  if get_option('unity_build')
+    main = files('src/snitch.cpp')
+  else
+    main = sources
+  endif
 else
-
-  main = sources
-
+  main = files('src/snitch_main.cpp')
 endif
 
 make_snitch_all = files('make_snitch_all.py')
@@ -95,7 +95,6 @@ subdir('snitch')
 install_headers(headers, subdir: 'snitch')
 
 if get_option('create_library')
-
   snitch = library('snitch',
     conf_file, main, headers,
     include_directories: include_dirs,
@@ -113,21 +112,20 @@ if get_option('create_library')
     description: 'Lightweight C++20 testing framework.',
     url: 'https://github.com/cschreib/snitch',
   )
-
 else
-
   snitch_dep = declare_dependency(include_directories: include_dirs)
-
 endif
 
 if meson.version().version_compare('>=0.54.0')
   meson.override_dependency('snitch', snitch_dep)
 endif
 
-test('snitch_all_test',
-  executable('snitch_all_test',
-             [snitch_all, 'tests/testing.cpp'],
-             cpp_args: ['-DSNITCH_TEST_WITH_SNITCH', '-DSNITCH_TEST_HEADER_ONLY'],
-             dependencies: [snitch_dep]
+if get_option('enable')
+  test('snitch_all_test',
+    executable('snitch_all_test',
+               [snitch_all, 'tests/testing.cpp'],
+               cpp_args: ['-DSNITCH_TEST_WITH_SNITCH', '-DSNITCH_TEST_HEADER_ONLY'],
+               dependencies: [snitch_dep]
+    )
   )
-)
+endif

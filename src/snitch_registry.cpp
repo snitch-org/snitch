@@ -1132,5 +1132,7 @@ small_vector_span<const registered_reporter> registry::reporters() const noexcep
     return registered_reporters;
 }
 
+#if SNITCH_ENABLE
 constinit registry tests;
+#endif // SNITCH_ENABLE
 } // namespace snitch

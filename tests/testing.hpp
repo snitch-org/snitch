@@ -52,11 +52,11 @@ struct any_arg {
 
 template<typename T>
 concept matcher = requires(const T& m) {
-                      { m.match(any_arg{}) } -> snitch::convertible_to<bool>;
-                      {
-                          m.describe_match(any_arg{}, snitch::matchers::match_status{})
-                          } -> snitch::convertible_to<std::string_view>;
-                  };
+    { m.match(any_arg{}) } -> snitch::convertible_to<bool>;
+    {
+        m.describe_match(any_arg{}, snitch::matchers::match_status{})
+    } -> snitch::convertible_to<std::string_view>;
+};
 
 template<typename T>
 concept function = std::is_function_v<T>;

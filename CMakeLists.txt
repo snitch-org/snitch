@@ -18,6 +18,7 @@ set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file 
 set(SNITCH_MAX_REPORTER_SIZE_BYTES  128  CACHE STRING "Maximum size (in bytes) of a reporter object.")
 
 # Feature toggles.
+set(SNITCH_ENABLE                          ON  CACHE BOOL "Enable/disable snitch at build time.")
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
 set(SNITCH_WITH_EXCEPTIONS                 ON  CACHE BOOL "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
 set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Make the testing framework thread-safe -- disable if multithreading is not needed.")
@@ -115,10 +116,14 @@ set(SNITCH_SOURCES_INDIVIDUAL
     ${PROJECT_SOURCE_DIR}/src/snitch_test_data.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_time.cpp)
 
-if (SNITCH_UNITY_BUILD)
-    set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+if (SNITCH_ENABLE)
+    if (SNITCH_UNITY_BUILD)
+        set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch.cpp)
+    else()
+        set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
+    endif()
 else()
-    set(SNITCH_SOURCES ${SNITCH_SOURCES_INDIVIDUAL})
+    set(SNITCH_SOURCES ${PROJECT_SOURCE_DIR}/src/snitch_main.cpp)
 endif()
 
 function(configure_snitch_exports TARGET)
@@ -211,7 +216,7 @@ install(FILES
     DESTINATION lib/cmake/snitch COMPONENT Development)
 
 # Setup tests
-if (SNITCH_DO_TEST)
+if (SNITCH_DO_TEST AND SNITCH_ENABLE)
     enable_testing()
 
     # We need to use a different snitch configuration for tests, so we can't reuse
