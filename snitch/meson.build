@@ -33,6 +33,7 @@ conf_data = configuration_data({
   'SNITCH_MAX_PATH_LENGTH'          : get_option('max_path_length'),
   'SNITCH_MAX_REPORTER_SIZE_BYTES'  : get_option('max_reporter_size_bytes'),
 
+  'SNITCH_ENABLE'                          : get_option('enable').to_int(),
   'SNITCH_DEFINE_MAIN'                     : get_option('define_main').to_int(),
   'SNITCH_WITH_EXCEPTIONS'                 : get_option('with_exceptions').to_int(),
   'SNITCH_WITH_MULTITHREADING'             : get_option('with_multithreading').to_int(),
