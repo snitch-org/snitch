@@ -145,13 +145,13 @@ if (NOT SNITCH_HEADER_ONLY)
     target_include_directories(${SNITCH_TARGET_NAME} PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+        $<INSTALL_INTERFACE:include>)
 
     configure_snitch_exports(${SNITCH_TARGET_NAME})
 
     install(
         FILES ${SNITCH_INCLUDES}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
+        DESTINATION include/snitch)
 else()
     # Build as a header-only library.
     set(SNITCH_TARGET_NAME snitch-header-only)
@@ -175,15 +175,15 @@ else()
     add_dependencies(${SNITCH_TARGET_NAME} snitch-header-only-impl)
     target_sources(${SNITCH_TARGET_NAME} INTERFACE
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
+        $<INSTALL_INTERFACE:include/snitch/snitch_all.hpp>)
     target_compile_features(${SNITCH_TARGET_NAME} INTERFACE cxx_std_20)
     target_include_directories(${SNITCH_TARGET_NAME} INTERFACE
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>)
+        $<INSTALL_INTERFACE:include>)
 
     install(
         FILES ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/snitch)
+        DESTINATION include/snitch)
 endif()
 
 # Common properties
@@ -194,7 +194,7 @@ set_target_properties(${SNITCH_TARGET_NAME} PROPERTIES EXPORT_NAME snitch::${SNI
 install(TARGETS ${SNITCH_TARGET_NAME} EXPORT ${SNITCH_TARGET_NAME}-targets)
 
 install(EXPORT ${SNITCH_TARGET_NAME}-targets
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
+    DESTINATION lib/cmake/snitch COMPONENT Development)
 
 export(EXPORT ${SNITCH_TARGET_NAME}-targets)
 
@@ -202,13 +202,13 @@ include(CMakePackageConfigHelpers)
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/snitch-config.cmake.in"
     "${PROJECT_BINARY_DIR}/snitch-config.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    INSTALL_DESTINATION lib
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
     NO_SET_AND_CHECK_MACRO)
 
 install(FILES
     "${PROJECT_BINARY_DIR}/snitch-config.cmake"
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/snitch COMPONENT Development)
+    DESTINATION lib/cmake/snitch COMPONENT Development)
 
 # Setup tests
 if (SNITCH_DO_TEST)
@@ -244,7 +244,7 @@ if (SNITCH_DO_TEST)
         add_dependencies(snitch-testlib snitch-header-only-impl)
         target_sources(snitch-testlib INTERFACE
             $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/snitch/snitch_all.hpp>)
+            $<INSTALL_INTERFACE:include/snitch/snitch_all.hpp>)
 
         target_compile_features(snitch-testlib INTERFACE cxx_std_20)
         target_include_directories(snitch-testlib INTERFACE ${PROJECT_BINARY_DIR})
