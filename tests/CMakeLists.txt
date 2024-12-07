@@ -87,15 +87,18 @@ function(copy_shared_library TARGET)
     endif()
 endfunction()
 
-include(FetchContent)
+if (SNITCH_USE_SYSTEM_DOCTEST)
+    find_package(doctest REQUIRED)
+else()
+    include(FetchContent)
 
-set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
-set(DOCTEST_NO_INSTALL ON)
+    set(DOCTEST_NO_INSTALL ON)
 
-FetchContent_Declare(doctest
-                     GIT_REPOSITORY https://github.com/doctest/doctest.git
-                     GIT_TAG        v2.4.9)
-FetchContent_MakeAvailable(doctest)
+    FetchContent_Declare(doctest
+                         GIT_REPOSITORY https://github.com/doctest/doctest.git
+                         GIT_TAG        v2.4.9)
+    FetchContent_MakeAvailable(doctest)
+endif()
 
 # Test snitch with doctest.
 add_executable(snitch_runtime_tests
@@ -106,8 +109,7 @@ target_include_directories(snitch_runtime_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_runtime_tests PRIVATE
     snitch-testlib
-    doctest::doctest
-    doctest::doctest_with_main)
+    doctest::doctest)
 add_platform_definitions(snitch_runtime_tests)
 target_compile_features(snitch_runtime_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests PUBLIC
@@ -129,8 +131,7 @@ target_include_directories(snitch_approval_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_approval_tests PRIVATE
     snitch-testlib
-    doctest::doctest
-    doctest::doctest_with_main)
+    doctest::doctest)
 add_platform_definitions(snitch_approval_tests)
 target_compile_features(snitch_approval_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_approval_tests PUBLIC

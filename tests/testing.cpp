@@ -3,6 +3,9 @@
 #if defined(SNITCH_TEST_WITH_SNITCH)
 #    undef SNITCH_DEFINE_MAIN
 #    define SNITCH_DEFINE_MAIN 1
+#else
+#    define DOCTEST_CONFIG_IMPLEMENT
+#    define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #endif
 
 #include "testing.hpp"
