@@ -69,7 +69,7 @@ set(APPROVAL_TEST_FILES
     ${PROJECT_SOURCE_DIR}/tests/approval_tests/reporter_console.cpp
     ${PROJECT_SOURCE_DIR}/tests/approval_tests/reporter_teamcity.cpp)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     # For Emcripten, we need the working directory to be where the binaries are created,
     # because Emscripten will generate *.data files there that we need to load.
     # We don't have access to the filesystem otherwise.
@@ -87,15 +87,18 @@ function(copy_shared_library TARGET)
     endif()
 endfunction()
 
-include(FetchContent)
+if (SNITCH_USE_SYSTEM_DOCTEST)
+    find_package(doctest REQUIRED)
+else()
+    include(FetchContent)
 
-set(DOCTEST_WITH_MAIN_IN_STATIC_LIB ON)
-set(DOCTEST_NO_INSTALL ON)
+    set(DOCTEST_NO_INSTALL ON)
 
-FetchContent_Declare(doctest
-                     GIT_REPOSITORY https://github.com/doctest/doctest.git
-                     GIT_TAG        v2.4.9)
-FetchContent_MakeAvailable(doctest)
+    FetchContent_Declare(doctest
+                         GIT_REPOSITORY https://github.com/doctest/doctest.git
+                         GIT_TAG        v2.4.9)
+    FetchContent_MakeAvailable(doctest)
+endif()
 
 # Test snitch with doctest.
 add_executable(snitch_runtime_tests
@@ -106,8 +109,7 @@ target_include_directories(snitch_runtime_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_runtime_tests PRIVATE
     snitch-testlib
-    doctest::doctest
-    doctest::doctest_with_main)
+    doctest::doctest)
 add_platform_definitions(snitch_runtime_tests)
 target_compile_features(snitch_runtime_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests PUBLIC
@@ -129,15 +131,14 @@ target_include_directories(snitch_approval_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_approval_tests PRIVATE
     snitch-testlib
-    doctest::doctest
-    doctest::doctest_with_main)
+    doctest::doctest)
 add_platform_definitions(snitch_approval_tests)
 target_compile_features(snitch_approval_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_approval_tests PUBLIC
     SNITCH_WITH_SHORTHAND_MACROS=0)
 copy_shared_library(snitch_approval_tests)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
     # Add approval test data to the preload-file list
     target_link_options(snitch_approval_tests PUBLIC
         "SHELL:--preload-file ${PROJECT_SOURCE_DIR}/tests/approval_tests/data@data")

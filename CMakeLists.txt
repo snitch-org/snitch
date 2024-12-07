@@ -33,9 +33,10 @@ set(SNITCH_WITH_TEAMCITY_REPORTER          OFF CACHE BOOL "Allow the TeamCity re
 set(SNITCH_WITH_CATCH2_XML_REPORTER        OFF CACHE BOOL "Allow the Catch2 XML reporter to be selected from the command line -- enable if needed.")
 
 # Building and packaging options; not part of the library API.
-set(SNITCH_HEADER_ONLY OFF CACHE BOOL "Create a single-header header-only version of snitch.")
-set(SNITCH_UNITY_BUILD ON  CACHE BOOL "Build sources as single file instead of separate files (faster full build).")
-set(SNITCH_DO_TEST     OFF CACHE BOOL "Build tests.")
+set(SNITCH_HEADER_ONLY        OFF CACHE BOOL "Create a single-header header-only version of snitch.")
+set(SNITCH_UNITY_BUILD        ON  CACHE BOOL "Build sources as single file instead of separate files (faster full build).")
+set(SNITCH_DO_TEST            OFF CACHE BOOL "Build tests.")
+set(SNITCH_USE_SYSTEM_DOCTEST OFF CACHE BOOL "Assume doctest is already installed, do not download it (used in tests only).")
 
 # Figure out git hash, if any
 execute_process(
