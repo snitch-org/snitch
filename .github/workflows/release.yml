@@ -1,0 +1,22 @@
+name: release artifacts
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+    name: Publish artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare artifacts
+        run:
+
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files:
