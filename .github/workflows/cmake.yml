@@ -115,7 +115,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 2 # necessary for codecov bash uploader
         submodules: 'recursive'
@@ -127,14 +127,14 @@ jobs:
     - name: Setup Emscripten cache
       if: matrix.platform.compiler == 'em++'
       id: cache-system-libraries
-      uses: actions/cache@v3.3.1
+      uses: actions/cache@v4
       with:
         path: ${{env.EM_CACHE_FOLDER}}
         key: ${{env.EM_VERSION}}-${{matrix.platform.name}}-${{matrix.build-type}}
 
     - name: Setup Emscripten
       if: matrix.platform.compiler == 'em++'
-      uses: mymindstorm/setup-emsdk@v12
+      uses: mymindstorm/setup-emsdk@v14
       with:
         version: ${{env.EM_VERSION}}
         actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
