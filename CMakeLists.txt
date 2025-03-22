@@ -193,6 +193,10 @@ else()
         DESTINATION include/snitch)
 endif()
 
+install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION doc/snitch)
+
 # Common properties
 add_library(snitch::${SNITCH_TARGET_NAME} ALIAS ${SNITCH_TARGET_NAME})
 set_target_properties(${SNITCH_TARGET_NAME} PROPERTIES EXPORT_NAME snitch::${SNITCH_TARGET_NAME})
