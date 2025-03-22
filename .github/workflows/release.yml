@@ -1,0 +1,24 @@
+name: release artifacts
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+    name: Publish artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch artifacts
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          workflow: cmake.yml
+          branch: main
+          skip_unpack: true
+          allow_forks: false
+
+      - name: Upload artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: '*.zip'

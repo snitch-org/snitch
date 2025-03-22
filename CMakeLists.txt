@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(snitch LANGUAGES CXX VERSION 1.3.1)
+project(snitch LANGUAGES CXX VERSION 1.3.2)
 
 # Maximum lengths.
 set(SNITCH_MAX_TEST_CASES           5000 CACHE STRING "Maximum number of test cases in a test application.")
@@ -192,6 +192,10 @@ else()
         FILES ${PROJECT_BINARY_DIR}/snitch/snitch_all.hpp
         DESTINATION include/snitch)
 endif()
+
+install(
+    FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    DESTINATION doc/snitch)
 
 # Common properties
 add_library(snitch::${SNITCH_TARGET_NAME} ALIAS ${SNITCH_TARGET_NAME})
