@@ -1020,7 +1020,7 @@ _snitch_ offers several configuration options to support "freestanding" environm
 
  - Exceptions (`SNITCH_WITH_EXCEPTIONS`). See above.
 
- - Console (`SNITCH_WITH_STDOUT`). There is no default implementation for the console; you will have to supply your own function:
+ - Console (`SNITCH_WITH_STDOUT`). When disabled, there is no default implementation for the console; you will have to supply your own function:
 
    ```c++
     // Your own implementation: write this message somewhere, or just discard the message.
@@ -1040,7 +1040,7 @@ _snitch_ offers several configuration options to support "freestanding" environm
     }
     ```
 
- - File I/O (`SNITCH_WITH_STD_FILE_IO`). There is no default implementation for file I/O; if you need to write results to a "file" (or a file-like object, like a socket), you will have to supply your own functions:
+ - File I/O (`SNITCH_WITH_STD_FILE_IO`). When disabled, there is no default implementation for file I/O; if you need to write results to a "file" (or a file-like object, like a socket), you will have to supply your own functions:
 
    ```c++
     // You can use the supplied "storage" if you need to manage any state specific to that file.
