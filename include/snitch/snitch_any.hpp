@@ -18,7 +18,7 @@ struct basic_vtable {
     function_ptr<void(void*, void*) noexcept> move_object   = [](void*, void*) noexcept {};
 };
 
-extern const basic_vtable empty_vtable;
+SNITCH_EXPORT extern const basic_vtable empty_vtable;
 
 template<typename T>
 const basic_vtable* get_vtable() noexcept {
