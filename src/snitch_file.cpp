@@ -72,7 +72,7 @@ void stdio_file_close(file_object_storage& storage) noexcept {
 #endif
 
 file_writer::file_writer(std::string_view path) {
-    snitch::file::open(storage, path);
+    snitch::io::file_open(storage, path);
 }
 
 file_writer::file_writer(file_writer&& other) noexcept {
@@ -94,7 +94,7 @@ void file_writer::write(std::string_view message) noexcept {
         return;
     }
 
-    snitch::file::write(storage, message);
+    snitch::io::file_write(storage, message);
 }
 
 bool file_writer::is_open() noexcept {
@@ -106,16 +106,16 @@ void file_writer::close() noexcept {
         return;
     }
 
-    snitch::file::close(storage);
+    snitch::io::file_close(storage);
 }
 } // namespace snitch::impl
 
-namespace snitch::file {
-function_ref<void(file_object_storage& storage, std::string_view path)> open =
+namespace snitch::io {
+function_ref<void(file_object_storage& storage, std::string_view path)> file_open =
     &impl::stdio_file_open;
 
-function_ref<void(const file_object_storage& storage, std::string_view message) noexcept> write =
-    &impl::stdio_file_write;
+function_ref<void(const file_object_storage& storage, std::string_view message) noexcept>
+    file_write = &impl::stdio_file_write;
 
-function_ref<void(file_object_storage& storage) noexcept> close = &impl::stdio_file_close;
-} // namespace snitch::file
+function_ref<void(file_object_storage& storage) noexcept> file_close = &impl::stdio_file_close;
+} // namespace snitch::io
