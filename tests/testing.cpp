@@ -34,8 +34,8 @@ int init_console [[maybe_unused]] = [] {
 // own.
 #    include <fstream>
 void custom_file_open(snitch::file_object_storage& storage, std::string_view path) {
-    storage.emplace<std::ofstream>(std::string(path));
-    if (!storage.get<std::ofstream>().is_open()) {
+    auto& stream = storage.emplace<std::ofstream>(std::string(path));
+    if (!stream.is_open()) {
         snitch::assertion_failed("output file could not be opened for writing");
     }
 }

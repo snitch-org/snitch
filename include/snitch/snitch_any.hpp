@@ -87,7 +87,7 @@ public:
     }
 
     template<typename T, typename... Args>
-    void emplace(Args&&... args) {
+    T& emplace(Args&&... args) {
         static_assert(
             sizeof(T) <= MaxSize,
             "This type is too large to fit in this inplace_any, increase storage size");
@@ -95,6 +95,7 @@ public:
         vtable->delete_object(storage.data());
         new (storage.data()) T(std::forward<Args>(args)...);
         vtable = impl::get_vtable<T>();
+        return *reinterpret_cast<T*>(storage.data());
     }
 
     // Requires: not empty and stored type == T.
