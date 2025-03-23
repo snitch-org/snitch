@@ -1026,7 +1026,7 @@ _snitch_ offers several configuration options to support "freestanding" environm
     // Your own implementation: write this message somewhere, or just discard the message.
     // Below is an illustrative example with the C++ STL.
 
-    void write_to_console(std::string_view message) noexcept {
+    void my_console_print(std::string_view message) noexcept {
         // NB: The "message" will already include line endings.
         std::cout << message << std::flush;
     }
@@ -1034,7 +1034,7 @@ _snitch_ offers several configuration options to support "freestanding" environm
     int main(int argc, char* argv[]) {
         // Override the default 'console_print'.
         // You must do this before calling any other function from snitch.
-        snitch::cli::console_print = &write_to_console;
+        snitch::cli::console_print = &my_console_print;
 
         // Usual main function...
     }
@@ -1046,28 +1046,29 @@ _snitch_ offers several configuration options to support "freestanding" environm
     // You can use the supplied "storage" if you need to manage any state specific to that file.
     // Below is an illustrative example with the C++ STL.
 
-    void file_open(snitch::file_object_storage& storage, std::string_view path) {
+    void my_file_open(snitch::file_object_storage& storage, std::string_view path) {
         auto& stream = storage.emplace<std::ofstream>(std::string(path));
         if (!stream.is_open()) {
             snitch::assertion_failed("output file could not be opened for writing");
         }
     }
 
-    void file_write(const snitch::file_object_storage& storage, std::string_view message) noexcept {
+    void my_file_write(const snitch::file_object_storage& storage,
+                       std::string_view message) noexcept {
         // NB: The "message" will already include line endings.
         storage.get_mutable<std::ofstream>() << message << std::flush;
     }
 
-    void file_close(snitch::file_object_storage& storage) noexcept {
+    void my_file_close(snitch::file_object_storage& storage) noexcept {
         storage.reset();
     }
 
     int main(int argc, char* argv[]) {
         // Override the default implementation.
         // You must do this before calling any other function from snitch.
-        snitch::file::open  = &file_open;
-        snitch::file::write = &file_write;
-        snitch::file::close = &file_close;
+        snitch::io::file_open  = &my_file_open;
+        snitch::io::file_write = &my_file_write;
+        snitch::io::file_close = &my_file_close;
 
         // Usual main function...
     }

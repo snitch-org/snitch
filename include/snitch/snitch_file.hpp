@@ -49,15 +49,16 @@ public:
 };
 } // namespace snitch::impl
 
-namespace snitch::file {
+namespace snitch::io {
 // Requires: permission to write to the given path, path length less than max_path_length
-SNITCH_EXPORT extern function_ref<void(file_object_storage& storage, std::string_view path)> open;
+SNITCH_EXPORT extern function_ref<void(file_object_storage& storage, std::string_view path)>
+    file_open;
 
 SNITCH_EXPORT extern function_ref<void(
     const file_object_storage& storage, std::string_view message) noexcept>
-    write;
+    file_write;
 
-SNITCH_EXPORT extern function_ref<void(file_object_storage& storage) noexcept> close;
-} // namespace snitch::file
+SNITCH_EXPORT extern function_ref<void(file_object_storage& storage) noexcept> file_close;
+} // namespace snitch::io
 
 #endif

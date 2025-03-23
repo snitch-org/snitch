@@ -50,9 +50,9 @@ void custom_file_close(snitch::file_object_storage& storage) noexcept {
 }
 
 int init_file [[maybe_unused]] = [] {
-    snitch::file::open  = &custom_file_open;
-    snitch::file::write = &custom_file_write;
-    snitch::file::close = &custom_file_close;
+    snitch::io::file_open  = &custom_file_open;
+    snitch::io::file_write = &custom_file_write;
+    snitch::io::file_close = &custom_file_close;
     return 0;
 }();
 #endif
