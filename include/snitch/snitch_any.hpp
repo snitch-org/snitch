@@ -12,21 +12,41 @@
 
 namespace snitch {
 namespace impl {
+struct basic_vtable {
+    type_id_t                                 id            = snitch::type_id<void>();
+    function_ptr<void(void*) noexcept>        delete_object = [](void*) noexcept {};
+    function_ptr<void(void*, void*) noexcept> move_object   = [](void*, void*) noexcept {};
+};
+
+constexpr basic_vtable empty_vtable{};
+
 template<typename T>
-void delete_object(char* storage) noexcept {
-    reinterpret_cast<T*>(storage)->~T();
+const basic_vtable* get_vtable() noexcept {
+    static basic_vtable table{
+        .id            = snitch::type_id<T>(),
+        .delete_object = [](void* storage) noexcept { reinterpret_cast<T*>(storage)->~T(); },
+        .move_object =
+            [](void* storage, void* from) noexcept {
+                new (storage) T(std::move(*reinterpret_cast<T*>(from)));
+            }};
+    return &table;
 }
 } // namespace impl
 
 template<std::size_t MaxSize>
 class inplace_any {
-    std::array<char, MaxSize>          storage = {};
-    function_ref<void(char*) noexcept> deleter = [](char*) noexcept {};
-    type_id_t                          id      = type_id<void>();
+    std::array<char, MaxSize> storage = {};
+    const impl::basic_vtable* vtable  = &impl::empty_vtable;
 
-    void release() noexcept {
-        deleter = [](char*) noexcept {};
-        id      = type_id<void>();
+    template<typename T>
+    void check() const {
+        if (vtable != impl::get_vtable<T>()) {
+            if (vtable == &impl::empty_vtable) {
+                assertion_failed("inplace_any is empty");
+            } else {
+                assertion_failed("inplace_any holds an object of a different type");
+            }
+        }
     }
 
 public:
@@ -34,19 +54,18 @@ public:
 
     inplace_any(const inplace_any&) = delete;
 
-    constexpr inplace_any(inplace_any&& other) noexcept :
-        storage(other.storage), deleter(other.deleter), id(other.id) {
-        other.release();
+    constexpr inplace_any(inplace_any&& other) noexcept : vtable(other.vtable) {
+        vtable->move_object(storage.data(), other.storage.data());
+        other.reset();
     }
 
     inplace_any& operator=(const inplace_any&) = delete;
 
     constexpr inplace_any& operator=(inplace_any&& other) noexcept {
-        reset();
-        storage = other.storage;
-        deleter = other.deleter;
-        id      = other.id;
-        other.release();
+        vtable->delete_object(storage.data());
+        vtable = other.vtable;
+        vtable->move_object(storage.data(), other.storage.data());
+        other.reset();
         return *this;
     }
 
@@ -60,11 +79,11 @@ public:
     }
 
     bool has_value() const noexcept {
-        return id != type_id<void>();
+        return vtable != &impl::empty_vtable;
     }
 
     type_id_t type() const noexcept {
-        return id;
+        return vtable->id;
     }
 
     template<typename T, typename... Args>
@@ -73,34 +92,35 @@ public:
             sizeof(T) <= MaxSize,
             "This type is too large to fit in this inplace_any, increase storage size");
 
-        reset();
+        vtable->delete_object(storage.data());
         new (storage.data()) T(std::forward<Args>(args)...);
-        deleter = &impl::delete_object<T>;
-        id      = type_id<T>();
+        vtable = impl::get_vtable<T>();
     }
 
     // Requires: not empty and stored type == T.
     template<typename T>
     const T& get() const {
-        if (!has_value()) {
-            assertion_failed("inplace_any is empty");
-        }
-        if (type() != type_id<T>()) {
-            assertion_failed("inplace_any holds an object of a different type");
-        }
-
+        check<T>();
         return *reinterpret_cast<const T*>(storage.data());
     }
 
     // Requires: not empty and stored type == T.
     template<typename T>
     T& get() {
-        return const_cast<T&>(const_cast<const inplace_any*>(this)->get<T>());
+        check<T>();
+        return *reinterpret_cast<T*>(storage.data());
+    }
+
+    // Requires: not empty and stored type == T.
+    template<typename T>
+    T& get_mutable() const {
+        check<T>();
+        return const_cast<T&>(*reinterpret_cast<const T*>(storage.data()));
     }
 
     void reset() noexcept {
-        deleter(storage.data());
-        release();
+        vtable->delete_object(storage.data());
+        vtable = &impl::empty_vtable;
     }
 };
 } // namespace snitch
