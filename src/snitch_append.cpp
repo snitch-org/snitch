@@ -3,8 +3,8 @@
 #include "snitch/snitch_concepts.hpp"
 #include "snitch/snitch_string.hpp"
 
+#include <algorithm> // for std::copy
 #include <cstdint> // for std::uintptr_t
-#include <cstring> // for std::memmove
 #if SNITCH_APPEND_TO_CHARS
 #    include <charconv> // for std::to_chars
 #    include <system_error> // for std::errc
@@ -81,7 +81,7 @@ bool append_fast(small_string_span ss, std::string_view str) noexcept {
 
     const std::size_t offset = ss.size();
     ss.grow(copy_count);
-    std::memmove(ss.begin() + offset, str.data(), copy_count);
+    std::copy(str.begin(), str.begin() + copy_count, ss.begin() + offset);
 
     return could_fit;
 }
