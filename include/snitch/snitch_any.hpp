@@ -18,11 +18,11 @@ struct basic_vtable {
     function_ptr<void(void*, void*) noexcept> move_object   = [](void*, void*) noexcept {};
 };
 
-constexpr basic_vtable empty_vtable{};
+extern const basic_vtable empty_vtable;
 
 template<typename T>
 const basic_vtable* get_vtable() noexcept {
-    static basic_vtable table{
+    static const basic_vtable table{
         .id            = snitch::type_id<T>(),
         .delete_object = [](void* storage) noexcept { reinterpret_cast<T*>(storage)->~T(); },
         .move_object =

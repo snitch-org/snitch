@@ -104,6 +104,7 @@ set(SNITCH_INCLUDES
     ${PROJECT_BINARY_DIR}/snitch/snitch_config.hpp)
 
 set(SNITCH_SOURCES_INDIVIDUAL
+    ${PROJECT_SOURCE_DIR}/src/snitch_any.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_append.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_capture.cpp
     ${PROJECT_SOURCE_DIR}/src/snitch_cli.cpp
