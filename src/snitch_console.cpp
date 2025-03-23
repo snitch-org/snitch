@@ -12,9 +12,9 @@ void stdout_print(std::string_view message) noexcept {
     std::fwrite(message.data(), sizeof(char), message.length(), stdout);
 }
 #else
+// No default console; it is expected that the user will use their own
+// implementation wherever a console is needed.
 void stdout_print(std::string_view) noexcept {
-    // No default console; expected user will use their own implementation wherever
-    // a console is needed.
     std::terminate();
 }
 #endif
