@@ -20,6 +20,7 @@ set(SNITCH_MAX_REPORTER_SIZE_BYTES  128  CACHE STRING "Maximum size (in bytes) o
 # Feature toggles.
 set(SNITCH_ENABLE                          ON  CACHE BOOL "Enable/disable snitch at build time.")
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
+set(SNITCH_WITH_STDOUT                     ON  CACHE BOOL "Use stdout from <cstdio> as default console -- will be forced OFF if freestanding mode is enabled.")
 set(SNITCH_WITH_EXCEPTIONS                 ON  CACHE BOOL "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
 set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Make the testing framework thread-safe -- disable if multithreading is not needed.")
 set(SNITCH_WITH_TIMINGS                    ON  CACHE BOOL "Measure the time taken by each test case -- disable to speed up tests.")
