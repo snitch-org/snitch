@@ -3,24 +3,26 @@ cmake_minimum_required(VERSION 3.14)
 project(snitch LANGUAGES CXX VERSION 1.3.2)
 
 # Maximum lengths.
-set(SNITCH_MAX_TEST_CASES           5000 CACHE STRING "Maximum number of test cases in a test application.")
-set(SNITCH_MAX_NESTED_SECTIONS      8    CACHE STRING "Maximum depth of nested sections in a test case.")
-set(SNITCH_MAX_EXPR_LENGTH          1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
-set(SNITCH_MAX_MESSAGE_LENGTH       1024 CACHE STRING "Maximum length of error or status messages.")
-set(SNITCH_MAX_TEST_NAME_LENGTH     1024 CACHE STRING "Maximum length of a test case name.")
-set(SNITCH_MAX_TAG_LENGTH           256  CACHE STRING "Maximum length of a test tag.")
-set(SNITCH_MAX_CAPTURES             8    CACHE STRING "Maximum number of captured expressions in a test case.")
-set(SNITCH_MAX_CAPTURE_LENGTH       256  CACHE STRING "Maximum length of a captured expression.")
-set(SNITCH_MAX_UNIQUE_TAGS          1024 CACHE STRING "Maximum number of unique tags in a test application.")
-set(SNITCH_MAX_COMMAND_LINE_ARGS    1024 CACHE STRING "Maximum number of command line arguments to a test application.")
-set(SNITCH_MAX_REGISTERED_REPORTERS 8    CACHE STRING "Maximum number of registered reporter that can be selected from the command line.")
-set(SNITCH_MAX_PATH_LENGTH          1024 CACHE STRING "Maximum length of a file path when writing output to file.")
-set(SNITCH_MAX_REPORTER_SIZE_BYTES  128  CACHE STRING "Maximum size (in bytes) of a reporter object.")
+set(SNITCH_MAX_TEST_CASES             5000 CACHE STRING "Maximum number of test cases in a test application.")
+set(SNITCH_MAX_NESTED_SECTIONS        8    CACHE STRING "Maximum depth of nested sections in a test case.")
+set(SNITCH_MAX_EXPR_LENGTH            1024 CACHE STRING "Maximum length of a printed expression when reporting failure.")
+set(SNITCH_MAX_MESSAGE_LENGTH         1024 CACHE STRING "Maximum length of error or status messages.")
+set(SNITCH_MAX_TEST_NAME_LENGTH       1024 CACHE STRING "Maximum length of a test case name.")
+set(SNITCH_MAX_TAG_LENGTH             256  CACHE STRING "Maximum length of a test tag.")
+set(SNITCH_MAX_CAPTURES               8    CACHE STRING "Maximum number of captured expressions in a test case.")
+set(SNITCH_MAX_CAPTURE_LENGTH         256  CACHE STRING "Maximum length of a captured expression.")
+set(SNITCH_MAX_UNIQUE_TAGS            1024 CACHE STRING "Maximum number of unique tags in a test application.")
+set(SNITCH_MAX_COMMAND_LINE_ARGS      1024 CACHE STRING "Maximum number of command line arguments to a test application.")
+set(SNITCH_MAX_REGISTERED_REPORTERS   8    CACHE STRING "Maximum number of registered reporter that can be selected from the command line.")
+set(SNITCH_MAX_PATH_LENGTH            1024 CACHE STRING "Maximum length of a file path when writing output to file.")
+set(SNITCH_MAX_REPORTER_SIZE_BYTES    128  CACHE STRING "Maximum size (in bytes) of a reporter object.")
+set(SNITCH_MAX_FILE_OBJECT_SIZE_BYTES 128  CACHE STRING "Maximum size (in bytes) of a file object.")
 
 # Feature toggles.
 set(SNITCH_ENABLE                          ON  CACHE BOOL "Enable/disable snitch at build time.")
 set(SNITCH_DEFINE_MAIN                     ON  CACHE BOOL "Define main() in snitch -- disable to provide your own main() function.")
 set(SNITCH_WITH_STDOUT                     ON  CACHE BOOL "Use stdout from <cstdio> as default console -- will be forced OFF if freestanding mode is enabled.")
+set(SNITCH_WITH_STD_FILE_IO                ON  CACHE BOOL "Enable default filesystem I/O using <cstdio> -- will be forced OFF if freestanding mode is enabled.")
 set(SNITCH_WITH_EXCEPTIONS                 ON  CACHE BOOL "Use exceptions in snitch implementation -- will be forced OFF if exceptions are not available.")
 set(SNITCH_WITH_MULTITHREADING             ON  CACHE BOOL "Make the testing framework thread-safe -- disable if multithreading is not needed.")
 set(SNITCH_WITH_TIMINGS                    ON  CACHE BOOL "Measure the time taken by each test case -- disable to speed up tests.")
@@ -237,6 +239,7 @@ if (SNITCH_DO_TEST AND SNITCH_ENABLE)
             SNITCH_MAX_TEST_NAME_LENGTH=130
             SNITCH_MAX_CAPTURE_LENGTH=131
             SNITCH_MAX_REPORTER_SIZE_BYTES=16
+            SNITCH_MAX_FILE_OBJECT_SIZE_BYTES=512
             SNITCH_DEFINE_MAIN=0)
     endfunction()
 

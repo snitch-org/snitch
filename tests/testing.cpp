@@ -1,7 +1,7 @@
 #define SNITCH_IMPLEMENTATION
 
 #if defined(SNITCH_TEST_WITH_SNITCH)
-#    if defined(SNITCH_TEST_HEADER_ONLY) && SNITCH_WITH_STDOUT
+#    if defined(SNITCH_TEST_HEADER_ONLY) && SNITCH_WITH_STDOUT && SNITCH_WITH_STD_FILE_IO
 #        undef SNITCH_DEFINE_MAIN
 #        define SNITCH_DEFINE_MAIN 1
 #    endif
@@ -14,15 +14,48 @@
 
 #if !SNITCH_WITH_STDOUT
 // Library is configured without `stdout`.
-// Define our own implementation for the tests, which uses `stdout` again...
-// If you want to test without `stdout`, replace the implementation here with your own.
-#    include <cstdio>
+// Define our own implementation for the tests, using `std::cout` just as an alternative example.
+// If you want to test without standard output, replace the implementation here with your own.
+#    include <iostream>
 void custom_console_print(std::string_view message) noexcept {
-    std::fwrite(message.data(), sizeof(char), message.length(), stdout);
+    std::cout << message;
 }
 
-int init [[maybe_unused]] = [] {
+int init_console [[maybe_unused]] = [] {
     snitch::cli::console_print = &custom_console_print;
+    return 0;
+}();
+#endif
+
+#if !SNITCH_WITH_STD_FILE_IO
+// Library is configured without standard file I/O.
+// Define our own implementation for the tests, using `std::ofstream` just as an alternative
+// example. If you want to test without standard file I/O, replace the implementation here with your
+// own.
+#    include <fstream>
+void custom_file_open(snitch::file_object_storage& storage, std::string_view path) {
+    std::cout << "open(" << &storage << ")" << std::endl;
+    storage.emplace<std::ofstream>(std::string(path));
+    if (!storage.get<std::ofstream>().is_open()) {
+        snitch::assertion_failed("output file could not be opened for writing");
+    }
+}
+
+void custom_file_write(
+    const snitch::file_object_storage& storage, std::string_view message) noexcept {
+    std::cout << "write(" << &storage << ")" << std::endl;
+    storage.get_mutable<std::ofstream>() << message;
+}
+
+void custom_file_close(snitch::file_object_storage& storage) noexcept {
+    std::cout << "close(" << &storage << ")" << std::endl;
+    storage.reset();
+}
+
+int init_file [[maybe_unused]] = [] {
+    snitch::file::open  = &custom_file_open;
+    snitch::file::write = &custom_file_write;
+    snitch::file::close = &custom_file_close;
     return 0;
 }();
 #endif
