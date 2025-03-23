@@ -44,6 +44,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Selecting which tests to run](#selecting-which-tests-to-run)
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
+    - [Freestanding](#freestanding)
     - [Header-only build](#header-only-build)
     - [IDE integrations](#ide-integrations)
     - [`clang-format` support](#clang-format-support)
@@ -57,6 +58,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
  - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
+ - Works on platforms without a console or file system (see [Freestanding](#freestanding) below).
  - No external dependency; just pure C++20 with the STL.
  - Compiles template-heavy tests at least 50% faster than other testing frameworks (see Release [benchmarks](#benchmark)).
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
@@ -1010,6 +1012,66 @@ If _snitch_ detects that exceptions are not available (or is configured with exc
 
  1. Test macros that check exceptions being thrown will not be defined.
  2. `REQUIRE*()`, `FAIL()`, and `SKIP()` macros will simply use `std::terminate()` to abort execution. Consequently, the whole test application stops and the following test cases are not executed. If this is undesirable, use the alternative macros that do not abort execution: `CHECK*()`, `FAIL_CHECK()`, and `SKIP_CHECK()`, then do the control flow yourself (e.g., return from the test case).
+
+
+### Freestanding
+
+_snitch_ offers several configuration options to support "freestanding" environments (e.g., lacking an operating system). This includes enabling/disabling the following:
+
+ - Exceptions (`SNITCH_WITH_EXCEPTIONS`). See above.
+
+ - Console (`SNITCH_WITH_STDOUT`). There is no default implementation for the console; you will have to supply your own function:
+
+   ```c++
+    // Your own implementation: write this message somewhere, or just discard the message.
+    // Below is an illustrative example with the C++ STL.
+
+    void write_to_console(std::string_view message) noexcept {
+        // NB: The "message" will already include line endings.
+        std::cout << message << std::flush;
+    }
+
+    int main(int argc, char* argv[]) {
+        // Override the default 'console_print'.
+        // You must do this before calling any other function from snitch.
+        snitch::cli::console_print = &write_to_console;
+
+        // Usual main function...
+    }
+    ```
+
+ - File I/O (`SNITCH_WITH_STD_FILE_IO`). There is no default implementation for file I/O; if you need to write results to a "file" (or a file-like object, like a socket), you will have to supply your own functions:
+
+   ```c++
+    // You can use the supplied "storage" if you need to manage any state specific to that file.
+    // Below is an illustrative example with the C++ STL.
+
+    void file_open(snitch::file_object_storage& storage, std::string_view path) {
+        auto& stream = storage.emplace<std::ofstream>(std::string(path));
+        if (!stream.is_open()) {
+            snitch::assertion_failed("output file could not be opened for writing");
+        }
+    }
+
+    void file_write(const snitch::file_object_storage& storage, std::string_view message) noexcept {
+        // NB: The "message" will already include line endings.
+        storage.get_mutable<std::ofstream>() << message << std::flush;
+    }
+
+    void file_close(snitch::file_object_storage& storage) noexcept {
+        storage.reset();
+    }
+
+    int main(int argc, char* argv[]) {
+        // Override the default implementation.
+        // You must do this before calling any other function from snitch.
+        snitch::file::open  = &file_open;
+        snitch::file::write = &file_write;
+        snitch::file::close = &file_close;
+
+        // Usual main function...
+    }
+    ```
 
 
 ### Header-only build
