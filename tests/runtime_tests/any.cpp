@@ -11,7 +11,15 @@ struct state_monitor {
         *state += 1;
     }
 
+    state_monitor(state_monitor&& other) noexcept : state(other.state) {
+        other.state = nullptr;
+    }
+
     ~state_monitor() {
+        if (state == nullptr) {
+            return;
+        }
+
         *state -= 1;
     }
 };
