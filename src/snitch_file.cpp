@@ -11,17 +11,6 @@
 
 namespace snitch::impl {
 #if SNITCH_WITH_STD_FILE_IO
-class stdio_file {
-public:
-    std::FILE* handle = nullptr;
-
-    explicit stdio_file(std::string_view path) {}
-
-    ~stdio_file() {
-        std::fclose(handle);
-    }
-};
-
 void stdio_file_open(file_object_storage& storage, std::string_view path) {
     // Unfortunately, fopen() needs a null-terminated string, so need a copy...
     small_string<max_path_length + 1> null_terminated_path;
