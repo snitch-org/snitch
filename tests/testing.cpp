@@ -18,7 +18,7 @@
 // If you want to test without standard output, replace the implementation here with your own.
 #    include <iostream>
 void custom_console_print(std::string_view message) noexcept {
-    std::cout << message;
+    std::cout << message << std::flush;
 }
 
 int init_console [[maybe_unused]] = [] {
@@ -34,7 +34,6 @@ int init_console [[maybe_unused]] = [] {
 // own.
 #    include <fstream>
 void custom_file_open(snitch::file_object_storage& storage, std::string_view path) {
-    std::cout << "open(" << &storage << ")" << std::endl;
     storage.emplace<std::ofstream>(std::string(path));
     if (!storage.get<std::ofstream>().is_open()) {
         snitch::assertion_failed("output file could not be opened for writing");
@@ -43,12 +42,10 @@ void custom_file_open(snitch::file_object_storage& storage, std::string_view pat
 
 void custom_file_write(
     const snitch::file_object_storage& storage, std::string_view message) noexcept {
-    std::cout << "write(" << &storage << ")" << std::endl;
-    storage.get_mutable<std::ofstream>() << message;
+    storage.get_mutable<std::ofstream>() << message << std::flush;
 }
 
 void custom_file_close(snitch::file_object_storage& storage) noexcept {
-    std::cout << "close(" << &storage << ")" << std::endl;
     storage.reset();
 }
 
