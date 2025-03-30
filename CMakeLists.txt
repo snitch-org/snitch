@@ -37,6 +37,7 @@ set(SNITCH_HEADER_ONLY        OFF CACHE BOOL "Create a single-header header-only
 set(SNITCH_UNITY_BUILD        ON  CACHE BOOL "Build sources as single file instead of separate files (faster full build).")
 set(SNITCH_DO_TEST            OFF CACHE BOOL "Build tests.")
 set(SNITCH_USE_SYSTEM_DOCTEST OFF CACHE BOOL "Assume doctest is already installed, do not download it (used in tests only).")
+set(SNITCH_INSTALL_DOCS       ON  CACHE BOOL "Install docs.")
 
 # Figure out git hash, if any
 execute_process(
@@ -193,9 +194,11 @@ else()
         DESTINATION include/snitch)
 endif()
 
-install(
-    FILES ${PROJECT_SOURCE_DIR}/LICENSE
-    DESTINATION doc/snitch)
+if (SNITCH_INSTALL_DOCS)
+    install(
+        FILES ${PROJECT_SOURCE_DIR}/LICENSE
+        DESTINATION doc/snitch)
+endif()
 
 # Common properties
 add_library(snitch::${SNITCH_TARGET_NAME} ALIAS ${SNITCH_TARGET_NAME})
