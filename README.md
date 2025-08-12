@@ -224,7 +224,7 @@ See [the dedicated page in the docs folder](doc/vcpkg-example/README.md).
 ## Benchmark
 
 The following benchmarks were done using real-world tests from another library ([_observable_unique_ptr_](https://github.com/cschreib/observable_unique_ptr)), which generates about 4000 test cases and 25000 checks. This library uses "typed" tests almost exclusively, where each test case is instantiated several times, each time with a different tested type (here, 25 types). Building and running the tests was done without parallelism to simplify the comparison. The benchmarks were run on a desktop with the following specs:
- - OS: Linux Mint 21.2, linux kernel 6.2.0-26-generic.
+ - OS: Linux Mint 21.3, linux kernel 6.8.0-64-generic.
  - CPU: AMD Ryzen 5 2600 (6 core).
  - RAM: 16GB.
  - Storage: NVMe.
@@ -232,9 +232,9 @@ The following benchmarks were done using real-world tests from another library (
 
 The benchmark tests can be found in different branches of _observable_unique_ptr_:
  - _snitch_: https://github.com/cschreib/observable_unique_ptr/tree/snitch
- - _Catch2_ v3.4.0: https://github.com/cschreib/observable_unique_ptr/tree/catch2
- - _doctest_ v2.4.11: https://github.com/cschreib/observable_unique_ptr/tree/doctest
- - _Boost.UT_ v1.1.9: https://github.com/cschreib/observable_unique_ptr/tree/boost_ut
+ - _Catch2_ v3.9.1: https://github.com/cschreib/observable_unique_ptr/tree/catch2
+ - _doctest_ v2.4.12: https://github.com/cschreib/observable_unique_ptr/tree/doctest
+ - _Boost.UT_ v2.3.1: https://github.com/cschreib/observable_unique_ptr/tree/boost_ut
 
 Description of results below:
  - *Build framework*: Time required to build the testing framework library (if any), without any test.
@@ -248,23 +248,23 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 4.2s     | 42s      | 2.1s      | 0s         |
-| Build tests     | 70s      | 75s      | 76s       | 117s       |
-| Build all       | 74s      | 117s     | 78s       | 117s       |
-| Run tests       | 44ms     | 67ms     | 63ms      | 14ms       |
-| Library size    | 9.2MB    | 33.5MB   | 2.8MB     | 0MB        |
-| Executable size | 37.0MB   | 47.7MB   | 38.6MB    | 51.8MB     |
+| Build framework | 4.3s     | 44s      | 2.3s      | 0s         |
+| Build tests     | 72s      | 74s      | 78s       | 197s       |
+| Build all       | 76s      | 118s     | 81s       | 197s       |
+| Run tests       | 44ms     | 82ms     | 76ms      | 80ms       |
+| Library size    | 9.2MB    | 35.1MB   | 2.8MB     | 0MB        |
+| Executable size | 37.0MB   | 46.2MB   | 38.6MB    | 71.4MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 5.7s     | 48s      | 3.7s      | 0s         |
-| Build tests     | 146s     | 233s     | 210s      | 289s       |
-| Build all       | 152s     | 281s     | 214s      | 289s       |
-| Run tests       | 26ms     | 37ms     | 42ms      | 5ms        |
+| Build framework | 5.7s     | 50s      | 3.9s      | 0s         |
+| Build tests     | 147s     | 221s     | 217s      | 488s       |
+| Build all       | 153s     | 271s     | 220s      | 488s       |
+| Run tests       | 27ms     | 46ms     | 51ms      | 51ms       |
 | Library size    | 1.4MB    | 2.5MB    | 0.39MB    | 0MB        |
-| Executable size | 10.2MB   | 17.4MB   | 15.5MB    | 11.4MB     |
+| Executable size | 10.2MB   | 14.2MB   | 15.7MB    | 18.8MB     |
 
 Notes:
  - No attempt was made to optimize each framework's configuration; the defaults were used. C++20 modules were not used.
