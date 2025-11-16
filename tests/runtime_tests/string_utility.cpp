@@ -1043,13 +1043,12 @@ constexpr filter_result EI = {.included = true, .implicit = false};
 constexpr filter_result EE = {.included = false, .implicit = false};
 constexpr filter_result II = {.included = true, .implicit = true};
 constexpr filter_result IE = {.included = false, .implicit = true};
-
-bool operator==(const filter_result& first, const filter_result& second) noexcept {
-    return first.included == second.included && first.implicit == second.implicit;
-}
 } // namespace
 
 namespace snitch {
+bool operator==(const filter_result& first, const filter_result& second) noexcept {
+    return first.included == second.included && first.implicit == second.implicit;
+}
 bool append(small_string_span ss, const filter_result& r) noexcept {
     return append(ss, r.implicit ? "I" : "E") && append(ss, r.included ? "I" : "E");
 }
