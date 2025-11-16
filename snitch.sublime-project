@@ -27,13 +27,13 @@
 				},
 				{
 					"id": "runtime-tests-self",
-					"framework": "doctest-cpp",
+					"framework": "catch2",
 					"executable_pattern": "build/tests/snitch_runtime_tests",
 					"path_prefix_style": "basename"
 				},
 				{
 					"id": "approval-tests",
-					"framework": "doctest-cpp",
+					"framework": "catch2",
 					"executable_pattern": "build/tests/snitch_approval_tests",
 					"cwd": "tests/approval_tests",
 					"path_prefix_style": "basename"

@@ -87,20 +87,18 @@ function(copy_shared_library TARGET)
     endif()
 endfunction()
 
-if (SNITCH_USE_SYSTEM_DOCTEST)
-    find_package(doctest REQUIRED)
+if (SNITCH_USE_SYSTEM_CATCH2)
+    find_package(Catch2 REQUIRED)
 else()
     include(FetchContent)
 
-    set(DOCTEST_NO_INSTALL ON)
-
-    FetchContent_Declare(doctest
-                         GIT_REPOSITORY https://github.com/doctest/doctest.git
-                         GIT_TAG        v2.4.9)
-    FetchContent_MakeAvailable(doctest)
+    FetchContent_Declare(Catch2
+                         GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+                         GIT_TAG        v3.11.0)
+    FetchContent_MakeAvailable(Catch2)
 endif()
 
-# Test snitch with doctest.
+# Test snitch with Catch2.
 add_executable(snitch_runtime_tests
     ${RUNTIME_TEST_FILES})
 target_include_directories(snitch_runtime_tests PRIVATE
@@ -109,7 +107,7 @@ target_include_directories(snitch_runtime_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_runtime_tests PRIVATE
     snitch-testlib
-    doctest::doctest)
+    Catch2::Catch2WithMain)
 add_platform_definitions(snitch_runtime_tests)
 target_compile_features(snitch_runtime_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_runtime_tests PUBLIC
@@ -122,7 +120,7 @@ add_custom_target(snitch_runtime_tests_run
     SOURCES ${RUNTIME_TEST_FILES})
 set_target_properties(snitch_runtime_tests_run PROPERTIES EXCLUDE_FROM_ALL True)
 
-# Test snitch with doctest (approval tests).
+# Test snitch with Catch2 (approval tests).
 add_executable(snitch_approval_tests
     ${APPROVAL_TEST_FILES})
 target_include_directories(snitch_approval_tests PRIVATE
@@ -131,7 +129,7 @@ target_include_directories(snitch_approval_tests PRIVATE
     ${PROJECT_SOURCE_DIR}/tests)
 target_link_libraries(snitch_approval_tests PRIVATE
     snitch-testlib
-    doctest::doctest)
+    Catch2::Catch2WithMain)
 add_platform_definitions(snitch_approval_tests)
 target_compile_features(snitch_approval_tests PUBLIC cxx_std_20)
 target_compile_definitions(snitch_approval_tests PUBLIC
