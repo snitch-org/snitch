@@ -1,3 +1,4 @@
+#include "snitch_any.cpp"
 #include "snitch_append.cpp"
 #include "snitch_capture.cpp"
 #include "snitch_cli.cpp"

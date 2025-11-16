@@ -62,7 +62,8 @@ headers = files('include/snitch/snitch.hpp',
                 'include/snitch/snitch_type_id.hpp',
                 'include/snitch/snitch_vector.hpp')
 
-sources = files('src/snitch_append.cpp',
+sources = files('src/snitch_any.cpp',
+               'src/snitch_append.cpp',
                'src/snitch_capture.cpp',
                'src/snitch_cli.cpp',
                'src/snitch_console.cpp',

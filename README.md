@@ -44,6 +44,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
     - [Selecting which tests to run](#selecting-which-tests-to-run)
     - [Using your own main function](#using-your-own-main-function)
     - [Exceptions](#exceptions)
+    - [Freestanding](#freestanding)
     - [Header-only build](#header-only-build)
     - [IDE integrations](#ide-integrations)
     - [`clang-format` support](#clang-format-support)
@@ -57,6 +58,7 @@ The goal of _snitch_ is to be a simple, cheap, non-invasive, and user-friendly t
 
  - No heap allocation from the testing framework, so heap allocations from your code can be tracked precisely.
  - Works with exceptions disabled, albeit with a minor limitation (see [Exceptions](#exceptions) below).
+ - Works on platforms without a console or file system (see [Freestanding](#freestanding) below).
  - No external dependency; just pure C++20 with the STL.
  - Compiles template-heavy tests at least 50% faster than other testing frameworks (see Release [benchmarks](#benchmark)).
  - By defaults, test results are reported to the standard output, with optional coloring for readability. Test events can also be forwarded to a reporter callback for reporting to CI frameworks (Teamcity, ..., see [Reporters](#reporters)).
@@ -248,19 +250,19 @@ Results for Debug builds:
 
 | **Debug**       | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 4.3s     | 44s      | 2.3s      | 0s         |
-| Build tests     | 72s      | 74s      | 78s       | 197s       |
-| Build all       | 76s      | 118s     | 81s       | 197s       |
-| Run tests       | 44ms     | 82ms     | 76ms      | 80ms       |
-| Library size    | 9.2MB    | 35.1MB   | 2.8MB     | 0MB        |
-| Executable size | 37.0MB   | 46.2MB   | 38.6MB    | 71.4MB     |
+| Build framework | 4.4s     | 44s      | 2.3s      | 0s         |
+| Build tests     | 71s      | 74s      | 78s       | 197s       |
+| Build all       | 75s      | 118s     | 81s       | 197s       |
+| Run tests       | 45ms     | 82ms     | 76ms      | 80ms       |
+| Library size    | 9.5MB    | 35.1MB   | 2.8MB     | 0MB        |
+| Executable size | 37.1MB   | 46.2MB   | 38.6MB    | 71.4MB     |
 
 Results for Release builds:
 
 | **Release**     | _snitch_ | _Catch2_ | _doctest_ | _Boost UT_ |
 |-----------------|----------|----------|-----------|------------|
-| Build framework | 5.7s     | 50s      | 3.9s      | 0s         |
-| Build tests     | 147s     | 221s     | 217s      | 488s       |
+| Build framework | 5.8s     | 50s      | 3.9s      | 0s         |
+| Build tests     | 148s     | 221s     | 217s      | 488s       |
 | Build all       | 153s     | 271s     | 220s      | 488s       |
 | Run tests       | 27ms     | 46ms     | 51ms      | 51ms       |
 | Library size    | 1.4MB    | 2.5MB    | 0.39MB    | 0MB        |
@@ -1010,6 +1012,67 @@ If _snitch_ detects that exceptions are not available (or is configured with exc
 
  1. Test macros that check exceptions being thrown will not be defined.
  2. `REQUIRE*()`, `FAIL()`, and `SKIP()` macros will simply use `std::terminate()` to abort execution. Consequently, the whole test application stops and the following test cases are not executed. If this is undesirable, use the alternative macros that do not abort execution: `CHECK*()`, `FAIL_CHECK()`, and `SKIP_CHECK()`, then do the control flow yourself (e.g., return from the test case).
+
+
+### Freestanding
+
+_snitch_ offers several configuration options to support "freestanding" environments (e.g., lacking an operating system). This includes enabling/disabling the following:
+
+ - Exceptions (`SNITCH_WITH_EXCEPTIONS`). See above.
+
+ - Console (`SNITCH_WITH_STDOUT`). When disabled, there is no default implementation for the console; you will have to supply your own function:
+
+   ```c++
+    // Your own implementation: write this message somewhere, or just discard the message.
+    // Below is an illustrative example with the C++ STL.
+
+    void my_console_print(std::string_view message) noexcept {
+        // NB: The "message" will already include line endings.
+        std::cout << message << std::flush;
+    }
+
+    int main(int argc, char* argv[]) {
+        // Override the default 'console_print'.
+        // You must do this before calling any other function from snitch.
+        snitch::cli::console_print = &my_console_print;
+
+        // Usual main function...
+    }
+    ```
+
+ - File I/O (`SNITCH_WITH_STD_FILE_IO`). When disabled, there is no default implementation for file I/O; if you need to write results to a "file" (or a file-like object, like a socket), you will have to supply your own functions:
+
+   ```c++
+    // You can use the supplied "storage" if you need to manage any state specific to that file.
+    // Below is an illustrative example with the C++ STL.
+
+    void my_file_open(snitch::file_object_storage& storage, std::string_view path) {
+        auto& stream = storage.emplace<std::ofstream>(std::string(path));
+        if (!stream.is_open()) {
+            snitch::assertion_failed("output file could not be opened for writing");
+        }
+    }
+
+    void my_file_write(const snitch::file_object_storage& storage,
+                       std::string_view message) noexcept {
+        // NB: The "message" will already include line endings.
+        storage.get_mutable<std::ofstream>() << message << std::flush;
+    }
+
+    void my_file_close(snitch::file_object_storage& storage) noexcept {
+        storage.reset();
+    }
+
+    int main(int argc, char* argv[]) {
+        // Override the default implementation.
+        // You must do this before calling any other function from snitch.
+        snitch::io::file_open  = &my_file_open;
+        snitch::io::file_write = &my_file_write;
+        snitch::io::file_close = &my_file_close;
+
+        // Usual main function...
+    }
+    ```
 
 
 ### Header-only build

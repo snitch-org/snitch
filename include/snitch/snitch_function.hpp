@@ -126,6 +126,9 @@ concept function_ptr_or_stateless_lambda = not_function_ref<T> && convertible_to
 template<typename T, typename FunPtr>
 concept functor = not_function_ref<T> && !function_ptr_or_stateless_lambda<T, FunPtr> &&
                   requires { &T::operator(); };
+
+template<typename T>
+using function_ptr = T*;
 } // namespace impl
 
 template<typename T>
