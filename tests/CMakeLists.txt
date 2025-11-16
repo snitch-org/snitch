@@ -92,11 +92,26 @@ if (SNITCH_USE_SYSTEM_CATCH2)
 else()
     include(FetchContent)
 
+    # For simplicity, always build Catch2 as static lib, no matter how snitch is built.
+    if (DEFINED BUILD_SHARED_LIBS)
+        set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+    endif()
+    set(BUILD_SHARED_LIBS OFF)
+
     FetchContent_Declare(Catch2
                          GIT_REPOSITORY https://github.com/catchorg/Catch2.git
                          GIT_TAG        v3.11.0)
     FetchContent_MakeAvailable(Catch2)
+
+    # We need to force C++20 mode in Catch2 (defaults to C++14, lacking std::string_view support).
     target_compile_features(Catch2 PUBLIC cxx_std_20)
+
+    # Revert BUILD_SHARED_LIBS to default.
+    if (DEFINED OLD_BUILD_SHARED_LIBS)
+        set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
+    else()
+        unset(BUILD_SHARED_LIBS)
+    endif()
 endif()
 
 # Test snitch with Catch2.
