@@ -39,13 +39,13 @@ The purpose of these tests is to check the detailed run-time behavior of _snitch
 
 The run-time unit tests are roughly organized by theme into separate files in the `tests/runtime_tests` directory. New files can be added there if necessary. There is no enforced mapping between test files and library source files. Likewise, there is no enforced mapping between test case names and tested classes / functions; this is left to the best judgment of the contributor.
 
-Run-time unit tests come in two flavors: using _doctest_ to test _snitch_, or using _snitch_ to test itself. The latter is less safe, since a bug in _snitch_ might accidentally make these tests pass (e.g., if the test cases are not running at all), but it usually provides nicer test results on failure.
+Run-time unit tests come in two flavors: using _Catch2_ to test _snitch_, or using _snitch_ to test itself. The latter is less safe, since a bug in _snitch_ might accidentally make these tests pass (e.g., if the test cases are not running at all), but it usually provides nicer test results on failure.
 
-The *test* code must be written using the _snitch_ "shorthand" API (e.g., `CHECK(...)`). Wrapper macros are used to wrap _doctest_ macros so the same API can be used in both flavors. The *tested* code must be written with the _snitch_ "prefixed" API (e.g., `SNITCH_CHECK(...)`), otherwise it would turn into _doctest_ code in the _doctest_-flavored run. For example:
+The *test* code must be written using the _snitch_ "shorthand" API (e.g., `CHECK(...)`). Wrapper macros are used to wrap _Catch2_ macros so the same API can be used in both flavors. The *tested* code must be written with the _snitch_ "prefixed" API (e.g., `SNITCH_CHECK(...)`), otherwise it would turn into _Catch2_ code in the _Catch2_-flavored run. For example:
 
 ```c++
 // Use the shorthand TEST_CASE macro to create a new test
-// (this will use either snitch or doctest)
+// (this will use either snitch or Catch2)
 TEST_CASE("test register a test case") {
     snitch::registry r;
 
@@ -56,7 +56,7 @@ TEST_CASE("test register a test case") {
     });
 
     // Use the shorthand CHECK macro to actually check something
-    // (this will use either snitch or doctest)
+    // (this will use either snitch or Catch2)
     CHECK(r.test_cases.begin() != r.test_cases.end());
 }
 ```
@@ -108,7 +108,7 @@ The install tests are located in the `tests/install_tests` directory.
 
 With CMake:
 ```cmake
-# Using doctest to test snitch:
+# Using Catch2 to test snitch:
 cmake --build build --target snitch_runtime_tests_run
 # Using snitch to test itself:
 cmake --build build --target snitch_runtime_tests_self_run

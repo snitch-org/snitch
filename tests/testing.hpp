@@ -19,15 +19,11 @@
 #        define DOCTEST_CONFIG_NO_EXCEPTIONS_BUT_WITH_ALL_ASSERTS
 #    endif
 // The library used for testing.
-#    include "doctest/doctest.h"
-// Adjust doctest macros to match the snitch API
-#    define SECTION(name) DOCTEST_SUBCASE(name)
-#    undef TEST_CASE
-#    define TEST_CASE(name, ...) DOCTEST_TEST_CASE(name)
-#    define TEMPLATE_TEST_CASE(name, tags, ...)                                                    \
-        DOCTEST_TEST_CASE_TEMPLATE(tags " " name, TestType, __VA_ARGS__)
-#    define SKIP(message) return
-#    define TEST_CASE_METHOD(fixture, name, ...) DOCTEST_TEST_CASE_FIXTURE(fixture, name)
+#    include <catch2/catch_message.hpp>
+#    include <catch2/catch_template_test_macros.hpp>
+#    include <catch2/catch_test_macros.hpp>
+#    include <catch2/catch_tostring.hpp>
+#    include <catch2/matchers/catch_matchers.hpp>
 #    define CONSTEXPR_CHECK(...)                                                                   \
         if constexpr (__VA_ARGS__) {                                                               \
             CHECK(__VA_ARGS__);                                                                    \
@@ -40,7 +36,10 @@
         } else {                                                                                   \
             REQUIRE(__VA_ARGS__);                                                                  \
         }
-#    define CHECK_THROWS_WHAT(EXPR, EXCEPT, MESSAGE) CHECK_THROWS_WITH_AS(EXPR, MESSAGE, EXCEPT)
+#    define CHECK_THROWS_WHAT(EXPR, EXCEPT, MESSAGE) REQUIRE_THROWS_WITH(EXPR, MESSAGE)
+
+#    undef INFO
+#    define INFO(ARG, ...) INTERNAL_CATCH_INFO("INFO", ARG)
 
 #    include <ostream>
 
@@ -69,14 +68,14 @@ std::ostream& operator<<(std::ostream& str, const snitch::small_string<N>& in) {
 }
 } // namespace snitch
 
-namespace doctest::detail {
+namespace Catch {
 template<concepts::function T>
-struct filldata<T*> {
-    static void fill(std::ostream* stream, T* in) {
-        *stream << (in != nullptr ? "funcptr" : "nullptr");
+struct StringMaker<T*> {
+    static std::string convert(T* in) {
+        return in != nullptr ? "funcptr" : "nullptr";
     }
 };
-} // namespace doctest::detail
+} // namespace Catch
 #endif
 
 #if defined(__clang__)
