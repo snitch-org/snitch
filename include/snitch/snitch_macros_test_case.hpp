@@ -68,7 +68,7 @@
         static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =           \
             snitch::tests.add_fixture_with_type_list<TYPES>(                                       \
                 {#FIXTURE, NAME, TAGS}, SNITCH_CURRENT_LOCATION,                                   \
-                []() < typename TestType > { ID<TestType>{}.test_fun(); });                        \
+                []<typename TestType>() { ID<TestType>{}.test_fun(); });                           \
         template<typename TestType>                                                                \
         void ID<TestType>::test_fun()
 
@@ -86,7 +86,7 @@
         static const char* SNITCH_MACRO_CONCAT(test_id_, __COUNTER__) [[maybe_unused]] =           \
             snitch::tests.add_fixture_with_types<__VA_ARGS__>(                                     \
                 {#FIXTURE, NAME, TAGS}, SNITCH_CURRENT_LOCATION,                                   \
-                []() < typename TestType > { ID<TestType>{}.test_fun(); });                        \
+                []<typename TestType>() { ID<TestType>{}.test_fun(); });                           \
         template<typename TestType>                                                                \
         void ID<TestType>::test_fun()
 
