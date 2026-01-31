@@ -71,6 +71,31 @@ TEST_CASE("add regular test no tags", "[registry]") {
     CHECK_EVENT_TEST_ID(framework.events[1], test.id);
 }
 
+TEST_CASE("add regular test no name", "[registry]") {
+    mock_framework framework;
+
+    test_called = false;
+    framework.registry.add({""}, SNITCH_CURRENT_LOCATION, []() { test_called = true; });
+
+    REQUIRE(framework.get_num_registered_tests() == 1u);
+
+    auto& test = framework.registry.test_cases()[0];
+    CHECK(test.id.name == ""sv);
+    CHECK(test.id.tags == ""sv);
+    CHECK(test.id.type == ""sv);
+    REQUIRE(test.func != nullptr);
+
+    framework.setup_reporter();
+    framework.registry.run(test);
+
+    CHECK(test_called == true);
+    REQUIRE(framework.events.size() == 2u);
+    CHECK(framework.is_event<owning_event::test_case_started>(0u));
+    CHECK(framework.is_event<owning_event::test_case_ended>(1u));
+    CHECK_EVENT_TEST_ID(framework.events[0], test.id);
+    CHECK_EVENT_TEST_ID(framework.events[1], test.id);
+}
+
 TEST_CASE("add template test", "[registry]") {
     for (bool with_type_list : {false, true}) {
         mock_framework framework;

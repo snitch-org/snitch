@@ -53,7 +53,7 @@ struct fixture_name_and_tags {
     std::string_view tags    = {};
 };
 
-SNITCH_EXPORT std::string_view
+SNITCH_EXPORT bool
 make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept;
 
 template<typename T, typename F>
