@@ -136,6 +136,48 @@ constexpr bool append(snitch::small_string_span s, const append_expected_diff& r
 #endif
 } // namespace append_test
 
+#if !SNITCH_TEST_WITH_SNITCH
+namespace Catch {
+template<std::size_t N>
+struct StringMaker<append_test::append_result<N>> {
+    static std::string convert(const append_test::append_result<N>& r) {
+        return "{" + std::string(r.str) + "," + (r.success ? "true" : "false") + "}";
+    }
+};
+
+template<std::size_t N>
+struct StringMaker<append_test::append_result2<N>> {
+    static std::string convert(const append_test::append_result2<N>& r) {
+        if (r.str_constexpr.has_value() && r.str_fast.has_value()) {
+            return std::string("{") + Catch::Detail::stringify(r.str_constexpr.value()) + "," +
+                   Catch::Detail::stringify(r.str_fast.value()) + "}";
+        } else if (r.str_constexpr.has_value()) {
+            return Catch::Detail::stringify(r.str_constexpr.value());
+        } else if (r.str_fast.has_value()) {
+            return Catch::Detail::stringify(r.str_fast.value());
+        } else {
+            return "{}";
+        }
+    }
+};
+
+template<>
+struct StringMaker<append_test::append_expected> {
+    static std::string convert(const append_test::append_expected& r) {
+        return "{" + std::string(r.str) + "," + (r.success ? "true" : "false") + "}";
+    }
+};
+
+template<>
+struct StringMaker<append_test::append_expected_diff> {
+    static std::string convert(const append_test::append_expected_diff& r) {
+        return "{" + Catch::Detail::stringify(r.str_constexpr) + "," +
+               Catch::Detail::stringify(r.str_fast) + "}";
+    }
+};
+} // namespace Catch
+#endif
+
 TEST_CASE("append misc", "[utility]") {
     using ae  = append_test::append_expected;
     using aed = append_test::append_expected_diff;
