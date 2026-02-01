@@ -355,70 +355,85 @@ TEST_CASE("append floats", "[utility]") {
             return append_test::to_string<21, true>(value);
         };
 
-        CONSTEXPR_CHECK(a(0.0f) == ae{"0.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(0.0f) == ae{"0.00000000e+00"sv, true});
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
         // std::bit_cast is enabled, and will match the output of std::to_chars if used at runtime
-        CONSTEXPR_CHECK(a(-0.0f) == ae{"-0.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(-0.0f) == ae{"-0.00000000e+00"sv, true});
 #elif SNITCH_APPEND_TO_CHARS
         // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
         // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
-        CONSTEXPR_CHECK(a(-0.0f) == aed{{"0.000000e+00"sv, true}, {"-0.000000e+00"sv, true}});
+        CONSTEXPR_CHECK(a(-0.0f) == aed{{"0.00000000e+00"sv, true}, {"-0.00000000e+00"sv, true}});
 #else
         // No std::bit_cast, but also no std::to_chars. append_constexpr will be used
         // for runtime and match the compile time results
-        CONSTEXPR_CHECK(a(-0.0f) == ae{"0.000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(-0.0f) == ae{"0.00000000e+00"sv, true});
 #endif
-        CONSTEXPR_CHECK(a(1.0f) == ae{"1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5f) == ae{"1.500000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.51f) == ae{"1.510000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.501f) == ae{"1.501000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5001f) == ae{"1.500100e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.50001f) == ae{"1.500010e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.500001f) == ae{"1.500001e+00"sv, true});
-        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(10.0f) == ae{"1.000000e+01"sv, true});
-        CONSTEXPR_CHECK(a(1e4f) == ae{"1.000000e+04"sv, true});
-        CONSTEXPR_CHECK(a(1e-6f) == ae{"1.000000e-06"sv, true});
-        // The number below is a tricky one: it is exactly representable, but intermediate
-        // calculations requires more digits than can be stored on fixed-point 64 bits.
-        // Furthermore, rounding is an exact tie, and exposes the round-half-to-even behavior.
-        CONSTEXPR_CHECK(a(4.0970845e+06f) == ae{"4.097084e+06"sv, true});
-        CONSTEXPR_CHECK(a(2.3456e28f) == ae{"2.345600e+28"sv, true});
-        CONSTEXPR_CHECK(a(-2.3456e28f) == ae{"-2.345600e+28"sv, true});
-        CONSTEXPR_CHECK(a(3.402823e38f) == ae{"3.402823e+38"sv, true});
-        CONSTEXPR_CHECK(a(-3.402823e38f) == ae{"-3.402823e+38"sv, true});
-        CONSTEXPR_CHECK(a(2.3456e-28f) == ae{"2.345600e-28"sv, true});
-        CONSTEXPR_CHECK(a(-2.3456e-28f) == ae{"-2.345600e-28"sv, true});
-        CONSTEXPR_CHECK(a(1.175494e-38f) == ae{"1.175494e-38"sv, true});
-        CONSTEXPR_CHECK(a(-1.175494e-38f) == ae{"-1.175494e-38"sv, true});
-        CONSTEXPR_CHECK(a(2.3456e-42f) == ae{"2.345774e-42"sv, true});
-        CONSTEXPR_CHECK(a(-2.3456e-42f) == ae{"-2.345774e-42"sv, true});
-        CONSTEXPR_CHECK(a(1.401298e-45f) == ae{"1.401298e-45"sv, true});
-        CONSTEXPR_CHECK(a(-1.401298e-45f) == ae{"-1.401298e-45"sv, true});
+        CONSTEXPR_CHECK(a(1.0f) == ae{"1.00000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5f) == ae{"1.50000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.51f) == ae{"1.50999999e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.501f) == ae{"1.50100005e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5001f) == ae{"1.50010002e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50001f) == ae{"1.50001001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500001f) == ae{"1.50000095e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000001f) == ae{"1.50000012e+00"sv, true});
+        CONSTEXPR_CHECK(a(-1.0f) == ae{"-1.00000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(10.0f) == ae{"1.00000000e+01"sv, true});
+        CONSTEXPR_CHECK(a(1e4f) == ae{"1.00000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(1e-6f) == ae{"9.99999997e-07"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e28f) == ae{"2.34559990e+28"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e28f) == ae{"-2.34559990e+28"sv, true});
+        CONSTEXPR_CHECK(a(3.402823e38f) == ae{"3.40282306e+38"sv, true});
+        CONSTEXPR_CHECK(a(-3.402823e38f) == ae{"-3.40282306e+38"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-28f) == ae{"2.34559995e-28"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-28f) == ae{"-2.34559995e-28"sv, true});
+        CONSTEXPR_CHECK(a(1.175494e-38f) == ae{"1.17549393e-38"sv, true});
+        CONSTEXPR_CHECK(a(-1.175494e-38f) == ae{"-1.17549393e-38"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-42f) == ae{"2.34577363e-42"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-42f) == ae{"-2.34577363e-42"sv, true});
+        CONSTEXPR_CHECK(a(1.401298e-45f) == ae{"1.40129846e-45"sv, true});
+        CONSTEXPR_CHECK(a(-1.401298e-45f) == ae{"-1.40129846e-45"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<float>::infinity()) == ae{"inf"sv, true});
         CONSTEXPR_CHECK(a(-std::numeric_limits<float>::infinity()) == ae{"-inf"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<float>::quiet_NaN()) == ae{"nan"sv, true});
+    }
+
+    SECTION("special cases") {
+        snitch::small_string<35> buffer;
+
+        auto a = [&](const auto& value, std::size_t precision) {
+            buffer.clear();
+            if (snitch::impl::append_constexpr(buffer, value, precision)) {
+                return std::string_view{buffer};
+            } else {
+                return std::string_view{};
+            }
+        };
+
+        // The number below is a tricky one: it is exactly representable, but intermediate
+        // calculations requires more digits than can be stored on fixed-point 64 bits.
+        // Furthermore, rounding is an exact tie, and exposes the round-half-to-even behavior.
+        CHECK(a(4.0970845e+06f, 7) == "4.097084e+06"sv);
 
         // Test that the rounding mode is the same as std::printf.
-        CONSTEXPR_CHECK(a(1.0000001f) == ae{"1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000002f) == ae{"1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000003f) == ae{"1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000004f) == ae{"1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000005f) == ae{"1.000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000006f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000007f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000008f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000009f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000010f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000011f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000012f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000013f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000014f) == ae{"1.000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000015f) == ae{"1.000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000016f) == ae{"1.000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000017f) == ae{"1.000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000018f) == ae{"1.000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000019f) == ae{"1.000002e+00"sv, true});
+        CHECK(a(1.0000001f, 7) == "1.000000e+00"sv);
+        CHECK(a(1.0000002f, 7) == "1.000000e+00"sv);
+        CHECK(a(1.0000003f, 7) == "1.000000e+00"sv);
+        CHECK(a(1.0000004f, 7) == "1.000000e+00"sv);
+        CHECK(a(1.0000005f, 7) == "1.000000e+00"sv);
+        CHECK(a(1.0000006f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000007f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000008f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000009f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000010f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000011f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000012f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000013f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000014f, 7) == "1.000001e+00"sv);
+        CHECK(a(1.0000015f, 7) == "1.000002e+00"sv);
+        CHECK(a(1.0000016f, 7) == "1.000002e+00"sv);
+        CHECK(a(1.0000017f, 7) == "1.000002e+00"sv);
+        CHECK(a(1.0000018f, 7) == "1.000002e+00"sv);
+        CHECK(a(1.0000019f, 7) == "1.000002e+00"sv);
     }
 
     SECTION("floats don't fit") {
@@ -431,7 +446,7 @@ TEST_CASE("append floats", "[utility]") {
     }
 
 #if 0
-    // This takes a long time, but 99.995% of floats match exactly (with 6 digits precision).
+    // This takes a long time, but 100% of floats match exactly (with 8 digits precision).
     SECTION("constexpr floats match printf(%e)") {
         const float mi = -std::numeric_limits<float>::max();
         const float ma = std::numeric_limits<float>::max();
@@ -471,77 +486,91 @@ TEST_CASE("append doubles", "[utility]") {
             return append_test::to_string<35, true>(value);
         };
 
-        CONSTEXPR_CHECK(a(0.0) == ae{"0.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(0.0) == ae{"0.0000000000000000e+00"sv, true});
 #if SNITCH_CONSTEXPR_FLOAT_USE_BITCAST
         // std::bit_cast is enabled, and will match the output of std::to_chars if used at runtime
-        CONSTEXPR_CHECK(a(-0.0) == ae{"-0.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(-0.0) == ae{"-0.0000000000000000e+00"sv, true});
 #elif SNITCH_APPEND_TO_CHARS
         // Without std::bit_cast (or C++23), we are unable to tell the difference between -0.0f and
         // +0.0f in constexpr expressions. Therefore -0.0f in constexpr gets displayed as +0.0f.
         CONSTEXPR_CHECK(
-            a(-0.0) == aed{{"0.000000000000000e+00"sv, true}, {"-0.000000000000000e+00"sv, true}});
+            a(-0.0) ==
+            aed{{"0.0000000000000000e+00"sv, true}, {"-0.0000000000000000e+00"sv, true}});
 #else
         // No std::bit_cast, but also no std::to_chars. append_constexpr will be used for
         // runtime and match the compile time results
-        CONSTEXPR_CHECK(a(-0.0) == ae{"0.000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(-0.0) == ae{"0.0000000000000000e+00"sv, true});
 #endif
-        CONSTEXPR_CHECK(a(1.0) == ae{"1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5) == ae{"1.500000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.51) == ae{"1.510000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.501) == ae{"1.501000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5001) == ae{"1.500100000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.50001) == ae{"1.500010000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.500001) == ae{"1.500001000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5000001) == ae{"1.500000100000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.50000001) == ae{"1.500000010000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.500000001) == ae{"1.500000001000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5000000001) == ae{"1.500000000100000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.50000000001) == ae{"1.500000000010000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.500000000001) == ae{"1.500000000001000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.5000000000001) == ae{"1.500000000000100e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.50000000000001) == ae{"1.500000000000010e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.500000000000001) == ae{"1.500000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(-1.0) == ae{"-1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(10.0) == ae{"1.000000000000000e+01"sv, true});
-        CONSTEXPR_CHECK(a(1e4) == ae{"1.000000000000000e+04"sv, true});
-        CONSTEXPR_CHECK(a(1e-6) == ae{"1.000000000000000e-06"sv, true});
-        CONSTEXPR_CHECK(a(2.3456e301) == ae{"2.345600000000000e+301"sv, true});
-        CONSTEXPR_CHECK(a(-2.3456e301) == ae{"-2.345600000000000e+301"sv, true});
-        CONSTEXPR_CHECK(a(1.797693134862315e308) == ae{"1.797693134862315e+308"sv, true});
-        CONSTEXPR_CHECK(a(-1.797693134862315e308) == ae{"-1.797693134862315e+308"sv, true});
-        CONSTEXPR_CHECK(a(2.3456e-301) == ae{"2.345600000000000e-301"sv, true});
-        CONSTEXPR_CHECK(a(-2.3456e-301) == ae{"-2.345600000000000e-301"sv, true});
-        CONSTEXPR_CHECK(a(2.225073858507201e-308) == ae{"2.225073858507201e-308"sv, true});
-        CONSTEXPR_CHECK(a(-2.225073858507201e-308) == ae{"-2.225073858507201e-308"sv, true});
-        CONSTEXPR_CHECK(a(2.3456e-320) == ae{"2.345823686454239e-320"sv, true});
-        CONSTEXPR_CHECK(a(-2.3456e-320) == ae{"-2.345823686454239e-320"sv, true});
-        CONSTEXPR_CHECK(a(4.940656458412465e-324) == ae{"4.940656458412465e-324"sv, true});
-        CONSTEXPR_CHECK(a(-4.940656458412465e-324) == ae{"-4.940656458412465e-324"sv, true});
-        CONSTEXPR_CHECK(a(-3.479295510743212e-89) == ae{"-3.479295510743212e-89"sv, true});
+        CONSTEXPR_CHECK(a(1.0) == ae{"1.0000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5) == ae{"1.5000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.51) == ae{"1.5100000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.501) == ae{"1.5009999999999999e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5001) == ae{"1.5001000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50001) == ae{"1.5000100000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500001) == ae{"1.5000009999999999e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000001) == ae{"1.5000001000000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000001) == ae{"1.5000000099999999e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000001) == ae{"1.5000000010000001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000000001) == ae{"1.5000000001000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000000001) == ae{"1.5000000000100000e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000000001) == ae{"1.5000000000010001e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.5000000000001) == ae{"1.5000000000000999e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.50000000000001) == ae{"1.5000000000000100e+00"sv, true});
+        CONSTEXPR_CHECK(a(1.500000000000001) == ae{"1.5000000000000011e+00"sv, true});
+        CONSTEXPR_CHECK(a(-1.0) == ae{"-1.0000000000000000e+00"sv, true});
+        CONSTEXPR_CHECK(a(10.0) == ae{"1.0000000000000000e+01"sv, true});
+        CONSTEXPR_CHECK(a(1e4) == ae{"1.0000000000000000e+04"sv, true});
+        CONSTEXPR_CHECK(a(1e-6) == ae{"9.9999999999999996e-07"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e301) == ae{"2.3455999999999998e+301"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e301) == ae{"-2.3455999999999998e+301"sv, true});
+        CONSTEXPR_CHECK(a(1.797693134862315e308) == ae{"1.7976931348623149e+308"sv, true});
+        CONSTEXPR_CHECK(a(-1.797693134862315e308) == ae{"-1.7976931348623149e+308"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-301) == ae{"2.3456000000000000e-301"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-301) == ae{"-2.3456000000000000e-301"sv, true});
+        CONSTEXPR_CHECK(a(2.225073858507201e-308) == ae{"2.2250738585072009e-308"sv, true});
+        CONSTEXPR_CHECK(a(-2.225073858507201e-308) == ae{"-2.2250738585072009e-308"sv, true});
+        CONSTEXPR_CHECK(a(2.3456e-320) == ae{"2.3458236864542386e-320"sv, true});
+        CONSTEXPR_CHECK(a(-2.3456e-320) == ae{"-2.3458236864542386e-320"sv, true});
+        CONSTEXPR_CHECK(a(4.940656458412465e-324) == ae{"4.9406564584124653e-324"sv, true});
+        CONSTEXPR_CHECK(a(-4.940656458412465e-324) == ae{"-4.9406564584124653e-324"sv, true});
+        CONSTEXPR_CHECK(a(-3.479295510743212e-89) == ae{"-3.4792955107432119e-89"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<double>::infinity()) == ae{"inf"sv, true});
         CONSTEXPR_CHECK(a(-std::numeric_limits<double>::infinity()) == ae{"-inf"sv, true});
         CONSTEXPR_CHECK(a(std::numeric_limits<double>::quiet_NaN()) == ae{"nan"sv, true});
+    }
+
+    SECTION("special cases") {
+        snitch::small_string<35> buffer;
+
+        auto a = [&](const auto& value, std::size_t precision) {
+            buffer.clear();
+            if (snitch::impl::append_constexpr(buffer, value, precision)) {
+                return std::string_view{buffer};
+            } else {
+                return std::string_view{};
+            }
+        };
 
         // Test that the rounding mode is the same as std::printf.
-        CONSTEXPR_CHECK(a(1.0000000000000001) == ae{"1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000002) == ae{"1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000003) == ae{"1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000004) == ae{"1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000005) == ae{"1.000000000000000e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000006) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000007) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000008) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000009) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000010) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000011) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000012) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000013) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000014) == ae{"1.000000000000001e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000015) == ae{"1.000000000000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000016) == ae{"1.000000000000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000017) == ae{"1.000000000000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000018) == ae{"1.000000000000002e+00"sv, true});
-        CONSTEXPR_CHECK(a(1.0000000000000019) == ae{"1.000000000000002e+00"sv, true});
+        CHECK(a(1.0000000000000001, 16) == "1.000000000000000e+00"sv);
+        CHECK(a(1.0000000000000002, 16) == "1.000000000000000e+00"sv);
+        CHECK(a(1.0000000000000003, 16) == "1.000000000000000e+00"sv);
+        CHECK(a(1.0000000000000004, 16) == "1.000000000000000e+00"sv);
+        CHECK(a(1.0000000000000005, 16) == "1.000000000000000e+00"sv);
+        CHECK(a(1.0000000000000006, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000007, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000008, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000009, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000010, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000011, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000012, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000013, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000014, 16) == "1.000000000000001e+00"sv);
+        CHECK(a(1.0000000000000015, 16) == "1.000000000000002e+00"sv);
+        CHECK(a(1.0000000000000016, 16) == "1.000000000000002e+00"sv);
+        CHECK(a(1.0000000000000017, 16) == "1.000000000000002e+00"sv);
+        CHECK(a(1.0000000000000018, 16) == "1.000000000000002e+00"sv);
+        CHECK(a(1.0000000000000019, 16) == "1.000000000000002e+00"sv);
     }
 
     SECTION("doubles don't fit") {

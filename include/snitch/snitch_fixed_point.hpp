@@ -169,7 +169,7 @@ struct float_traits<float> {
     static constexpr bits_sig_t sig_bits_nan     = 0x400000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
 
-    static constexpr std::size_t precision = 7u;
+    static constexpr std::size_t precision = 9u;
 
     static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
         {unsigned_fixed(1192092895507812500u, -25), unsigned_fixed(2384185791015625000u, -25),
@@ -209,7 +209,7 @@ struct float_traits<double> {
     static constexpr bits_sig_t sig_bits_nan     = 0x8000000000000;
     static constexpr bits_sig_t sig_bits_inf     = 0x0;
 
-    static constexpr std::size_t precision = 16u;
+    static constexpr std::size_t precision = 17u;
 
     static constexpr std::array<unsigned_fixed, sig_bits> sig_elems = {
         {unsigned_fixed(2220446049250313081u, -34), unsigned_fixed(4440892098500626162u, -34),

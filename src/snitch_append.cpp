@@ -19,7 +19,7 @@ using namespace std::literals;
 template<floating_point T>
 bool append_to(small_string_span ss, T value) noexcept {
     constexpr auto fmt       = std::chars_format::scientific;
-    constexpr auto precision = same_as<float, std::remove_cvref_t<T>> ? 6 : 15;
+    constexpr auto precision = same_as<float, std::remove_cvref_t<T>> ? 8 : 16;
     auto [end, err] = std::to_chars(ss.end(), ss.begin() + ss.capacity(), value, fmt, precision);
     if (err != std::errc{}) {
         // Not enough space, try into a temporary string that *should* be big enough,
