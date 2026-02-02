@@ -140,20 +140,14 @@ make_capture_buffer(const capture_state& captures) noexcept {
 }
 } // namespace
 
-std::string_view
-make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
+bool make_full_name(small_string<max_test_name_length>& buffer, const test_id& id) noexcept {
     buffer.clear();
-    if (id.type.length() != 0) {
-        if (!append(buffer, id.name, " <", id.type, ">")) {
-            return {};
-        }
-    } else {
-        if (!append(buffer, id.name)) {
-            return {};
-        }
-    }
 
-    return buffer.str();
+    if (id.type.length() != 0) {
+        return append(buffer, id.name, " <", id.type, ">");
+    } else {
+        return append(buffer, id.name);
+    }
 }
 } // namespace snitch::impl
 
@@ -363,7 +357,7 @@ registry::add_impl(const test_id& id, const source_location& location, impl::tes
     test_list.push_back(impl::test_case{id, location, func});
 
     small_string<max_test_name_length> buffer;
-    if (impl::make_full_name(buffer, test_list.back().id).empty()) {
+    if (!impl::make_full_name(buffer, test_list.back().id)) {
         using namespace snitch::impl;
         print(
             make_colored("error:", with_color, color::fail),
@@ -849,8 +843,9 @@ bool run_tests_impl(registry& r, const cli::input& args) noexcept {
 
             // Evaluate each filter (provided as separate command-line argument).
             for (const auto& filter : filter_strings) {
-                const filter_result sub_result =
-                    is_filter_match_id(impl::make_full_name(buffer, id), id.tags, filter);
+                impl::make_full_name(buffer, id);
+
+                const filter_result sub_result = is_filter_match_id(buffer.str(), id.tags, filter);
 
                 if (!result.has_value()) {
                     // The first filter initialises the result.
