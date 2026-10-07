@@ -11,6 +11,8 @@
 #    define SNITCH_TESTING_ABORT                                                                   \
         throw snitch::impl::abort_exception {}
 #else
+#include <exception>
+
 #    define SNITCH_TESTING_ABORT std::terminate()
 #endif
 
